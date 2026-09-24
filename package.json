@@ -11,7 +11,8 @@
     "build": "vite build",
     "deploy": "npm run build && wrangler deploy",
     "test:ui": "vitest run --config vitest.ui.config.ts",
-    "test:worker": "vitest run"
+    "test:worker": "vitest run",
+    "bootstrap-admin": "node scripts/bootstrap-admin.mjs"
   },
   "dependencies": {
     "hono": "^4.9.8",
