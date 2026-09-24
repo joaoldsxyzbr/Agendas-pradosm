@@ -7,26 +7,17 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
-import type { UserProfile } from "../shared/auth";
+import { AdminAgendaHistoryPage } from "./admin/AdminAgendaHistoryPage";
+import { AdminLayout } from "./admin/AdminLayout";
+import { DashboardPage } from "./admin/DashboardPage";
+import { ImportAgendaPage } from "./admin/ImportAgendaPage";
+import { StoresPage } from "./admin/StoresPage";
+import { UsersPage } from "./admin/UsersPage";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 
-type NavItem = {
-  to: string;
-  label: string;
-  end?: boolean;
-};
-
-const ADMIN_NAV: NavItem[] = [
-  { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/history", label: "Histórico" },
-  { to: "/admin/import", label: "Importar" },
-  { to: "/admin/stores", label: "Lojas" },
-  { to: "/admin/users", label: "Usuários" },
-];
-
-const STORE_NAV: NavItem[] = [
+const STORE_NAV = [
   { to: "/app", label: "Hoje", end: true },
   { to: "/app/history", label: "Histórico" },
 ];
@@ -49,13 +40,11 @@ function PlaceholderPage({
   );
 }
 
-function AuthenticatedLayout({ profile }: { profile: UserProfile }) {
+function StoreLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
   if (!user) return null;
-
-  const items = profile === "admin" ? ADMIN_NAV : STORE_NAV;
 
   async function handleLogout() {
     await logout();
@@ -71,12 +60,12 @@ function AuthenticatedLayout({ profile }: { profile: UserProfile }) {
           </div>
           <div>
             <strong>Agenda Prado</strong>
-            <span>{profile === "admin" ? "Administração" : "Recebimento"}</span>
+            <span>Recebimento</span>
           </div>
         </div>
 
         <nav className="side-nav" aria-label="Navegação principal">
-          {items.map((item) => (
+          {STORE_NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -93,7 +82,7 @@ function AuthenticatedLayout({ profile }: { profile: UserProfile }) {
         <div className="sidebar-footer">
           <div className="user-summary">
             <span>{user.nome}</span>
-            <small>{profile === "admin" ? "Administrador" : "Loja"}</small>
+            <small>Loja</small>
           </div>
           <button className="ghost-button" type="button" onClick={handleLogout}>
             Sair
@@ -113,7 +102,7 @@ function AuthenticatedLayout({ profile }: { profile: UserProfile }) {
         </header>
 
         <nav className="mobile-nav" aria-label="Navegação principal">
-          {items.map((item) => (
+          {STORE_NAV.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -159,62 +148,22 @@ export function AppRoutes() {
         path="/admin"
         element={
           <ProtectedRoute profile="admin">
-            <AuthenticatedLayout profile="admin" />
+            <AdminLayout />
           </ProtectedRoute>
         }
       >
-        <Route
-          index
-          element={
-            <PlaceholderPage
-              title="Dashboard"
-              description="Visão geral das agendas do dia por loja."
-            />
-          }
-        />
-        <Route
-          path="history"
-          element={
-            <PlaceholderPage
-              title="Histórico"
-              description="Consulte agendas já importadas."
-            />
-          }
-        />
-        <Route
-          path="import"
-          element={
-            <PlaceholderPage
-              title="Importar agenda"
-              description="Envie e revise o PDF antes da confirmação."
-            />
-          }
-        />
-        <Route
-          path="stores"
-          element={
-            <PlaceholderPage
-              title="Lojas"
-              description="Cadastre e gerencie as lojas."
-            />
-          }
-        />
-        <Route
-          path="users"
-          element={
-            <PlaceholderPage
-              title="Usuários"
-              description="Gerencie os acessos vinculados às lojas."
-            />
-          }
-        />
+        <Route index element={<DashboardPage />} />
+        <Route path="history" element={<AdminAgendaHistoryPage />} />
+        <Route path="import" element={<ImportAgendaPage />} />
+        <Route path="stores" element={<StoresPage />} />
+        <Route path="users" element={<UsersPage />} />
       </Route>
 
       <Route
         path="/app"
         element={
           <ProtectedRoute profile="loja">
-            <AuthenticatedLayout profile="loja" />
+            <StoreLayout />
           </ProtectedRoute>
         }
       >
