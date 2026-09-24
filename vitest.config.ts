@@ -20,6 +20,11 @@ export default defineConfig({
     }),
   ],
   test: {
+    include: [
+      "tests/worker/**/*.test.ts",
+      "tests/ui/parser.test.ts",
+      "tests/ui/extract-pdf.test.ts",
+    ],
     setupFiles: ["./tests/setup/migrations.ts"],
   },
 });
