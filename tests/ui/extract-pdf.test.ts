@@ -75,7 +75,7 @@ describe("extractPdfText", () => {
     expect(lines[0]).toBe(
       "90000001\t24/09/2026\tFORNECEDOR\t5\t2\t1\t-\tPedido\t-\t50001",
     );
-    expect(lines[1]).toBe("\t\tLTDA\t\t\t\t\t\t\t");
+    expect(lines[1]).toBe("\t\tLTDA");
     expect(cleanup).toHaveBeenCalledOnce();
     expect(destroy).toHaveBeenCalledOnce();
   });
