@@ -128,6 +128,28 @@ Estas decisões fecham pontos técnicos que a spec não define em detalhe:
 
 ---
 
+# Task 0 — Corrigir importação incompleta do PDF
+
+**Deliverable:** o parser estruturado mantém cada linha visual no agendamento correto mesmo quando data, fornecedor ou parte do tipo aparecem acima do protocolo centralizado.
+
+**Files**
+- Create: tests/fixtures/agenda-sintetica-alinhamento-vertical.txt
+- Modify: tests/ui/parser.test.ts
+- Modify: src/import/parseAgendaText.ts
+- Update checklist após validação: docs/superpowers/specs/2026-09-24-melhorias-ui-dashboard-usuarios-dark-design.md
+
+**Root cause:** o extrator ordena texto por coordenada vertical. Em células com protocolo centralizado, a primeira linha da data/fornecedor/tipo pode aparecer antes da linha que contém o protocolo. parseStructuredText tratava essas linhas como continuação do registro anterior.
+
+- [ ] **Step 1: reproduzir com fixture sintética de 24 registros**
+- [ ] **Step 2: confirmar RED: parser atual não entrega 24 registros**
+- [ ] **Step 3: manter linhas iniciadas por data em buffer até surgir o protocolo**
+- [ ] **Step 4: manter prefixo sem protocolo como registro inválido, sem silenciar erro**
+- [ ] **Step 5: rodar parser.test.ts e import.test.tsx**
+- [ ] **Step 6: revisar o diff e executar o CI uma única vez**
+- [ ] **Step 7: marcar Task 0 como [x] somente após CI verde**
+
+---
+
 # Task 1 — Mover “Importar agenda” para o Dashboard
 
 **Deliverable:** Dashboard, Histórico, Lojas e Usuários ficam na navegação; “Importar agenda” aparece no cabeçalho do Dashboard e abre o fluxo atual.

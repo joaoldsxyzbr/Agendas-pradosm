@@ -1,0 +1,51 @@
+Prado Supermercados Filtros: Dia: 24/09/2026 | Filiais: F03 - CANASVIEIRAS | Doca: Todas
+Agendas de recebimento Total: 24
+Protocolo\tData agenda\tFornecedor\tItens\tVol.\tPaletes\tCarga batida\tTipo\tN° NFe\tPedidos
+\t24/09/2026\tFORNECEDOR 01\t\t\t\t\tNota\t\t
+91000001\t08:00 às 08:10\tLTDA\t1\t2\t0\t-\tfiscal\t700001\t50001
+\t24/09/2026\tFORNECEDOR 02\t\t\t\t\tNota\t\t
+91000002\t08:10 às 08:20\tLTDA\t2\t3\t0\t-\tfiscal\t700002\t50002
+\t24/09/2026\tFORNECEDOR 03\t\t\t\t\tNota\t\t
+91000003\t08:20 às 08:30\tLTDA\t3\t4\t0\t-\tfiscal\t700003\t50003
+\t24/09/2026\tFORNECEDOR 04\t\t\t\t\tNota\t\t
+91000004\t08:30 às 08:40\tLTDA\t4\t5\t0\t-\tfiscal\t700004\t50004
+\t24/09/2026\tFORNECEDOR 05\t\t\t\t\tNota\t\t
+91000005\t08:40 às 08:50\tLTDA\t5\t6\t0\t-\tfiscal\t700005\t50005
+\t24/09/2026\tFORNECEDOR 06\t\t\t\t\tNota\t\t
+91000006\t08:50 às 09:00\tLTDA\t6\t7\t0\t-\tfiscal\t700006\t50006
+\t24/09/2026\tFORNECEDOR 07\t\t\t\t\tNota\t\t
+91000007\t09:00 às 09:10\tLTDA\t7\t8\t0\t-\tfiscal\t700007\t50007
+\t24/09/2026\tFORNECEDOR 08\t\t\t\t\tNota\t\t
+91000008\t09:10 às 09:20\tLTDA\t8\t9\t0\t-\tfiscal\t700008\t50008
+\t24/09/2026\tFORNECEDOR 09\t\t\t\t\tNota\t\t
+91000009\t09:20 às 09:30\tLTDA\t9\t10\t0\t-\tfiscal\t700009\t50009
+\t24/09/2026\tFORNECEDOR 10\t\t\t\t\tNota\t\t
+91000010\t09:30 às 09:40\tLTDA\t10\t11\t0\t-\tfiscal\t700010\t50010
+\t24/09/2026\tFORNECEDOR 11\t\t\t\t\tNota\t\t
+91000011\t09:40 às 09:50\tLTDA\t11\t12\t0\t-\tfiscal\t700011\t50011
+\t24/09/2026\tFORNECEDOR 12\t\t\t\t\tNota\t\t
+91000012\t09:50 às 10:00\tLTDA\t12\t13\t0\t-\tfiscal\t700012\t50012
+\t24/09/2026\tFORNECEDOR 13\t\t\t\t\tNota\t\t
+91000013\t10:00 às 10:10\tLTDA\t13\t14\t0\t-\tfiscal\t700013\t50013
+\t24/09/2026\tFORNECEDOR 14\t\t\t\t\tNota\t\t
+91000014\t10:10 às 10:20\tLTDA\t14\t15\t0\t-\tfiscal\t700014\t50014
+\t24/09/2026\tFORNECEDOR 15\t\t\t\t\tNota\t\t
+91000015\t10:20 às 10:30\tLTDA\t15\t16\t0\t-\tfiscal\t700015\t50015
+\t24/09/2026\tFORNECEDOR 16\t\t\t\t\tNota\t\t
+91000016\t10:30 às 10:40\tLTDA\t16\t17\t0\t-\tfiscal\t700016\t50016
+\t24/09/2026\tFORNECEDOR 17\t\t\t\t\tNota\t\t
+91000017\t10:40 às 10:50\tLTDA\t17\t18\t0\t-\tfiscal\t700017\t50017
+\t24/09/2026\tFORNECEDOR 18\t\t\t\t\tNota\t\t
+91000018\t10:50 às 11:00\tLTDA\t18\t19\t0\t-\tfiscal\t700018\t50018
+\t24/09/2026\tFORNECEDOR 19\t\t\t\t\tNota\t\t
+91000019\t11:00 às 11:10\tLTDA\t19\t20\t0\t-\tfiscal\t700019\t50019
+\t24/09/2026\tFORNECEDOR 20\t\t\t\t\tNota\t\t
+91000020\t11:10 às 11:20\tLTDA\t20\t21\t0\t-\tfiscal\t700020\t50020
+\t24/09/2026\tFORNECEDOR 21\t\t\t\t\tNota\t\t
+91000021\t11:20 às 11:30\tLTDA\t21\t22\t0\t-\tfiscal\t700021\t50021
+\t24/09/2026\tFORNECEDOR 22\t\t\t\t\tNota\t\t
+91000022\t11:30 às 11:40\tLTDA\t22\t23\t0\t-\tfiscal\t700022\t50022
+\t24/09/2026\tFORNECEDOR 23\t\t\t\t\tNota\t\t
+91000023\t11:40 às 11:50\tLTDA\t23\t24\t0\t-\tfiscal\t700023\t50023
+\t24/09/2026\tFORNECEDOR 24\t\t\t\t\tNota\t\t
+91000024\t11:50 às 12:00\tLTDA\t24\t25\t0\t-\tfiscal\t700024\t50024
