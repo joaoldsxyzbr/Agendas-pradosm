@@ -1038,7 +1038,7 @@ git commit -m "feat: add admin dashboard and import flow"
 - Consome: APIs /api/store/*.
 - Produces: lista desktop, cards mobile, detalhes, status e histórico.
 
-- [ ] **Step 1: Escrever testes da agenda de hoje**
+- [x] **Step 1: Escrever testes da agenda de hoje**
 
 Cobrir:
 - resumo total/aguardando/recebido/não chegou/recusado;
@@ -1047,7 +1047,7 @@ Cobrir:
 - desktop mostra colunas essenciais;
 - componente mobile mantém horário, fornecedor, protocolo e status.
 
-- [ ] **Step 2: Escrever testes da atualização de status**
+- [x] **Step 2: Escrever testes da atualização de status**
 
 Cobrir:
 - padrão aguardando;
@@ -1057,15 +1057,15 @@ Cobrir:
 - Não chegou e Recusado funcionam;
 - correção posterior também funciona.
 
-- [ ] **Step 3: Implementar detalhes**
+- [x] **Step 3: Implementar detalhes**
 
 Mostrar todos os campos importados, NF-e, pedidos, tipo, status e histórico de alterações.
 
-- [ ] **Step 4: Implementar Histórico**
+- [x] **Step 4: Implementar Histórico**
 
 Lista datas disponíveis; selecionar data busca somente aquela agenda. Não misturar dias anteriores na tela Hoje.
 
-- [ ] **Step 5: Implementar responsividade**
+- [x] **Step 5: Implementar responsividade**
 
 CSS:
 - desktop: tabela;
@@ -1073,7 +1073,7 @@ CSS:
 - status com texto e indicador visual;
 - alvo de toque confortável para ações.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/agenda.test.tsx
@@ -1083,12 +1083,20 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add src/agenda src/App.tsx src/styles.css tests/ui/agenda.test.tsx
 git commit -m "feat: add store agenda screens"
 ~~~
+
+
+**Checkpoint Task 10 — concluído em 24/09/2026**
+- Tela Hoje implementada com resumo por status, ordenação por horário e estado sem agenda.
+- Lista desktop e cards mobile exibem horário, fornecedor, protocolo e status.
+- Alteração de status atualiza a UI somente após resposta 2xx; falhas preservam o estado anterior.
+- Detalhes, histórico de alterações e consulta de agendas anteriores por data implementados.
+- Verificação final: GitHub Actions #141 passou.
 
 ---
 
