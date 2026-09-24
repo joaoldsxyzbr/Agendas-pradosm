@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import type { AppEnv } from "../env";
@@ -14,7 +15,7 @@ const LoginInput = z.object({
   senha: z.string().min(8).max(200),
 });
 
-function invalidCredentials(c: Parameters<typeof authRoutes.post>[1] extends never ? never : any) {
+function invalidCredentials(c: Context<AppEnv>) {
   return c.json(
     {
       error: "CREDENCIAIS_INVALIDAS",
