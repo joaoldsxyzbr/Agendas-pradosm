@@ -44,6 +44,7 @@
 ├── vite.config.ts
 ├── vitest.config.ts
 ├── wrangler.jsonc
+├── worker-configuration.d.ts
 ├── migrations/
 │   └── 0001_init.sql
 ├── scripts/
@@ -86,6 +87,7 @@
 │   ├── admin/
 │   │   ├── AdminLayout.tsx
 │   │   ├── DashboardPage.tsx
+│   │   ├── AdminAgendaHistoryPage.tsx
 │   │   ├── StoresPage.tsx
 │   │   ├── UsersPage.tsx
 │   │   └── ImportAgendaPage.tsx
@@ -105,13 +107,18 @@
     │   └── agenda-sintetica.txt
     ├── worker/
     │   ├── health.test.ts
+    │   ├── database.test.ts
     │   ├── auth.test.ts
     │   ├── admin.test.ts
     │   ├── import.test.ts
     │   └── store-agendas.test.ts
+    ├── tsconfig.json
     └── ui/
+        ├── parser.test.ts
+        ├── extract-pdf.test.ts
         ├── login.test.tsx
         ├── import.test.tsx
+        ├── admin-history.test.tsx
         └── agenda.test.tsx
 ~~~
 
@@ -124,6 +131,8 @@
 - Create: vite.config.ts
 - Create: vitest.config.ts
 - Create: wrangler.jsonc
+- Create: worker-configuration.d.ts
+- Create: tests/tsconfig.json
 - Create: worker/env.ts
 - Create: worker/app.ts
 - Create: worker/index.ts
@@ -146,10 +155,11 @@ npm install react react-dom react-router-dom hono zod pdfjs-dist
 npm install -D typescript vite @vitejs/plugin-react @cloudflare/vite-plugin wrangler vitest@^4.1.0 @cloudflare/vitest-plugin @testing-library/react @testing-library/jest-dom jsdom @types/react @types/react-dom
 ~~~
 
-Definir scripts:
+Definir package.json com "type": "module" e scripts:
 
 ~~~json
 {
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "test": "vitest run",
@@ -202,8 +212,17 @@ export default app;
 - [ ] **Step 4: Configurar Vite, Cloudflare e Vitest**
 
 vite.config.ts deve usar react() e cloudflare().  
-wrangler.jsonc deve usar compatibility_date 2026-09-24 e main ./worker/index.ts.  
-vitest.config.ts deve usar cloudflareTest com wrangler.configPath apontando para ./wrangler.jsonc.
+wrangler.jsonc deve usar compatibility_date 2026-09-24, main ./worker/index.ts e assets.not_found_handling = "single-page-application".  
+vitest.config.ts deve usar cloudflareTest com wrangler.configPath apontando para ./wrangler.jsonc.  
+tests/tsconfig.json deve incluir os tipos de @cloudflare/vitest-plugin.
+
+Gerar tipos do runtime:
+
+~~~bash
+npx wrangler types
+~~~
+
+Expected: worker-configuration.d.ts criado sem erro.
 
 - [ ] **Step 5: Criar SPA mínima e rodar verificações**
 
@@ -220,7 +239,7 @@ Expected: todos com exit code 0.
 - [ ] **Step 6: Commit do checkpoint**
 
 ~~~bash
-git add package.json package-lock.json vite.config.ts vitest.config.ts wrangler.jsonc worker src tests/worker/health.test.ts
+git add package.json package-lock.json vite.config.ts vitest.config.ts wrangler.jsonc worker-configuration.d.ts worker src tests/tsconfig.json tests/worker/health.test.ts
 git commit -m "chore: scaffold Agenda Prado app"
 ~~~
 
@@ -235,6 +254,7 @@ git commit -m "chore: scaffold Agenda Prado app"
 - Create: tests/setup/migrations.ts
 - Create: tests/worker/database.test.ts
 - Modify: worker/env.ts
+- Modify: worker-configuration.d.ts
 
 **Interfaces:**
 - Produces: binding Env.DB: D1Database.
@@ -249,7 +269,7 @@ Run:
 npx wrangler d1 create agendas-prado
 ~~~
 
-Expected: Wrangler retorna o database_id. Registrar exatamente esse ID no binding DB do wrangler.jsonc.
+Expected: Wrangler retorna o database_id. Registrar exatamente esse ID no binding DB do wrangler.jsonc e executar npx wrangler types novamente para atualizar Env.DB.
 
 - [ ] **Step 2: Escrever migration inicial**
 
@@ -383,7 +403,8 @@ Cobrir:
 - cookie adulterado falha;
 - cookie expirado falha;
 - usuário inativo recebe 401;
-- loja chamando rota admin recebe 403.
+- loja chamando rota admin recebe 403;
+- SESSION_SECRET de teste é fornecido somente pela configuração do Vitest/Miniflare.
 
 Run: npm test -- tests/worker/auth.test.ts  
 Expected: FAIL.
@@ -773,7 +794,7 @@ Nenhuma rota de loja recebe lojaId do cliente. O lojaId vem do usuário da sess�
 
 - [ ] **Step 5: Implementar mudança de status**
 
-Executar UPDATE do agendamento e INSERT do histórico juntos; se uma das operações falhar, a operação completa deve falhar.
+Executar UPDATE do agendamento e INSERT do histórico no mesmo DB.batch; se uma das operações falhar, o batch inteiro deve ser revertido.
 
 - [ ] **Step 6: Rodar testes**
 
@@ -925,7 +946,7 @@ Expected: PASS e build exit 0.
 - [ ] **Step 7: Commit do checkpoint**
 
 ~~~bash
-git add src/admin src/App.tsx src/styles.css tests/ui/import.test.tsx
+git add src/admin src/App.tsx src/styles.css tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
 git commit -m "feat: add admin dashboard and import flow"
 ~~~
 
