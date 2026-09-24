@@ -43,6 +43,12 @@ jobs:
           fi
 
           if [ "$code" -eq 0 ]; then
+            stage="local migration"
+            npx wrangler d1 migrations apply agendas-prado --local 2>&1 | tee /tmp/verify.log
+            code=${PIPESTATUS[0]}
+          fi
+
+          if [ "$code" -eq 0 ]; then
             stage="health test"
             npm test -- tests/worker/health.test.ts tests/worker/database.test.ts 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
