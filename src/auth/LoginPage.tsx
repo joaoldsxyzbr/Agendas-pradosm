@@ -11,7 +11,15 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && user) {
+  if (loading) {
+    return (
+      <main className="centered-state" role="status">
+        Carregando...
+      </main>
+    );
+  }
+
+  if (user) {
     return <Navigate to={user.perfil === "admin" ? "/admin" : "/app"} replace />;
   }
 
