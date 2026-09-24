@@ -819,7 +819,7 @@ Payload permitido:
 
 ~~~ts
 const ChangeStatusInput = z.object({
-  status: z.enum(["recebido", "nao_chegou", "recusado", "aguardando"])
+  status: z.enum(["recebido", "nao_chegou", "recusado"])
 });
 ~~~
 
@@ -1218,6 +1218,9 @@ Marcar Status da spec como Implementado somente após aceite completo. Marcar to
 - Spec revisada e mantida como `Implementação concluída; aceite de produção pendente`, pois os Steps 4–7 exigem execução operacional real.
 - Revisão final detectou que `aguardando` aparecia como opção selecionável pela loja; API, UI e testes foram ajustados para permitir somente `recebido`, `nao_chegou` e `recusado`.
 - Steps 4–7 continuam deliberadamente abertos até configuração do segredo, bootstrap do admin, deploy e aceite manual com o PDF real.
+- Tentativa operacional via GitHub Actions em 24/09/2026 foi interrompida antes do Cloudflare porque os repository secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` não estão configurados.
+- O workflow descartável usado apenas para diagnosticar esse caminho foi removido; nenhum segredo foi gravado no repositório.
+- CI #8 revelou flakiness no teste de cookie adulterado: alterar o último caractere Base64URL podia preservar os bytes decodificados. O teste foi corrigido para adulterar o início da assinatura de forma determinística.
 
 - [x] **Step 11: Commit final de documentação e CI**
 

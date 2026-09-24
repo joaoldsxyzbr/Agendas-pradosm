@@ -118,7 +118,11 @@ describe("auth", () => {
     await seedUser({ id: "admin-tamper", login: "admin-tamper", perfil: "admin" });
     const response = await login("admin-tamper");
     const cookie = cookiePair(response);
-    const tampered = cookie.slice(0, -1) + (cookie.endsWith("a") ? "b" : "a");
+    const [name, token] = cookie.split("=");
+    const [payload, signature] = token.split(".");
+    const tamperedSignature =
+      (signature.startsWith("a") ? "b" : "a") + signature.slice(1);
+    const tampered = `${name}=${payload}.${tamperedSignature}`;
 
     const me = await exports.default.fetch(
       new Request("https://example.com/api/auth/me", {
