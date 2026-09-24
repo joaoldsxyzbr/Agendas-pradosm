@@ -16,6 +16,8 @@ import { UsersPage } from "./admin/UsersPage";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
+import { HistoryPage } from "./agenda/HistoryPage";
+import { TodayPage } from "./agenda/TodayPage";
 
 const STORE_NAV = [
   { to: "/app", label: "Hoje", end: true },
@@ -167,24 +169,8 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route
-          index
-          element={
-            <PlaceholderPage
-              title="Agenda de hoje"
-              description="Acompanhe os recebimentos previstos para hoje."
-            />
-          }
-        />
-        <Route
-          path="history"
-          element={
-            <PlaceholderPage
-              title="Histórico"
-              description="Consulte agendas dos dias anteriores."
-            />
-          }
-        />
+        <Route index element={<TodayPage />} />
+        <Route path="history" element={<HistoryPage />} />
       </Route>
 
       <Route path="/" element={<HomeRedirect />} />
