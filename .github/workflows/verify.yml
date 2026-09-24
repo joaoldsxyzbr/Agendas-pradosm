@@ -1,22 +1,73 @@
 name: Verify
 
 on:
+  push:
+    branches:
+      - feat/agenda-prado-v1-clean
   pull_request:
     branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install
-      - run: npm test -- tests/worker/health.test.ts
-      - run: npm run typecheck
-      - run: npm run build
+
+      - name: Run verification
+        shell: bash
+        run: |
+          set +e
+          stage="npm install"
+          npm install
+          code=$?
+
+          if [ "$code" -eq 0 ]; then
+            stage="health test"
+            npm test -- tests/worker/health.test.ts 2>&1 | tee /tmp/verify.log
+            code=${PIPESTATUS[0]}
+          fi
+
+          if [ "$code" -eq 0 ]; then
+            stage="typecheck"
+            npm run typecheck 2>&1 | tee /tmp/verify.log
+            code=${PIPESTATUS[0]}
+          fi
+
+          if [ "$code" -eq 0 ]; then
+            stage="build"
+            npm run build 2>&1 | tee /tmp/verify.log
+            code=${PIPESTATUS[0]}
+          fi
+
+          description="$stage passed"
+          if [ "$code" -ne 0 ]; then
+            description="$stage failed"
+            if grep -Eqi "worker/index\.ts|Could not resolve.*worker|entry.*worker" /tmp/verify.log 2>/dev/null; then
+              description="RED: Worker entry missing"
+            fi
+          fi
+
+          echo "VERIFY_CODE=$code" >> "$GITHUB_ENV"
+          echo "VERIFY_DESCRIPTION=$description" >> "$GITHUB_ENV"
+
+      - name: Publish verification status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          state="failure"
+          if [ "$VERIFY_CODE" = "0" ]; then
+            state="success"
+          fi
+          gh api --method POST             "repos/${{ github.repository }}/statuses/${{ github.sha }}"             -f state="$state"             -f context="agenda-prado/verify"             -f description="$VERIFY_DESCRIPTION"
+
+      - name: Fail when verification failed
+        run: test "$VERIFY_CODE" = "0"
