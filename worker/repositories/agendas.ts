@@ -333,3 +333,109 @@ export async function replaceAgendaImport(
 
   await db.batch(statements);
 }
+
+
+export async function findStoreAgendaByDate(
+  db: D1Database,
+  storeId: string,
+  date: string,
+): Promise<AgendaWithStoreRecord | null> {
+  return db
+    .prepare(
+      `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")}, l.codigo AS store_code, l.nome AS store_name
+       FROM agendas a
+       JOIN lojas l ON l.id = a.loja_id
+       WHERE a.loja_id = ? AND a.data_agenda = ?
+       LIMIT 1`,
+    )
+    .bind(storeId, date)
+    .first<AgendaWithStoreRecord>();
+}
+
+export async function listStoreAgendas(
+  db: D1Database,
+  storeId: string,
+): Promise<AgendaSummaryRecord[]> {
+  const result = await db
+    .prepare(
+      `SELECT
+         a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
+         l.codigo AS store_code,
+         l.nome AS store_name,
+         SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
+         SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
+         SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
+         SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS nao_chegou,
+         SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado
+       FROM agendas a
+       JOIN lojas l ON l.id = a.loja_id
+       LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
+       WHERE a.loja_id = ?
+       GROUP BY a.id, l.codigo, l.nome
+       ORDER BY a.data_agenda DESC`,
+    )
+    .bind(storeId)
+    .all<AgendaSummaryRecord>();
+
+  return result.results;
+}
+
+export async function findAppointmentForStore(
+  db: D1Database,
+  appointmentId: string,
+  storeId: string,
+): Promise<AppointmentRecord | null> {
+  const prefixedColumns = APPOINTMENT_COLUMNS.split(", ")
+    .map((column) => `ag.${column}`)
+    .join(", ");
+
+  return db
+    .prepare(
+      `SELECT ${prefixedColumns}
+       FROM agendamentos ag
+       JOIN agendas a ON a.id = ag.agenda_id
+       WHERE ag.id = ? AND a.loja_id = ? AND ag.ativo = 1
+       LIMIT 1`,
+    )
+    .bind(appointmentId, storeId)
+    .first<AppointmentRecord>();
+}
+
+export async function changeAppointmentStatus(
+  db: D1Database,
+  appointment: AppointmentRecord,
+  userId: string,
+  status: AppointmentRecord["status"],
+): Promise<AppointmentRecord> {
+  if (appointment.status === status) return appointment;
+
+  const now = new Date().toISOString();
+  const historyId = crypto.randomUUID();
+
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE agendamentos SET status = ?, atualizado_em = ? WHERE id = ?",
+      )
+      .bind(status, now, appointment.id),
+    db
+      .prepare(
+        "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, ?, ?, ?)",
+      )
+      .bind(
+        historyId,
+        appointment.id,
+        userId,
+        appointment.status,
+        status,
+        now,
+      ),
+  ]);
+
+  const updated = await findAppointmentById(db, appointment.id);
+  if (!updated) {
+    throw new Error("Agendamento atualizado não pôde ser relido.");
+  }
+
+  return updated;
+}
