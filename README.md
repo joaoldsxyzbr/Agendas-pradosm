@@ -157,7 +157,7 @@ O deploy executa o build antes de publicar o Worker.
 - mutações autenticadas validam `Origin` quando enviado pelo navegador;
 - o JSON de importação possui limite de 1 MB;
 - erros internos retornam resposta genérica sem stack trace ao cliente;
-- senhas nunca são armazenadas em texto puro.
+- senhas nunca são armazenadas em texto puro;\n- o PBKDF2-SHA256 usa 100.000 iterações por compatibilidade com o limite do Web Crypto do Cloudflare Workers.
 
 ## PDFs reais
 
