@@ -9,7 +9,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
     "build": "vite build",
-    "deploy": "npm run build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy",
+    "test:ui": "vitest run --config vitest.ui.config.ts"
   },
   "dependencies": {
     "hono": "^4.9.8",
