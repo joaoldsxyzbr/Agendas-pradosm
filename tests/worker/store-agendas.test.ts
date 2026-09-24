@@ -367,6 +367,41 @@ describe("store agenda workflow", () => {
     expect(row?.status).toBe("aguardando");
   });
 
+
+  it("não permite que a loja volte o status para aguardando", async () => {
+    const cookie = await seedStoreUser({
+      storeId: "store-status-awaiting",
+      storeCode: "F80",
+      userId: "user-status-awaiting",
+    });
+    await seedAgenda({
+      agendaId: "agenda-status-awaiting",
+      storeId: "store-status-awaiting",
+      creatorId: "user-status-awaiting",
+      date: "2026-09-20",
+    });
+    await seedAppointment({
+      id: "appt-status-awaiting",
+      agendaId: "agenda-status-awaiting",
+      protocol: "95500001",
+      startTime: "08:00",
+      status: "recebido",
+    });
+
+    const response = await request(
+      "/api/store/appointments/appt-status-awaiting/status",
+      cookie,
+      { method: "PATCH", body: { status: "aguardando" } },
+    );
+
+    expect(response.status).toBe(400);
+    const row = await db
+      .prepare("SELECT status FROM agendamentos WHERE id = ?")
+      .bind("appt-status-awaiting")
+      .first<{ status: string }>();
+    expect(row?.status).toBe("recebido");
+  });
+
   it("rollbacka a mudança se a gravação do histórico falhar", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-status-atomic",

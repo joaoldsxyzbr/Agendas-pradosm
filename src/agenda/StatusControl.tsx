@@ -3,7 +3,6 @@ import { ApiError, apiFetch } from "../lib/api";
 import type { AppointmentStatus, StoreAppointment } from "./types";
 
 const STATUS_OPTIONS: Array<{ value: AppointmentStatus; label: string }> = [
-  { value: "aguardando", label: "Aguardando" },
   { value: "recebido", label: "Recebido" },
   { value: "nao_chegou", label: "Não chegou" },
   { value: "recusado", label: "Recusado" },

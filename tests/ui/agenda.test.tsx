@@ -152,6 +152,9 @@ describe("TodayPage", () => {
 
     const card = await screen.findByTestId("agenda-mobile-card");
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+    expect(
+      within(card).queryByRole("button", { name: "Aguardando" }),
+    ).not.toBeInTheDocument();
 
     fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();

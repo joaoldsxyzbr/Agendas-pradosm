@@ -20,7 +20,7 @@ export const storeAgendaRoutes = new Hono<AppEnv>();
 export const storeAppointmentRoutes = new Hono<AppEnv>();
 
 const ChangeStatusInput = z.object({
-  status: z.enum(["recebido", "nao_chegou", "recusado", "aguardando"]),
+  status: z.enum(["recebido", "nao_chegou", "recusado"]),
 });
 
 const DateParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
