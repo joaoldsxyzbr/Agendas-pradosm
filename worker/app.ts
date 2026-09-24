@@ -22,8 +22,6 @@ import {
 export const app = new Hono<AppEnv>();
 
 app.use("/api/*", apiSecurityHeaders);
-app.use("/api/*", validateMutationOrigin);
-app.use("/api/admin/agendas/import", limitAgendaImportBody);
 
 app.onError((error, c) => {
   console.error("Unhandled API error", error);
@@ -33,12 +31,13 @@ app.onError((error, c) => {
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/auth", authRoutes);
 
-app.use("/api/admin/*", requireAuth, requireAdmin);
+app.use("/api/admin/*", requireAuth, requireAdmin, validateMutationOrigin);
+app.use("/api/admin/agendas/import", limitAgendaImportBody);
 app.route("/api/admin/stores", adminStoreRoutes);
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
 
-app.use("/api/store/*", requireAuth);
+app.use("/api/store/*", requireAuth, validateMutationOrigin);
 app.route("/api/store", storeAgendaRoutes);
 app.route("/api/store/appointments", storeAppointmentRoutes);
