@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
 import { z } from "zod";
+import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
 import { businessDate } from "../lib/time";
 import {
@@ -24,10 +25,20 @@ const ChangeStatusInput = z.object({
 
 const DateParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
-function storeUser(c: Context<AppEnv>) {
+type StoreAuthUser = AuthUser & {
+  perfil: "loja";
+  lojaId: string;
+};
+
+function storeUser(c: Context<AppEnv>): StoreAuthUser | null {
   const user = c.get("authUser");
   if (user.perfil !== "loja" || !user.lojaId) return null;
-  return user;
+
+  return {
+    ...user,
+    perfil: "loja",
+    lojaId: user.lojaId,
+  };
 }
 
 function forbidden(c: Context<AppEnv>) {
