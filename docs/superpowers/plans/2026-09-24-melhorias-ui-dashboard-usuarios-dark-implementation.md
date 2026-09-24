@@ -159,7 +159,7 @@ Estas decisões fecham pontos técnicos que a spec não define em detalhe:
 - Produces: link contextual para /admin/import.
 - Não altera: ImportAgendaPage, parser ou API de importação.
 
-- [ ] **Step 1: criar o teste de navegação**
+- [x] **Step 1: criar o teste de navegação**
 
 Criar tests/ui/admin-navigation.test.tsx:
 
@@ -237,7 +237,7 @@ describe("admin navigation", () => {
 });
 ~~~
 
-- [ ] **Step 2: remover a entrada da navegação**
+- [x] **Step 2: remover a entrada da navegação**
 
 Em src/admin/AdminLayout.tsx, NAV_ITEMS passa a ser:
 
@@ -252,7 +252,7 @@ const NAV_ITEMS = [
 
 Não remover a Route path="import" de src/App.tsx.
 
-- [ ] **Step 3: adicionar a ação ao Dashboard**
+- [x] **Step 3: adicionar a ação ao Dashboard**
 
 Em src/admin/DashboardPage.tsx importar Link de react-router-dom e usar:
 
@@ -270,7 +270,7 @@ Em src/admin/DashboardPage.tsx importar Link de react-router-dom e usar:
 </header>
 ~~~
 
-- [ ] **Step 4: ajustar o layout responsivo**
+- [x] **Step 4: ajustar o layout responsivo**
 
 Adicionar em src/styles.css:
 
@@ -299,7 +299,7 @@ Adicionar em src/styles.css:
 }
 ~~~
 
-- [ ] **Step 5: validar a task**
+- [x] **Step 5: validar a task**
 
 Executar:
 
@@ -309,7 +309,7 @@ npx vitest run --config vitest.ui.config.ts tests/ui/admin-navigation.test.tsx t
 
 Revisar o diff e confirmar que src/App.tsx ainda contém /admin/import e que ImportAgendaPage não foi duplicada.
 
-- [ ] **Step 6: checkpoint e CI**
+- [x] **Step 6: checkpoint e CI**
 
 Criar um único commit:
 

@@ -84,12 +84,12 @@ Transformar a importação em uma ação principal do Dashboard e remover esse i
 
 ## Requisitos
 
-- [ ] Remover **Importar** do menu lateral.
-- [ ] Adicionar botão **Importar agenda** no topo direito do Dashboard.
-- [ ] Manter o fluxo atual de importação.
-- [ ] O botão deve ficar visualmente destacado sem competir com os KPIs.
-- [ ] Em telas pequenas, reposicionar o botão abaixo do título sem quebrar o layout.
-- [ ] Não duplicar o fluxo de importação em dois lugares.
+- [x] Remover **Importar** do menu lateral.
+- [x] Adicionar botão **Importar agenda** no topo direito do Dashboard.
+- [x] Manter o fluxo atual de importação.
+- [x] O botão deve ficar visualmente destacado sem competir com os KPIs.
+- [x] Em telas pequenas, reposicionar o botão abaixo do título sem quebrar o layout.
+- [x] Não duplicar o fluxo de importação em dois lugares.
 
 ## Layout esperado
 
@@ -100,10 +100,10 @@ Acompanhe a situação das agendas de hoje por loja.
 
 ## Critérios de aceite
 
-- [ ] O menu lateral não mostra mais “Importar”.
-- [ ] O Dashboard mostra o botão no topo.
-- [ ] A importação continua funcionando como antes.
-- [ ] Desktop e mobile permanecem responsivos.
+- [x] O menu lateral não mostra mais “Importar”.
+- [x] O Dashboard mostra o botão no topo.
+- [x] A importação continua funcionando como antes.
+- [x] Desktop e mobile permanecem responsivos.
 
 ---
 
@@ -373,7 +373,7 @@ A importação passa a ser uma ação contextual do Dashboard.
 # Ordem de execução
 
 1. [x] **Task 0 — Corrigir importação incompleta do PDF**
-2. [ ] **Task 1 — Mover Importar agenda**
+2. [x] **Task 1 — Mover Importar agenda**
 3. [ ] **Task 2 — Redesign azul + amarelo**
 4. [ ] **Task 3 — Gerenciamento completo de usuários**
 5. [ ] **Task 4 — Modo dark**
