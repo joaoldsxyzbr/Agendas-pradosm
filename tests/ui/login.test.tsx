@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../src/App";
@@ -90,6 +90,7 @@ function mockLogin(user: User | null) {
 }
 
 afterEach(() => {
+  cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
