@@ -714,7 +714,7 @@ git commit -m "feat: add agenda PDF parser"
 - replace=false por padrão; agenda existente retorna 409.
 - replace=true executa substituição explícita.
 
-- [ ] **Step 1: Escrever testes de importação**
+- [x] **Step 1: Escrever testes de importação**
 
 Cobrir:
 - loja inexistente retorna 422;
@@ -729,7 +729,7 @@ Cobrir:
 - admin consegue consultar agenda histórica de qualquer loja;
 - admin consegue consultar o histórico de status de um agendamento.
 
-- [ ] **Step 2: Implementar validação da API**
+- [x] **Step 2: Implementar validação da API**
 
 Zod deve exigir:
 - data ISO;
@@ -743,11 +743,11 @@ Zod deve exigir:
 
 O backend ignora qualquer status enviado pelo frontend em novos protocolos.
 
-- [ ] **Step 3: Implementar importação inicial**
+- [x] **Step 3: Implementar importação inicial**
 
 Gerar UUIDs no Worker. Salvar nfe e pedidos como JSON serializado. Usar D1 prepared statements.
 
-- [ ] **Step 4: Implementar substituição**
+- [x] **Step 4: Implementar substituição**
 
 Algoritmo:
 1. buscar agenda existente;
@@ -759,7 +759,7 @@ Algoritmo:
 7. atualizar arquivo_original e atualizado_em;
 8. executar as escritas via DB.batch para rollback em falha.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/import.test.ts
@@ -768,12 +768,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add worker/repositories/agendas.ts worker/routes/admin-agendas.ts worker/app.ts shared/agenda.ts tests/worker/import.test.ts
 git commit -m "feat: import and replace agendas"
 ~~~
+
+
+**Checkpoint Task 6 — concluído em 24/09/2026**
+- Importação inicial, duplicidade e substituição explícita implementadas.
+- Replace preserva status e histórico por protocolo, adiciona novos como aguardando e desativa removidos.
+- Escritas de importação/substituição usam D1.batch() para atomicidade.
+- Consultas administrativas de agenda e histórico de status implementadas.
+- Verificação final: GitHub Actions #117 passou.
 
 ---
 
