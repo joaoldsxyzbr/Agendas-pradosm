@@ -1,8 +1,8 @@
 # Agenda Prado — Design da aplicação
 
 **Data:** 24/09/2026  
-**Status:** Spec para revisão  
-**Repositório:** `joaoldsxyzbr/Agendas-prado`
+**Status:** Implementação concluída; aceite de produção pendente  
+**Repositório:** `joaoldsxyzbr/Agendas-pradosm`
 
 ## 1. Objetivo
 
@@ -381,6 +381,10 @@ O histórico não deve ser apagado quando uma agenda for substituída.
 - usuário inativo não pode iniciar nova sessão;
 - entradas da API devem ser validadas;
 - mensagens de erro de login não devem revelar se um usuário específico existe;
+- respostas de autenticação e agenda usam `Cache-Control: no-store`;
+- mutações autenticadas validam `Origin` quando enviado pelo navegador;
+- o payload JSON de importação possui limite de tamanho;
+- erros internos não expõem stack trace ao cliente;
 - o primeiro administrador deve ser provisionado por um comando de setup/seed explícito, sem senha padrão ou credencial hardcoded no repositório.
 
 ## 14. Tratamento de erros
