@@ -15,8 +15,12 @@ function isSensitiveApiPath(path: string) {
   );
 }
 
-function isAuthenticatedMutationPath(path: string) {
-  return path.startsWith("/api/admin/") || path.startsWith("/api/store/");
+function isMutationOriginProtectedPath(path: string) {
+  return (
+    path.startsWith("/api/admin/") ||
+    path.startsWith("/api/store/") ||
+    path === "/api/auth/bootstrap-register"
+  );
 }
 
 function originMatchesRequest(requestUrl: string, origin: string) {
@@ -51,7 +55,7 @@ export const validateMutationOrigin = createMiddleware<AppEnv>(
   async (c, next) => {
     if (
       !MUTATION_METHODS.has(c.req.method.toUpperCase()) ||
-      !isAuthenticatedMutationPath(c.req.path)
+      !isMutationOriginProtectedPath(c.req.path)
     ) {
       await next();
       return;

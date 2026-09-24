@@ -71,7 +71,31 @@ Nunca grave esse valor em arquivo versionado.
 
 ## Primeiro administrador
 
-O bootstrap usa somente variáveis de ambiente e envia ao D1 apenas o hash PBKDF2 da senha.
+Há dois caminhos seguros. Nenhum grava senha em texto puro.
+
+### Sem ambiente local
+
+Enquanto ainda não existir nenhum registro com perfil `admin`, a tela de login mostra **Preparar primeiro administrador**.
+
+1. Informe nome, login e uma senha com pelo menos 12 caracteres.
+2. O Worker gera o hash PBKDF2 e cria o administrador com `ativo = 0`.
+3. Esse usuário ainda **não consegue fazer login**.
+4. No console do D1, ative somente o login que você acabou de cadastrar:
+
+```sql
+UPDATE usuarios
+SET ativo = 1,
+    atualizado_em = CURRENT_TIMESTAMP
+WHERE login = 'SEU_LOGIN'
+  AND perfil = 'admin'
+  AND ativo = 0;
+```
+
+Depois da criação do primeiro registro administrativo, a opção de preparação desaparece automaticamente. A ativação explícita no D1 impede que um cadastro público, sozinho, obtenha acesso administrativo.
+
+### Com ambiente local
+
+O bootstrap por script usa somente variáveis de ambiente e envia ao D1 apenas o hash PBKDF2 da senha.
 
 ### PowerShell
 

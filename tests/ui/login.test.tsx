@@ -49,6 +49,10 @@ function mockSession(user: User | null) {
       return jsonResponse(200, user);
     }
 
+    if (url === "/api/auth/bootstrap-status" && method === "GET") {
+      return jsonResponse(200, { available: false });
+    }
+
     return jsonResponse(404, { error: "NAO_ENCONTRADO" });
   });
 
@@ -82,11 +86,50 @@ function mockLogin(user: User | null) {
       return jsonResponse(204);
     }
 
+    if (url === "/api/auth/bootstrap-status" && method === "GET") {
+      return jsonResponse(200, { available: false });
+    }
+
     return jsonResponse(404, { error: "NAO_ENCONTRADO" });
   });
 
   vi.stubGlobal("fetch", fetchMock);
   return fetchMock;
+}
+
+function mockBootstrap() {
+  const registrations: unknown[] = [];
+
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input);
+    const method = init?.method ?? "GET";
+
+    if (url === "/api/auth/me" && method === "GET") {
+      return jsonResponse(401, {
+        error: "NAO_AUTENTICADO",
+        message: "Sessão inválida ou expirada.",
+      });
+    }
+
+    if (url === "/api/auth/bootstrap-status" && method === "GET") {
+      return jsonResponse(200, { available: true });
+    }
+
+    if (url === "/api/auth/bootstrap-register" && method === "POST") {
+      registrations.push(JSON.parse(String(init?.body)));
+      return jsonResponse(201, {
+        id: "admin-pendente",
+        nome: "Administrador",
+        login: "joaopradosm",
+        status: "pendente_ativacao",
+      });
+    }
+
+    return jsonResponse(404, { error: "NAO_ENCONTRADO" });
+  });
+
+  vi.stubGlobal("fetch", fetchMock);
+  return registrations;
 }
 
 afterEach(() => {
@@ -102,6 +145,47 @@ describe("login e rotas protegidas", () => {
 
     expect(await screen.findByLabelText("Login")).toBeInTheDocument();
     expect(screen.getByLabelText("Senha")).toBeInTheDocument();
+  });
+
+  it("permite preparar o primeiro administrador sem liberar login", async () => {
+    const registrations = mockBootstrap();
+    renderApp();
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Preparar primeiro administrador",
+      }),
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome"), {
+      target: { value: "Administrador" },
+    });
+    fireEvent.change(screen.getByLabelText("Login do administrador"), {
+      target: { value: "joaopradosm" },
+    });
+    fireEvent.change(screen.getByLabelText("Senha do administrador"), {
+      target: { value: "Joaopradosm99!" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirmar senha"), {
+      target: { value: "Joaopradosm99!" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Preparar administrador" }),
+    );
+
+    expect(
+      await screen.findByText(
+        "Cadastro preparado. Agora falta ativar este administrador no D1.",
+      ),
+    ).toBeInTheDocument();
+
+    expect(registrations).toEqual([
+      {
+        nome: "Administrador",
+        login: "joaopradosm",
+        senha: "Joaopradosm99!",
+      },
+    ]);
   });
 
   it("mostra mensagem neutra quando as credenciais são inválidas", async () => {

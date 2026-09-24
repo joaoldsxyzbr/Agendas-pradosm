@@ -29,6 +29,7 @@ app.onError((error, c) => {
 });
 
 app.get("/api/health", (c) => c.json({ ok: true }));
+app.use("/api/auth/bootstrap-register", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
 
 app.use("/api/admin/*", requireAuth, requireAdmin, validateMutationOrigin);

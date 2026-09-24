@@ -27,6 +27,12 @@ export const CreateStoreUserInput = z.object({
   lojaId: z.string().uuid(),
 });
 
+export const RegisterFirstAdminInput = z.object({
+  nome: z.string().trim().min(1).max(120),
+  login: z.string().trim().min(3).max(100),
+  senha: z.string().min(12).max(200),
+});
+
 export const UpdateStoreUserInput = z
   .object({
     id: z.string().uuid(),

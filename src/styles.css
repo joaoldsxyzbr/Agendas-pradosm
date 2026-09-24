@@ -167,6 +167,17 @@ button {
   font-size: 0.88rem;
 }
 
+.form-success {
+  margin: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid #b9ddca;
+  border-radius: 10px;
+  background: #eff8f3;
+  color: #18583c;
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+
 .app-frame {
   min-height: 100vh;
   display: grid;

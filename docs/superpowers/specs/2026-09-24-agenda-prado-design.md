@@ -386,7 +386,9 @@ O histórico não deve ser apagado quando uma agenda for substituída.
 - mutações autenticadas validam `Origin` quando enviado pelo navegador;
 - o payload JSON de importação possui limite de tamanho;
 - erros internos não expõem stack trace ao cliente;
-- o primeiro administrador deve ser provisionado por um comando de setup/seed explícito, sem senha padrão ou credencial hardcoded no repositório.
+- o primeiro administrador deve ser provisionado sem senha padrão ou credencial hardcoded no repositório;
+- quando não houver ambiente local, a tela de login pode preparar exatamente o primeiro registro administrativo como inativo: o Worker gera o hash da senha, o usuário não consegue autenticar enquanto `ativo = 0`, a ativação é feita explicitamente no D1 e o fluxo de preparação fecha assim que qualquer registro `admin` existir;
+- o script de setup/seed permanece disponível como alternativa operacional.
 
 ## 14. Tratamento de erros
 

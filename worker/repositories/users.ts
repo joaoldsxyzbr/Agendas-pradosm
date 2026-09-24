@@ -32,6 +32,33 @@ export async function findUserById(
     .first<UserRecord>();
 }
 
+export async function hasAdmin(db: D1Database): Promise<boolean> {
+  const result = await db
+    .prepare("SELECT 1 AS presente FROM usuarios WHERE perfil = 'admin' LIMIT 1")
+    .first<{ presente: number }>();
+
+  return result !== null;
+}
+
+export async function createInactiveFirstAdmin(
+  db: D1Database,
+  input: { nome: string; login: string; senha: string },
+): Promise<UserRecord | null> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const passwordHash = await hashPassword(input.senha);
+
+  const result = await db
+    .prepare(
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE perfil = 'admin')",
+    )
+    .bind(id, input.nome, input.login, passwordHash, now, now)
+    .run();
+
+  if (result.meta.changes === 0) return null;
+  return findUserById(db, id);
+}
+
 export async function listStoreUsers(db: D1Database): Promise<UserRecord[]> {
   const result = await db
     .prepare(

@@ -2,11 +2,16 @@ import { Hono } from "hono";
 import type { Context } from "hono";
 import { deleteCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
+import { RegisterFirstAdminInput } from "../../shared/api";
 import type { AppEnv } from "../env";
 import { verifyPassword } from "../lib/password";
 import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
-import { findUserByLogin } from "../repositories/users";
+import {
+  createInactiveFirstAdmin,
+  findUserByLogin,
+  hasAdmin,
+} from "../repositories/users";
 
 const COOKIE_NAME = "agenda_session";
 
@@ -25,7 +30,65 @@ function invalidCredentials(c: Context<AppEnv>) {
   );
 }
 
+function bootstrapClosed(c: Context<AppEnv>) {
+  return c.json(
+    {
+      error: "BOOTSTRAP_ENCERRADO",
+      message: "O primeiro administrador já foi preparado ou ativado.",
+    },
+    409,
+  );
+}
+
+function isDuplicateLogin(error: unknown) {
+  return (
+    error instanceof Error &&
+    error.message.includes("UNIQUE constraint failed: usuarios.login")
+  );
+}
+
 export const authRoutes = new Hono<AppEnv>();
+
+authRoutes.get("/bootstrap-status", async (c) => {
+  return c.json({ available: !(await hasAdmin(c.env.DB)) });
+});
+
+authRoutes.post("/bootstrap-register", async (c) => {
+  if (await hasAdmin(c.env.DB)) return bootstrapClosed(c);
+
+  const parsed = RegisterFirstAdminInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Dados inválidos." },
+      400,
+    );
+  }
+
+  try {
+    const user = await createInactiveFirstAdmin(c.env.DB, parsed.data);
+    if (!user) return bootstrapClosed(c);
+
+    return c.json(
+      {
+        id: user.id,
+        nome: user.nome,
+        login: user.login,
+        status: "pendente_ativacao",
+      },
+      201,
+    );
+  } catch (error) {
+    if (isDuplicateLogin(error)) {
+      return c.json(
+        { error: "LOGIN_EM_USO", message: "Login já está em uso." },
+        409,
+      );
+    }
+    throw error;
+  }
+});
 
 authRoutes.post("/login", async (c) => {
   let body: unknown;

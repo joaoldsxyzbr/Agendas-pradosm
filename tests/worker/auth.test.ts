@@ -52,6 +52,27 @@ async function login(loginValue: string, senha = password) {
   );
 }
 
+async function bootstrapStatus() {
+  return exports.default.fetch("https://example.com/api/auth/bootstrap-status");
+}
+
+async function registerFirstAdmin(input: {
+  nome: string;
+  login: string;
+  senha: string;
+}) {
+  return exports.default.fetch(
+    new Request("https://example.com/api/auth/bootstrap-register", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://example.com",
+      },
+      body: JSON.stringify(input),
+    }),
+  );
+}
+
 function cookiePair(response: Response) {
   const header = response.headers.get("Set-Cookie");
   expect(header).toBeTruthy();
@@ -81,6 +102,50 @@ async function signedSession(userId: string, exp: number) {
 }
 
 describe("auth", () => {
+  it("prepara o primeiro admin inativo e encerra o bootstrap", async () => {
+    const before = await bootstrapStatus();
+    expect(before.status).toBe(200);
+    expect(await before.json()).toEqual({ available: true });
+
+    const senhaBootstrap = "senha-bootstrap-123";
+    const created = await registerFirstAdmin({
+      nome: "Administrador inicial",
+      login: "primeiro-admin",
+      senha: senhaBootstrap,
+    });
+
+    expect(created.status).toBe(201);
+    expect(await created.json()).toMatchObject({
+      nome: "Administrador inicial",
+      login: "primeiro-admin",
+      status: "pendente_ativacao",
+    });
+
+    const stored = await db
+      .prepare(
+        "SELECT perfil, ativo, senha_hash FROM usuarios WHERE login = ? LIMIT 1",
+      )
+      .bind("primeiro-admin")
+      .first<{ perfil: string; ativo: number; senha_hash: string }>();
+
+    expect(stored).toMatchObject({ perfil: "admin", ativo: 0 });
+    expect(stored?.senha_hash).toMatch(/^pbkdf2_sha256\$600000\$/);
+
+    const deniedLogin = await login("primeiro-admin", senhaBootstrap);
+    expect(deniedLogin.status).toBe(401);
+
+    const after = await bootstrapStatus();
+    expect(await after.json()).toEqual({ available: false });
+
+    const second = await registerFirstAdmin({
+      nome: "Outro",
+      login: "outro-admin",
+      senha: "outra-senha-segura-123",
+    });
+    expect(second.status).toBe(409);
+    expect(await second.json()).toMatchObject({ error: "BOOTSTRAP_ENCERRADO" });
+  });
+
   it("faz login com senha correta e retorna a sessão atual", async () => {
     await seedUser({ id: "admin-ok", login: "admin-ok", perfil: "admin" });
 

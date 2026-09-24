@@ -1153,7 +1153,18 @@ Usar um valor aleatório forte gerado fora do repositório.
 
 - [ ] **Step 5: Criar primeiro administrador**
 
-Executar bootstrap-admin com ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD definidos somente no ambiente local do operador. Depois validar login pelo app.
+Executar bootstrap-admin com ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD definidos somente no ambiente local do operador. Quando não houver ambiente local, usar o fluxo preparado no Step 5A, ativar explicitamente o registro no D1 e depois validar login pelo app.
+
+- [x] **Step 5A: Preparar criação do primeiro administrador sem ambiente local**
+
+Implementar:
+- GET `/api/auth/bootstrap-status` para informar se ainda não existe nenhum admin;
+- POST `/api/auth/bootstrap-register` disponível somente enquanto não houver registro admin;
+- senha processada pelo mesmo PBKDF2 do app;
+- criação com `perfil = 'admin'` e `ativo = 0`, sem sessão e sem acesso administrativo;
+- ativação posterior somente via operação explícita no D1;
+- tela de login mostra a opção somente enquanto o bootstrap estiver disponível;
+- testes garantem que o registro inativo não consegue fazer login e que um segundo bootstrap é bloqueado.
 
 - [ ] **Step 6: Fazer deploy**
 
@@ -1217,7 +1228,8 @@ Marcar Status da spec como Implementado somente após aceite completo. Marcar to
 **Checkpoint GitHub — 24/09/2026**
 - Spec revisada e mantida como `Implementação concluída; aceite de produção pendente`, pois os Steps 4–7 exigem execução operacional real.
 - Revisão final detectou que `aguardando` aparecia como opção selecionável pela loja; API, UI e testes foram ajustados para permitir somente `recebido`, `nao_chegou` e `recusado`.
-- Steps 4–7 continuam deliberadamente abertos até configuração do segredo, bootstrap do admin, deploy e aceite manual com o PDF real.
+- Steps 4–7 continuam deliberadamente abertos até configuração do segredo, ativação do primeiro admin, deploy e aceite manual com o PDF real.
+- Step 5A adicionou o fluxo sem ambiente local: a tela prepara um admin inativo, a senha é hasheada no Worker e a ativação continua sendo uma ação explícita no D1.
 - Tentativa operacional via GitHub Actions em 24/09/2026 foi interrompida antes do Cloudflare porque os repository secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` não estão configurados.
 - O workflow descartável usado apenas para diagnosticar esse caminho foi removido; nenhum segredo foi gravado no repositório.
 - CI #8 revelou flakiness no teste de cookie adulterado: alterar o último caractere Base64URL podia preservar os bytes decodificados. O teste foi corrigido para adulterar o início da assinatura de forma determinística.
