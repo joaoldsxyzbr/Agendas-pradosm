@@ -112,7 +112,7 @@ describe("TodayPage", () => {
     expect(within(mobileCard).getByText("08:00 - 08:10")).toBeInTheDocument();
     expect(within(mobileCard).getByText("Fornecedor appt-early")).toBeInTheDocument();
     expect(within(mobileCard).getByText("9000early")).toBeInTheDocument();
-    expect(within(mobileCard).getByText("Aguardando")).toBeInTheDocument();
+    expect(within(mobileCard).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
   });
 
   it("mostra estado vazio sem misturar agendas anteriores", async () => {
@@ -282,7 +282,7 @@ describe("HistoryPage", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<HistoryPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "22/09/2026" }));
+    fireEvent.click(await screen.findByRole("button", { name: /22\/09\/2026/ }));
 
     expect(await screen.findByText("Fornecedor appt-history")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
