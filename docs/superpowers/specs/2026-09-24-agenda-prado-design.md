@@ -1,8 +1,9 @@
 # Agenda Prado — Design da aplicação
 
 **Data:** 24/09/2026  
-**Status:** Spec para revisão  
-**Repositório:** `joaoldsxyzbr/Agendas-prado`
+**Status:** Implementação concluída; aceite de produção pendente  
+**Repositório:** `joaoldsxyzbr/Agendas-pradosm`  
+**Aceite de produção:** pendente de configurar `SESSION_SECRET`, criar o primeiro administrador, fazer deploy e executar o aceite manual com o PDF real.
 
 ## 1. Objetivo
 
@@ -381,7 +382,13 @@ O histórico não deve ser apagado quando uma agenda for substituída.
 - usuário inativo não pode iniciar nova sessão;
 - entradas da API devem ser validadas;
 - mensagens de erro de login não devem revelar se um usuário específico existe;
-- o primeiro administrador deve ser provisionado por um comando de setup/seed explícito, sem senha padrão ou credencial hardcoded no repositório.
+- respostas de autenticação e agenda usam `Cache-Control: no-store`;
+- mutações autenticadas validam `Origin` quando enviado pelo navegador;
+- o payload JSON de importação possui limite de tamanho;
+- erros internos não expõem stack trace ao cliente;
+- o primeiro administrador deve ser provisionado sem senha padrão ou credencial hardcoded no repositório;
+- quando não houver ambiente local, a tela de login pode preparar exatamente o primeiro registro administrativo como inativo: o Worker gera o hash da senha, o usuário não consegue autenticar enquanto `ativo = 0`, a ativação é feita explicitamente no D1 e o fluxo de preparação fecha assim que qualquer registro `admin` existir;
+- o script de setup/seed permanece disponível como alternativa operacional.
 
 ## 14. Tratamento de erros
 

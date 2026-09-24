@@ -1,0 +1,18 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "agendas-prado",
+  "compatibility_date": "2026-09-24",
+  "main": "./worker/index.ts",
+  "assets": {
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "agendas-prado",
+      "database_id": "0a7d7d8b-e033-4644-90d4-fbc9ddc64532",
+      "migrations_dir": "migrations"
+    }
+  ]
+}

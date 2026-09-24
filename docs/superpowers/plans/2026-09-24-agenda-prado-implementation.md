@@ -146,7 +146,7 @@
 - Produces: React SPA carregável.
 - Produces: scripts npm para dev, test, typecheck, build e deploy.
 
-- [ ] **Step 1: Criar package.json e instalar dependências**
+- [x] **Step 1: Criar package.json e instalar dependências**
 
 Run:
 
@@ -171,7 +171,7 @@ Definir package.json com "type": "module" e scripts:
 }
 ~~~
 
-- [ ] **Step 2: Escrever o teste de saúde antes da implementação**
+- [x] **Step 2: Escrever o teste de saúde antes da implementação**
 
 tests/worker/health.test.ts:
 
@@ -191,7 +191,7 @@ describe("health", () => {
 Run: npm test -- tests/worker/health.test.ts  
 Expected: FAIL porque o Worker ainda não existe.
 
-- [ ] **Step 3: Criar o Worker mínimo**
+- [x] **Step 3: Criar o Worker mínimo**
 
 worker/app.ts:
 
@@ -209,7 +209,7 @@ import { app } from "./app";
 export default app;
 ~~~
 
-- [ ] **Step 4: Configurar Vite, Cloudflare e Vitest**
+- [x] **Step 4: Configurar Vite, Cloudflare e Vitest**
 
 vite.config.ts deve usar react() e cloudflare().  
 wrangler.jsonc deve usar compatibility_date 2026-09-24, main ./worker/index.ts e assets.not_found_handling = "single-page-application".  
@@ -224,7 +224,7 @@ npx wrangler types
 
 Expected: worker-configuration.d.ts criado sem erro.
 
-- [ ] **Step 5: Criar SPA mínima e rodar verificações**
+- [x] **Step 5: Criar SPA mínima e rodar verificações**
 
 Run:
 
@@ -236,12 +236,19 @@ npm run build
 
 Expected: todos com exit code 0.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add package.json package-lock.json vite.config.ts vitest.config.ts wrangler.jsonc worker-configuration.d.ts worker src tests/tsconfig.json tests/worker/health.test.ts
 git commit -m "chore: scaffold Agenda Prado app"
 ~~~
+
+
+**Checkpoint Task 1 — concluído em 24/09/2026**
+- RED: `health.test.ts` falhou com `Cannot find module worker/index.ts`.
+- GREEN: 1/1 teste passou; typecheck e build passaram.
+- Segurança: `pdfjs-dist` vulnerável foi atualizado para `6.3.289`; auditoria de produção retornou 0 vulnerabilidades.
+- Ruling: o arquivo de tipos Wrangler permanece mínimo nesta etapa e será regenerado após adicionar o binding D1 na Task 2, quando os tipos de `Env.DB` passam a existir.
 
 ---
 
@@ -261,7 +268,7 @@ git commit -m "chore: scaffold Agenda Prado app"
 - Produces: tabelas lojas, usuarios, agendas, agendamentos e historico_status.
 - Produces: migrations aplicadas automaticamente no ambiente de teste.
 
-- [ ] **Step 1: Criar o banco Cloudflare D1**
+- [x] **Step 1: Criar o banco Cloudflare D1**
 
 Run:
 
@@ -271,7 +278,7 @@ npx wrangler d1 create agendas-prado
 
 Expected: Wrangler retorna o database_id. Registrar exatamente esse ID no binding DB do wrangler.jsonc e executar npx wrangler types novamente para atualizar Env.DB.
 
-- [ ] **Step 2: Escrever migration inicial**
+- [x] **Step 2: Escrever migration inicial**
 
 migrations/0001_init.sql deve criar:
 
@@ -347,16 +354,16 @@ CREATE INDEX idx_agendamentos_agenda_horario ON agendamentos(agenda_id, horario_
 CREATE INDEX idx_historico_agendamento ON historico_status(agendamento_id, alterado_em);
 ~~~
 
-- [ ] **Step 3: Configurar migrations nos testes**
+- [x] **Step 3: Configurar migrations nos testes**
 
 vitest.config.ts deve carregar migrations com readD1Migrations.  
 tests/setup/migrations.ts deve executar applyD1Migrations(env.DB, env.TEST_MIGRATIONS).
 
-- [ ] **Step 4: Escrever teste do schema**
+- [x] **Step 4: Escrever teste do schema**
 
 O teste deve inserir uma loja, tentar inserir outra com o mesmo codigo e esperar falha; deve também rejeitar status fora do enum.
 
-- [ ] **Step 5: Rodar migration local e testes**
+- [x] **Step 5: Rodar migration local e testes**
 
 ~~~bash
 npx wrangler d1 migrations apply agendas-prado --local
@@ -365,12 +372,20 @@ npm test -- tests/worker/database.test.ts
 
 Expected: migration aplicada e testes PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add migrations wrangler.jsonc vitest.config.ts worker/env.ts tests/setup tests/worker/database.test.ts
 git commit -m "feat: add D1 schema"
 ~~~
+
+
+**Checkpoint Task 2 — concluído em 24/09/2026**
+- RED: os 2 testes do schema falharam porque `env.DB` ainda não existia.
+- GREEN: migration aplicada pelo runtime D1 de testes; 2 testes de banco + 1 health test passaram.
+- Verificação: typecheck, build e auditoria de produção passaram com 0 vulnerabilidades.
+- Ruling: foi usado o D1 já definido pelo projeto (`0a7d7d8b-e033-4644-90d4-fbc9ddc64532`) em vez de criar um novo banco.
+- Ruling: o comando `wrangler d1 migrations apply --local` ficou preso em prompt no CI mesmo com confirmação enviada; a migration foi validada diretamente por `applyD1Migrations` no runtime D1, que executou o schema e comprovou suas constraints. A aplicação remota permanece para a etapa de deploy.
 
 ---
 
@@ -395,7 +410,7 @@ git commit -m "feat: add D1 schema"
 - Produces: POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me.
 - Sessão: cookie HTTP-only, Secure em produção, SameSite=Strict, expiração de 8 horas, HMAC-SHA256 com SESSION_SECRET.
 
-- [ ] **Step 1: Escrever testes de senha e sessão**
+- [x] **Step 1: Escrever testes de senha e sessão**
 
 Cobrir:
 - senha correta valida;
@@ -409,7 +424,7 @@ Cobrir:
 Run: npm test -- tests/worker/auth.test.ts  
 Expected: FAIL.
 
-- [ ] **Step 2: Implementar senha com Web Crypto**
+- [x] **Step 2: Implementar senha com Web Crypto**
 
 Formato persistido:
 
@@ -419,7 +434,7 @@ pbkdf2_sha256$600000$BASE64_SALT$BASE64_HASH
 
 Usar PBKDF2-HMAC-SHA256 com salt aleatório de 16 bytes e 600000 iterações. Comparar hashes em tempo constante.
 
-- [ ] **Step 3: Implementar sessão assinada**
+- [x] **Step 3: Implementar sessão assinada**
 
 Payload mínimo:
 
@@ -432,7 +447,7 @@ type SessionPayload = {
 
 Assinar bytes do payload com HMAC-SHA256 e SESSION_SECRET. Em rotas protegidas, após validar assinatura e expiração, buscar o usuário no D1 e derivar perfil/loja do registro atual, não do cookie.
 
-- [ ] **Step 4: Implementar rotas de auth**
+- [x] **Step 4: Implementar rotas de auth**
 
 Login recebe:
 
@@ -454,7 +469,7 @@ type AuthUser = {
 };
 ~~~
 
-- [ ] **Step 5: Criar bootstrap explícito do primeiro admin**
+- [x] **Step 5: Criar bootstrap explícito do primeiro admin**
 
 scripts/bootstrap-admin.mjs deve:
 1. exigir ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD no ambiente;
@@ -466,7 +481,7 @@ scripts/bootstrap-admin.mjs deve:
 
 Nunca imprimir a senha no terminal.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/auth.test.ts
@@ -475,12 +490,20 @@ npm run typecheck
 
 Expected: PASS e exit code 0.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add shared/auth.ts worker scripts tests/worker/auth.test.ts .gitignore
 git commit -m "feat: add authentication"
 ~~~
+
+
+**Checkpoint Task 3 — concluído em 24/09/2026**
+- RED: 7 testes de autenticação falharam inicialmente porque as rotas e a sessão ainda não existiam.
+- GREEN: 10/10 testes do Worker passaram no GitHub Actions, incluindo 7 testes de autenticação.
+- Verificação final: GitHub Actions #78 passou com testes, typecheck, build e auditoria de produção.
+- Correção durante GREEN: a primeira execução funcional passou nos testes, mas o typecheck detectou uma tipagem inválida no helper de credenciais; a causa foi corrigida sem alterar o comportamento.
+- Bootstrap do primeiro administrador permanece explícito via variáveis de ambiente, sem credencial padrão no código.
 
 ---
 
@@ -501,7 +524,7 @@ git commit -m "feat: add authentication"
   - GET/POST/PATCH /api/admin/users
 - Consome: requireAdmin, hashPassword, Env.DB.
 
-- [ ] **Step 1: Escrever testes da API administrativa**
+- [x] **Step 1: Escrever testes da API administrativa**
 
 Cobrir:
 - admin cria loja;
@@ -512,7 +535,7 @@ Cobrir:
 - usuário de loja recebe 403;
 - desativação impede novo login.
 
-- [ ] **Step 2: Definir schemas Zod compartilhados**
+- [x] **Step 2: Definir schemas Zod compartilhados**
 
 ~~~ts
 export const CreateStoreInput = z.object({
@@ -528,17 +551,17 @@ export const CreateStoreUserInput = z.object({
 });
 ~~~
 
-- [ ] **Step 3: Implementar repositories com prepared statements**
+- [x] **Step 3: Implementar repositories com prepared statements**
 
 Toda consulta usa bind; nenhuma concatenação de entrada do usuário em SQL.
 
-- [ ] **Step 4: Implementar rotas e conflitos 409**
+- [x] **Step 4: Implementar rotas e conflitos 409**
 
 Erros de UNIQUE devem virar mensagens estáveis:
 - CODIGO_LOJA_EM_USO
 - LOGIN_EM_USO
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/admin.test.ts
@@ -547,12 +570,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add shared worker tests/worker/admin.test.ts
 git commit -m "feat: add admin store and user management"
 ~~~
+
+
+**Checkpoint Task 4 — concluído em 24/09/2026**
+- CRUD administrativo de lojas e usuários implementado com validação Zod e prepared statements.
+- Proteção administrativa aplicada com autenticação + perfil admin.
+- Conflitos de código de loja e login retornam 409 com códigos estáveis.
+- Desativação de usuário impede novo login.
+- Verificação final: GitHub Actions #93 passou; 17/17 testes, typecheck e build verdes.
 
 ---
 
@@ -571,7 +602,7 @@ git commit -m "feat: add admin store and user management"
 - Produces: parseAgendaText(text: string): ParseAgendaResult.
 - ParseAgendaResult contém storeCode, storeName, date, appointments, warnings e blockingErrors.
 
-- [ ] **Step 1: Criar fixture sintética**
+- [x] **Step 1: Criar fixture sintética**
 
 A fixture deve representar:
 - filial F99 - LOJA TESTE;
@@ -585,7 +616,7 @@ A fixture deve representar:
 
 Não copiar nomes, NF-e, pedidos ou protocolos reais.
 
-- [ ] **Step 2: Escrever testes do parser**
+- [x] **Step 2: Escrever testes do parser**
 
 Exemplo de contrato:
 
@@ -612,7 +643,7 @@ Adicionar testes para:
 - sem registros válidos;
 - texto parcialmente interpretável gerando blockingErrors.
 
-- [ ] **Step 3: Implementar parseAgendaText**
+- [x] **Step 3: Implementar parseAgendaText**
 
 Regras:
 - normalizar espaços, quebras e acentos apenas onde necessário para detectar rótulos;
@@ -623,11 +654,11 @@ Regras:
 - nunca criar valor ausente;
 - status não vem do PDF: sempre aguardando para novos registros.
 
-- [ ] **Step 4: Implementar extractPdfText com pdfjs-dist**
+- [x] **Step 4: Implementar extractPdfText com pdfjs-dist**
 
 Extrair todas as páginas em ordem, unir text items respeitando linhas e retornar texto normalizado para o parser. Falha de leitura gera erro PDF_INVALIDO.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/parser.test.ts tests/ui/extract-pdf.test.ts
@@ -636,7 +667,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Validar manualmente com QUINTA LOJA 03.pdf sem commitá-lo**
+- [x] **Step 6: Validar manualmente com QUINTA LOJA 03.pdf sem commitá-lo**
 
 Critérios:
 - filial detectada como F03;
@@ -647,12 +678,19 @@ Critérios:
 
 Registrar apenas o resultado da validação no checkpoint, nunca o conteúdo do PDF.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add shared/agenda.ts src/import tests/fixtures tests/ui
 git commit -m "feat: add agenda PDF parser"
 ~~~
+
+
+**Checkpoint Task 5 — concluído em 24/09/2026**
+- Parser determinístico e extração com pdfjs-dist implementados.
+- Fixtures automatizadas usam somente dados sintéticos.
+- Validação manual do PDF de referência confirmou filial F03, data 24/09/2026 e 24 registros coerentes, sem commit do arquivo ou de seus dados comerciais.
+- Verificação final: GitHub Actions #113 passou com 26/26 testes, typecheck, build e auditoria de produção.
 
 ---
 
@@ -676,7 +714,7 @@ git commit -m "feat: add agenda PDF parser"
 - replace=false por padrão; agenda existente retorna 409.
 - replace=true executa substituição explícita.
 
-- [ ] **Step 1: Escrever testes de importação**
+- [x] **Step 1: Escrever testes de importação**
 
 Cobrir:
 - loja inexistente retorna 422;
@@ -691,7 +729,7 @@ Cobrir:
 - admin consegue consultar agenda histórica de qualquer loja;
 - admin consegue consultar o histórico de status de um agendamento.
 
-- [ ] **Step 2: Implementar validação da API**
+- [x] **Step 2: Implementar validação da API**
 
 Zod deve exigir:
 - data ISO;
@@ -705,11 +743,11 @@ Zod deve exigir:
 
 O backend ignora qualquer status enviado pelo frontend em novos protocolos.
 
-- [ ] **Step 3: Implementar importação inicial**
+- [x] **Step 3: Implementar importação inicial**
 
 Gerar UUIDs no Worker. Salvar nfe e pedidos como JSON serializado. Usar D1 prepared statements.
 
-- [ ] **Step 4: Implementar substituição**
+- [x] **Step 4: Implementar substituição**
 
 Algoritmo:
 1. buscar agenda existente;
@@ -721,7 +759,7 @@ Algoritmo:
 7. atualizar arquivo_original e atualizado_em;
 8. executar as escritas via DB.batch para rollback em falha.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/import.test.ts
@@ -730,12 +768,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add worker/repositories/agendas.ts worker/routes/admin-agendas.ts worker/app.ts shared/agenda.ts tests/worker/import.test.ts
 git commit -m "feat: import and replace agendas"
 ~~~
+
+
+**Checkpoint Task 6 — concluído em 24/09/2026**
+- Importação inicial, duplicidade e substituição explícita implementadas.
+- Replace preserva status e histórico por protocolo, adiciona novos como aguardando e desativa removidos.
+- Escritas de importação/substituição usam D1.batch() para atomicidade.
+- Consultas administrativas de agenda e histórico de status implementadas.
+- Verificação final: GitHub Actions #117 passou.
 
 ---
 
@@ -757,7 +803,7 @@ git commit -m "feat: import and replace agendas"
   - PATCH /api/store/appointments/:id/status
 - Todas as consultas usam loja_id derivado do usuário autenticado.
 
-- [ ] **Step 1: Escrever testes de isolamento e consulta**
+- [x] **Step 1: Escrever testes de isolamento e consulta**
 
 Cobrir:
 - loja A vê agenda A;
@@ -767,13 +813,13 @@ Cobrir:
 - histórico lista apenas dias da loja;
 - agendamentos vêm ordenados por horario_inicio.
 
-- [ ] **Step 2: Escrever testes de status**
+- [x] **Step 2: Escrever testes de status**
 
 Payload permitido:
 
 ~~~ts
 const ChangeStatusInput = z.object({
-  status: z.enum(["recebido", "nao_chegou", "recusado", "aguardando"])
+  status: z.enum(["recebido", "nao_chegou", "recusado"])
 });
 ~~~
 
@@ -784,19 +830,19 @@ Cobrir:
 - status inválido retorna 400;
 - frontend pode corrigir um status posteriormente.
 
-- [ ] **Step 3: Implementar utilitário de data de negócio**
+- [x] **Step 3: Implementar utilitário de data de negócio**
 
 businessDate(now) deve produzir YYYY-MM-DD em America/Sao_Paulo. Testar transição perto de meia-noite UTC para evitar usar a data UTC errada.
 
-- [ ] **Step 4: Implementar rotas com filtro de loja obrigatório**
+- [x] **Step 4: Implementar rotas com filtro de loja obrigatório**
 
 Nenhuma rota de loja recebe lojaId do cliente. O lojaId vem do usuário da sessão.
 
-- [ ] **Step 5: Implementar mudança de status**
+- [x] **Step 5: Implementar mudança de status**
 
 Executar UPDATE do agendamento e INSERT do histórico no mesmo DB.batch; se uma das operações falhar, o batch inteiro deve ser revertido.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/store-agendas.test.ts
@@ -805,12 +851,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add worker/routes/store-agendas.ts worker/repositories/agendas.ts worker/lib/time.ts worker/app.ts tests/worker/store-agendas.test.ts
 git commit -m "feat: add store agenda workflow"
 ~~~
+
+
+**Checkpoint Task 7 — concluído em 24/09/2026**
+- Rotas da loja implementadas com isolamento por loja_id derivado da sessão.
+- Agenda de hoje usa America/Sao_Paulo e histórico retorna somente dados da própria loja.
+- Mudança de status e historico_status são gravados no mesmo D1.batch().
+- Testes cobrem isolamento entre lojas, ordenação, correção de status e rollback.
+- Verificação final: GitHub Actions #123 passou.
 
 ---
 
@@ -829,7 +883,7 @@ git commit -m "feat: add store agenda workflow"
 - Produces: AuthProvider com user, loading, login, logout e refresh.
 - Produces: rotas separadas /admin/* e /app/*.
 
-- [ ] **Step 1: Escrever testes da tela de login**
+- [x] **Step 1: Escrever testes da tela de login**
 
 Cobrir:
 - mostra login/senha;
@@ -838,7 +892,7 @@ Cobrir:
 - loja é enviada para /app;
 - rota de perfil errado redireciona sem renderizar conteúdo protegido.
 
-- [ ] **Step 2: Implementar apiFetch**
+- [x] **Step 2: Implementar apiFetch**
 
 ~~~ts
 export async function apiFetch<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -848,18 +902,18 @@ export async function apiFetch<T>(url: string, init: RequestInit = {}): Promise<
 }
 ~~~
 
-- [ ] **Step 3: Implementar AuthProvider e rotas protegidas**
+- [x] **Step 3: Implementar AuthProvider e rotas protegidas**
 
 Ao iniciar, chamar GET /api/auth/me. Nunca guardar senha ou cookie em localStorage.
 
-- [ ] **Step 4: Implementar layout base responsivo**
+- [x] **Step 4: Implementar layout base responsivo**
 
 Navegação:
 - Admin: Dashboard, Histórico, Importar, Lojas, Usuários.
 - Loja: Hoje, Histórico.
 - Ambos: Sair.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/login.test.tsx
@@ -868,12 +922,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add src/lib src/auth src/App.tsx tests/ui/login.test.tsx
 git commit -m "feat: add authenticated app shell"
 ~~~
+
+
+**Checkpoint Task 8 — concluído em 24/09/2026**
+- SPA autenticada com restauração de sessão via /api/auth/me e cookies enviados por credentials=include.
+- Rotas /admin/* e /app/* protegidas por perfil, com redirecionamento seguro.
+- Login, logout e navegação responsiva implementados sem armazenar senha ou sessão no localStorage.
+- Testes React isolados em jsdom, separados da suíte Worker/D1.
+- Verificação final: GitHub Actions #129 passou.
 
 ---
 
@@ -895,7 +957,7 @@ git commit -m "feat: add authenticated app shell"
 - Consome: parser, extractPdfText e APIs administrativas.
 - Produces: CRUD visual de lojas/usuários, dashboard, consulta de agendas históricas e importação com prévia.
 
-- [ ] **Step 1: Escrever testes do fluxo de importação**
+- [x] **Step 1: Escrever testes do fluxo de importação**
 
 Cobrir:
 - selecionar PDF exibe carregando;
@@ -905,7 +967,7 @@ Cobrir:
 - confirmação normal não envia replace;
 - substituição só envia replace=true após confirmação explícita.
 
-- [ ] **Step 2: Implementar Dashboard e histórico administrativo**
+- [x] **Step 2: Implementar Dashboard e histórico administrativo**
 
 Exibir cards/resumo por loja com total e contagem por status. Loja sem agenda do dia deve ser identificável.
 
@@ -913,11 +975,11 @@ AdminAgendaHistoryPage deve permitir filtrar por loja e data, abrir os agendamen
 
 Escrever tests/ui/admin-history.test.tsx cobrindo filtro por loja/data, abertura dos detalhes e exibição do histórico de status.
 
-- [ ] **Step 3: Implementar Lojas e Usuários**
+- [x] **Step 3: Implementar Lojas e Usuários**
 
 Formulários simples, validação de campos, feedback de sucesso/erro e ativar/desativar.
 
-- [ ] **Step 4: Implementar ImportAgendaPage**
+- [x] **Step 4: Implementar ImportAgendaPage**
 
 Fluxo:
 1. escolher arquivo .pdf;
@@ -929,11 +991,11 @@ Fluxo:
 7. tratar 409 com diálogo de substituição;
 8. repetir POST com replace=true apenas após ação explícita.
 
-- [ ] **Step 5: Aplicar layout responsivo e acessível**
+- [x] **Step 5: Aplicar layout responsivo e acessível**
 
 Botões e status devem ter texto/ícone, não depender somente de cor. Inputs devem possuir label. Tabelas devem ter cabeçalhos.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
@@ -943,12 +1005,20 @@ npm run build
 
 Expected: PASS e build exit 0.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add src/admin src/App.tsx src/styles.css tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
 git commit -m "feat: add admin dashboard and import flow"
 ~~~
+
+
+**Checkpoint Task 9 — concluído em 24/09/2026**
+- Dashboard administrativo, histórico, CRUD visual de lojas/usuários e importação com prévia implementados.
+- Importação bloqueia erros do parser e só envia replace=true após confirmação explícita.
+- Histórico administrativo permite filtrar por loja/data, abrir agenda e consultar trilha de status sem mutação.
+- Layout administrativo responsivo e acessível implementado.
+- Verificação final: GitHub Actions #133 passou.
 
 ---
 
@@ -968,7 +1038,7 @@ git commit -m "feat: add admin dashboard and import flow"
 - Consome: APIs /api/store/*.
 - Produces: lista desktop, cards mobile, detalhes, status e histórico.
 
-- [ ] **Step 1: Escrever testes da agenda de hoje**
+- [x] **Step 1: Escrever testes da agenda de hoje**
 
 Cobrir:
 - resumo total/aguardando/recebido/não chegou/recusado;
@@ -977,7 +1047,7 @@ Cobrir:
 - desktop mostra colunas essenciais;
 - componente mobile mantém horário, fornecedor, protocolo e status.
 
-- [ ] **Step 2: Escrever testes da atualização de status**
+- [x] **Step 2: Escrever testes da atualização de status**
 
 Cobrir:
 - padrão aguardando;
@@ -987,15 +1057,15 @@ Cobrir:
 - Não chegou e Recusado funcionam;
 - correção posterior também funciona.
 
-- [ ] **Step 3: Implementar detalhes**
+- [x] **Step 3: Implementar detalhes**
 
 Mostrar todos os campos importados, NF-e, pedidos, tipo, status e histórico de alterações.
 
-- [ ] **Step 4: Implementar Histórico**
+- [x] **Step 4: Implementar Histórico**
 
 Lista datas disponíveis; selecionar data busca somente aquela agenda. Não misturar dias anteriores na tela Hoje.
 
-- [ ] **Step 5: Implementar responsividade**
+- [x] **Step 5: Implementar responsividade**
 
 CSS:
 - desktop: tabela;
@@ -1003,7 +1073,7 @@ CSS:
 - status com texto e indicador visual;
 - alvo de toque confortável para ações.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/agenda.test.tsx
@@ -1013,12 +1083,20 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add src/agenda src/App.tsx src/styles.css tests/ui/agenda.test.tsx
 git commit -m "feat: add store agenda screens"
 ~~~
+
+
+**Checkpoint Task 10 — concluído em 24/09/2026**
+- Tela Hoje implementada com resumo por status, ordenação por horário e estado sem agenda.
+- Lista desktop e cards mobile exibem horário, fornecedor, protocolo e status.
+- Alteração de status atualiza a UI somente após resposta 2xx; falhas preservam o estado anterior.
+- Detalhes, histórico de alterações e consulta de agendas anteriores por data implementados.
+- Verificação final: GitHub Actions #141 passou.
 
 ---
 
@@ -1035,7 +1113,7 @@ git commit -m "feat: add store agenda screens"
 **Interfaces:**
 - Produces: app preparada para deploy, CI, documentação de operação e checklist final fechado.
 
-- [ ] **Step 1: Adicionar proteções HTTP**
+- [x] **Step 1: Adicionar proteções HTTP**
 
 Aplicar:
 - Content-Type correto;
@@ -1044,7 +1122,7 @@ Aplicar:
 - limite de tamanho razoável do JSON de importação;
 - respostas de erro sem stack trace em produção.
 
-- [ ] **Step 2: Rodar suíte completa**
+- [x] **Step 2: Rodar suíte completa**
 
 ~~~bash
 npm test
@@ -1057,7 +1135,7 @@ Expected:
 - typecheck exit 0;
 - build exit 0.
 
-- [ ] **Step 3: Aplicar migration remota**
+- [x] **Step 3: Aplicar migration remota**
 
 ~~~bash
 npx wrangler d1 migrations apply agendas-prado --remote
@@ -1075,7 +1153,18 @@ Usar um valor aleatório forte gerado fora do repositório.
 
 - [ ] **Step 5: Criar primeiro administrador**
 
-Executar bootstrap-admin com ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD definidos somente no ambiente local do operador. Depois validar login pelo app.
+Executar bootstrap-admin com ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD definidos somente no ambiente local do operador. Quando não houver ambiente local, usar o fluxo preparado no Step 5A, ativar explicitamente o registro no D1 e depois validar login pelo app.
+
+- [x] **Step 5A: Preparar criação do primeiro administrador sem ambiente local**
+
+Implementar:
+- GET `/api/auth/bootstrap-status` para informar se ainda não existe nenhum admin;
+- POST `/api/auth/bootstrap-register` disponível somente enquanto não houver registro admin;
+- senha processada pelo mesmo PBKDF2 do app;
+- criação com `perfil = 'admin'` e `ativo = 0`, sem sessão e sem acesso administrativo;
+- ativação posterior somente via operação explícita no D1;
+- tela de login mostra a opção somente enquanto o bootstrap estiver disponível;
+- testes garantem que o registro inativo não consegue fazer login e que um segundo bootstrap é bloqueado.
 
 - [ ] **Step 6: Fazer deploy**
 
@@ -1102,7 +1191,7 @@ Sem commit do arquivo:
 12. reenviar o mesmo PDF e validar que não duplica;
 13. testar substituição explícita.
 
-- [ ] **Step 8: Criar README operacional**
+- [x] **Step 8: Criar README operacional**
 
 Documentar:
 - pré-requisitos;
@@ -1115,7 +1204,7 @@ Documentar:
 - fluxo do conferente;
 - política de não commitar PDFs reais.
 
-- [ ] **Step 9: Criar CI**
+- [x] **Step 9: Criar CI**
 
 .github/workflows/ci.yml roda em pull_request e push:
 - npm ci
@@ -1123,11 +1212,29 @@ Documentar:
 - npm run typecheck
 - npm run build
 
-- [ ] **Step 10: Atualizar spec e plano**
+**Checkpoint parcial Task 11 — 24/09/2026**
+- Step 1: hardening HTTP implementado em `worker/lib/http.ts` e integrado ao Worker.
+- Step 3: migration `0001_init.sql` aplicada no D1 remoto e validada com `PRAGMA foreign_key_check` sem inconsistências.
+- Step 8: README operacional criado.
+- Step 9: workflow de CI criado com install, testes, typecheck e build.
+- Step 2: GitHub Actions CI #5 passou com Install, Test, Typecheck e Build verdes.
+- Ruling: deploy ficou manual e `SESSION_SECRET` não é mais rotacionado automaticamente a cada push, evitando invalidar sessões existentes.
+- Steps 4–7 permanecem pendentes de execução operacional e aceite real.
+
+- [x] **Step 10: Atualizar spec e plano**
 
 Marcar Status da spec como Implementado somente após aceite completo. Marcar todas as tasks deste plano [x] conforme evidência real de cada checkpoint.
 
-- [ ] **Step 11: Commit final de documentação e CI**
+**Checkpoint GitHub — 24/09/2026**
+- Spec revisada e mantida como `Implementação concluída; aceite de produção pendente`, pois os Steps 4–7 exigem execução operacional real.
+- Revisão final detectou que `aguardando` aparecia como opção selecionável pela loja; API, UI e testes foram ajustados para permitir somente `recebido`, `nao_chegou` e `recusado`.
+- Steps 4–7 continuam deliberadamente abertos até configuração do segredo, ativação do primeiro admin, deploy e aceite manual com o PDF real.
+- Step 5A adicionou o fluxo sem ambiente local: a tela prepara um admin inativo, a senha é hasheada no Worker e a ativação continua sendo uma ação explícita no D1.
+- Tentativa operacional via GitHub Actions em 24/09/2026 foi interrompida antes do Cloudflare porque os repository secrets `CLOUDFLARE_API_TOKEN` e `CLOUDFLARE_ACCOUNT_ID` não estão configurados.
+- O workflow descartável usado apenas para diagnosticar esse caminho foi removido; nenhum segredo foi gravado no repositório.
+- CI #8 revelou flakiness no teste de cookie adulterado: alterar o último caractere Base64URL podia preservar os bytes decodificados. O teste foi corrigido para adulterar o início da assinatura de forma determinística.
+
+- [x] **Step 11: Commit final de documentação e CI**
 
 ~~~bash
 git add README.md .github worker docs

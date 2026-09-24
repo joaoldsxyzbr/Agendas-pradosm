@@ -1,0 +1,40 @@
+{
+  "name": "agendas-prado",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "npm run test:worker && npm run test:ui",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --noEmit",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy",
+    "test:ui": "vitest run --config vitest.ui.config.ts",
+    "test:worker": "vitest run",
+    "bootstrap-admin": "node scripts/bootstrap-admin.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.9.8",
+    "pdfjs-dist": "6.3.289",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^7.9.1",
+    "zod": "^4.1.11"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.58.0",
+    "@cloudflare/vitest-plugin": "1.2.4",
+    "@cloudflare/workers-types": "5.20260924.1",
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "jsdom": "^27.0.0",
+    "typescript": "^5.9.2",
+    "vite": "7.3.6",
+    "vitest": "4.1.11",
+    "wrangler": "^4.39.0"
+  }
+}

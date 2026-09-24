@@ -1,0 +1,15 @@
+Prado Supermercados Filtros: Dia: 24/09/2026 | Filiais: F99 - LOJA TESTE | Doca: Todas
+Agendas de recebimento Total: 6
+Protocolo	Data agenda	Fornecedor	Itens	Vol.	Paletes	Carga batida	Tipo	N° NFe	Pedidos
+90000001	24/09/2026	DISTRIBUIDORA ALFA	10	5	1	-	Nota	111111,	50001,
+	08:00 às 08:10	ALIMENTOS LTDA					fiscal	222222	50002
+90000002	24/09/2026	COMERCIAL BETA LTDA	4	2	0	-	Pedido	-	50003,
+	08:10 às 08:20							-	50004
+90000003	24/09/2026	INDUSTRIA GAMA LTDA	8	3	1	-	CNPJ	-	-
+	08:20 às 08:30								
+90000004	24/09/2026	FORNECEDOR DELTA SA	0	0	0	-	Agenda	-	-
+	08:30 às 08:40						fixa		
+90000005	24/09/2026	ALIMENTOS EPSILON LTDA	12	7	2	-	Nota fiscal	333333	50005
+	08:40 às 08:50								
+90000006	24/09/2026	DISTRIBUIDORA ZETA LTDA	2	1	0	-	Pedido	-	50006
+	08:50 às 09:00								
