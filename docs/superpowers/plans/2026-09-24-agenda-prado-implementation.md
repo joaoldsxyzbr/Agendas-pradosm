@@ -393,7 +393,7 @@ Expected: FAIL.
 Formato persistido:
 
 ~~~txt
-pbkdf2_sha256$600000$<salt-base64>$<hash-base64>
+pbkdf2_sha256$600000$BASE64_SALT$BASE64_HASH
 ~~~
 
 Usar PBKDF2-HMAC-SHA256 com salt aleatório de 16 bytes e 600000 iterações. Comparar hashes em tempo constante.
@@ -439,7 +439,7 @@ scripts/bootstrap-admin.mjs deve:
 1. exigir ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD no ambiente;
 2. gerar hash PBKDF2 localmente;
 3. criar SQL temporário em diretório ignorado pelo git;
-4. executar npx wrangler d1 execute agendas-prado --remote --file=<arquivo temporário>;
+4. executar npx wrangler d1 execute agendas-prado --remote --file=.tmp/bootstrap-admin.sql;
 5. apagar o arquivo temporário em finally;
 6. abortar se já houver login igual.
 
@@ -648,6 +648,9 @@ git commit -m "feat: add agenda PDF parser"
 - Produces:
   - POST /api/admin/agendas/import
   - GET /api/admin/agendas/today
+  - GET /api/admin/agendas?date=YYYY-MM-DD&storeCode=F03
+  - GET /api/admin/agendas/:id
+  - GET /api/admin/appointments/:id/history
 - Import input contém storeCode, date, originalFileName e appointments validados.
 - replace=false por padrão; agenda existente retorna 409.
 - replace=true executa substituição explícita.
@@ -663,7 +666,9 @@ Cobrir:
 - replace adiciona protocolo novo como aguardando;
 - replace marca protocolo removido como ativo=0;
 - histórico existente continua intacto;
-- falha durante batch não deixa agenda parcialmente substituída.
+- falha durante batch não deixa agenda parcialmente substituída;
+- admin consegue consultar agenda histórica de qualquer loja;
+- admin consegue consultar o histórico de status de um agendamento.
 
 - [ ] **Step 2: Implementar validação da API**
 
@@ -829,7 +834,7 @@ Ao iniciar, chamar GET /api/auth/me. Nunca guardar senha ou cookie em localStora
 - [ ] **Step 4: Implementar layout base responsivo**
 
 Navegação:
-- Admin: Dashboard, Importar, Lojas, Usuários.
+- Admin: Dashboard, Histórico, Importar, Lojas, Usuários.
 - Loja: Hoje, Histórico.
 - Ambos: Sair.
 
@@ -856,16 +861,18 @@ git commit -m "feat: add authenticated app shell"
 **Files:**
 - Create: src/admin/AdminLayout.tsx
 - Create: src/admin/DashboardPage.tsx
+- Create: src/admin/AdminAgendaHistoryPage.tsx
 - Create: src/admin/StoresPage.tsx
 - Create: src/admin/UsersPage.tsx
 - Create: src/admin/ImportAgendaPage.tsx
 - Create: tests/ui/import.test.tsx
+- Create: tests/ui/admin-history.test.tsx
 - Modify: src/App.tsx
 - Modify: src/styles.css
 
 **Interfaces:**
 - Consome: parser, extractPdfText e APIs administrativas.
-- Produces: CRUD visual de lojas/usuários, dashboard e importação com prévia.
+- Produces: CRUD visual de lojas/usuários, dashboard, consulta de agendas históricas e importação com prévia.
 
 - [ ] **Step 1: Escrever testes do fluxo de importação**
 
@@ -877,9 +884,13 @@ Cobrir:
 - confirmação normal não envia replace;
 - substituição só envia replace=true após confirmação explícita.
 
-- [ ] **Step 2: Implementar Dashboard**
+- [ ] **Step 2: Implementar Dashboard e histórico administrativo**
 
 Exibir cards/resumo por loja com total e contagem por status. Loja sem agenda do dia deve ser identificável.
+
+AdminAgendaHistoryPage deve permitir filtrar por loja e data, abrir os agendamentos da agenda selecionada e consultar o histórico de alterações de status. Nenhuma mutação de status é feita nesta tela administrativa.
+
+Escrever tests/ui/admin-history.test.tsx cobrindo filtro por loja/data, abertura dos detalhes e exibição do histórico de status.
 
 - [ ] **Step 3: Implementar Lojas e Usuários**
 
@@ -904,7 +915,7 @@ Botões e status devem ter texto/ícone, não depender somente de cor. Inputs de
 - [ ] **Step 6: Rodar testes**
 
 ~~~bash
-npm test -- tests/ui/import.test.tsx
+npm test -- tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
 npm run typecheck
 npm run build
 ~~~
@@ -994,7 +1005,7 @@ git commit -m "feat: add store agenda screens"
 
 **Files:**
 - Modify: worker/app.ts
-- Modify: worker/lib/http.ts
+- Create: worker/lib/http.ts
 - Create: README.md
 - Create: .github/workflows/ci.yml
 - Modify: docs/superpowers/specs/2026-09-24-agenda-prado-design.md
@@ -1065,9 +1076,10 @@ Sem commit do arquivo:
 7. conferir agenda de hoje;
 8. alterar um item para recebido;
 9. validar histórico do status;
-10. confirmar isolamento com outro usuário de loja;
-11. reenviar o mesmo PDF e validar que não duplica;
-12. testar substituição explícita.
+10. voltar ao admin e validar consulta da agenda histórica e do histórico do status;
+11. confirmar isolamento com outro usuário de loja;
+12. reenviar o mesmo PDF e validar que não duplica;
+13. testar substituição explícita.
 
 - [ ] **Step 8: Criar README operacional**
 
