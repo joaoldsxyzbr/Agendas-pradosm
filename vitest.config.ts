@@ -13,6 +13,7 @@ export default defineConfig({
         miniflare: {
           bindings: {
             TEST_MIGRATIONS: migrations,
+            SESSION_SECRET: "agenda-prado-test-session-secret",
           },
         },
       };
