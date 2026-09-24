@@ -44,7 +44,7 @@ jobs:
 
           if [ "$code" -eq 0 ]; then
             stage="health test"
-            npm test -- tests/worker/health.test.ts tests/worker/database.test.ts 2>&1 | tee /tmp/verify.log
+            npm test -- tests/worker/health.test.ts tests/worker/database.test.ts tests/worker/auth.test.ts 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
           fi
 
