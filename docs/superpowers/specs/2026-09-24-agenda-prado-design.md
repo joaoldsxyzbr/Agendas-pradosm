@@ -252,6 +252,7 @@ Permitir:
 - TypeScript
 - Vite
 - interface responsiva para desktop e celular
+- datas e horários de negócio interpretados e exibidos em `America/Sao_Paulo`
 
 Responsabilidades:
 - autenticação visual;
@@ -379,7 +380,8 @@ O histórico não deve ser apagado quando uma agenda for substituída.
 - rotas da loja devem sempre filtrar pelo `loja_id` da sessão;
 - usuário inativo não pode iniciar nova sessão;
 - entradas da API devem ser validadas;
-- mensagens de erro de login não devem revelar se um usuário específico existe.
+- mensagens de erro de login não devem revelar se um usuário específico existe;
+- o primeiro administrador deve ser provisionado por um comando de setup/seed explícito, sem senha padrão ou credencial hardcoded no repositório.
 
 ## 14. Tratamento de erros
 
@@ -420,7 +422,9 @@ A implementação deve possuir testes para:
 - agenda de hoje;
 - histórico por loja.
 
-O PDF `QUINTA LOJA 03.pdf` será a referência real de aceitação do parser.
+O PDF `QUINTA LOJA 03.pdf` será a referência real de aceitação manual do parser durante o desenvolvimento.
+
+Como o repositório é público, o PDF real e seus dados comerciais não devem ser commitados. Os testes automatizados devem usar fixtures sintéticas que reproduzam a estrutura necessária sem copiar dados reais de fornecedores, notas fiscais ou pedidos.
 
 ## 16. Fora do escopo da primeira versão
 
@@ -434,6 +438,8 @@ Para manter o projeto simples, a primeira versão não inclui:
 - armazenamento obrigatório do arquivo PDF bruto.
 
 O nome original do arquivo fica registrado na importação.
+
+O PDF bruto e o texto extraído de agendas reais não devem ser publicados no repositório.
 
 ## 17. Critérios de aceite
 
