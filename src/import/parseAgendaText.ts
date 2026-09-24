@@ -261,7 +261,7 @@ function parseFallbackLists(
   protocol: string,
   warnings: string[],
 ) {
-  const tokens = rawTail.match(/-|\d+/g) ?? [];
+  const tokens: string[] = rawTail.match(/-|\d+/g) ?? [];
 
   if (type === "Pedido") {
     return {
