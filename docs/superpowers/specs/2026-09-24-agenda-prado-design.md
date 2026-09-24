@@ -2,7 +2,8 @@
 
 **Data:** 24/09/2026  
 **Status:** Implementação concluída; aceite de produção pendente  
-**Repositório:** `joaoldsxyzbr/Agendas-pradosm`
+**Repositório:** `joaoldsxyzbr/Agendas-pradosm`  
+**Aceite de produção:** pendente de configurar `SESSION_SECRET`, criar o primeiro administrador, fazer deploy e executar o aceite manual com o PDF real.
 
 ## 1. Objetivo
 

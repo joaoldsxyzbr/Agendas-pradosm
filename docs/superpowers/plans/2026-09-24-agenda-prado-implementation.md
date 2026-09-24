@@ -1210,11 +1210,16 @@ Documentar:
 - Ruling: deploy ficou manual e `SESSION_SECRET` não é mais rotacionado automaticamente a cada push, evitando invalidar sessões existentes.
 - Steps 4–7 permanecem pendentes de execução operacional e aceite real.
 
-- [ ] **Step 10: Atualizar spec e plano**
+- [x] **Step 10: Atualizar spec e plano**
 
 Marcar Status da spec como Implementado somente após aceite completo. Marcar todas as tasks deste plano [x] conforme evidência real de cada checkpoint.
 
-- [ ] **Step 11: Commit final de documentação e CI**
+**Checkpoint GitHub — 24/09/2026**
+- Spec revisada e mantida como `Implementação concluída; aceite de produção pendente`, pois os Steps 4–7 exigem execução operacional real.
+- Revisão final detectou que `aguardando` aparecia como opção selecionável pela loja; API, UI e testes foram ajustados para permitir somente `recebido`, `nao_chegou` e `recusado`.
+- Steps 4–7 continuam deliberadamente abertos até configuração do segredo, bootstrap do admin, deploy e aceite manual com o PDF real.
+
+- [x] **Step 11: Commit final de documentação e CI**
 
 ~~~bash
 git add README.md .github worker docs
