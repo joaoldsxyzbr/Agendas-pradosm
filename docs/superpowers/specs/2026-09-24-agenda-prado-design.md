@@ -2,7 +2,7 @@
 
 **Data:** 24/09/2026  
 **Status:** Spec para revisão  
-**Repositório:** `joaoldsxyzbr/Agendas-prado`
+**Repositório:** `joaoldsxyzbr/Agendas-pradosm`
 
 ## 1. Objetivo
 
