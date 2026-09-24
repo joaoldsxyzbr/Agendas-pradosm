@@ -44,7 +44,7 @@ jobs:
 
           if [ "$code" -eq 0 ]; then
             stage="local migration"
-            npx wrangler d1 migrations apply agendas-prado --local 2>&1 | tee /tmp/verify.log
+            printf 'y\n' | npx wrangler d1 migrations apply agendas-prado --local 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
           fi
 
