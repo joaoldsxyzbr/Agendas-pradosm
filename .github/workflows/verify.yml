@@ -65,6 +65,13 @@ jobs:
           echo "VERIFY_CODE=$code" >> "$GITHUB_ENV"
           echo "VERIFY_DESCRIPTION=$description" >> "$GITHUB_ENV"
 
+      - name: Upload regenerated lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: package-lock
+          path: package-lock.json
+
       - name: Publish verification status
         env:
           GH_TOKEN: ${{ github.token }}
