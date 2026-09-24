@@ -1,5 +1,3 @@
-export default {
-  fetch() {
-    return new Response(null, { status: 404 });
-  },
-} satisfies ExportedHandler;
+import { app } from "./app";
+
+export default app;
