@@ -602,7 +602,7 @@ git commit -m "feat: add admin store and user management"
 - Produces: parseAgendaText(text: string): ParseAgendaResult.
 - ParseAgendaResult contém storeCode, storeName, date, appointments, warnings e blockingErrors.
 
-- [ ] **Step 1: Criar fixture sintética**
+- [x] **Step 1: Criar fixture sintética**
 
 A fixture deve representar:
 - filial F99 - LOJA TESTE;
@@ -616,7 +616,7 @@ A fixture deve representar:
 
 Não copiar nomes, NF-e, pedidos ou protocolos reais.
 
-- [ ] **Step 2: Escrever testes do parser**
+- [x] **Step 2: Escrever testes do parser**
 
 Exemplo de contrato:
 
@@ -643,7 +643,7 @@ Adicionar testes para:
 - sem registros válidos;
 - texto parcialmente interpretável gerando blockingErrors.
 
-- [ ] **Step 3: Implementar parseAgendaText**
+- [x] **Step 3: Implementar parseAgendaText**
 
 Regras:
 - normalizar espaços, quebras e acentos apenas onde necessário para detectar rótulos;
@@ -654,11 +654,11 @@ Regras:
 - nunca criar valor ausente;
 - status não vem do PDF: sempre aguardando para novos registros.
 
-- [ ] **Step 4: Implementar extractPdfText com pdfjs-dist**
+- [x] **Step 4: Implementar extractPdfText com pdfjs-dist**
 
 Extrair todas as páginas em ordem, unir text items respeitando linhas e retornar texto normalizado para o parser. Falha de leitura gera erro PDF_INVALIDO.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/parser.test.ts tests/ui/extract-pdf.test.ts
@@ -667,7 +667,7 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Validar manualmente com QUINTA LOJA 03.pdf sem commitá-lo**
+- [x] **Step 6: Validar manualmente com QUINTA LOJA 03.pdf sem commitá-lo**
 
 Critérios:
 - filial detectada como F03;
@@ -678,12 +678,19 @@ Critérios:
 
 Registrar apenas o resultado da validação no checkpoint, nunca o conteúdo do PDF.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add shared/agenda.ts src/import tests/fixtures tests/ui
 git commit -m "feat: add agenda PDF parser"
 ~~~
+
+
+**Checkpoint Task 5 — concluído em 24/09/2026**
+- Parser determinístico e extração com pdfjs-dist implementados.
+- Fixtures automatizadas usam somente dados sintéticos.
+- Validação manual do PDF de referência confirmou filial F03, data 24/09/2026 e 24 registros coerentes, sem commit do arquivo ou de seus dados comerciais.
+- Verificação final: GitHub Actions #113 passou com 26/26 testes, typecheck, build e auditoria de produção.
 
 ---
 
