@@ -410,7 +410,7 @@ git commit -m "feat: add D1 schema"
 - Produces: POST /api/auth/login, POST /api/auth/logout, GET /api/auth/me.
 - Sessão: cookie HTTP-only, Secure em produção, SameSite=Strict, expiração de 8 horas, HMAC-SHA256 com SESSION_SECRET.
 
-- [ ] **Step 1: Escrever testes de senha e sessão**
+- [x] **Step 1: Escrever testes de senha e sessão**
 
 Cobrir:
 - senha correta valida;
@@ -424,7 +424,7 @@ Cobrir:
 Run: npm test -- tests/worker/auth.test.ts  
 Expected: FAIL.
 
-- [ ] **Step 2: Implementar senha com Web Crypto**
+- [x] **Step 2: Implementar senha com Web Crypto**
 
 Formato persistido:
 
@@ -434,7 +434,7 @@ pbkdf2_sha256$600000$BASE64_SALT$BASE64_HASH
 
 Usar PBKDF2-HMAC-SHA256 com salt aleatório de 16 bytes e 600000 iterações. Comparar hashes em tempo constante.
 
-- [ ] **Step 3: Implementar sessão assinada**
+- [x] **Step 3: Implementar sessão assinada**
 
 Payload mínimo:
 
@@ -447,7 +447,7 @@ type SessionPayload = {
 
 Assinar bytes do payload com HMAC-SHA256 e SESSION_SECRET. Em rotas protegidas, após validar assinatura e expiração, buscar o usuário no D1 e derivar perfil/loja do registro atual, não do cookie.
 
-- [ ] **Step 4: Implementar rotas de auth**
+- [x] **Step 4: Implementar rotas de auth**
 
 Login recebe:
 
@@ -469,7 +469,7 @@ type AuthUser = {
 };
 ~~~
 
-- [ ] **Step 5: Criar bootstrap explícito do primeiro admin**
+- [x] **Step 5: Criar bootstrap explícito do primeiro admin**
 
 scripts/bootstrap-admin.mjs deve:
 1. exigir ADMIN_NAME, ADMIN_LOGIN e ADMIN_PASSWORD no ambiente;
@@ -481,7 +481,7 @@ scripts/bootstrap-admin.mjs deve:
 
 Nunca imprimir a senha no terminal.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/auth.test.ts
@@ -490,12 +490,20 @@ npm run typecheck
 
 Expected: PASS e exit code 0.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add shared/auth.ts worker scripts tests/worker/auth.test.ts .gitignore
 git commit -m "feat: add authentication"
 ~~~
+
+
+**Checkpoint Task 3 — concluído em 24/09/2026**
+- RED: 7 testes de autenticação falharam inicialmente porque as rotas e a sessão ainda não existiam.
+- GREEN: 10/10 testes do Worker passaram no GitHub Actions, incluindo 7 testes de autenticação.
+- Verificação final: GitHub Actions #78 passou com testes, typecheck, build e auditoria de produção.
+- Correção durante GREEN: a primeira execução funcional passou nos testes, mas o typecheck detectou uma tipagem inválida no helper de credenciais; a causa foi corrigida sem alterar o comportamento.
+- Bootstrap do primeiro administrador permanece explícito via variáveis de ambiente, sem credencial padrão no código.
 
 ---
 
