@@ -39,14 +39,14 @@ Garantir que o parser interprete todos os agendamentos válidos do formato ofici
 
 ## Requisitos
 
-- [ ] Investigar quais variações de quebra de linha, campos ou registros fazem o parser perder os 15 agendamentos.
-- [ ] Corrigir o parser para reconhecer esses registros válidos.
-- [ ] Não ignorar silenciosamente registros que continuem inválidos.
-- [ ] Manter `REGISTROS_NAO_INTERPRETADOS` como erro bloqueante quando houver registros realmente não reconhecidos.
-- [ ] Manter `TOTAL_DIVERGENTE` como erro bloqueante quando o total encontrado continuar diferente do total informado no PDF.
-- [ ] Não resolver o problema apenas escondendo ou removendo as mensagens de validação.
-- [ ] Criar teste de regressão reproduzindo a estrutura que causa a falha.
-- [ ] Usar fixture sintética nos testes, sem publicar dados comerciais reais no repositório.
+- [x] Investigar quais variações de quebra de linha, campos ou registros fazem o parser perder os 15 agendamentos.
+- [x] Corrigir o parser para reconhecer esses registros válidos.
+- [x] Não ignorar silenciosamente registros que continuem inválidos.
+- [x] Manter `REGISTROS_NAO_INTERPRETADOS` como erro bloqueante quando houver registros realmente não reconhecidos.
+- [x] Manter `TOTAL_DIVERGENTE` como erro bloqueante quando o total encontrado continuar diferente do total informado no PDF.
+- [x] Não resolver o problema apenas escondendo ou removendo as mensagens de validação.
+- [x] Criar teste de regressão reproduzindo a estrutura que causa a falha.
+- [x] Usar fixture sintética nos testes, sem publicar dados comerciais reais no repositório.
 
 ## Caso de regressão obrigatório
 
@@ -66,13 +66,13 @@ nenhum TOTAL_DIVERGENTE
 
 ## Critérios de aceite
 
-- [ ] A prévia mostra **24 agendamentos**, e não 9, para o caso reproduzido.
-- [ ] Não ocorre `REGISTROS_NAO_INTERPRETADOS:15`.
-- [ ] Não ocorre `TOTAL_DIVERGENTE:24:9`.
-- [ ] Todos os registros válidos continuam com protocolo, horário, fornecedor, itens, volumes e tipo corretamente associados.
-- [ ] PDFs realmente incompletos ou malformados continuam sendo bloqueados.
-- [ ] Os testes existentes de parser e importação continuam passando.
-- [ ] O fluxo de confirmação da importação não é alterado além da correção do parsing.
+- [x] A prévia mostra **24 agendamentos**, e não 9, para o caso reproduzido.
+- [x] Não ocorre `REGISTROS_NAO_INTERPRETADOS:15`.
+- [x] Não ocorre `TOTAL_DIVERGENTE:24:9`.
+- [x] Todos os registros válidos continuam com protocolo, horário, fornecedor, itens, volumes e tipo corretamente associados.
+- [x] PDFs realmente incompletos ou malformados continuam sendo bloqueados.
+- [x] Os testes existentes de parser e importação continuam passando.
+- [x] O fluxo de confirmação da importação não é alterado além da correção do parsing.
 
 ---
 
@@ -372,7 +372,7 @@ A importação passa a ser uma ação contextual do Dashboard.
 
 # Ordem de execução
 
-1. [ ] **Task 0 — Corrigir importação incompleta do PDF**
+1. [x] **Task 0 — Corrigir importação incompleta do PDF**
 2. [ ] **Task 1 — Mover Importar agenda**
 3. [ ] **Task 2 — Redesign azul + amarelo**
 4. [ ] **Task 3 — Gerenciamento completo de usuários**
