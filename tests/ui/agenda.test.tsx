@@ -284,7 +284,8 @@ describe("HistoryPage", () => {
 
     fireEvent.click(await screen.findByRole("button", { name: /22\/09\/2026/ }));
 
-    expect(await screen.findByText("Fornecedor appt-history")).toBeInTheDocument();
+    const historyRows = await screen.findAllByTestId("agenda-desktop-row");
+    expect(within(historyRows[0]).getByText("Fornecedor appt-history")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/store/history/2026-09-22",
       expect.objectContaining({ credentials: "include" }),
