@@ -1,1 +1,3 @@
-export type Env = Record<string, never>;
+export type WorkerEnv = {
+  DB: D1Database;
+};
