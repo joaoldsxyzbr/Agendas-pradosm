@@ -146,7 +146,7 @@
 - Produces: React SPA carregável.
 - Produces: scripts npm para dev, test, typecheck, build e deploy.
 
-- [ ] **Step 1: Criar package.json e instalar dependências**
+- [x] **Step 1: Criar package.json e instalar dependências**
 
 Run:
 
@@ -171,7 +171,7 @@ Definir package.json com "type": "module" e scripts:
 }
 ~~~
 
-- [ ] **Step 2: Escrever o teste de saúde antes da implementação**
+- [x] **Step 2: Escrever o teste de saúde antes da implementação**
 
 tests/worker/health.test.ts:
 
@@ -191,7 +191,7 @@ describe("health", () => {
 Run: npm test -- tests/worker/health.test.ts  
 Expected: FAIL porque o Worker ainda não existe.
 
-- [ ] **Step 3: Criar o Worker mínimo**
+- [x] **Step 3: Criar o Worker mínimo**
 
 worker/app.ts:
 
@@ -209,7 +209,7 @@ import { app } from "./app";
 export default app;
 ~~~
 
-- [ ] **Step 4: Configurar Vite, Cloudflare e Vitest**
+- [x] **Step 4: Configurar Vite, Cloudflare e Vitest**
 
 vite.config.ts deve usar react() e cloudflare().  
 wrangler.jsonc deve usar compatibility_date 2026-09-24, main ./worker/index.ts e assets.not_found_handling = "single-page-application".  
@@ -224,7 +224,7 @@ npx wrangler types
 
 Expected: worker-configuration.d.ts criado sem erro.
 
-- [ ] **Step 5: Criar SPA mínima e rodar verificações**
+- [x] **Step 5: Criar SPA mínima e rodar verificações**
 
 Run:
 
@@ -236,12 +236,19 @@ npm run build
 
 Expected: todos com exit code 0.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add package.json package-lock.json vite.config.ts vitest.config.ts wrangler.jsonc worker-configuration.d.ts worker src tests/tsconfig.json tests/worker/health.test.ts
 git commit -m "chore: scaffold Agenda Prado app"
 ~~~
+
+
+**Checkpoint Task 1 — concluído em 24/09/2026**
+- RED: `health.test.ts` falhou com `Cannot find module worker/index.ts`.
+- GREEN: 1/1 teste passou; typecheck e build passaram.
+- Segurança: `pdfjs-dist` vulnerável foi atualizado para `6.3.289`; auditoria de produção retornou 0 vulnerabilidades.
+- Ruling: o arquivo de tipos Wrangler permanece mínimo nesta etapa e será regenerado após adicionar o binding D1 na Task 2, quando os tipos de `Env.DB` passam a existir.
 
 ---
 
