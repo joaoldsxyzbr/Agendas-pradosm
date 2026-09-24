@@ -14,6 +14,68 @@ O resultado deve manter a aplicação simples e rápida, mas com aparência mais
 
 ---
 
+# Task 0 — Corrigir importação incompleta do PDF
+
+## Problema observado
+
+No PDF real da loja **F03 - CANASVIEIRAS**, com data **24/09/2026**, a prévia identifica corretamente loja e data, porém interpreta somente parte dos agendamentos.
+
+Comportamento observado:
+
+~~~text
+Total informado no PDF: 24
+Agendamentos interpretados: 9
+Registros não interpretados: 15
+
+REGISTROS_NAO_INTERPRETADOS:15
+TOTAL_DIVERGENTE:24:9
+~~~
+
+O bloqueio da importação está correto. O problema a corrigir é o parser deixar de reconhecer registros válidos do formato real do PDF.
+
+## Objetivo
+
+Garantir que o parser interprete todos os agendamentos válidos do formato oficial utilizado pela empresa, sem enfraquecer as validações de segurança da importação.
+
+## Requisitos
+
+- [ ] Investigar quais variações de quebra de linha, campos ou registros fazem o parser perder os 15 agendamentos.
+- [ ] Corrigir o parser para reconhecer esses registros válidos.
+- [ ] Não ignorar silenciosamente registros que continuem inválidos.
+- [ ] Manter `REGISTROS_NAO_INTERPRETADOS` como erro bloqueante quando houver registros realmente não reconhecidos.
+- [ ] Manter `TOTAL_DIVERGENTE` como erro bloqueante quando o total encontrado continuar diferente do total informado no PDF.
+- [ ] Não resolver o problema apenas escondendo ou removendo as mensagens de validação.
+- [ ] Criar teste de regressão reproduzindo a estrutura que causa a falha.
+- [ ] Usar fixture sintética nos testes, sem publicar dados comerciais reais no repositório.
+
+## Caso de regressão obrigatório
+
+Para a estrutura equivalente ao PDF observado:
+
+- loja: **F03 - CANASVIEIRAS**;
+- data: **24/09/2026**;
+- total informado: **24**;
+
+o parser deve retornar:
+
+~~~text
+24 agendamentos interpretados
+0 registros não interpretados
+nenhum TOTAL_DIVERGENTE
+~~~
+
+## Critérios de aceite
+
+- [ ] A prévia mostra **24 agendamentos**, e não 9, para o caso reproduzido.
+- [ ] Não ocorre `REGISTROS_NAO_INTERPRETADOS:15`.
+- [ ] Não ocorre `TOTAL_DIVERGENTE:24:9`.
+- [ ] Todos os registros válidos continuam com protocolo, horário, fornecedor, itens, volumes e tipo corretamente associados.
+- [ ] PDFs realmente incompletos ou malformados continuam sendo bloqueados.
+- [ ] Os testes existentes de parser e importação continuam passando.
+- [ ] O fluxo de confirmação da importação não é alterado além da correção do parsing.
+
+---
+
 # Task 1 — Mover “Importar agenda” para o Dashboard
 
 ## Objetivo
@@ -310,10 +372,11 @@ A importação passa a ser uma ação contextual do Dashboard.
 
 # Ordem de execução
 
-1. [ ] **Task 1 — Mover Importar agenda**
-2. [ ] **Task 2 — Redesign azul + amarelo**
-3. [ ] **Task 3 — Gerenciamento completo de usuários**
-4. [ ] **Task 4 — Modo dark**
+1. [ ] **Task 0 — Corrigir importação incompleta do PDF**
+2. [ ] **Task 1 — Mover Importar agenda**
+3. [ ] **Task 2 — Redesign azul + amarelo**
+4. [ ] **Task 3 — Gerenciamento completo de usuários**
+5. [ ] **Task 4 — Modo dark**
 
 ---
 
@@ -321,9 +384,10 @@ A importação passa a ser uma ação contextual do Dashboard.
 
 A melhoria estará concluída quando:
 
-- [ ] todas as quatro tasks estiverem marcadas como concluídas;
+- [ ] todas as cinco tasks estiverem marcadas como concluídas;
 - [ ] o CI estiver passando;
 - [ ] o fluxo de login continuar funcional;
+- [ ] o parser interpretar integralmente o formato real validado, sem perda de registros;
 - [ ] o fluxo de importação continuar funcional;
 - [ ] gerenciamento de usuários estiver completo;
 - [ ] temas claro e escuro estiverem consistentes;
