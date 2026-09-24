@@ -321,6 +321,15 @@ button {
 }
 
 @media (max-width: 760px) {
+  .page-heading-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-import-action {
+    width: 100%;
+  }
+
   .app-frame {
     display: block;
   }
@@ -406,6 +415,18 @@ textarea {
   align-items: end;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.page-heading-actions {
+  align-items: flex-start;
+}
+
+.dashboard-import-action {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
 }
 
 .page-heading > div,

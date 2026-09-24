@@ -4,7 +4,6 @@ import { useAuth } from "../auth/AuthProvider";
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", end: true },
   { to: "/admin/history", label: "Histórico" },
-  { to: "/admin/import", label: "Importar" },
   { to: "/admin/stores", label: "Lojas" },
   { to: "/admin/users", label: "Usuários" },
 ];
