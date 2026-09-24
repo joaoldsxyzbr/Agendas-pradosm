@@ -268,7 +268,7 @@ git commit -m "chore: scaffold Agenda Prado app"
 - Produces: tabelas lojas, usuarios, agendas, agendamentos e historico_status.
 - Produces: migrations aplicadas automaticamente no ambiente de teste.
 
-- [ ] **Step 1: Criar o banco Cloudflare D1**
+- [x] **Step 1: Criar o banco Cloudflare D1**
 
 Run:
 
@@ -278,7 +278,7 @@ npx wrangler d1 create agendas-prado
 
 Expected: Wrangler retorna o database_id. Registrar exatamente esse ID no binding DB do wrangler.jsonc e executar npx wrangler types novamente para atualizar Env.DB.
 
-- [ ] **Step 2: Escrever migration inicial**
+- [x] **Step 2: Escrever migration inicial**
 
 migrations/0001_init.sql deve criar:
 
@@ -354,16 +354,16 @@ CREATE INDEX idx_agendamentos_agenda_horario ON agendamentos(agenda_id, horario_
 CREATE INDEX idx_historico_agendamento ON historico_status(agendamento_id, alterado_em);
 ~~~
 
-- [ ] **Step 3: Configurar migrations nos testes**
+- [x] **Step 3: Configurar migrations nos testes**
 
 vitest.config.ts deve carregar migrations com readD1Migrations.  
 tests/setup/migrations.ts deve executar applyD1Migrations(env.DB, env.TEST_MIGRATIONS).
 
-- [ ] **Step 4: Escrever teste do schema**
+- [x] **Step 4: Escrever teste do schema**
 
 O teste deve inserir uma loja, tentar inserir outra com o mesmo codigo e esperar falha; deve também rejeitar status fora do enum.
 
-- [ ] **Step 5: Rodar migration local e testes**
+- [x] **Step 5: Rodar migration local e testes**
 
 ~~~bash
 npx wrangler d1 migrations apply agendas-prado --local
@@ -372,12 +372,20 @@ npm test -- tests/worker/database.test.ts
 
 Expected: migration aplicada e testes PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add migrations wrangler.jsonc vitest.config.ts worker/env.ts tests/setup tests/worker/database.test.ts
 git commit -m "feat: add D1 schema"
 ~~~
+
+
+**Checkpoint Task 2 — concluído em 24/09/2026**
+- RED: os 2 testes do schema falharam porque `env.DB` ainda não existia.
+- GREEN: migration aplicada pelo runtime D1 de testes; 2 testes de banco + 1 health test passaram.
+- Verificação: typecheck, build e auditoria de produção passaram com 0 vulnerabilidades.
+- Ruling: foi usado o D1 já definido pelo projeto (`0a7d7d8b-e033-4644-90d4-fbc9ddc64532`) em vez de criar um novo banco.
+- Ruling: o comando `wrangler d1 migrations apply --local` ficou preso em prompt no CI mesmo com confirmação enviada; a migration foi validada diretamente por `applyD1Migrations` no runtime D1, que executou o schema e comprovou suas constraints. A aplicação remota permanece para a etapa de deploy.
 
 ---
 
