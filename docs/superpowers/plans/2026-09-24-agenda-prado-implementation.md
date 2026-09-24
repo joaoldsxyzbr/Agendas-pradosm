@@ -957,7 +957,7 @@ git commit -m "feat: add authenticated app shell"
 - Consome: parser, extractPdfText e APIs administrativas.
 - Produces: CRUD visual de lojas/usuários, dashboard, consulta de agendas históricas e importação com prévia.
 
-- [ ] **Step 1: Escrever testes do fluxo de importação**
+- [x] **Step 1: Escrever testes do fluxo de importação**
 
 Cobrir:
 - selecionar PDF exibe carregando;
@@ -967,7 +967,7 @@ Cobrir:
 - confirmação normal não envia replace;
 - substituição só envia replace=true após confirmação explícita.
 
-- [ ] **Step 2: Implementar Dashboard e histórico administrativo**
+- [x] **Step 2: Implementar Dashboard e histórico administrativo**
 
 Exibir cards/resumo por loja com total e contagem por status. Loja sem agenda do dia deve ser identificável.
 
@@ -975,11 +975,11 @@ AdminAgendaHistoryPage deve permitir filtrar por loja e data, abrir os agendamen
 
 Escrever tests/ui/admin-history.test.tsx cobrindo filtro por loja/data, abertura dos detalhes e exibição do histórico de status.
 
-- [ ] **Step 3: Implementar Lojas e Usuários**
+- [x] **Step 3: Implementar Lojas e Usuários**
 
 Formulários simples, validação de campos, feedback de sucesso/erro e ativar/desativar.
 
-- [ ] **Step 4: Implementar ImportAgendaPage**
+- [x] **Step 4: Implementar ImportAgendaPage**
 
 Fluxo:
 1. escolher arquivo .pdf;
@@ -991,11 +991,11 @@ Fluxo:
 7. tratar 409 com diálogo de substituição;
 8. repetir POST com replace=true apenas após ação explícita.
 
-- [ ] **Step 5: Aplicar layout responsivo e acessível**
+- [x] **Step 5: Aplicar layout responsivo e acessível**
 
 Botões e status devem ter texto/ícone, não depender somente de cor. Inputs devem possuir label. Tabelas devem ter cabeçalhos.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
@@ -1005,12 +1005,20 @@ npm run build
 
 Expected: PASS e build exit 0.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add src/admin src/App.tsx src/styles.css tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
 git commit -m "feat: add admin dashboard and import flow"
 ~~~
+
+
+**Checkpoint Task 9 — concluído em 24/09/2026**
+- Dashboard administrativo, histórico, CRUD visual de lojas/usuários e importação com prévia implementados.
+- Importação bloqueia erros do parser e só envia replace=true após confirmação explícita.
+- Histórico administrativo permite filtrar por loja/data, abrir agenda e consultar trilha de status sem mutação.
+- Layout administrativo responsivo e acessível implementado.
+- Verificação final: GitHub Actions #133 passou.
 
 ---
 
