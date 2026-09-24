@@ -4,7 +4,7 @@
 
 **Goal:** Modernizar o Agenda Prado, mover a importação para o Dashboard, aplicar a identidade azul + amarelo, completar o gerenciamento de usuários de loja e adicionar tema claro/escuro persistente.
 
-**Architecture:** O trabalho mantém a arquitetura atual React + TypeScript + Vite no frontend e Hono + Cloudflare D1 no Worker. As quatro tasks serão executadas em sequência, cada uma fechando um conjunto independente e testável. O redesign passa a usar tokens CSS semânticos para que o dark mode posterior seja uma extensão da mesma base visual, e o gerenciamento de usuários reutiliza o PATCH existente para edição/senha/status, adicionando somente DELETE para exclusão.
+**Architecture:** A aplicação continua em React + TypeScript + Vite no frontend e Hono + Cloudflare D1 no Worker. O redesign será centralizado em tokens CSS semânticos, permitindo que o dark mode seja uma extensão da mesma base visual. O gerenciamento de usuários reutiliza o PATCH existente para edição/senha/status e adiciona DELETE sem apagar fisicamente o registro, preservando as referências de auditoria em agendas e histórico.
 
 **Tech Stack:** React 19, TypeScript 5.9, Vite 7, React Router 7, Vitest 4, Testing Library, Hono 4, Zod 4, Cloudflare Workers e Cloudflare D1.
 
@@ -17,7 +17,7 @@
 - Usar TDD para comportamentos novos ou alterados quando aplicável.
 - Evitar refatorações sem relação com a task atual.
 - Não alterar funcionalidades existentes sem necessidade.
-- Não alterar nem apagar dados existentes do D1 sem necessidade.
+- Não apagar dados existentes do D1.
 - Após concluir cada task: revisar o diff, executar o CI uma única vez, corrigir apenas o necessário se falhar e marcar a task como [x] somente após validação.
 - Após três falhas na mesma task, mudar de estratégia ou registrar o bloqueio.
 - O fluxo de login deve continuar funcional.
@@ -25,14 +25,14 @@
 - Desktop e mobile devem permanecer funcionais.
 - A autorização administrativa continua sendo aplicada no backend por requireAuth + requireAdmin.
 - Senha e senha_hash nunca podem ser retornados ao frontend.
-- A implementação não precisa de nova migration D1 para este escopo.
+- A única alteração de schema prevista é uma migration aditiva para suportar exclusão lógica de usuários sem quebrar auditoria.
 
 ## Decisões de implementação
 
-Estas decisões tornam a spec executável sem alterar seu escopo funcional:
+Estas decisões fecham pontos técnicos que a spec não define em detalhe:
 
 - A rota /admin/import permanece existente; apenas sai da navegação e passa a ser acessada pelo Dashboard.
-- A nova base visual será centralizada em CSS custom properties no arquivo src/styles.css.
+- A base visual será centralizada em CSS custom properties no arquivo src/styles.css.
 - Paleta técnica inicial do tema claro:
   - primary: #1558A6
   - primary-strong: #0B3D78
@@ -53,39 +53,37 @@ Estas decisões tornam a spec executável sem alterar seu escopo funcional:
   - border: #2B3B52
   - primary: #5CA8FF
   - accent: #FFD449
-- Usuários administráveis pela tela continuam sendo usuários de loja. A API de exclusão rejeita IDs de administrador, então o administrador logado não pode ser removido por esse fluxo.
+- Usuários administráveis pela tela continuam sendo usuários de loja.
+- Exclusão de usuário será lógica: ativo = 0 e excluido_em preenchido. O registro continua no D1 para preservar FKs de agendas e historico_status.
+- Usuário excluído não aparece em GET /api/admin/users, não autentica e não pode ser reativado pelo fluxo normal.
 - A senha nova é opcional na edição. Campo vazio significa não enviar senha no PATCH.
 - A exclusão usa DELETE /api/admin/users/:id e responde 204 em sucesso.
 - A preferência visual usa localStorage com chave theme e valores light ou dark.
-- A aplicação coloca data-theme no elemento html para controlar o tema.
+- A aplicação coloca data-theme no elemento html.
 
 ## Estratégia de branch e CI
 
-- Criar a branch feat/melhorias-ui-dashboard-usuarios-dark a partir da main atual.
-- Cada task deve resultar em um único commit remoto contendo todas as alterações daquela task.
-- Para evitar múltiplas execuções desnecessárias do CI, agrupar os arquivos da task em um commit atômico antes de atualizar a branch remota.
-- Abrir um PR para main após o primeiro checkpoint implementado.
-- Cada checkpoint seguinte deve atualizar o mesmo PR com um único commit de task.
-- O CI oficial é o workflow .github/workflows/ci.yml, que executa:
-  - npm ci
-  - npm test
-  - npm run typecheck
-  - npm run build
-- Não disparar novamente o mesmo CI sem uma alteração relevante quando houver falha.
+- Criar a branch feat/melhorias-ui-dashboard-usuarios-dark a partir da main.
+- Cada task deve produzir um único commit remoto contendo todos os arquivos daquela task.
+- Usar commit atômico por task para que o PR dispare somente um CI por checkpoint.
+- Abrir um PR para main após o primeiro checkpoint implementado e atualizar o mesmo PR nas tasks seguintes.
+- O CI oficial em .github/workflows/ci.yml executa npm ci, npm test, npm run typecheck e npm run build.
+- Se o CI falhar, diagnosticar a falha e só executar novamente depois de uma mudança relevante.
 
 ## Review Focus
 
-1. **Fluxo de importação sem duplicação:** o item sai da sidebar, mas /admin/import continua funcionando e o Dashboard passa a ser o único ponto de entrada visual administrativo.
-2. **Contraste dos dois temas:** texto, superfície, foco, aviso, erro, disabled e status não podem depender de uma cor fixa adequada somente ao tema claro.
-3. **Senha opcional na edição:** editar nome/login/loja/status sem preencher nova senha deve preservar o hash atual.
-4. **Exclusão segura:** um usuário de loja só é removido após confirmação; IDs inexistentes ou de administrador não podem ser excluídos pela rota.
-5. **Sessão após desativação/exclusão:** usuário desativado ou excluído deve falhar em um novo login e não pode reaparecer na listagem administrativa.
+1. **Fluxo de importação sem duplicação:** o item sai da sidebar, /admin/import continua funcionando e o Dashboard vira o único ponto de entrada visual administrativo.
+2. **Contraste dos dois temas:** texto, superfície, foco, aviso, erro, disabled e status devem usar tokens, não cores fixas adequadas só ao tema claro.
+3. **Senha opcional na edição:** editar nome/login/loja/status sem nova senha deve preservar o hash existente.
+4. **Exclusão segura com auditoria:** usuário excluído some da listagem e perde acesso, mas o registro continua para não quebrar agendas ou historico_status.
+5. **Proteção administrativa:** IDs de administrador não podem ser excluídos pelo endpoint de usuários de loja.
 
 ## Mapa de arquivos
 
 ### Task 1
 - Modify: src/admin/AdminLayout.tsx
 - Modify: src/admin/DashboardPage.tsx
+- Modify: src/styles.css
 - Keep route: src/App.tsx
 - Create: tests/ui/admin-navigation.test.tsx
 - Update checklist: docs/superpowers/specs/2026-09-24-melhorias-ui-dashboard-usuarios-dark-design.md
@@ -93,27 +91,25 @@ Estas decisões tornam a spec executável sem alterar seu escopo funcional:
 ### Task 2
 - Modify: src/styles.css
 - Create: tests/ui/design-system.test.ts
-- Review existing screens:
-  - src/auth/LoginPage.tsx
-  - src/admin/DashboardPage.tsx
-  - src/admin/ImportAgendaPage.tsx
-  - src/admin/StoresPage.tsx
-  - src/admin/UsersPage.tsx
-  - src/admin/AdminAgendaHistoryPage.tsx
-  - src/agenda/TodayPage.tsx
-  - src/agenda/HistoryPage.tsx
-  - src/agenda/AgendaList.tsx
-  - src/agenda/AgendaDetails.tsx
-  - src/agenda/StatusControl.tsx
+- Review: src/auth/LoginPage.tsx
+- Review: src/admin/DashboardPage.tsx
+- Review: src/admin/ImportAgendaPage.tsx
+- Review: src/admin/StoresPage.tsx
+- Review: src/admin/UsersPage.tsx
+- Review: src/admin/AdminAgendaHistoryPage.tsx
+- Review: src/agenda/TodayPage.tsx
+- Review: src/agenda/HistoryPage.tsx
+- Review: src/agenda/AgendaList.tsx
+- Review: src/agenda/AgendaDetails.tsx
+- Review: src/agenda/StatusControl.tsx
 - Update checklist: docs/superpowers/specs/2026-09-24-melhorias-ui-dashboard-usuarios-dark-design.md
 
 ### Task 3
-- Modify: shared/api.ts
+- Create: migrations/0002_user_soft_delete.sql
 - Modify: worker/repositories/users.ts
 - Modify: worker/routes/admin-users.ts
 - Modify: src/admin/UsersPage.tsx
 - Create: src/admin/UserEditDialog.tsx
-- Modify: src/admin/types.ts somente se a UI precisar de campo adicional já retornado pela API
 - Modify: tests/worker/admin.test.ts
 - Create: tests/ui/admin-users.test.tsx
 - Update checklist: docs/superpowers/specs/2026-09-24-melhorias-ui-dashboard-usuarios-dark-design.md
@@ -134,39 +130,78 @@ Estas decisões tornam a spec executável sem alterar seu escopo funcional:
 
 # Task 1 — Mover “Importar agenda” para o Dashboard
 
-**Deliverable:** a navegação administrativa fica com Dashboard, Histórico, Lojas e Usuários; o Dashboard exibe “Importar agenda” e leva para o fluxo atual.
+**Deliverable:** Dashboard, Histórico, Lojas e Usuários ficam na navegação; “Importar agenda” aparece no cabeçalho do Dashboard e abre o fluxo atual.
 
 **Interfaces**
 - Consumes: rota existente /admin/import.
-- Produces: link contextual para /admin/import no cabeçalho do Dashboard.
-- Não altera: ImportAgendaPage e API de importação.
+- Produces: link contextual para /admin/import.
+- Não altera: ImportAgendaPage, parser ou API de importação.
 
-- [ ] **Step 1: escrever o teste de navegação antes da implementação**
+- [ ] **Step 1: criar o teste de navegação**
 
-Criar tests/ui/admin-navigation.test.tsx cobrindo:
-- sidebar administrativa não mostra link Importar;
-- Dashboard mostra link Importar agenda;
-- destino do link é /admin/import.
-
-Estrutura mínima esperada:
+Criar tests/ui/admin-navigation.test.tsx:
 
 ~~~tsx
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { MemoryRouter } from "react-router-dom";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { AdminLayout } from "../../src/admin/AdminLayout";
 import { DashboardPage } from "../../src/admin/DashboardPage";
+
+vi.mock("../../src/auth/AuthProvider", () => ({
+  useAuth: () => ({
+    user: {
+      id: "admin-test",
+      nome: "Administrador",
+      perfil: "admin",
+      lojaId: null,
+    },
+    logout: vi.fn(),
+  }),
+}));
 
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
+  vi.clearAllMocks();
 });
 
 describe("admin navigation", () => {
+  it("remove Importar da navegação administrativa", () => {
+    render(
+      <MemoryRouter initialEntries={["/admin"]}>
+        <Routes>
+          <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<span>Conteúdo</span>} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      screen.queryByRole("link", { name: "Importar" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("mostra Importar agenda no Dashboard", async () => {
-    vi.stubGlobal("fetch", vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 })));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        )
+        .mockResolvedValueOnce(
+          new Response(JSON.stringify([]), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }),
+        ),
+    );
 
     render(
       <MemoryRouter>
@@ -180,27 +215,24 @@ describe("admin navigation", () => {
 });
 ~~~
 
-Adicionar no mesmo arquivo o teste do AdminLayout usando mock de useAuth para confirmar que nenhum link com nome Importar aparece na navegação.
+- [ ] **Step 2: remover a entrada da navegação**
 
-- [ ] **Step 2: implementar a navegação enxuta**
-
-Em src/admin/AdminLayout.tsx remover somente:
+Em src/admin/AdminLayout.tsx, NAV_ITEMS passa a ser:
 
 ~~~ts
-{ to: "/admin/import", label: "Importar" }
+const NAV_ITEMS = [
+  { to: "/admin", label: "Dashboard", end: true },
+  { to: "/admin/history", label: "Histórico" },
+  { to: "/admin/stores", label: "Lojas" },
+  { to: "/admin/users", label: "Usuários" },
+];
 ~~~
 
-Manter as rotas Dashboard, Histórico, Lojas e Usuários nas versões desktop e mobile porque ambas usam NAV_ITEMS.
+Não remover a Route path="import" de src/App.tsx.
 
-- [ ] **Step 3: adicionar a ação contextual ao Dashboard**
+- [ ] **Step 3: adicionar a ação ao Dashboard**
 
-Em src/admin/DashboardPage.tsx:
-- importar Link de react-router-dom;
-- manter título e descrição existentes;
-- adicionar Link para /admin/import com classes primary-button e dashboard-import-action;
-- texto visível: “Importar agenda”.
-
-Estrutura:
+Em src/admin/DashboardPage.tsx importar Link de react-router-dom e usar:
 
 ~~~tsx
 <header className="page-heading page-heading-actions">
@@ -209,59 +241,76 @@ Estrutura:
     <h1>Dashboard</h1>
     <p>Acompanhe a situação das agendas de hoje por loja.</p>
   </div>
+
   <Link className="primary-button dashboard-import-action" to="/admin/import">
     Importar agenda
   </Link>
 </header>
 ~~~
 
-- [ ] **Step 4: ajustar responsividade sem mexer no fluxo de importação**
+- [ ] **Step 4: ajustar o layout responsivo**
 
-Em src/styles.css:
-- page-heading-actions usa flex no desktop;
-- dashboard-import-action não deve ocupar espaço excessivo;
-- no breakpoint mobile, a ação fica abaixo do bloco de título e alinhada ao início ou com largura confortável;
-- não duplicar formulário, parser ou chamadas da ImportAgendaPage no Dashboard.
+Adicionar em src/styles.css:
 
-- [ ] **Step 5: verificar a task antes do checkpoint**
+~~~css
+.page-heading-actions {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
 
-Executar verificação focada:
+.dashboard-import-action {
+  flex: 0 0 auto;
+  text-decoration: none;
+}
+
+@media (max-width: 720px) {
+  .page-heading-actions {
+    flex-direction: column;
+  }
+
+  .dashboard-import-action {
+    width: 100%;
+    justify-content: center;
+  }
+}
+~~~
+
+- [ ] **Step 5: validar a task**
+
+Executar:
 
 ~~~bash
 npx vitest run --config vitest.ui.config.ts tests/ui/admin-navigation.test.tsx tests/ui/import.test.tsx
 ~~~
 
-Revisar o diff e confirmar:
-- nenhum link Importar na sidebar/mobile-nav;
-- rota /admin/import ainda existe em src/App.tsx;
-- ImportAgendaPage não foi duplicada.
+Revisar o diff e confirmar que src/App.tsx ainda contém /admin/import e que ImportAgendaPage não foi duplicada.
 
 - [ ] **Step 6: checkpoint e CI**
 
-Criar um único commit da Task 1:
+Criar um único commit:
 
 ~~~text
 feat: move agenda import action to dashboard
 ~~~
 
-Atualizar a spec:
-- marcar todos os itens de Task 1 como [x];
-- marcar “Task 1 — Mover Importar agenda” como [x].
+Marcar todos os itens e critérios da Task 1 como [x] na spec somente após validação.
 
-Executar o CI uma única vez para este checkpoint. Só marcar concluída após npm test, typecheck e build passarem.
+Executar o CI uma única vez.
 
 ---
 
 # Task 2 — Redesign azul + amarelo
 
-**Deliverable:** todas as telas usam uma base visual azul + amarelo mais fina e corporativa, sem alterar fluxos funcionais.
+**Deliverable:** todas as telas usam uma base visual azul + amarelo mais fina e corporativa, sem alterar fluxos.
 
 **Interfaces**
-- Consumes: classes CSS já usadas pelas telas.
-- Produces: tokens CSS semânticos que a Task 4 reutilizará para o dark mode.
-- Não altera: contratos de API, rotas ou banco.
+- Consumes: classes CSS atuais.
+- Produces: tokens semânticos reaproveitados pela Task 4.
+- Não altera: API, rotas ou D1.
 
-- [ ] **Step 1: criar um teste simples para os tokens obrigatórios**
+- [ ] **Step 1: criar o teste dos tokens**
 
 Criar tests/ui/design-system.test.ts:
 
@@ -270,12 +319,15 @@ import { describe, expect, it } from "vitest";
 import css from "../../src/styles.css?raw";
 
 describe("design system", () => {
-  it("define a identidade azul e amarela por tokens semânticos", () => {
+  it("define os tokens de identidade", () => {
     expect(css).toContain("--color-primary:");
+    expect(css).toContain("--color-primary-strong:");
+    expect(css).toContain("--color-primary-soft:");
     expect(css).toContain("--color-accent:");
     expect(css).toContain("--color-background:");
     expect(css).toContain("--color-surface:");
     expect(css).toContain("--color-text:");
+    expect(css).toContain("--color-text-muted:");
     expect(css).toContain("--color-border:");
   });
 
@@ -285,12 +337,15 @@ describe("design system", () => {
 });
 ~~~
 
-- [ ] **Step 2: transformar a paleta em tokens do tema claro**
+- [ ] **Step 2: criar os tokens light**
 
-No início de src/styles.css substituir cores estruturais por variáveis:
+No início de src/styles.css:
 
 ~~~css
 :root {
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
   --color-primary: #1558a6;
   --color-primary-strong: #0b3d78;
   --color-primary-soft: #eaf2fc;
@@ -309,38 +364,38 @@ No início de src/styles.css substituir cores estruturais por variáveis:
   --color-warning: #8a6100;
   --color-warning-soft: #fff8df;
   --shadow-card: 0 12px 32px rgba(15, 52, 88, 0.08);
+  color: var(--color-text);
+  background: var(--color-background);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
 }
 ~~~
 
-- [ ] **Step 3: migrar os componentes existentes para os tokens**
+- [ ] **Step 3: migrar os seletores para tokens**
 
-Em src/styles.css revisar todas as regras usadas por:
-- login;
-- sidebar e navegação;
-- cabeçalhos;
-- dashboard/store cards;
-- botões;
-- inputs/selects;
-- tabelas;
-- painéis de detalhe;
-- badges/status;
-- feedbacks de erro/sucesso/aviso;
-- modais e overlays existentes;
-- mobile navigation.
+Em src/styles.css substituir cores estruturais fixas por:
+- background -> var(--color-background)
+- superfícies -> var(--color-surface)
+- superfícies secundárias -> var(--color-surface-muted)
+- texto principal -> var(--color-text)
+- texto secundário -> var(--color-text-muted)
+- bordas -> var(--color-border)
+- ações/foco -> var(--color-primary)
+- destaques -> var(--color-accent)
+- estados de erro/sucesso/aviso -> respectivos tokens semânticos
 
-Substituir cores legadas fixas por var(--color-*). O amarelo deve aparecer como destaque, não como fundo dominante de grandes áreas.
+Aplicar isso a login, sidebar, mobile nav, page headings, cards, botões, inputs, selects, tabelas, status-pill, feedbacks, detail-panel, history-box e overlays.
 
-- [ ] **Step 4: refinar peso visual e responsividade**
+- [ ] **Step 4: refinar peso visual**
 
-Ainda em src/styles.css:
-- reduzir sombras pesadas;
-- padronizar bordas e raios;
-- garantir foco visível com azul;
-- manter áreas clicáveis confortáveis;
-- preservar table-scroll em telas estreitas;
-- garantir que page-heading-actions da Task 1 responda bem em mobile.
+No mesmo arquivo:
+- remover sombras muito pesadas em favor de var(--shadow-card);
+- usar bordas de 1px e raios consistentes;
+- manter foco visível com outline/box-shadow azul;
+- não usar amarelo em grandes superfícies;
+- preservar table-scroll e espaçamento em mobile.
 
-- [ ] **Step 5: verificar a task**
+- [ ] **Step 5: validar a task**
 
 Executar:
 
@@ -348,148 +403,289 @@ Executar:
 npx vitest run --config vitest.ui.config.ts tests/ui/design-system.test.ts tests/ui/login.test.tsx tests/ui/agenda.test.tsx tests/ui/import.test.tsx tests/ui/admin-history.test.tsx
 ~~~
 
-Revisar visualmente as telas:
-- /login
-- /admin
-- /admin/history
-- /admin/import
-- /admin/stores
-- /admin/users
-- /app
-- /app/history
+Revisar visualmente /login, /admin, /admin/history, /admin/import, /admin/stores, /admin/users, /app e /app/history.
 
 - [ ] **Step 6: checkpoint e CI**
 
-Criar um único commit da Task 2:
+Criar um único commit:
 
 ~~~text
 style: apply blue and yellow visual system
 ~~~
 
-Atualizar a spec e marcar a Task 2 como [x] somente após validação.
-
-Executar o CI uma única vez para este checkpoint.
+Marcar a Task 2 como [x] na spec somente após validação e executar o CI uma única vez.
 
 ---
 
 # Task 3 — Gerenciamento completo de usuários
 
-**Deliverable:** administrador pode editar nome, login, loja, status e senha de usuários de loja, além de excluí-los com confirmação.
+**Deliverable:** administrador edita nome, login, loja, status e senha de usuários de loja e pode excluí-los de forma lógica, preservando auditoria.
 
 **Interfaces**
-- GET /api/admin/users -> AdminUser[]
-- POST /api/admin/users -> cria usuário de loja
-- PATCH /api/admin/users -> edita nome, login, senha, lojaId e ativo
-- DELETE /api/admin/users/:id -> remove somente usuário de loja e retorna 204
-- UserEditDialog recebe user, stores, onSaved e onDeleted.
+- GET /api/admin/users -> apenas usuários de loja não excluídos.
+- POST /api/admin/users -> cria usuário de loja.
+- PATCH /api/admin/users -> edita nome, login, senha, lojaId e ativo.
+- DELETE /api/admin/users/:id -> marca usuário de loja como excluído e retorna 204.
+- UserEditDialog recebe user, stores, onClose, onSaved e onDeleted.
 
-- [ ] **Step 1: escrever primeiro os testes de backend que faltam**
+- [ ] **Step 1: adicionar a migration de exclusão lógica**
 
-Expandir tests/worker/admin.test.ts com casos:
+Criar migrations/0002_user_soft_delete.sql:
 
-~~~ts
-it("admin edita nome, login, loja e senha do usuário", async () => {
-  // criar duas lojas e um usuário
-  // PATCH com nome, login, lojaId e senha
-  // esperar 200 e resposta sem senha_hash
-  // login antigo deve falhar e login novo com nova senha deve funcionar
-});
+~~~sql
+ALTER TABLE usuarios ADD COLUMN excluido_em TEXT;
 
-it("editar sem senha preserva a senha atual", async () => {
-  // PATCH somente nome
-  // login com a senha anterior continua 200
-});
-
-it("login duplicado na edição retorna 409", async () => {
-  // criar dois usuários
-  // tentar aplicar ao segundo o login do primeiro
-  // esperar LOGIN_EM_USO
-});
-
-it("admin exclui usuário de loja", async () => {
-  // DELETE /api/admin/users/:id
-  // esperar 204
-  // novo login do usuário retorna 401
-});
-
-it("rota de exclusão não remove administrador", async () => {
-  // DELETE usando id de admin
-  // esperar 404
-  // login do administrador continua funcionando
-});
+CREATE INDEX idx_usuarios_perfil_excluido
+  ON usuarios(perfil, excluido_em);
 ~~~
 
-- [ ] **Step 2: completar contrato e repositório**
+A migration é aditiva: nenhum registro existente é removido ou modificado.
 
-Em shared/api.ts:
-- manter UpdateStoreUserInput como contrato único para nome, login, senha, lojaId e ativo;
-- não criar endpoint separado para senha;
-- manter senha opcional com minLength 8.
+- [ ] **Step 2: ajustar o repositório de usuários**
 
-Em worker/repositories/users.ts adicionar:
+Em worker/repositories/users.ts:
+- adicionar excluido_em: string | null em UserRecord;
+- incluir excluido_em em USER_COLUMNS;
+- findUserByLogin deve usar AND excluido_em IS NULL;
+- findUserById deve usar AND excluido_em IS NULL;
+- listStoreUsers deve usar perfil = 'loja' AND excluido_em IS NULL;
+- updateStoreUser deve incluir AND excluido_em IS NULL no UPDATE;
+- criar softDeleteStoreUser.
+
+Código da nova função:
 
 ~~~ts
-export async function deleteStoreUser(
+export async function softDeleteStoreUser(
   db: D1Database,
   id: string,
 ): Promise<boolean> {
+  const now = new Date().toISOString();
   const result = await db
-    .prepare("DELETE FROM usuarios WHERE id = ? AND perfil = 'loja'")
-    .bind(id)
+    .prepare(
+      "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? " +
+        "WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
+    )
+    .bind(now, now, id)
     .run();
 
   return result.meta.changes > 0;
 }
 ~~~
 
-Não alterar updateStoreUser para escrever senha em texto puro. O hash continua sendo calculado por hashPassword no Worker.
+- [ ] **Step 3: criar a rota DELETE**
 
-- [ ] **Step 3: adicionar exclusão na rota administrativa**
+Em worker/routes/admin-users.ts:
+- importar z de zod;
+- importar softDeleteStoreUser;
+- adicionar a rota abaixo do PATCH:
 
-Em worker/routes/admin-users.ts adicionar DELETE /:id:
-- validar que o id é UUID;
-- buscar o usuário;
-- aceitar somente perfil loja;
-- retornar USUARIO_NAO_ENCONTRADO com 404 se inexistente ou admin;
-- chamar deleteStoreUser;
-- retornar 204.
+~~~ts
+adminUserRoutes.delete("/:id", async (c) => {
+  const parsedId = z.string().uuid().safeParse(c.req.param("id"));
+  if (!parsedId.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Usuário inválido." },
+      400,
+    );
+  }
 
-O userJson continua sendo a única forma de resposta de usuário e não deve incluir senha_hash.
+  const current = await findUserById(c.env.DB, parsedId.data);
+  if (!current || current.perfil !== "loja") {
+    return c.json(
+      { error: "USUARIO_NAO_ENCONTRADO", message: "Usuário não encontrado." },
+      404,
+    );
+  }
 
-- [ ] **Step 4: escrever os testes de UI antes da edição da tela**
+  const deleted = await softDeleteStoreUser(c.env.DB, current.id);
+  if (!deleted) {
+    return c.json(
+      { error: "USUARIO_NAO_ENCONTRADO", message: "Usuário não encontrado." },
+      404,
+    );
+  }
 
-Criar tests/ui/admin-users.test.tsx cobrindo:
-- botão Editar abre dados atuais;
-- senha aparece vazia e opcional;
-- salvar sem senha não inclui senha no PATCH;
-- salvar com senha inclui senha no PATCH;
-- loja e ativo podem ser alterados;
-- excluir exige segunda confirmação;
-- após exclusão bem-sucedida a lista é recarregada;
-- ApiError com LOGIN_EM_USO exibe mensagem amigável.
-
-Exemplo do ponto crítico:
-
-~~~tsx
-fireEvent.click(screen.getByRole("button", { name: /editar/i }));
-fireEvent.change(screen.getByLabelText("Nome"), {
-  target: { value: "Novo Nome" },
-});
-fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
-
-await waitFor(() => {
-  const patchCall = fetchMock.mock.calls.find(
-    ([url, init]) => url === "/api/admin/users" && init?.method === "PATCH",
-  );
-  expect(patchCall).toBeTruthy();
-  const body = JSON.parse(String(patchCall?.[1]?.body));
-  expect(body).not.toHaveProperty("senha");
+  return c.body(null, 204);
 });
 ~~~
 
-- [ ] **Step 5: criar UserEditDialog**
+O middleware já aplicado em worker/app.ts mantém GET/PATCH/DELETE restritos a admin.
 
-Criar src/admin/UserEditDialog.tsx com props:
+- [ ] **Step 4: ampliar os testes de backend antes da UI**
+
+Em tests/worker/admin.test.ts, ampliar jsonRequest para aceitar DELETE e body opcional:
+
+~~~ts
+function jsonRequest(
+  url: string,
+  method: "POST" | "PATCH" | "DELETE",
+  cookie: string,
+  body?: unknown,
+) {
+  return exports.default.fetch(
+    new Request("https://example.com" + url, {
+      method,
+      headers: {
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        Cookie: cookie,
+      },
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    }),
+  );
+}
+~~~
+
+Adicionar um helper para criar loja e usuário via API:
+
+~~~ts
+async function createManagedUser(
+  cookie: string,
+  suffix: string,
+  senha = password,
+) {
+  const storeResponse = await jsonRequest(
+    "/api/admin/stores",
+    "POST",
+    cookie,
+    {
+      codigo: "U" + suffix,
+      nome: "Loja " + suffix,
+    },
+  );
+  const store = (await storeResponse.json()) as { id: string };
+
+  const userResponse = await jsonRequest(
+    "/api/admin/users",
+    "POST",
+    cookie,
+    {
+      nome: "Usuário " + suffix,
+      login: "usuario-" + suffix,
+      senha,
+      lojaId: store.id,
+    },
+  );
+  const user = (await userResponse.json()) as {
+    id: string;
+    login: string;
+    lojaId: string;
+  };
+
+  return { store, user };
+}
+~~~
+
+Adicionar estes testes completos:
+
+~~~ts
+it("admin edita login e senha do usuário", async () => {
+  const cookie = await adminCookie("admin-edit-user", "admin-edit-user");
+  const { user } = await createManagedUser(cookie, "edit");
+
+  const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+    id: user.id,
+    nome: "Usuário Editado",
+    login: "usuario-editado",
+    senha: "nova-senha-segura-123",
+    lojaId: user.lojaId,
+    ativo: true,
+  });
+
+  expect(update.status).toBe(200);
+  const body = (await update.json()) as Record<string, unknown>;
+  expect(body).toMatchObject({
+    nome: "Usuário Editado",
+    login: "usuario-editado",
+    ativo: true,
+  });
+  expect(body).not.toHaveProperty("senha_hash");
+
+  expect((await login("usuario-edit")).status).toBe(401);
+  expect(
+    (await login("usuario-editado", "nova-senha-segura-123")).status,
+  ).toBe(200);
+});
+
+it("editar sem senha preserva a senha atual", async () => {
+  const cookie = await adminCookie(
+    "admin-edit-no-password",
+    "admin-edit-no-password",
+  );
+  const { user } = await createManagedUser(cookie, "keep-password");
+
+  const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+    id: user.id,
+    nome: "Nome Atualizado",
+  });
+
+  expect(update.status).toBe(200);
+  expect((await login("usuario-keep-password")).status).toBe(200);
+});
+
+it("login duplicado na edição retorna 409", async () => {
+  const cookie = await adminCookie("admin-edit-dup", "admin-edit-dup");
+  const first = await createManagedUser(cookie, "dup-a");
+  const second = await createManagedUser(cookie, "dup-b");
+
+  const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+    id: second.user.id,
+    login: first.user.login,
+  });
+
+  expect(update.status).toBe(409);
+  expect(await update.json()).toMatchObject({ error: "LOGIN_EM_USO" });
+});
+
+it("exclusão lógica remove da lista e impede login", async () => {
+  const cookie = await adminCookie("admin-delete-user", "admin-delete-user");
+  const { user } = await createManagedUser(cookie, "delete");
+
+  const deleted = await jsonRequest(
+    "/api/admin/users/" + user.id,
+    "DELETE",
+    cookie,
+  );
+  expect(deleted.status).toBe(204);
+
+  const list = await exports.default.fetch(
+    new Request("https://example.com/api/admin/users", {
+      headers: { Cookie: cookie },
+    }),
+  );
+  const users = (await list.json()) as Array<{ id: string }>;
+  expect(users.some((item) => item.id === user.id)).toBe(false);
+  expect((await login(user.login)).status).toBe(401);
+
+  const stored = await db
+    .prepare(
+      "SELECT ativo, excluido_em FROM usuarios WHERE id = ? LIMIT 1",
+    )
+    .bind(user.id)
+    .first<{ ativo: number; excluido_em: string | null }>();
+
+  expect(stored?.ativo).toBe(0);
+  expect(stored?.excluido_em).toBeTruthy();
+});
+
+it("DELETE de administrador é rejeitado", async () => {
+  const adminId = crypto.randomUUID();
+  await seedAdmin(adminId, "admin-protected");
+  const cookie = cookiePair(await login("admin-protected"));
+
+  const response = await jsonRequest(
+    "/api/admin/users/" + adminId,
+    "DELETE",
+    cookie,
+  );
+
+  expect(response.status).toBe(404);
+  expect((await login("admin-protected")).status).toBe(200);
+});
+~~~
+
+- [ ] **Step 5: criar UserEditDialog com edição e confirmação**
+
+Criar src/admin/UserEditDialog.tsx com:
 
 ~~~ts
 type UserEditDialogProps = {
@@ -501,72 +697,239 @@ type UserEditDialogProps = {
 };
 ~~~
 
-O componente deve:
-- inicializar Nome, Login, Loja e Status com os valores atuais;
-- iniciar Nova senha vazia;
-- enviar PATCH /api/admin/users;
-- omitir senha quando vazia;
-- mostrar botão destrutivo Excluir usuário;
-- ao clicar Excluir, trocar para um estado de confirmação contendo o nome do usuário;
-- só enviar DELETE /api/admin/users/:id após confirmar;
-- exibir erro da API dentro do diálogo;
-- bloquear botões durante save/delete;
-- fechar e chamar callback apenas após sucesso.
+O payload de edição deve omitir senha vazia:
 
-- [ ] **Step 6: integrar a edição na UsersPage**
+~~~ts
+const payload = {
+  id: user.id,
+  nome: nome.trim(),
+  login: login.trim(),
+  lojaId,
+  ativo,
+  ...(senha ? { senha } : {}),
+};
+
+const updated = await apiFetch<AdminUser>("/api/admin/users", {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(payload),
+});
+
+onSaved(updated);
+~~~
+
+A exclusão deve ter dois estados explícitos:
+- estado normal com botão className="danger-button" e texto “Excluir usuário”;
+- após o primeiro clique, mostrar “Excluir {user.nome}?” com botões “Cancelar” e “Confirmar exclusão”.
+
+A chamada final:
+
+~~~ts
+await apiFetch<void>("/api/admin/users/" + user.id, {
+  method: "DELETE",
+});
+onDeleted(user.id);
+~~~
+
+O formulário contém labels exatos Nome, Login, Loja, Status e Nova senha (opcional). Nova senha usa type="password", minLength={8} e autoComplete="new-password".
+
+- [ ] **Step 6: testar o diálogo de usuário**
+
+Criar tests/ui/admin-users.test.tsx usando mock de apiFetch:
+
+~~~tsx
+import "@testing-library/jest-dom/vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { apiFetch } from "../../src/lib/api";
+import { UserEditDialog } from "../../src/admin/UserEditDialog";
+
+vi.mock("../../src/lib/api", async () => {
+  const actual = await vi.importActual<typeof import("../../src/lib/api")>(
+    "../../src/lib/api",
+  );
+  return { ...actual, apiFetch: vi.fn() };
+});
+
+const mockedApiFetch = vi.mocked(apiFetch);
+
+const user = {
+  id: "11111111-1111-4111-8111-111111111111",
+  nome: "Conferente",
+  login: "conferente",
+  perfil: "loja" as const,
+  lojaId: "22222222-2222-4222-8222-222222222222",
+  ativo: true,
+};
+
+const stores = [
+  {
+    id: user.lojaId,
+    codigo: "F03",
+    nome: "Canasvieiras",
+    ativo: true,
+  },
+];
+
+afterEach(() => {
+  cleanup();
+  mockedApiFetch.mockReset();
+});
+
+describe("UserEditDialog", () => {
+  it("omite senha vazia no PATCH", async () => {
+    mockedApiFetch.mockResolvedValueOnce({
+      ...user,
+      nome: "Conferente Atualizado",
+    });
+
+    render(
+      <UserEditDialog
+        user={user}
+        stores={stores}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        onDeleted={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Nome"), {
+      target: { value: "Conferente Atualizado" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    await waitFor(() => expect(mockedApiFetch).toHaveBeenCalledTimes(1));
+    const init = mockedApiFetch.mock.calls[0][1];
+    const body = JSON.parse(String(init?.body));
+    expect(body).not.toHaveProperty("senha");
+  });
+
+  it("envia nova senha quando preenchida", async () => {
+    mockedApiFetch.mockResolvedValueOnce(user);
+
+    render(
+      <UserEditDialog
+        user={user}
+        stores={stores}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        onDeleted={vi.fn()}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Nova senha (opcional)"), {
+      target: { value: "nova-senha-segura" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar alterações" }));
+
+    await waitFor(() => expect(mockedApiFetch).toHaveBeenCalledTimes(1));
+    const init = mockedApiFetch.mock.calls[0][1];
+    const body = JSON.parse(String(init?.body));
+    expect(body.senha).toBe("nova-senha-segura");
+  });
+
+  it("só exclui após confirmação explícita", async () => {
+    mockedApiFetch.mockResolvedValueOnce(undefined);
+    const onDeleted = vi.fn();
+
+    render(
+      <UserEditDialog
+        user={user}
+        stores={stores}
+        onClose={vi.fn()}
+        onSaved={vi.fn()}
+        onDeleted={onDeleted}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Excluir usuário" }));
+    expect(mockedApiFetch).not.toHaveBeenCalled();
+    expect(screen.getByText("Excluir Conferente?")).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmar exclusão" }),
+    );
+
+    await waitFor(() =>
+      expect(mockedApiFetch).toHaveBeenCalledWith(
+        "/api/admin/users/" + user.id,
+        { method: "DELETE" },
+      ),
+    );
+    expect(onDeleted).toHaveBeenCalledWith(user.id);
+  });
+});
+~~~
+
+- [ ] **Step 7: integrar o diálogo na UsersPage**
 
 Em src/admin/UsersPage.tsx:
-- manter cadastro de novo usuário existente;
-- trocar ação principal da tabela para Editar;
-- manter status visível na tabela;
-- abrir UserEditDialog para o usuário selecionado;
-- ao salvar, atualizar o item em users sem precisar perder feedback;
-- ao excluir, remover o item da lista imediatamente após o 204;
-- manter load para recuperação completa quando necessário;
-- não exibir senha atual em nenhum ponto.
+- adicionar selectedUser: AdminUser | null;
+- trocar o botão Ativar/Desativar da tabela por Editar;
+- abrir UserEditDialog com o usuário selecionado;
+- em onSaved, substituir o item pelo id e fechar o diálogo;
+- em onDeleted, remover o item pelo id e fechar o diálogo;
+- manter o cadastro de usuário existente;
+- manter o status visível na tabela.
 
-- [ ] **Step 7: verificar backend e UI**
+Atualização local exata:
 
-Executar testes focados:
+~~~ts
+function userSaved(updated: AdminUser) {
+  setUsers((current) =>
+    current.map((item) => (item.id === updated.id ? updated : item)),
+  );
+  setSelectedUser(null);
+}
+
+function userDeleted(userId: string) {
+  setUsers((current) => current.filter((item) => item.id !== userId));
+  setSelectedUser(null);
+}
+~~~
+
+- [ ] **Step 8: validar a task**
+
+Executar:
 
 ~~~bash
 npx vitest run tests/worker/admin.test.ts
 npx vitest run --config vitest.ui.config.ts tests/ui/admin-users.test.tsx
 ~~~
 
-Revisar especificamente:
-- PATCH sem senha preserva credencial;
-- PATCH com login duplicado retorna 409, não 500;
-- DELETE admin falha;
-- DELETE usuário remove acesso;
-- respostas não contêm senha_hash.
+Confirmar no diff:
+- senha vazia não vai no PATCH;
+- senha nova só é hashada no Worker;
+- login duplicado retorna 409;
+- DELETE não remove fisicamente o registro;
+- usuário excluído não aparece e não autentica;
+- admin não pode ser excluído;
+- userJson não contém senha_hash.
 
-- [ ] **Step 8: checkpoint e CI**
+- [ ] **Step 9: checkpoint e CI**
 
-Criar um único commit da Task 3:
+Criar um único commit:
 
 ~~~text
 feat: complete admin user management
 ~~~
 
-Atualizar a spec e marcar a Task 3 como [x] somente após validação.
-
-Executar o CI uma única vez para este checkpoint.
+Marcar a Task 3 como [x] na spec somente após validação e executar o CI uma única vez.
 
 ---
 
 # Task 4 — Modo dark
 
-**Deliverable:** tema light/dark alternável sem reload, persistente e aplicado a login, admin e loja, mantendo azul + amarelo.
+**Deliverable:** tema light/dark alternável sem reload, persistente e aplicado a login, admin e loja.
 
 **Interfaces**
-- type Theme = "light" | "dark"
-- storage key: theme
+- Theme = "light" | "dark"
+- storage key = theme
 - html[data-theme="light"] e html[data-theme="dark"]
-- ThemeProvider expõe theme e setTheme/toggleTheme.
-- ThemeToggle usa o contexto e fornece label acessível.
+- ThemeProvider fornece theme e toggleTheme.
+- ThemeToggle expõe um botão acessível.
 
-- [ ] **Step 1: escrever os testes de comportamento do tema**
+- [ ] **Step 1: criar o teste de tema**
 
 Criar tests/ui/theme.test.tsx:
 
@@ -581,6 +944,7 @@ afterEach(() => {
   cleanup();
   localStorage.clear();
   delete document.documentElement.dataset.theme;
+  document.documentElement.style.colorScheme = "";
 });
 
 describe("theme", () => {
@@ -591,7 +955,9 @@ describe("theme", () => {
       </ThemeProvider>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /modo escuro/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Ativar modo escuro" }),
+    );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(localStorage.getItem("theme")).toBe("dark");
@@ -607,11 +973,14 @@ describe("theme", () => {
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(
+      screen.getByRole("button", { name: "Ativar modo claro" }),
+    ).toBeInTheDocument();
   });
 });
 ~~~
 
-- [ ] **Step 2: criar utilitários do tema**
+- [ ] **Step 2: criar os utilitários de tema**
 
 Criar src/theme/theme.ts:
 
@@ -622,7 +991,9 @@ export const THEME_STORAGE_KEY = "theme";
 
 export function readStoredTheme(): Theme {
   try {
-    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
+    return localStorage.getItem(THEME_STORAGE_KEY) === "dark"
+      ? "dark"
+      : "light";
   } catch {
     return "light";
   }
@@ -634,34 +1005,109 @@ export function applyTheme(theme: Theme) {
 }
 ~~~
 
-- [ ] **Step 3: criar ThemeProvider e ThemeToggle**
+- [ ] **Step 3: criar ThemeProvider**
 
-ThemeProvider:
-- estado inicial vindo de readStoredTheme;
-- applyTheme no início;
-- persistir theme em localStorage ao alterar;
-- expor theme e toggleTheme via contexto.
+Criar src/theme/ThemeProvider.tsx:
 
-ThemeToggle:
-- botão compacto;
-- aria-label “Ativar modo escuro” quando light;
-- aria-label “Ativar modo claro” quando dark;
-- texto/ícone não deve depender apenas de cor.
+~~~tsx
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
+import { applyTheme, readStoredTheme, THEME_STORAGE_KEY, type Theme } from "./theme";
 
-- [ ] **Step 4: aplicar provider e controles**
+type ThemeContextValue = {
+  theme: Theme;
+  toggleTheme: () => void;
+};
 
-Em src/App.tsx envolver AuthProvider com ThemeProvider.
+const ThemeContext = createContext<ThemeContextValue | null>(null);
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setTheme] = useState<Theme>(() => readStoredTheme());
+
+  useEffect(() => {
+    applyTheme(theme);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, theme);
+    } catch {
+      // Tema continua funcionando mesmo sem persistência.
+    }
+  }, [theme]);
+
+  const value = useMemo(
+    () => ({
+      theme,
+      toggleTheme: () =>
+        setTheme((current) => (current === "light" ? "dark" : "light")),
+    }),
+    [theme],
+  );
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme() {
+  const value = useContext(ThemeContext);
+  if (!value) {
+    throw new Error("useTheme deve ser usado dentro de ThemeProvider.");
+  }
+  return value;
+}
+~~~
+
+- [ ] **Step 4: criar ThemeToggle**
+
+Criar src/theme/ThemeToggle.tsx:
+
+~~~tsx
+import { useTheme } from "./ThemeProvider";
+
+export function ThemeToggle() {
+  const { theme, toggleTheme } = useTheme();
+  const dark = theme === "dark";
+
+  return (
+    <button
+      className="theme-toggle ghost-button"
+      type="button"
+      onClick={toggleTheme}
+      aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"}
+    >
+      {dark ? "Tema claro" : "Tema escuro"}
+    </button>
+  );
+}
+~~~
+
+- [ ] **Step 5: ligar o provider e os controles**
+
+Em src/App.tsx envolver AuthProvider:
+
+~~~tsx
+<BrowserRouter>
+  <ThemeProvider>
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  </ThemeProvider>
+</BrowserRouter>
+~~~
 
 Adicionar ThemeToggle:
-- em src/admin/AdminLayout.tsx no rodapé/área de usuário e também disponível no layout mobile;
-- no StoreLayout dentro de src/App.tsx;
-- em src/auth/LoginPage.tsx, em posição que não conflite com o formulário.
+- no rodapé do AdminLayout;
+- no rodapé do StoreLayout;
+- na LoginPage fora do form.
 
-Evitar controles duplicados simultaneamente no mesmo viewport.
+Em mobile, posicionar o mesmo controle por CSS; não renderizar duas cópias do toggle no mesmo layout.
 
-- [ ] **Step 5: evitar flash do tema errado**
+- [ ] **Step 6: evitar flash do tema errado**
 
-Em index.html, antes do carregamento de /src/main.tsx, aplicar imediatamente o tema salvo:
+Em index.html, dentro de head e antes do módulo principal:
 
 ~~~html
 <script>
@@ -677,11 +1123,11 @@ Em index.html, antes do carregamento de /src/main.tsx, aplicar imediatamente o t
 </script>
 ~~~
 
-O default continua sendo light quando não há preferência válida.
+Sem valor válido, o CSS light continua sendo o default.
 
-- [ ] **Step 6: criar overrides do dark mode**
+- [ ] **Step 7: adicionar os tokens dark**
 
-Em src/styles.css adicionar html[data-theme="dark"] redefinindo os tokens, sem replicar folha inteira:
+Em src/styles.css:
 
 ~~~css
 html[data-theme="dark"] {
@@ -696,16 +1142,19 @@ html[data-theme="dark"] {
   --color-primary-soft: #1c3554;
   --color-accent: #ffd449;
   --color-accent-strong: #e3b51b;
+  --color-danger: #ff8a80;
   --color-danger-soft: #351b1f;
+  --color-success: #70d7a4;
   --color-success-soft: #153127;
+  --color-warning: #ffd86b;
   --color-warning-soft: #342d17;
   --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.22);
 }
 ~~~
 
-Revisar todos os seletores para garantir que fundo/texto não usem branco/preto fixos incompatíveis com o dark.
+Revisar os seletores para remover white, #fff, #ffffff, black e cores legadas onde representem superfície/texto estrutural. Exceções aceitáveis: cores intencionais de conteúdo que permaneçam legíveis nos dois temas.
 
-- [ ] **Step 7: verificar todas as telas obrigatórias**
+- [ ] **Step 8: validar todas as telas**
 
 Executar:
 
@@ -713,55 +1162,42 @@ Executar:
 npx vitest run --config vitest.ui.config.ts tests/ui/theme.test.tsx tests/ui/login.test.tsx tests/ui/agenda.test.tsx tests/ui/import.test.tsx tests/ui/admin-history.test.tsx tests/ui/admin-users.test.tsx
 ~~~
 
-Fazer smoke visual nos dois temas:
-- login;
-- Dashboard;
-- histórico admin;
-- importação;
-- lojas;
-- usuários e diálogo de edição/exclusão;
-- agenda de hoje da loja;
-- histórico da loja;
-- tabelas, dropdowns, badges, foco, hover e disabled.
+Fazer smoke nos dois temas em:
+- /login
+- /admin
+- /admin/history
+- /admin/import
+- /admin/stores
+- /admin/users
+- /app
+- /app/history
 
-- [ ] **Step 8: checkpoint e CI**
+Validar sidebar, cards, tabelas, forms, modal de usuário, dropdowns, badges, hover, foco e disabled.
 
-Criar um único commit da Task 4:
+- [ ] **Step 9: checkpoint e CI**
+
+Criar um único commit:
 
 ~~~text
 feat: add persistent light and dark themes
 ~~~
 
-Atualizar a spec:
-- marcar todos os itens de Task 4 como [x];
-- marcar a ordem de execução completa;
-- marcar a definição de pronto que tiver evidência;
-- não marcar itens sem validação real.
-
-Executar o CI uma única vez para este checkpoint.
+Marcar a Task 4 e a definição de pronto na spec apenas para itens com evidência. Executar o CI uma única vez.
 
 ---
 
 # Fechamento
 
-Após as quatro tasks:
-
-- [ ] confirmar que as quatro tasks estão [x] na spec;
-- [ ] confirmar que o último CI está verde;
-- [ ] revisar o diff completo da branch contra main;
-- [ ] confirmar que não houve migration D1 ou alteração destrutiva de dados;
-- [ ] confirmar que login admin e loja seguem funcionando;
-- [ ] confirmar que importação de agenda continua usando o fluxo existente;
-- [ ] confirmar desktop e mobile;
-- [ ] atualizar documentação adicional somente se o comportamento final divergir da documentação atual;
-- [ ] fazer review final antes do merge para main.
+- [ ] As quatro tasks estão [x] na spec.
+- [ ] O último CI está verde.
+- [ ] O diff completo da branch contra main foi revisado.
+- [ ] A única migration é aditiva e preserva dados.
+- [ ] Login admin e loja continuam funcionando.
+- [ ] Importação continua usando o fluxo existente.
+- [ ] Usuários excluídos não aparecem e não autenticam, com auditoria preservada.
+- [ ] Light/dark estão consistentes em desktop e mobile.
+- [ ] A documentação final reflete o comportamento entregue.
 
 ## Critério para merge
 
-O PR só pode ir para main quando:
-- Task 1, Task 2, Task 3 e Task 4 estiverem marcadas como [x];
-- CI estiver verde;
-- não houver regressão conhecida de login/importação;
-- o gerenciamento de usuários estiver completo;
-- light/dark estiverem consistentes;
-- a spec refletir exatamente o que foi concluído.
+O PR só pode ir para main quando todos os itens de fechamento acima tiverem evidência e a spec estiver atualizada.
