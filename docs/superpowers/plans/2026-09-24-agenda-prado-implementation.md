@@ -1122,7 +1122,7 @@ Aplicar:
 - limite de tamanho razoável do JSON de importação;
 - respostas de erro sem stack trace em produção.
 
-- [ ] **Step 2: Rodar suíte completa**
+- [x] **Step 2: Rodar suíte completa**
 
 ~~~bash
 npm test
@@ -1206,7 +1206,9 @@ Documentar:
 - Step 3: migration `0001_init.sql` aplicada no D1 remoto e validada com `PRAGMA foreign_key_check` sem inconsistências.
 - Step 8: README operacional criado.
 - Step 9: workflow de CI criado com install, testes, typecheck e build.
-- Verificação completa da Task 11 permanece para o final da tarefa, conforme regra do projeto.
+- Step 2: GitHub Actions CI #5 passou com Install, Test, Typecheck e Build verdes.
+- Ruling: deploy ficou manual e `SESSION_SECRET` não é mais rotacionado automaticamente a cada push, evitando invalidar sessões existentes.
+- Steps 4–7 permanecem pendentes de execução operacional e aceite real.
 
 - [ ] **Step 10: Atualizar spec e plano**
 
