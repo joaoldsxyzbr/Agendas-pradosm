@@ -31,6 +31,12 @@ jobs:
           code=$?
 
           if [ "$code" -eq 0 ]; then
+            stage="lockfile check"
+            git diff --exit-code -- package-lock.json 2>&1 | tee /tmp/verify.log
+            code=${PIPESTATUS[0]}
+          fi
+
+          if [ "$code" -eq 0 ]; then
             stage="production audit"
             npm audit --omit=dev 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
