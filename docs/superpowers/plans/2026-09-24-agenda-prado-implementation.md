@@ -524,7 +524,7 @@ git commit -m "feat: add authentication"
   - GET/POST/PATCH /api/admin/users
 - Consome: requireAdmin, hashPassword, Env.DB.
 
-- [ ] **Step 1: Escrever testes da API administrativa**
+- [x] **Step 1: Escrever testes da API administrativa**
 
 Cobrir:
 - admin cria loja;
@@ -535,7 +535,7 @@ Cobrir:
 - usuário de loja recebe 403;
 - desativação impede novo login.
 
-- [ ] **Step 2: Definir schemas Zod compartilhados**
+- [x] **Step 2: Definir schemas Zod compartilhados**
 
 ~~~ts
 export const CreateStoreInput = z.object({
@@ -551,17 +551,17 @@ export const CreateStoreUserInput = z.object({
 });
 ~~~
 
-- [ ] **Step 3: Implementar repositories com prepared statements**
+- [x] **Step 3: Implementar repositories com prepared statements**
 
 Toda consulta usa bind; nenhuma concatenação de entrada do usuário em SQL.
 
-- [ ] **Step 4: Implementar rotas e conflitos 409**
+- [x] **Step 4: Implementar rotas e conflitos 409**
 
 Erros de UNIQUE devem virar mensagens estáveis:
 - CODIGO_LOJA_EM_USO
 - LOGIN_EM_USO
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/admin.test.ts
@@ -570,12 +570,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add shared worker tests/worker/admin.test.ts
 git commit -m "feat: add admin store and user management"
 ~~~
+
+
+**Checkpoint Task 4 — concluído em 24/09/2026**
+- CRUD administrativo de lojas e usuários implementado com validação Zod e prepared statements.
+- Proteção administrativa aplicada com autenticação + perfil admin.
+- Conflitos de código de loja e login retornam 409 com códigos estáveis.
+- Desativação de usuário impede novo login.
+- Verificação final: GitHub Actions #93 passou; 17/17 testes, typecheck e build verdes.
 
 ---
 
