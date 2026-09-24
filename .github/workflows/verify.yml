@@ -44,7 +44,7 @@ jobs:
 
           if [ "$code" -eq 0 ]; then
             stage="health test"
-            npm test -- tests/worker/health.test.ts 2>&1 | tee /tmp/verify.log
+            npm test -- tests/worker/health.test.ts tests/worker/database.test.ts 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
           fi
 
@@ -70,13 +70,6 @@ jobs:
 
           echo "VERIFY_CODE=$code" >> "$GITHUB_ENV"
           echo "VERIFY_DESCRIPTION=$description" >> "$GITHUB_ENV"
-
-      - name: Upload regenerated lockfile
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: package-lock
-          path: package-lock.json
 
       - name: Publish verification status
         env:
