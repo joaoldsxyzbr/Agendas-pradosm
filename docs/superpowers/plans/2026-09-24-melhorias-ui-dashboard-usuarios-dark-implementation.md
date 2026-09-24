@@ -332,7 +332,7 @@ Executar o CI uma única vez.
 - Produces: tokens semânticos reaproveitados pela Task 4.
 - Não altera: API, rotas ou D1.
 
-- [ ] **Step 1: criar o teste dos tokens**
+- [x] **Step 1: criar o teste dos tokens**
 
 Criar tests/ui/design-system.test.ts:
 
@@ -359,7 +359,7 @@ describe("design system", () => {
 });
 ~~~
 
-- [ ] **Step 2: criar os tokens light**
+- [x] **Step 2: criar os tokens light**
 
 No início de src/styles.css:
 
@@ -393,7 +393,7 @@ No início de src/styles.css:
 }
 ~~~
 
-- [ ] **Step 3: migrar os seletores para tokens**
+- [x] **Step 3: migrar os seletores para tokens**
 
 Em src/styles.css substituir cores estruturais fixas por:
 - background -> var(--color-background)
@@ -408,7 +408,7 @@ Em src/styles.css substituir cores estruturais fixas por:
 
 Aplicar isso a login, sidebar, mobile nav, page headings, cards, botões, inputs, selects, tabelas, status-pill, feedbacks, detail-panel, history-box e overlays.
 
-- [ ] **Step 4: refinar peso visual**
+- [x] **Step 4: refinar peso visual**
 
 No mesmo arquivo:
 - remover sombras muito pesadas em favor de var(--shadow-card);
@@ -417,7 +417,7 @@ No mesmo arquivo:
 - não usar amarelo em grandes superfícies;
 - preservar table-scroll e espaçamento em mobile.
 
-- [ ] **Step 5: validar a task**
+- [x] **Step 5: validar a task**
 
 Executar:
 
@@ -427,7 +427,7 @@ npx vitest run --config vitest.ui.config.ts tests/ui/design-system.test.ts tests
 
 Revisar visualmente /login, /admin, /admin/history, /admin/import, /admin/stores, /admin/users, /app e /app/history.
 
-- [ ] **Step 6: checkpoint e CI**
+- [x] **Step 6: checkpoint e CI**
 
 Criar um único commit:
 

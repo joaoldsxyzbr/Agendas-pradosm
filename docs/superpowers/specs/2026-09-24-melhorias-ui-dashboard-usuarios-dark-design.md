@@ -139,36 +139,36 @@ Atualizar a identidade visual do aplicativo para as cores da empresa e deixar a 
 
 ## Componentes a revisar
 
-- [ ] Sidebar.
-- [ ] Cabeçalho das páginas.
-- [ ] Cards de KPI.
-- [ ] Botões.
-- [ ] Inputs e selects.
-- [ ] Tabelas.
-- [ ] Modais.
-- [ ] Badges/status.
-- [ ] Estados de hover, foco e disabled.
-- [ ] Espaçamentos e bordas.
-- [ ] Tipografia e hierarquia visual.
+- [x] Sidebar.
+- [x] Cabeçalho das páginas.
+- [x] Cards de KPI.
+- [x] Botões.
+- [x] Inputs e selects.
+- [x] Tabelas.
+- [x] Modais.
+- [x] Badges/status.
+- [x] Estados de hover, foco e disabled.
+- [x] Espaçamentos e bordas.
+- [x] Tipografia e hierarquia visual.
 
 ## Estilo desejado
 
-- [ ] Visual mais fino e corporativo.
-- [ ] Menos peso visual desnecessário.
-- [ ] Bordas discretas.
-- [ ] Sombras leves.
-- [ ] Cantos consistentes.
-- [ ] Espaçamento mais respirado.
-- [ ] Hierarquia clara entre título, descrição, ação e conteúdo.
-- [ ] Evitar excesso de amarelo.
-- [ ] Manter contraste e acessibilidade.
+- [x] Visual mais fino e corporativo.
+- [x] Menos peso visual desnecessário.
+- [x] Bordas discretas.
+- [x] Sombras leves.
+- [x] Cantos consistentes.
+- [x] Espaçamento mais respirado.
+- [x] Hierarquia clara entre título, descrição, ação e conteúdo.
+- [x] Evitar excesso de amarelo.
+- [x] Manter contraste e acessibilidade.
 
 ## Critérios de aceite
 
-- [ ] Todas as telas principais usam a nova identidade.
-- [ ] Não restam cores antigas conflitantes.
-- [ ] Estados de interação continuam claros.
-- [ ] Layout permanece consistente em desktop e mobile.
+- [x] Todas as telas principais usam a nova identidade.
+- [x] Não restam cores antigas conflitantes.
+- [x] Estados de interação continuam claros.
+- [x] Layout permanece consistente em desktop e mobile.
 
 ---
 
@@ -374,7 +374,7 @@ A importação passa a ser uma ação contextual do Dashboard.
 
 1. [x] **Task 0 — Corrigir importação incompleta do PDF**
 2. [x] **Task 1 — Mover Importar agenda**
-3. [ ] **Task 2 — Redesign azul + amarelo**
+3. [x] **Task 2 — Redesign azul + amarelo**
 4. [ ] **Task 3 — Gerenciamento completo de usuários**
 5. [ ] **Task 4 — Modo dark**
 
