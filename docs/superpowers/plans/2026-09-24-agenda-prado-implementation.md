@@ -803,7 +803,7 @@ git commit -m "feat: import and replace agendas"
   - PATCH /api/store/appointments/:id/status
 - Todas as consultas usam loja_id derivado do usuário autenticado.
 
-- [ ] **Step 1: Escrever testes de isolamento e consulta**
+- [x] **Step 1: Escrever testes de isolamento e consulta**
 
 Cobrir:
 - loja A vê agenda A;
@@ -813,7 +813,7 @@ Cobrir:
 - histórico lista apenas dias da loja;
 - agendamentos vêm ordenados por horario_inicio.
 
-- [ ] **Step 2: Escrever testes de status**
+- [x] **Step 2: Escrever testes de status**
 
 Payload permitido:
 
@@ -830,19 +830,19 @@ Cobrir:
 - status inválido retorna 400;
 - frontend pode corrigir um status posteriormente.
 
-- [ ] **Step 3: Implementar utilitário de data de negócio**
+- [x] **Step 3: Implementar utilitário de data de negócio**
 
 businessDate(now) deve produzir YYYY-MM-DD em America/Sao_Paulo. Testar transição perto de meia-noite UTC para evitar usar a data UTC errada.
 
-- [ ] **Step 4: Implementar rotas com filtro de loja obrigatório**
+- [x] **Step 4: Implementar rotas com filtro de loja obrigatório**
 
 Nenhuma rota de loja recebe lojaId do cliente. O lojaId vem do usuário da sessão.
 
-- [ ] **Step 5: Implementar mudança de status**
+- [x] **Step 5: Implementar mudança de status**
 
 Executar UPDATE do agendamento e INSERT do histórico no mesmo DB.batch; se uma das operações falhar, o batch inteiro deve ser revertido.
 
-- [ ] **Step 6: Rodar testes**
+- [x] **Step 6: Rodar testes**
 
 ~~~bash
 npm test -- tests/worker/store-agendas.test.ts
@@ -851,12 +851,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit do checkpoint**
+- [x] **Step 7: Commit do checkpoint**
 
 ~~~bash
 git add worker/routes/store-agendas.ts worker/repositories/agendas.ts worker/lib/time.ts worker/app.ts tests/worker/store-agendas.test.ts
 git commit -m "feat: add store agenda workflow"
 ~~~
+
+
+**Checkpoint Task 7 — concluído em 24/09/2026**
+- Rotas da loja implementadas com isolamento por loja_id derivado da sessão.
+- Agenda de hoje usa America/Sao_Paulo e histórico retorna somente dados da própria loja.
+- Mudança de status e historico_status são gravados no mesmo D1.batch().
+- Testes cobrem isolamento entre lojas, ordenação, correção de status e rollback.
+- Verificação final: GitHub Actions #123 passou.
 
 ---
 
