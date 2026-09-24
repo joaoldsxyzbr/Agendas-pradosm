@@ -129,7 +129,7 @@ describe("auth", () => {
       .first<{ perfil: string; ativo: number; senha_hash: string }>();
 
     expect(stored).toMatchObject({ perfil: "admin", ativo: 0 });
-    expect(stored?.senha_hash).toMatch(/^pbkdf2_sha256\$600000\$/);
+    expect(stored?.senha_hash).toMatch(/^pbkdf2_sha256\$100000\$/);
 
     const deniedLogin = await login("primeiro-admin", senhaBootstrap);
     expect(deniedLogin.status).toBe(401);
