@@ -151,10 +151,10 @@ describe("TodayPage", () => {
     render(<TodayPage />);
 
     const card = await screen.findByTestId("agenda-mobile-card");
-    expect(within(card).getByText("Aguardando")).toBeInTheDocument();
+    expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
 
     fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
-    expect(within(card).getByText("Aguardando")).toBeInTheDocument();
+    expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
 
     resolveFirst(
       new Response(
@@ -165,10 +165,10 @@ describe("TodayPage", () => {
       ),
     );
 
-    expect(await within(card).findByText("Recebido")).toBeInTheDocument();
+    expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
 
     fireEvent.click(within(card).getByRole("button", { name: "Recusado" }));
-    expect(await within(card).findByText("Recusado")).toBeInTheDocument();
+    expect(await within(card).findByText("Recusado", { selector: ".store-status" })).toBeInTheDocument();
 
     const calls = fetchMock.mock.calls
       .filter((call) => String(call[0]).includes("/status"));
@@ -197,7 +197,7 @@ describe("TodayPage", () => {
     expect(
       await within(card).findByText("O status não foi alterado."),
     ).toBeInTheDocument();
-    expect(within(card).getByText("Aguardando")).toBeInTheDocument();
+    expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
   });
 
   it("abre detalhes com campos importados e histórico", async () => {
@@ -224,13 +224,17 @@ describe("TodayPage", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<TodayPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: "Ver detalhes" }));
+    const detailButtons = await screen.findAllByRole("button", { name: "Ver detalhes" });
+    fireEvent.click(detailButtons[0]);
 
-    expect(await screen.findByText("Detalhes do agendamento")).toBeInTheDocument();
-    expect(screen.getByText("123456")).toBeInTheDocument();
-    expect(screen.getByText("50001")).toBeInTheDocument();
-    expect(screen.getByText("Pedido")).toBeInTheDocument();
-    expect(screen.getByText("aguardando → recebido")).toBeInTheDocument();
+    const detailsTitle = await screen.findByText("Detalhes do agendamento");
+    const details = detailsTitle.closest("section");
+    expect(details).not.toBeNull();
+    const scoped = within(details!);
+    expect(scoped.getByText("123456")).toBeInTheDocument();
+    expect(scoped.getByText("50001")).toBeInTheDocument();
+    expect(scoped.getByText("Pedido")).toBeInTheDocument();
+    expect(scoped.getByText("aguardando → recebido")).toBeInTheDocument();
   });
 });
 
