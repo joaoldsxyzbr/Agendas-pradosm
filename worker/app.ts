@@ -2,6 +2,12 @@ import { Hono } from "hono";
 import type { AppEnv } from "./env";
 import { requireAdmin, requireAuth } from "./middleware/auth";
 import {
+  apiSecurityHeaders,
+  internalServerError,
+  limitAgendaImportBody,
+  validateMutationOrigin,
+} from "./lib/http";
+import {
   adminAgendaRoutes,
   adminAppointmentRoutes,
 } from "./routes/admin-agendas";
@@ -14,6 +20,15 @@ import {
 } from "./routes/store-agendas";
 
 export const app = new Hono<AppEnv>();
+
+app.use("/api/*", apiSecurityHeaders);
+app.use("/api/*", validateMutationOrigin);
+app.use("/api/admin/agendas/import", limitAgendaImportBody);
+
+app.onError((error, c) => {
+  console.error("Unhandled API error", error);
+  return internalServerError(c);
+});
 
 app.get("/api/health", (c) => c.json({ ok: true }));
 app.route("/api/auth", authRoutes);
