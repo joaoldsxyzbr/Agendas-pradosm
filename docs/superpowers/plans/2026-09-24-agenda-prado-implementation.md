@@ -1113,7 +1113,7 @@ git commit -m "feat: add store agenda screens"
 **Interfaces:**
 - Produces: app preparada para deploy, CI, documentação de operação e checklist final fechado.
 
-- [ ] **Step 1: Adicionar proteções HTTP**
+- [x] **Step 1: Adicionar proteções HTTP**
 
 Aplicar:
 - Content-Type correto;
@@ -1135,7 +1135,7 @@ Expected:
 - typecheck exit 0;
 - build exit 0.
 
-- [ ] **Step 3: Aplicar migration remota**
+- [x] **Step 3: Aplicar migration remota**
 
 ~~~bash
 npx wrangler d1 migrations apply agendas-prado --remote
@@ -1180,7 +1180,7 @@ Sem commit do arquivo:
 12. reenviar o mesmo PDF e validar que não duplica;
 13. testar substituição explícita.
 
-- [ ] **Step 8: Criar README operacional**
+- [x] **Step 8: Criar README operacional**
 
 Documentar:
 - pré-requisitos;
@@ -1193,13 +1193,20 @@ Documentar:
 - fluxo do conferente;
 - política de não commitar PDFs reais.
 
-- [ ] **Step 9: Criar CI**
+- [x] **Step 9: Criar CI**
 
 .github/workflows/ci.yml roda em pull_request e push:
 - npm ci
 - npm test
 - npm run typecheck
 - npm run build
+
+**Checkpoint parcial Task 11 — 24/09/2026**
+- Step 1: hardening HTTP implementado em `worker/lib/http.ts` e integrado ao Worker.
+- Step 3: migration `0001_init.sql` aplicada no D1 remoto e validada com `PRAGMA foreign_key_check` sem inconsistências.
+- Step 8: README operacional criado.
+- Step 9: workflow de CI criado com install, testes, typecheck e build.
+- Verificação completa da Task 11 permanece para o final da tarefa, conforme regra do projeto.
 
 - [ ] **Step 10: Atualizar spec e plano**
 
