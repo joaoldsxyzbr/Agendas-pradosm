@@ -883,7 +883,7 @@ git commit -m "feat: add store agenda workflow"
 - Produces: AuthProvider com user, loading, login, logout e refresh.
 - Produces: rotas separadas /admin/* e /app/*.
 
-- [ ] **Step 1: Escrever testes da tela de login**
+- [x] **Step 1: Escrever testes da tela de login**
 
 Cobrir:
 - mostra login/senha;
@@ -892,7 +892,7 @@ Cobrir:
 - loja é enviada para /app;
 - rota de perfil errado redireciona sem renderizar conteúdo protegido.
 
-- [ ] **Step 2: Implementar apiFetch**
+- [x] **Step 2: Implementar apiFetch**
 
 ~~~ts
 export async function apiFetch<T>(url: string, init: RequestInit = {}): Promise<T> {
@@ -902,18 +902,18 @@ export async function apiFetch<T>(url: string, init: RequestInit = {}): Promise<
 }
 ~~~
 
-- [ ] **Step 3: Implementar AuthProvider e rotas protegidas**
+- [x] **Step 3: Implementar AuthProvider e rotas protegidas**
 
 Ao iniciar, chamar GET /api/auth/me. Nunca guardar senha ou cookie em localStorage.
 
-- [ ] **Step 4: Implementar layout base responsivo**
+- [x] **Step 4: Implementar layout base responsivo**
 
 Navegação:
 - Admin: Dashboard, Histórico, Importar, Lojas, Usuários.
 - Loja: Hoje, Histórico.
 - Ambos: Sair.
 
-- [ ] **Step 5: Rodar testes**
+- [x] **Step 5: Rodar testes**
 
 ~~~bash
 npm test -- tests/ui/login.test.tsx
@@ -922,12 +922,20 @@ npm run typecheck
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit do checkpoint**
+- [x] **Step 6: Commit do checkpoint**
 
 ~~~bash
 git add src/lib src/auth src/App.tsx tests/ui/login.test.tsx
 git commit -m "feat: add authenticated app shell"
 ~~~
+
+
+**Checkpoint Task 8 — concluído em 24/09/2026**
+- SPA autenticada com restauração de sessão via /api/auth/me e cookies enviados por credentials=include.
+- Rotas /admin/* e /app/* protegidas por perfil, com redirecionamento seguro.
+- Login, logout e navegação responsiva implementados sem armazenar senha ou sessão no localStorage.
+- Testes React isolados em jsdom, separados da suíte Worker/D1.
+- Verificação final: GitHub Actions #129 passou.
 
 ---
 
