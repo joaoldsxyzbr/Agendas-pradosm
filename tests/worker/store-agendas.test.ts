@@ -6,7 +6,7 @@ import { businessDate } from "../../worker/lib/time";
 const db = (env as unknown as { DB: D1Database }).DB;
 const sessionSecret = "agenda-prado-test-session-secret";
 const passwordHash =
-  "pbkdf2_sha256$600000$AAECAwQFBgcICQoLDA0ODw==$mjQnW0x82GJVUIdErtKLjhrDkQnpSUvwhVvXx4B1L3M=";
+  "pbkdf2_sha256$100000$AAECAwQFBgcICQoLDA0ODw==$AYxgQLgLfLPsbb0egTJrnCsUalhEK5g5ZPOz/f7bl64=";
 const now = "2026-09-24T12:00:00.000Z";
 
 async function seedStoreUser(input: {
