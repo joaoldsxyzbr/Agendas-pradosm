@@ -1,0 +1,14 @@
+{
+  "name": "agendas-prado",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc -b --noEmit",
+    "build": "vite build",
+    "deploy": "npm run build && wrangler deploy"
+  }
+}
