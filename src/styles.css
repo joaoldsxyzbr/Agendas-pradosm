@@ -116,17 +116,11 @@ button {
 }
 
 .login-page {
-  position: relative;
   background:
     radial-gradient(circle at top left, var(--color-primary-glow), transparent 34rem),
     var(--color-background);
 }
 
-.login-theme-toggle {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-}
 
 .login-card {
   width: min(100%, 420px);
@@ -327,11 +321,6 @@ button {
   margin-top: auto;
   display: grid;
   gap: 0.8rem;
-}
-
-.sidebar-footer-actions {
-  display: grid;
-  gap: 0.5rem;
 }
 
 .theme-toggle {
@@ -1628,8 +1617,4 @@ td {
     font-size: 0.78rem;
   }
 
-  .login-theme-toggle {
-    top: 0.75rem;
-    right: 0.75rem;
-  }
 }

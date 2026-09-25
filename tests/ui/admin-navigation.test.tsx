@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AdminLayout } from "../../src/admin/AdminLayout";
 import { DashboardPage } from "../../src/admin/DashboardPage";
+import { ThemeProvider } from "../../src/theme/ThemeProvider";
 
 vi.mock("../../src/auth/AuthProvider", () => ({
   useAuth: () => ({
@@ -27,11 +28,13 @@ describe("navegação administrativa", () => {
   it("remove Importar da navegação lateral e mobile", () => {
     render(
       <MemoryRouter initialEntries={["/admin"]}>
-        <Routes>
-          <Route path="/admin" element={<AdminLayout />}>
-            <Route index element={<span>Conteúdo</span>} />
-          </Route>
-        </Routes>
+        <ThemeProvider>
+          <Routes>
+            <Route path="/admin" element={<AdminLayout />}>
+              <Route index element={<span>Conteúdo</span>} />
+            </Route>
+          </Routes>
+        </ThemeProvider>
       </MemoryRouter>,
     );
 

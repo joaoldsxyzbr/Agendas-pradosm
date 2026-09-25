@@ -132,9 +132,6 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <div className="login-theme-toggle">
-        <ThemeToggle />
-      </div>
       <section className="login-card" aria-labelledby="login-title">
         <div className="login-toolbar">
           <div className="brand-mark" aria-hidden="true">
