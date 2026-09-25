@@ -28,6 +28,7 @@ export type AdminAgendaSummary = {
   recebido: number;
   naoChegou: number;
   recusado: number;
+  semAgenda: number;
 };
 
 export type AdminAppointment = {

@@ -75,6 +75,7 @@ function agendaSummaryJson(agenda: AgendaSummaryRecord) {
     recebido: Number(agenda.recebido ?? 0),
     naoChegou: Number(agenda.nao_chegou ?? 0),
     recusado: Number(agenda.recusado ?? 0),
+    semAgenda: Number(agenda.sem_agenda ?? 0),
   };
 }
 
