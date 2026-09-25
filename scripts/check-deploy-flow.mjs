@@ -1,49 +1,50 @@
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 
-const workflow = readFileSync(
-  new URL("../.github/workflows/deploy.yml", import.meta.url),
+const packageJson = JSON.parse(
+  readFileSync(new URL("../package.json", import.meta.url), "utf8"),
+);
+const deploy = packageJson.scripts?.deploy ?? "";
+
+assert.ok(deploy.includes("npm run build"), "deploy deve buildar antes de publicar");
+assert.ok(
+  deploy.includes("wrangler d1 migrations apply agendas-prado --remote"),
+  "deploy nativo deve aplicar migrations D1 remotas",
+);
+assert.ok(
+  deploy.includes("wrangler deploy"),
+  "deploy nativo deve publicar o Worker com Wrangler",
+);
+
+const buildIndex = deploy.indexOf("npm run build");
+const migrationIndex = deploy.indexOf(
+  "wrangler d1 migrations apply agendas-prado --remote",
+);
+const deployIndex = deploy.lastIndexOf("wrangler deploy");
+
+assert.ok(
+  buildIndex >= 0 && migrationIndex > buildIndex,
+  "migration D1 deve ocorrer depois do build",
+);
+assert.ok(
+  deployIndex > migrationIndex,
+  "Worker só pode ser publicado depois da migration D1",
+);
+
+assert.equal(
+  existsSync(new URL("../.github/workflows/deploy.yml", import.meta.url)),
+  false,
+  "GitHub Actions não deve ter um segundo caminho de deploy",
+);
+
+const ci = readFileSync(
+  new URL("../.github/workflows/ci.yml", import.meta.url),
   "utf8",
 );
-
-assert.ok(workflow.includes("workflow_run:"), "deploy deve aguardar o CI");
+assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
 assert.ok(
-  workflow.includes('workflows: ["CI"]'),
-  "deploy deve depender do workflow CI",
-);
-assert.ok(
-  workflow.includes("types: [completed]"),
-  "deploy deve iniciar apenas quando o CI terminar",
-);
-assert.ok(
-  workflow.includes("branches: [main]"),
-  "deploy automático deve aceitar somente main",
-);
-assert.ok(
-  workflow.includes("github.event.workflow_run.conclusion == 'success'"),
-  "deploy deve bloquear CI vermelho",
-);
-assert.ok(
-  workflow.includes("github.event.workflow_run.head_sha"),
-  "deploy deve publicar o mesmo SHA validado pelo CI",
-);
-assert.ok(
-  workflow.includes("cancel-in-progress: false"),
-  "deploys não devem cancelar migrations em andamento",
+  !ci.includes("CLOUDFLARE_API_TOKEN"),
+  "CI não deve depender de credenciais Cloudflare",
 );
 
-const migration = workflow.indexOf("Apply remote D1 migrations");
-const deployStep = workflow.indexOf("Deploy Worker");
-const health = workflow.indexOf("Health check");
-
-assert.ok(
-  migration >= 0 && deployStep > migration,
-  "migration D1 deve ocorrer antes do deploy",
-);
-assert.ok(health > deployStep, "health-check deve ocorrer depois do deploy");
-assert.ok(
-  workflow.includes("https://agendaspradosm.joaolds.xyz.br/api/health"),
-  "health-check deve validar produção",
-);
-
-console.log("Fluxo de deploy validado.");
+console.log("Fluxo nativo Cloudflare validado.");
