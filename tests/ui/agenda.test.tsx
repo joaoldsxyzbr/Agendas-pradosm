@@ -276,55 +276,122 @@ describe("TodayPage", () => {
 });
 
 describe("HistoryPage", () => {
-  it("lista datas e busca somente a agenda escolhida", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  function historyFetchMock() {
+    return vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url === "/api/store/history") {
         return (await json(200, [
           {
-            id: "a2",
+            id: "a3",
             storeCode: "F03",
             storeName: "LOJA 03",
-            date: "2026-09-23",
+            date: "2026-09-25",
             total: 2,
-            aguardando: 0,
-            recebido: 2,
+            aguardando: 1,
+            recebido: 1,
             naoChegou: 0,
             recusado: 0,
           },
           {
-            id: "a1",
+            id: "a2",
             storeCode: "F03",
             storeName: "LOJA 03",
-            date: "2026-09-22",
+            date: "2026-09-24",
             total: 1,
-            aguardando: 1,
+            aguardando: 0,
             recebido: 0,
-            naoChegou: 0,
+            naoChegou: 1,
             recusado: 0,
           },
         ]));
       }
 
-      if (url === "/api/store/history/2026-09-22") {
-        return (await json(200, agendaBody([
-          appointment("appt-history", "08:00"),
-        ])));
+      if (url === "/api/store/history/2026-09-25") {
+        return (await json(200, {
+          agenda: {
+            id: "agenda-history-latest",
+            storeCode: "F03",
+            storeName: "LOJA 03",
+            date: "2026-09-25",
+            originalFileName: "agenda.pdf",
+          },
+          appointments: [
+            {
+              ...appointment("appt-history-alpha", "08:00", "recebido"),
+              supplier: "PAMPLONA ALIMENTOS S/A",
+              protocol: "12458375",
+            },
+            {
+              ...appointment("appt-history-beta", "09:00", "aguardando"),
+              supplier: "GRANJA PINHEIROS LTDA",
+              protocol: "12473312",
+            },
+          ],
+        }));
+      }
+
+      if (url === "/api/store/history/2026-09-24") {
+        return (await json(200, {
+          agenda: {
+            id: "agenda-history-old",
+            storeCode: "F03",
+            storeName: "LOJA 03",
+            date: "2026-09-24",
+            originalFileName: "agenda.pdf",
+          },
+          appointments: [
+            {
+              ...appointment("appt-history-old", "08:00", "nao_chegou"),
+              supplier: "FORNECEDOR ANTIGO LTDA",
+              protocol: "12000001",
+            },
+          ],
+        }));
       }
 
       return new Response(null, { status: 404 });
     });
+  }
 
+  it("abre automaticamente o dia mais recente com resumo e busca", async () => {
+    const fetchMock = historyFetchMock();
     vi.stubGlobal("fetch", fetchMock);
+
     render(<HistoryPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /22\/09\/2026/ }));
-
-    const historyRows = await screen.findAllByTestId("agenda-desktop-row");
-    expect(within(historyRows[0]).getByText("Fornecedor appt-history")).toBeInTheDocument();
+    expect(await screen.findByText("2 agendamentos")).toBeInTheDocument();
+    expect(screen.getByText("1 aguardando")).toBeInTheDocument();
+    expect(screen.getByText("1 recebido")).toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: "Pesquisar fornecedor ou protocolo" }),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/history/2026-09-22",
+      "/api/store/history/2026-09-25",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("filtra o dia selecionado e permite trocar de data", async () => {
+    const fetchMock = historyFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HistoryPage />);
+
+    const search = await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    fireEvent.change(search, { target: { value: "pamplona" } });
+    expect(screen.getAllByTestId("agenda-desktop-row")).toHaveLength(1);
+    expect(screen.getAllByText("PAMPLONA ALIMENTOS S/A").length).toBeGreaterThan(0);
+    expect(screen.queryByText("GRANJA PINHEIROS LTDA")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /24\/09\/2026/ }));
+
+    expect(await screen.findByText("FORNECEDOR ANTIGO LTDA")).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/history/2026-09-24",
       expect.objectContaining({ credentials: "include" }),
     );
   });
