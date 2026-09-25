@@ -1210,7 +1210,7 @@ Marcar a Task 4 e a definição de pronto na spec apenas para itens com evidênc
 
 # Fechamento
 
-- [x] As quatro tasks estão [x] na spec.
+- [x] As cinco tasks estão [x] na spec.
 - [x] O último CI está verde.
 - [x] O diff completo da branch contra main foi revisado.
 - [x] A única migration é aditiva e preserva dados.
