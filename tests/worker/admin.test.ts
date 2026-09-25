@@ -215,6 +215,34 @@ describe("admin store and user management", () => {
     expect(await duplicate.json()).toMatchObject({ error: "LOGIN_EM_USO" });
   });
 
+  it("login duplicado ignora diferença entre maiúsculas e minúsculas", async () => {
+    const cookie = await adminCookie("admin-dup-login-case", "admin-dup-login-case");
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F93B",
+      nome: "Loja Login Case",
+    });
+    const store = (await storeResponse.json()) as { id: string };
+
+    const first = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Usuário Case A",
+      login: "Conferente08",
+      senha: password,
+      lojaId: store.id,
+    });
+    expect(first.status).toBe(201);
+
+    const duplicate = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Usuário Case B",
+      login: "conferente08",
+      senha: password,
+      lojaId: store.id,
+    });
+
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({ error: "LOGIN_EM_USO" });
+  });
+
   it("usuário de loja recebe 403 nas rotas administrativas", async () => {
     await seedStoreUser({
       userId: "store-admin-denied",
