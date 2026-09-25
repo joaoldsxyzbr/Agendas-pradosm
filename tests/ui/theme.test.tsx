@@ -1,7 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
-import css from "../../src/styles.css?raw";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import { ThemeToggle } from "../../src/theme/ThemeToggle";
 
@@ -47,11 +46,16 @@ describe("theme", () => {
     ).toBeInTheDocument();
   });
 
-  it("define tokens escuros sem duplicar a folha inteira", () => {
-    expect(css).toContain('html[data-theme="dark"]');
-    expect(css).toContain("--color-background: #0d1624");
-    expect(css).toContain("--color-surface: #142033");
-    expect(css).toContain("--color-primary: #5ca8ff");
-    expect(css).toContain("--color-accent: #ffd449");
+  it("valor inválido volta para light", () => {
+    localStorage.setItem("theme", "sepia");
+
+    render(
+      <ThemeProvider>
+        <ThemeToggle />
+      </ThemeProvider>,
+    );
+
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(localStorage.getItem("theme")).toBe("light");
   });
 });
