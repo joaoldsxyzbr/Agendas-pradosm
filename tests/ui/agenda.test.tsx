@@ -108,9 +108,21 @@ describe("TodayPage", () => {
       screen.getByRole("columnheader", { name: "Status" }),
     ).toBeInTheDocument();
 
+    expect(
+      screen.getByRole("columnheader", { name: "Ações" }),
+    ).toBeInTheDocument();
+
     const desktopRows = screen.getAllByTestId("agenda-desktop-row");
     expect(within(desktopRows[0]).getByText("08:00 - 08:10")).toBeInTheDocument();
     expect(within(desktopRows[1]).getByText("09:00 - 10:10")).toBeInTheDocument();
+
+    const firstRowCells = within(desktopRows[0]).getAllByRole("cell");
+    expect(within(firstRowCells[4]).getByText("Aguardando")).toBeInTheDocument();
+    expect(within(firstRowCells[4]).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Recebido" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Não chegou" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Recusado" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Ver detalhes" })).toBeInTheDocument();
 
     const mobileCard = screen.getAllByTestId("agenda-mobile-card")[0];
     expect(within(mobileCard).getByText("08:00 - 08:10")).toBeInTheDocument();
