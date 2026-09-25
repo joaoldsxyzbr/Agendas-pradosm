@@ -147,6 +147,105 @@ describe("admin store and user management", () => {
     expect(await duplicate.json()).toMatchObject({ error: "CODIGO_LOJA_EM_USO" });
   });
 
+  it("admin edita código, nome e status da loja", async () => {
+    const cookie = await adminCookie("admin-edit-store", "admin-edit-store");
+
+    const created = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F101",
+      nome: "Loja Original",
+    });
+    expect(created.status).toBe(201);
+    const store = (await created.json()) as { id: string };
+
+    const updated = await jsonRequest("/api/admin/stores", "PATCH", cookie, {
+      id: store.id,
+      codigo: "F111",
+      nome: "Loja Atualizada",
+      ativo: false,
+    });
+
+    expect(updated.status).toBe(200);
+    expect(await updated.json()).toMatchObject({
+      id: store.id,
+      codigo: "F111",
+      nome: "Loja Atualizada",
+      ativo: false,
+    });
+  });
+
+  it("bloqueia exclusão de loja enquanto houver usuário vinculado", async () => {
+    const cookie = await adminCookie(
+      "admin-delete-store-blocked",
+      "admin-delete-store-blocked",
+    );
+    const { store } = await createManagedUser(
+      cookie,
+      "F102",
+      "usuario-store-blocked",
+    );
+
+    const deleted = await jsonRequest(
+      `/api/admin/stores/${store.id}`,
+      "DELETE",
+      cookie,
+    );
+
+    expect(deleted.status).toBe(409);
+    expect(await deleted.json()).toMatchObject({
+      error: "LOJA_POSSUI_USUARIOS",
+    });
+
+    const stored = await db
+      .prepare("SELECT ativo FROM lojas WHERE id = ?")
+      .bind(store.id)
+      .first<{ ativo: number }>();
+    expect(stored?.ativo).toBe(1);
+  });
+
+  it("exclui loja logicamente após remover seus usuários", async () => {
+    const cookie = await adminCookie(
+      "admin-delete-store",
+      "admin-delete-store",
+    );
+    const { store, user } = await createManagedUser(
+      cookie,
+      "F103",
+      "usuario-store-delete",
+    );
+
+    const userDeleted = await jsonRequest(
+      `/api/admin/users/${user.id}`,
+      "DELETE",
+      cookie,
+    );
+    expect(userDeleted.status).toBe(204);
+
+    const storeDeleted = await jsonRequest(
+      `/api/admin/stores/${store.id}`,
+      "DELETE",
+      cookie,
+    );
+    expect(storeDeleted.status).toBe(204);
+
+    const list = await exports.default.fetch(
+      new Request("https://example.com/api/admin/stores", {
+        headers: { Cookie: cookie },
+      }),
+    );
+    const stores = (await list.json()) as Array<{ id: string }>;
+    expect(stores.some((item) => item.id === store.id)).toBe(false);
+
+    const stored = await db
+      .prepare(
+        "SELECT ativo, excluido_em FROM lojas WHERE id = ? LIMIT 1",
+      )
+      .bind(store.id)
+      .first<{ ativo: number; excluido_em: string | null }>();
+
+    expect(stored?.ativo).toBe(0);
+    expect(stored?.excluido_em).toBeTruthy();
+  });
+
   it("admin cria usuário de loja vinculado", async () => {
     const cookie = await adminCookie("admin-create-user", "admin-create-user");
 
