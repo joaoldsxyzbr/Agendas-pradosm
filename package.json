@@ -9,7 +9,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
     "build": "vite build",
-    "deploy": "npm run build && wrangler deploy",
+    "deploy": "npm run build && wrangler d1 migrations apply agendas-prado --remote && wrangler deploy",
     "test:ui": "vitest run --config vitest.ui.config.ts",
     "test:worker": "vitest run",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
