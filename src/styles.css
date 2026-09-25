@@ -116,9 +116,16 @@ button {
 }
 
 .login-page {
+  position: relative;
   background:
     radial-gradient(circle at top left, var(--color-primary-glow), transparent 34rem),
     var(--color-background);
+}
+
+.login-theme-toggle {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
 }
 
 .login-card {
@@ -320,6 +327,15 @@ button {
   margin-top: auto;
   display: grid;
   gap: 0.8rem;
+}
+
+.sidebar-footer-actions {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.theme-toggle {
+  white-space: nowrap;
 }
 
 .user-summary {
@@ -676,6 +692,18 @@ textarea {
 
 .file-field input {
   padding: 0.45rem;
+}
+
+.file-field input::file-selector-button {
+  margin-right: 0.7rem;
+  padding: 0.48rem 0.68rem;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: var(--color-surface-muted);
+  color: var(--color-text);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
 }
 
 .filter-bar input:focus,
@@ -1585,5 +1613,23 @@ td {
   .mobile-header-actions .theme-toggle {
     min-width: 42px;
     padding-inline: 0.65rem;
+  }
+}
+
+
+@media (max-width: 520px) {
+  .mobile-header-actions {
+    gap: 0.3rem;
+  }
+
+  .mobile-header-actions .ghost-button {
+    min-height: 36px;
+    padding-inline: 0.55rem;
+    font-size: 0.78rem;
+  }
+
+  .login-theme-toggle {
+    top: 0.75rem;
+    right: 0.75rem;
   }
 }

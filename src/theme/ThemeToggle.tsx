@@ -10,9 +10,9 @@ export function ThemeToggle() {
       type="button"
       onClick={toggleTheme}
       aria-label={dark ? "Ativar modo claro" : "Ativar modo escuro"}
+      title={dark ? "Ativar modo claro" : "Ativar modo escuro"}
     >
-      <span aria-hidden="true">{dark ? "☀" : "☾"}</span>
-      <span>{dark ? "Tema claro" : "Tema escuro"}</span>
+      {dark ? "Tema claro" : "Tema escuro"}
     </button>
   );
 }

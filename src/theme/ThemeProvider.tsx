@@ -28,7 +28,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
-      // O tema continua funcionando mesmo quando o navegador bloqueia storage.
+      // O tema segue funcionando mesmo se o navegador bloquear a persistência.
     }
   }, [theme]);
 
@@ -41,9 +41,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     [theme],
   );
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {
