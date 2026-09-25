@@ -1,10 +1,12 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../lib/api";
+import { UserEditDialog } from "./UserEditDialog";
 import type { AdminStore, AdminUser } from "./types";
 
 export function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stores, setStores] = useState<AdminStore[]>([]);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [nome, setNome] = useState("");
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
@@ -56,23 +58,23 @@ export function UsersPage() {
     }
   }
 
-  async function toggle(user: AdminUser) {
-    setMessage(null);
-    try {
-      await apiFetch<AdminUser>("/api/admin/users", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: user.id, ativo: !user.ativo }),
-      });
-      await load();
-    } catch (error) {
-      setMessage(
-        error instanceof ApiError ? error.message : "Não foi possível alterar o usuário.",
-      );
-    }
+  function userSaved(updated: AdminUser) {
+    setUsers((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    );
+    setSelectedUser(null);
+    setMessage("Usuário atualizado com sucesso.");
   }
 
-  const storeName = new Map(stores.map((store) => [store.id, `${store.codigo} - ${store.nome}`]));
+  function userDeleted(userId: string) {
+    setUsers((current) => current.filter((item) => item.id !== userId));
+    setSelectedUser(null);
+    setMessage("Usuário excluído com sucesso.");
+  }
+
+  const storeName = new Map(
+    stores.map((store) => [store.id, `${store.codigo} - ${store.nome}`]),
+  );
 
   return (
     <section className="admin-page">
@@ -80,7 +82,7 @@ export function UsersPage() {
         <div>
           <span className="eyebrow">Cadastros</span>
           <h1>Usuários</h1>
-          <p>Crie acessos de conferentes vinculados a uma loja.</p>
+          <p>Crie e gerencie os acessos dos conferentes de cada loja.</p>
         </div>
       </header>
 
@@ -145,9 +147,9 @@ export function UsersPage() {
                     <button
                       className="ghost-button"
                       type="button"
-                      onClick={() => void toggle(user)}
+                      onClick={() => setSelectedUser(user)}
                     >
-                      {user.ativo ? "Desativar" : "Ativar"}
+                      Editar
                     </button>
                   </td>
                 </tr>
@@ -159,6 +161,16 @@ export function UsersPage() {
           </table>
         </div>
       </div>
+
+      {selectedUser ? (
+        <UserEditDialog
+          user={selectedUser}
+          stores={stores}
+          onClose={() => setSelectedUser(null)}
+          onSaved={userSaved}
+          onDeleted={userDeleted}
+        />
+      ) : null}
     </section>
   );
 }

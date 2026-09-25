@@ -34,6 +34,7 @@
   --color-focus-ring: rgba(21, 88, 166, 0.16);
   --shadow-card: 0 10px 28px rgba(15, 52, 88, 0.07);
   --shadow-elevated: 0 20px 60px rgba(15, 52, 88, 0.13);
+  --color-overlay: rgba(13, 22, 36, 0.48);
   color: var(--color-text);
   background: var(--color-background);
   font-synthesis: none;
@@ -1368,5 +1369,148 @@ td {
   .selected-day-heading {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: var(--color-overlay);
+}
+
+.modal-card {
+  width: min(100%, 680px);
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-elevated);
+}
+
+.modal-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.modal-heading > div {
+  display: grid;
+  gap: 0.35rem;
+}
+
+.modal-heading h2 {
+  margin: 0;
+  color: var(--color-text-strong);
+  font-size: 1.35rem;
+}
+
+.modal-form {
+  display: grid;
+  gap: 1rem;
+}
+
+.modal-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+
+.modal-form label {
+  display: grid;
+  gap: 0.4rem;
+  color: var(--color-text);
+  font-size: 0.82rem;
+  font-weight: 750;
+}
+
+.modal-form input,
+.modal-form select {
+  min-height: 42px;
+  width: 100%;
+  padding: 0.6rem 0.72rem;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.modal-form input:focus,
+.modal-form select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.modal-wide-field {
+  grid-column: 1 / -1;
+}
+
+.modal-actions,
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.modal-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--color-danger-border);
+}
+
+.modal-danger-zone > div:first-child {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.modal-danger-zone strong {
+  color: var(--color-danger-strong);
+}
+
+.modal-danger-zone span {
+  color: var(--color-text-muted);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 760px) {
+  .modal-card {
+    padding: 1rem;
+  }
+
+  .modal-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-wide-field {
+    grid-column: auto;
+  }
+
+  .modal-danger-zone {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .modal-actions,
+  .confirm-actions {
+    flex-direction: column-reverse;
+  }
+
+  .modal-actions button,
+  .confirm-actions button,
+  .modal-danger-zone > .danger-button {
+    width: 100%;
   }
 }

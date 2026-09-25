@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import {
   CreateStoreUserInput,
   UpdateStoreUserInput,
@@ -9,6 +10,7 @@ import {
   createStoreUser,
   findUserById,
   listStoreUsers,
+  softDeleteStoreUser,
   type UserRecord,
   updateStoreUser,
 } from "../repositories/users";
@@ -103,4 +105,32 @@ adminUserRoutes.patch("/", async (c) => {
     }
     throw error;
   }
+});
+
+adminUserRoutes.delete("/:id", async (c) => {
+  const parsedId = z.string().uuid().safeParse(c.req.param("id"));
+  if (!parsedId.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Usuário inválido." },
+      400,
+    );
+  }
+
+  const current = await findUserById(c.env.DB, parsedId.data);
+  if (!current || current.perfil !== "loja") {
+    return c.json(
+      { error: "USUARIO_NAO_ENCONTRADO", message: "Usuário não encontrado." },
+      404,
+    );
+  }
+
+  const deleted = await softDeleteStoreUser(c.env.DB, current.id);
+  if (!deleted) {
+    return c.json(
+      { error: "USUARIO_NAO_ENCONTRADO", message: "Usuário não encontrado." },
+      404,
+    );
+  }
+
+  return c.body(null, 204);
 });
