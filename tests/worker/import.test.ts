@@ -1,6 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createSessionToken } from "../../worker/lib/session";
+import { businessDate } from "../../worker/lib/time";
 
 const db = (env as unknown as { DB: D1Database }).DB;
 const sessionSecret = "agenda-prado-test-session-secret";
@@ -348,6 +349,78 @@ describe("admin agenda import", () => {
       { protocolo: "90000201", fornecedor: "ORIGINAL UM", ativo: 1 },
       { protocolo: "90000202", fornecedor: "ORIGINAL DOIS", ativo: 1 },
     ]);
+  });
+
+  it("resumo de hoje conta fornecedores sem agenda separadamente", async () => {
+    const adminId = "admin-dashboard-manual";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-dashboard-manual", "F69");
+    const today = businessDate(new Date());
+
+    await db
+      .prepare(
+        "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind(
+        "agenda-dashboard-manual",
+        "store-dashboard-manual",
+        today,
+        "agenda-dashboard.pdf",
+        adminId,
+        now,
+        now,
+      )
+      .run();
+
+    await db.batch([
+      db
+        .prepare(
+          "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '08:00', '08:10', ?, 'Pedido', '[]', '[]', 'recebido', 'importado', 1, ?, ?)",
+        )
+        .bind(
+          "appt-dashboard-imported",
+          "agenda-dashboard-manual",
+          "90000301",
+          "FORNECEDOR IMPORTADO",
+          now,
+          now,
+        ),
+      db
+        .prepare(
+          "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '09:30', '09:30', ?, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+        )
+        .bind(
+          "appt-dashboard-manual",
+          "agenda-dashboard-manual",
+          "manual:dashboard",
+          "FORNECEDOR SEM AGENDA",
+          now,
+          now,
+        ),
+    ]);
+
+    const response = await request("/api/admin/agendas/today", cookie);
+    expect(response.status).toBe(200);
+
+    const body = (await response.json()) as Array<{
+      storeCode: string;
+      total: number;
+      aguardando: number;
+      recebido: number;
+      semAgenda: number;
+    }>;
+
+    expect(body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          storeCode: "F69",
+          total: 2,
+          aguardando: 1,
+          recebido: 1,
+          semAgenda: 1,
+        }),
+      ]),
+    );
   });
 
   it("admin consulta agenda histórica e histórico de status", async () => {
