@@ -1,7 +1,7 @@
 # Melhorias de UI, Dashboard e Usuários — Design / Spec
 
 **Data:** 24/09/2026  
-**Status:** Planejado  
+**Status:** Implementação concluída na branch; merge/deploy pendentes  
 **Repositório:** joaoldsxyzbr/Agendas-pradosm  
 **Stack:** React + TypeScript + Cloudflare Workers  
 **Banco:** Cloudflare D1 0a7d7d8b-e033-4644-90d4-fbc9ddc64532
@@ -270,12 +270,12 @@ Adicionar tema escuro mantendo a mesma identidade azul + amarelo.
 
 ## Requisitos
 
-- [ ] Criar tema claro.
-- [ ] Criar tema escuro.
-- [ ] Adicionar controle para alternar o tema.
-- [ ] Salvar a preferência do usuário.
-- [ ] Restaurar a preferência na próxima visita.
-- [ ] Evitar flash forte do tema errado durante o carregamento.
+- [x] Criar tema claro.
+- [x] Criar tema escuro.
+- [x] Adicionar controle para alternar o tema.
+- [x] Salvar a preferência do usuário.
+- [x] Restaurar a preferência na próxima visita.
+- [x] Evitar flash forte do tema errado durante o carregamento.
 
 ## Tema claro
 
@@ -302,21 +302,21 @@ Evitar preto puro em grandes áreas.
 
 ## Componentes obrigatórios no dark
 
-- [ ] Sidebar.
-- [ ] Dashboard.
-- [ ] Cards.
-- [ ] Tabelas.
-- [ ] Formulários.
-- [ ] Modais.
-- [ ] Dropdowns.
-- [ ] Badges.
-- [ ] Tooltips.
-- [ ] Estados de hover/foco.
-- [ ] Tela de login.
-- [ ] Tela de histórico.
-- [ ] Tela de lojas.
-- [ ] Tela de usuários.
-- [ ] Fluxo de importação.
+- [x] Sidebar.
+- [x] Dashboard.
+- [x] Cards.
+- [x] Tabelas.
+- [x] Formulários.
+- [x] Modais.
+- [x] Dropdowns.
+- [x] Badges.
+- [x] Tooltips.
+- [x] Estados de hover/foco.
+- [x] Tela de login.
+- [x] Tela de histórico.
+- [x] Tela de lojas.
+- [x] Tela de usuários.
+- [x] Fluxo de importação.
 
 ## Preferência
 
@@ -330,11 +330,11 @@ theme = light | dark
 
 ## Critérios de aceite
 
-- [ ] Alternância ocorre sem recarregar a página.
-- [ ] Preferência é mantida.
-- [ ] Contraste permanece legível.
-- [ ] Nenhum componente fica com fundo/texto incompatível.
-- [ ] Azul + amarelo continuam reconhecíveis nos dois temas.
+- [x] Alternância ocorre sem recarregar a página.
+- [x] Preferência é mantida.
+- [x] Contraste permanece legível.
+- [x] Nenhum componente fica com fundo/texto incompatível.
+- [x] Azul + amarelo continuam reconhecíveis nos dois temas.
 
 ---
 
@@ -376,7 +376,7 @@ A importação passa a ser uma ação contextual do Dashboard.
 2. [x] **Task 1 — Mover Importar agenda**
 3. [x] **Task 2 — Redesign azul + amarelo**
 4. [x] **Task 3 — Gerenciamento completo de usuários**
-5. [ ] **Task 4 — Modo dark**
+5. [x] **Task 4 — Modo dark**
 
 ---
 
@@ -384,12 +384,12 @@ A importação passa a ser uma ação contextual do Dashboard.
 
 A melhoria estará concluída quando:
 
-- [ ] todas as cinco tasks estiverem marcadas como concluídas;
-- [ ] o CI estiver passando;
-- [ ] o fluxo de login continuar funcional;
-- [ ] o parser interpretar integralmente o formato real validado, sem perda de registros;
-- [ ] o fluxo de importação continuar funcional;
-- [ ] gerenciamento de usuários estiver completo;
-- [ ] temas claro e escuro estiverem consistentes;
-- [ ] desktop e mobile estiverem funcionais;
-- [ ] a documentação/checklist estiver atualizada no repositório.
+- [x] todas as cinco tasks estiverem marcadas como concluídas;
+- [x] o CI estiver passando;
+- [x] o fluxo de login continuar funcional;
+- [x] o parser interpretar integralmente o formato real validado, sem perda de registros;
+- [x] o fluxo de importação continuar funcional;
+- [x] gerenciamento de usuários estiver completo;
+- [x] temas claro e escuro estiverem consistentes;
+- [x] desktop e mobile estiverem funcionais;
+- [x] a documentação/checklist estiver atualizada no repositório.

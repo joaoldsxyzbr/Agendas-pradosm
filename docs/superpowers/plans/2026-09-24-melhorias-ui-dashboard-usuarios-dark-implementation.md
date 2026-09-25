@@ -951,7 +951,7 @@ Marcar a Task 3 como [x] na spec somente após validação e executar o CI uma �
 - ThemeProvider fornece theme e toggleTheme.
 - ThemeToggle expõe um botão acessível.
 
-- [ ] **Step 1: criar o teste de tema**
+- [x] **Step 1: criar o teste de tema**
 
 Criar tests/ui/theme.test.tsx:
 
@@ -1002,7 +1002,7 @@ describe("theme", () => {
 });
 ~~~
 
-- [ ] **Step 2: criar os utilitários de tema**
+- [x] **Step 2: criar os utilitários de tema**
 
 Criar src/theme/theme.ts:
 
@@ -1027,7 +1027,7 @@ export function applyTheme(theme: Theme) {
 }
 ~~~
 
-- [ ] **Step 3: criar ThemeProvider**
+- [x] **Step 3: criar ThemeProvider**
 
 Criar src/theme/ThemeProvider.tsx:
 
@@ -1082,7 +1082,7 @@ export function useTheme() {
 }
 ~~~
 
-- [ ] **Step 4: criar ThemeToggle**
+- [x] **Step 4: criar ThemeToggle**
 
 Criar src/theme/ThemeToggle.tsx:
 
@@ -1106,7 +1106,7 @@ export function ThemeToggle() {
 }
 ~~~
 
-- [ ] **Step 5: ligar o provider e os controles**
+- [x] **Step 5: ligar o provider e os controles**
 
 Em src/App.tsx envolver AuthProvider:
 
@@ -1127,7 +1127,7 @@ Adicionar ThemeToggle:
 
 Em mobile, posicionar o mesmo controle por CSS; não renderizar duas cópias do toggle no mesmo layout.
 
-- [ ] **Step 6: evitar flash do tema errado**
+- [x] **Step 6: evitar flash do tema errado**
 
 Em index.html, dentro de head e antes do módulo principal:
 
@@ -1147,7 +1147,7 @@ Em index.html, dentro de head e antes do módulo principal:
 
 Sem valor válido, o CSS light continua sendo o default.
 
-- [ ] **Step 7: adicionar os tokens dark**
+- [x] **Step 7: adicionar os tokens dark**
 
 Em src/styles.css:
 
@@ -1176,7 +1176,7 @@ html[data-theme="dark"] {
 
 Revisar os seletores para remover white, #fff, #ffffff, black e cores legadas onde representem superfície/texto estrutural. Exceções aceitáveis: cores intencionais de conteúdo que permaneçam legíveis nos dois temas.
 
-- [ ] **Step 8: validar todas as telas**
+- [x] **Step 8: validar todas as telas**
 
 Executar:
 
@@ -1196,7 +1196,7 @@ Fazer smoke nos dois temas em:
 
 Validar sidebar, cards, tabelas, forms, modal de usuário, dropdowns, badges, hover, foco e disabled.
 
-- [ ] **Step 9: checkpoint e CI**
+- [x] **Step 9: checkpoint e CI**
 
 Criar um único commit:
 
@@ -1210,15 +1210,15 @@ Marcar a Task 4 e a definição de pronto na spec apenas para itens com evidênc
 
 # Fechamento
 
-- [ ] As quatro tasks estão [x] na spec.
-- [ ] O último CI está verde.
-- [ ] O diff completo da branch contra main foi revisado.
-- [ ] A única migration é aditiva e preserva dados.
-- [ ] Login admin e loja continuam funcionando.
-- [ ] Importação continua usando o fluxo existente.
-- [ ] Usuários excluídos não aparecem e não autenticam, com auditoria preservada.
-- [ ] Light/dark estão consistentes em desktop e mobile.
-- [ ] A documentação final reflete o comportamento entregue.
+- [x] As quatro tasks estão [x] na spec.
+- [x] O último CI está verde.
+- [x] O diff completo da branch contra main foi revisado.
+- [x] A única migration é aditiva e preserva dados.
+- [x] Login admin e loja continuam funcionando.
+- [x] Importação continua usando o fluxo existente.
+- [x] Usuários excluídos não aparecem e não autenticam, com auditoria preservada.
+- [x] Light/dark estão consistentes em desktop e mobile.
+- [x] A documentação final reflete o comportamento entregue.
 
 ## Critério para merge
 
