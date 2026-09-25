@@ -1,6 +1,12 @@
 import { StatusActions, StatusBadge } from "./StatusControl";
 import type { StoreAppointment } from "./types";
 
+function appointmentTime(appointment: StoreAppointment) {
+  return appointment.origin === "manual"
+    ? appointment.startTime
+    : `${appointment.startTime} - ${appointment.endTime}`;
+}
+
 export function AgendaList({
   appointments,
   onOpen,
@@ -60,7 +66,7 @@ export function AgendaList({
             <tbody>
               {sorted.map((appointment) => (
                 <tr key={appointment.id} data-testid="agenda-desktop-row">
-                  <td>{appointment.startTime} - {appointment.endTime}</td>
+                  <td>{appointmentTime(appointment)}</td>
                   <td>{appointment.supplier}</td>
                   <td>{appointment.protocol}</td>
                   <td>{appointment.type ?? "-"}</td>
@@ -89,7 +95,7 @@ export function AgendaList({
           >
             <div className="agenda-card-heading">
               <div>
-                <strong>{appointment.startTime} - {appointment.endTime}</strong>
+                <strong>{appointmentTime(appointment)}</strong>
                 <span>{appointment.supplier}</span>
               </div>
               <span className="protocol-chip">{appointment.protocol}</span>

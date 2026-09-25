@@ -1132,6 +1132,18 @@ td {
   white-space: nowrap;
 }
 
+.today-heading-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.manual-supplier-modal {
+  width: min(100%, 440px);
+}
+
 .agenda-search {
   width: min(100%, 520px);
   display: block;
@@ -1509,6 +1521,16 @@ td {
 }
 
 @media (max-width: 760px) {
+  .today-heading-actions {
+    width: 100%;
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .today-heading-actions > button {
+    width: 100%;
+  }
+
   .agenda-export-button {
     width: 100%;
   }

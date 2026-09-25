@@ -172,6 +172,36 @@ describe("agenda PDF export", () => {
     );
   });
 
+  it("inclui fornecedor manual no PDF com horário único", () => {
+    const bytes = buildAgendaPdf(
+      {
+        id: "agenda-1",
+        storeCode: "F08",
+        storeName: "PORTO BELO",
+        date: "2026-09-25",
+      },
+      [
+        {
+          ...appointments[0],
+          id: "appt-manual",
+          protocol: "Sem agenda",
+          startTime: "13:31",
+          endTime: "13:31",
+          supplier: "FORNECEDOR EXTRA LTDA",
+          type: "Sem agenda",
+          status: "aguardando",
+          origin: "manual",
+        },
+      ],
+    );
+
+    const text = new TextDecoder("windows-1252").decode(bytes);
+    expect(text).toContain("FORNECEDOR EXTRA LTDA");
+    expect(text).toContain("Sem agenda");
+    expect(text).toContain("13:31");
+    expect(text).not.toContain("13:31 às 13:31");
+  });
+
   it("gera um nome de arquivo identificável pela loja e data", () => {
     expect(
       agendaPdfFileName({

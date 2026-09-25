@@ -129,7 +129,12 @@ function layoutRow(
   agendaDate: string,
 ): PdfRow {
   const protocol = [appointment.protocol];
-  const date = [agendaDate, `${appointment.startTime} às ${appointment.endTime}`];
+  const date = [
+    agendaDate,
+    appointment.origin === "manual"
+      ? appointment.startTime
+      : `${appointment.startTime} às ${appointment.endTime}`,
+  ];
   const supplier = wrapText(appointment.supplier, COLUMNS[2].width - 6);
   const type = wrapText(appointment.type ?? "-", COLUMNS[3].width - 6);
   const nfe = wrapText(

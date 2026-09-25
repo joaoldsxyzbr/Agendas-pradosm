@@ -166,6 +166,46 @@ describe("TodayPage", () => {
     expect(screen.queryByText("PAMPLONA ALIMENTOS S/A")).not.toBeInTheDocument();
   });
 
+  it("adiciona fornecedor sem agenda informando apenas o nome", async () => {
+    const manual = {
+      ...appointment("appt-manual", "13:31"),
+      protocol: "Sem agenda",
+      supplier: "FORNECEDOR EXTRA LTDA",
+      type: "Sem agenda",
+      origin: "manual",
+      endTime: "13:31",
+    };
+
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => json(200, agendaBody([appointment("appt-base", "08:00")])))
+      .mockImplementationOnce(() => json(201, manual));
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: /Fornecedor sem agenda/ }),
+    );
+
+    const input = screen.getByRole("textbox", { name: "Nome do fornecedor" });
+    fireEvent.change(input, { target: { value: "FORNECEDOR EXTRA LTDA" } });
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }));
+
+    expect((await screen.findAllByText("FORNECEDOR EXTRA LTDA")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Sem agenda").length).toBeGreaterThan(0);
+    expect(screen.getByText("2 agendamentos")).toBeInTheDocument();
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/today/manual",
+      expect.objectContaining({
+        method: "POST",
+        credentials: "include",
+        body: JSON.stringify({ supplier: "FORNECEDOR EXTRA LTDA" }),
+      }),
+    );
+  });
+
   it("mostra estado vazio sem misturar agendas anteriores", async () => {
     vi.stubGlobal(
       "fetch",
@@ -178,6 +218,9 @@ describe("TodayPage", () => {
       await screen.findByText("Nenhuma agenda para hoje."),
     ).toBeInTheDocument();
     expect(screen.queryByTestId("agenda-desktop-row")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: /Fornecedor sem agenda/ }),
+    ).not.toBeInTheDocument();
   });
 
   it("só atualiza status após resposta 2xx e permite correção posterior", async () => {

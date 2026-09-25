@@ -24,6 +24,10 @@ export function TodayPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualSupplier, setManualSupplier] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -63,6 +67,56 @@ export function TodayPage() {
     );
   }, [appointments, searchQuery]);
 
+  function openManualSupplier() {
+    setManualSupplier("");
+    setManualError(null);
+    setManualOpen(true);
+  }
+
+  function closeManualSupplier() {
+    if (manualSaving) return;
+    setManualOpen(false);
+    setManualSupplier("");
+    setManualError(null);
+  }
+
+  async function addManualSupplier(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const supplier = manualSupplier.trim();
+    if (!supplier || manualSaving) return;
+
+    setManualSaving(true);
+    setManualError(null);
+
+    try {
+      const created = await apiFetch<StoreAppointment>("/api/store/today/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ supplier }),
+      });
+
+      setAgenda((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          appointments: [...current.appointments, created],
+        };
+      });
+      setSearchQuery("");
+      setManualOpen(false);
+      setManualSupplier("");
+    } catch (error) {
+      setManualError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível adicionar o fornecedor.",
+      );
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
   function exportPdf() {
     if (!agenda?.agenda) return;
     downloadAgendaPdf(agenda.agenda, appointments);
@@ -96,13 +150,22 @@ export function TodayPage() {
         </div>
 
         {agenda?.agenda ? (
-          <button
-            className="primary-button agenda-export-button"
-            type="button"
-            onClick={exportPdf}
-          >
-            Exportar PDF
-          </button>
+          <div className="today-heading-actions">
+            <button
+              className="primary-button"
+              type="button"
+              onClick={openManualSupplier}
+            >
+              + Fornecedor sem agenda
+            </button>
+            <button
+              className="ghost-button agenda-export-button"
+              type="button"
+              onClick={exportPdf}
+            >
+              Exportar PDF
+            </button>
+          </div>
         ) : null}
       </header>
 
@@ -151,6 +214,65 @@ export function TodayPage() {
 
         </>
       ) : null}
+      {manualOpen && agenda?.agenda ? (
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal-card manual-supplier-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="manual-supplier-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">Recebimento</span>
+                <h2 id="manual-supplier-title">Fornecedor sem agenda</h2>
+              </div>
+              <button
+                className="ghost-button"
+                type="button"
+                onClick={closeManualSupplier}
+                disabled={manualSaving}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <form className="modal-form" onSubmit={addManualSupplier}>
+              <label>
+                Nome do fornecedor
+                <input
+                  type="text"
+                  value={manualSupplier}
+                  autoFocus
+                  maxLength={160}
+                  onChange={(event) => setManualSupplier(event.target.value)}
+                />
+              </label>
+
+              {manualError ? <p className="form-error">{manualError}</p> : null}
+
+              <div className="modal-actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  onClick={closeManualSupplier}
+                  disabled={manualSaving}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={manualSaving || !manualSupplier.trim()}
+                >
+                  {manualSaving ? "Adicionando..." : "Adicionar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
     </section>
   );
 }

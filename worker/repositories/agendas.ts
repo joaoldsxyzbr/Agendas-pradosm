@@ -47,6 +47,7 @@ export type AppointmentRecord = {
   nfe: string;
   pedidos: string;
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
+  origem: "importado" | "manual";
   ativo: number;
   criado_em: string;
   atualizado_em: string;
@@ -66,7 +67,7 @@ const AGENDA_COLUMNS =
   "id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em";
 
 const APPOINTMENT_COLUMNS =
-  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, ativo, criado_em, atualizado_em";
+  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em";
 
 export async function findStoreByCode(
   db: D1Database,
@@ -215,7 +216,7 @@ function appointmentInsert(
 ) {
   return db
     .prepare(
-      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 1, ?, ?)",
+      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 'importado', 1, ?, ?)",
     )
     .bind(
       crypto.randomUUID(),
@@ -274,8 +275,11 @@ export async function replaceAgendaImport(
   input: ImportAgendaPayload,
 ): Promise<void> {
   const existing = await listAppointmentsByAgenda(db, agenda.id, false);
+  const importedExisting = existing.filter(
+    (appointment) => appointment.origem !== "manual",
+  );
   const byProtocol = new Map(
-    existing.map((appointment) => [appointment.protocolo, appointment]),
+    importedExisting.map((appointment) => [appointment.protocolo, appointment]),
   );
   const incomingProtocols = new Set(
     input.appointments.map((appointment) => appointment.protocol),
@@ -319,7 +323,7 @@ export async function replaceAgendaImport(
     }
   }
 
-  for (const appointment of existing) {
+  for (const appointment of importedExisting) {
     if (!incomingProtocols.has(appointment.protocolo) && appointment.ativo === 1) {
       statements.push(
         db
@@ -332,6 +336,40 @@ export async function replaceAgendaImport(
   }
 
   await db.batch(statements);
+}
+
+
+export async function createManualAppointment(
+  db: D1Database,
+  agendaId: string,
+  supplier: string,
+  businessHour: string,
+): Promise<AppointmentRecord> {
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+
+  await db
+    .prepare(
+      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+    )
+    .bind(
+      id,
+      agendaId,
+      `manual:${id}`,
+      businessHour,
+      businessHour,
+      supplier,
+      now,
+      now,
+    )
+    .run();
+
+  const appointment = await findAppointmentById(db, id);
+  if (!appointment) {
+    throw new Error("Fornecedor manual não pôde ser relido.");
+  }
+
+  return appointment;
 }
 
 

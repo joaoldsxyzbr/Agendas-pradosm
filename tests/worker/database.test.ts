@@ -23,6 +23,16 @@ describe("D1 schema", () => {
     ).rejects.toThrow();
   });
 
+  it("marca agendamentos existentes como importados por padrão", async () => {
+    const columns = await db
+      .prepare("PRAGMA table_info(agendamentos)")
+      .all<{ name: string; dflt_value: string | null }>();
+
+    const origin = columns.results.find((column) => column.name === "origem");
+    expect(origin).toBeDefined();
+    expect(origin?.dflt_value).toContain("importado");
+  });
+
   it("rejeita status fora do conjunto permitido", async () => {
     await db
       .prepare(

@@ -1,7 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
 import { createSessionToken } from "../../worker/lib/session";
-import { businessDate } from "../../worker/lib/time";
+import { businessDate, businessTime } from "../../worker/lib/time";
 
 const db = (env as unknown as { DB: D1Database }).DB;
 const sessionSecret = "agenda-prado-test-session-secret";
@@ -119,6 +119,10 @@ describe("businessDate", () => {
       "2026-09-25",
     );
   });
+
+  it("formata o horário operacional em America/Sao_Paulo", () => {
+    expect(businessTime(new Date("2026-09-25T16:31:00.000Z"))).toBe("13:31");
+  });
 });
 
 describe("store agenda workflow", () => {
@@ -183,6 +187,125 @@ describe("store agenda workflow", () => {
       "appt-a-early",
       "appt-a-late",
     ]);
+  });
+
+  it("adiciona fornecedor sem agenda como aguardando na agenda de hoje", async () => {
+    const today = businessDate(new Date());
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-a",
+      storeCode: "F81",
+      userId: "user-manual-a",
+    });
+    await seedAgenda({
+      agendaId: "agenda-manual-a",
+      storeId: "store-manual-a",
+      creatorId: "user-manual-a",
+      date: today,
+    });
+
+    const response = await request("/api/store/today/manual", cookie, {
+      method: "POST",
+      body: { supplier: "  FORNECEDOR EXTRA LTDA  " },
+    });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as {
+      id: string;
+      protocol: string;
+      startTime: string;
+      endTime: string;
+      supplier: string;
+      type: string | null;
+      origin: string;
+      status: string;
+    };
+
+    expect(body).toMatchObject({
+      protocol: "Sem agenda",
+      supplier: "FORNECEDOR EXTRA LTDA",
+      type: "Sem agenda",
+      origin: "manual",
+      status: "aguardando",
+    });
+    expect(body.startTime).toMatch(/^\d{2}:\d{2}$/);
+    expect(body.endTime).toBe(body.startTime);
+
+    const stored = await db
+      .prepare(
+        "SELECT protocolo, fornecedor, tipo, origem, status, ativo FROM agendamentos WHERE id = ?",
+      )
+      .bind(body.id)
+      .first<{
+        protocolo: string;
+        fornecedor: string;
+        tipo: string;
+        origem: string;
+        status: string;
+        ativo: number;
+      }>();
+
+    expect(stored).toMatchObject({
+      fornecedor: "FORNECEDOR EXTRA LTDA",
+      tipo: "Sem agenda",
+      origem: "manual",
+      status: "aguardando",
+      ativo: 1,
+    });
+    expect(stored?.protocolo).toMatch(/^manual:/);
+
+    const todayResponse = await request("/api/store/today", cookie);
+    const todayBody = (await todayResponse.json()) as {
+      appointments: Array<{ id: string; protocol: string; origin: string }>;
+    };
+    expect(todayBody.appointments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: body.id,
+          protocol: "Sem agenda",
+          origin: "manual",
+        }),
+      ]),
+    );
+  });
+
+  it("não adiciona fornecedor sem agenda quando o dia não tem agenda importada", async () => {
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-no-agenda",
+      storeCode: "F82",
+      userId: "user-manual-no-agenda",
+    });
+
+    const response = await request("/api/store/today/manual", cookie, {
+      method: "POST",
+      body: { supplier: "FORNECEDOR SEM AGENDA" },
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: "AGENDA_NAO_DISPONIVEL",
+    });
+  });
+
+  it("rejeita nome vazio no fornecedor sem agenda", async () => {
+    const today = businessDate(new Date());
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-invalid",
+      storeCode: "F83",
+      userId: "user-manual-invalid",
+    });
+    await seedAgenda({
+      agendaId: "agenda-manual-invalid",
+      storeId: "store-manual-invalid",
+      creatorId: "user-manual-invalid",
+      date: today,
+    });
+
+    const response = await request("/api/store/today/manual", cookie, {
+      method: "POST",
+      body: { supplier: "   " },
+    });
+
+    expect(response.status).toBe(400);
   });
 
   it("loja não acessa detalhe nem altera status de outra loja", async () => {
