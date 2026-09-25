@@ -129,6 +129,49 @@ describe("agenda PDF export", () => {
     expect(text).toContain("0.71 0.14 0.09 rg");
   });
 
+  it("posiciona o status abaixo do fornecedor sem sobrepor nomes longos", () => {
+    const bytes = buildAgendaPdf(
+      {
+        id: "agenda-1",
+        storeCode: "F08",
+        storeName: "PORTO BELO",
+        date: "2026-09-25",
+      },
+      [
+        {
+          ...appointments[3],
+          supplier: "LACTALIS COMERCIO E DISTRIBUICAO DE ALIMENTOS LTDA.",
+          status: "recusado",
+        },
+      ],
+    );
+
+    const text = new TextDecoder("windows-1252").decode(bytes);
+    const commands = [
+      ...text.matchAll(
+        /1 0 0 1 ([0-9.]+) ([0-9.]+) Tm \(([^)]*)\) Tj ET/g,
+      ),
+    ].map((match) => ({
+      x: Number(match[1]),
+      y: Number(match[2]),
+      value: match[3],
+    }));
+
+    const supplierCommands = commands.filter((command) =>
+      ["LACTALIS", "COMERCIO", "DISTRIBUICAO", "ALIMENTOS", "LTDA."].some(
+        (word) => command.value.includes(word),
+      ),
+    );
+    const statusCommand = commands.find((command) => command.value === "Recusado");
+
+    expect(supplierCommands.length).toBeGreaterThan(0);
+    expect(statusCommand).toBeDefined();
+    expect(statusCommand!.x).toBe(supplierCommands[0].x);
+    expect(statusCommand!.y).toBeLessThan(
+      Math.min(...supplierCommands.map((command) => command.y)),
+    );
+  });
+
   it("gera um nome de arquivo identificável pela loja e data", () => {
     expect(
       agendaPdfFileName({
