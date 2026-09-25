@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX idx_usuarios_login_nocase\n  ON usuarios(login COLLATE NOCASE);\n
