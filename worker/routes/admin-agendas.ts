@@ -32,9 +32,11 @@ function parseStringArray(value: string) {
 }
 
 function appointmentJson(appointment: AppointmentRecord) {
+  const manual = appointment.origem === "manual";
+
   return {
     id: appointment.id,
-    protocol: appointment.protocolo,
+    protocol: manual ? "Sem agenda" : appointment.protocolo,
     startTime: appointment.horario_inicio,
     endTime: appointment.horario_fim,
     supplier: appointment.fornecedor,
@@ -42,10 +44,11 @@ function appointmentJson(appointment: AppointmentRecord) {
     volumes: appointment.volumes,
     pallets: appointment.paletes,
     cargaBatida: appointment.carga_batida,
-    type: appointment.tipo,
+    type: manual ? "Sem agenda" : appointment.tipo,
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
   };
 }
