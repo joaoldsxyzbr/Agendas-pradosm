@@ -20,6 +20,7 @@ const COLUMN_START_RATIOS = [
 ] as const;
 
 const LINE_TOLERANCE = 2.5;
+const SINGLE_ROW_HALF_HEIGHT = 14;
 
 type PositionedText = {
   str: string;
@@ -93,23 +94,84 @@ function groupPositionedLines(items: PositionedText[]): TextLine[] {
     }));
 }
 
-function columnForX(x: number, pageWidth: number) {
-  const ratio = pageWidth > 0 ? x / pageWidth : 0;
+function fallbackBoundaries(pageWidth: number) {
+  return COLUMN_START_RATIOS.slice(1).map((ratio) => ratio * pageWidth);
+}
+
+function normalizeHeader(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function detectColumnBoundaries(lines: TextLine[], pageWidth: number) {
+  const header = lines.find((line) => {
+    const text = normalizeHeader(line.items.map((item) => item.str).join(" "));
+    return (
+      text.includes("protocolo") &&
+      text.includes("data") &&
+      text.includes("fornecedor") &&
+      text.includes("itens") &&
+      text.includes("paletes") &&
+      text.includes("tipo") &&
+      text.includes("pedidos")
+    );
+  });
+
+  if (!header) return fallbackBoundaries(pageWidth);
+
+  const starts = [
+    header.items.find((item) => normalizeHeader(item.str) === "protocolo")?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "data")?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "fornecedor")?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "itens")?.x,
+    header.items.find((item) => normalizeHeader(item.str).startsWith("vol"))?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "paletes")?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "carga")?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "tipo")?.x,
+    header.items.find((item) => {
+      const value = normalizeHeader(item.str);
+      return (
+        value === "nfe" ||
+        value.startsWith("n°") ||
+        value.startsWith("nº")
+      );
+    })?.x,
+    header.items.find((item) => normalizeHeader(item.str) === "pedidos")?.x,
+  ];
+
+  if (starts.some((value) => value === undefined)) {
+    return fallbackBoundaries(pageWidth);
+  }
+
+  const numericStarts = starts as number[];
+  return numericStarts.slice(1).map((start) => Math.max(0, start - 4));
+}
+
+function columnForX(x: number, pageWidth: number, boundaries?: number[]) {
+  const resolvedBoundaries = boundaries ?? fallbackBoundaries(pageWidth);
   let column = 0;
 
-  for (let index = 1; index < COLUMN_START_RATIOS.length; index += 1) {
-    if (ratio >= COLUMN_START_RATIOS[index]) column = index;
+  for (const boundary of resolvedBoundaries) {
+    if (x >= boundary) column += 1;
     else break;
   }
 
-  return column;
+  return Math.min(column, 9);
 }
 
-function lineToTsv(line: TextLine, pageWidth: number) {
+function lineToTsv(
+  line: TextLine,
+  pageWidth: number,
+  boundaries?: number[],
+) {
   const cells = Array.from({ length: 10 }, () => [] as string[]);
 
   for (const item of line.items) {
-    cells[columnForX(item.x, pageWidth)].push(item.str);
+    cells[columnForX(item.x, pageWidth, boundaries)].push(item.str);
   }
 
   return cells
@@ -117,11 +179,15 @@ function lineToTsv(line: TextLine, pageWidth: number) {
     .join("\t");
 }
 
-function rowToTsv(items: PositionedText[], pageWidth: number) {
+function rowToTsv(
+  items: PositionedText[],
+  pageWidth: number,
+  boundaries?: number[],
+) {
   const cells = Array.from({ length: 10 }, () => [] as PositionedText[]);
 
   for (const item of items) {
-    cells[columnForX(item.x, pageWidth)].push(item);
+    cells[columnForX(item.x, pageWidth, boundaries)].push(item);
   }
 
   return cells
@@ -138,16 +204,19 @@ function rowToTsv(items: PositionedText[], pageWidth: number) {
 
 function structuredPageText(items: unknown[], pageWidth: number) {
   const positioned = toPositionedItems(items);
+  const lines = groupPositionedLines(positioned);
+  const boundaries = detectColumnBoundaries(lines, pageWidth);
   const anchors = positioned
     .filter(
       (item) =>
-        /^\d{6,20}$/.test(item.str) && columnForX(item.x, pageWidth) === 0,
+        /^\d{6,20}$/.test(item.str) &&
+        columnForX(item.x, pageWidth, boundaries) === 0,
     )
     .sort((a, b) => b.y - a.y);
 
-  if (anchors.length < 2) {
-    return groupPositionedLines(positioned)
-      .map((line) => lineToTsv(line, pageWidth))
+  if (anchors.length === 0) {
+    return lines
+      .map((line) => lineToTsv(line, pageWidth, boundaries))
       .filter((line) => line.replace(/\t/g, "").trim())
       .join("\n");
   }
@@ -155,6 +224,15 @@ function structuredPageText(items: unknown[], pageWidth: number) {
   const bands = anchors.map((anchor, index) => {
     const previous = anchors[index - 1];
     const next = anchors[index + 1];
+
+    if (!previous && !next) {
+      return {
+        anchor,
+        upper: anchor.y + SINGLE_ROW_HALF_HEIGHT,
+        lower: anchor.y - SINGLE_ROW_HALF_HEIGHT,
+      };
+    }
+
     const upper = previous
       ? (previous.y + anchor.y) / 2
       : anchor.y + (anchor.y - next.y) / 2;
@@ -170,13 +248,19 @@ function structuredPageText(items: unknown[], pageWidth: number) {
 
   const entries: Array<{ y: number; text: string }> = groupPositionedLines(
     positioned.filter((item) => !belongsToRow(item)),
-  ).map((line) => ({ y: line.y, text: lineToTsv(line, pageWidth) }));
+  ).map((line) => ({
+    y: line.y,
+    text: lineToTsv(line, pageWidth, boundaries),
+  }));
 
   for (const band of bands) {
     const rowItems = positioned.filter(
       (item) => item.y <= band.upper && item.y >= band.lower,
     );
-    entries.push({ y: band.anchor.y, text: rowToTsv(rowItems, pageWidth) });
+    entries.push({
+      y: band.anchor.y,
+      text: rowToTsv(rowItems, pageWidth, boundaries),
+    });
   }
 
   return entries

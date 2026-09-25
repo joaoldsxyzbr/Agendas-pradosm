@@ -73,9 +73,8 @@ describe("extractPdfText", () => {
     const lines = text.split("\n");
 
     expect(lines[0]).toBe(
-      "90000001\t24/09/2026\tFORNECEDOR\t5\t2\t1\t-\tPedido\t-\t50001",
+      "90000001\t24/09/2026\tFORNECEDOR LTDA\t5\t2\t1\t-\tPedido\t-\t50001",
     );
-    expect(lines[1]).toBe("\t\tLTDA");
     expect(cleanup).toHaveBeenCalledOnce();
     expect(destroy).toHaveBeenCalledOnce();
   });
@@ -139,6 +138,62 @@ describe("extractPdfText", () => {
     );
     expect(lines).toContain(
       "90000002\t24/09/2026 08:10 às 08:20\tDISTRIBUIDORA DE ALIMENTOS LTDA\t15\t15\t1\t-\tNota fiscal\t123456\t654321",
+    );
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
+  it("interpreta agenda com um único registro usando as colunas reais do PDF", async () => {
+    const cleanup = vi.fn();
+    const destroy = vi.fn().mockResolvedValue(undefined);
+
+    mockedGetDocument.mockReturnValue({
+      promise: Promise.resolve({
+        numPages: 1,
+        getPage: async () => ({
+          getViewport: () => ({ width: 595.28 }),
+          getTextContent: async () => ({
+            items: [
+              item("Protocolo", 48.52, 756),
+              item("Data", 99.16, 756),
+              item("agenda", 121.07, 756),
+              item("Fornecedor", 164.13, 756),
+              item("Itens", 276.13, 756),
+              item("Vol.", 308.78, 756),
+              item("Paletes", 336.84, 756),
+              item("Carga", 379.05, 756),
+              item("batida", 405.66, 756),
+              item("Tipo", 444.03, 756),
+              item("N°", 474.06, 756),
+              item("NFe", 486.74, 756),
+              item("Pedidos", 515.2, 756),
+              item("26/09/2026", 105.84, 729),
+              item("12483094", 50.31, 724.5),
+              item("FRIGORIFICO", 164.13, 724.5),
+              item("GESSNER", 209.94, 724.5),
+              item("LTDA", 244.13, 724.5),
+              item("2", 283.93, 724.5),
+              item("5", 314.29, 724.5),
+              item("0", 349.42, 724.5),
+              item("-", 403.95, 724.5),
+              item("CNPJ", 444.77, 724.5),
+              item("-", 487.04, 724.5),
+              item("-", 529.76, 724.5),
+              item("07:30", 99.87, 720),
+              item("às", 121.44, 720),
+              item("07:40", 131.24, 720),
+            ],
+          }),
+          cleanup,
+        }),
+      }),
+      destroy,
+    } as never);
+
+    const text = await extractPdfText(fakeFile());
+
+    expect(text.split("\n")).toContain(
+      "12483094\t26/09/2026 07:30 às 07:40\tFRIGORIFICO GESSNER LTDA\t2\t5\t0\t-\tCNPJ\t-\t-",
     );
     expect(cleanup).toHaveBeenCalledOnce();
     expect(destroy).toHaveBeenCalledOnce();
