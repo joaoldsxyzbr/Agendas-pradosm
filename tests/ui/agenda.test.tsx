@@ -115,6 +115,41 @@ describe("TodayPage", () => {
     expect(within(mobileCard).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
   });
 
+  it("filtra a agenda por fornecedor ou protocolo enquanto digita", async () => {
+    const alpha = {
+      ...appointment("appt-alpha", "08:00"),
+      supplier: "PAMPLONA ALIMENTOS S/A",
+      protocol: "12458375",
+    };
+    const beta = {
+      ...appointment("appt-beta", "09:00"),
+      supplier: "GRANJA PINHEIROS LTDA",
+      protocol: "12473312",
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json(200, agendaBody([alpha, beta]))),
+    );
+
+    render(<TodayPage />);
+
+    const search = await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    fireEvent.change(search, { target: { value: "pamplona" } });
+    expect(screen.getAllByTestId("agenda-desktop-row")).toHaveLength(1);
+    expect(screen.getAllByTestId("agenda-mobile-card")).toHaveLength(1);
+    expect(screen.getAllByText("PAMPLONA ALIMENTOS S/A").length).toBeGreaterThan(0);
+    expect(screen.queryByText("GRANJA PINHEIROS LTDA")).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: "12473312" } });
+    expect(screen.getAllByTestId("agenda-desktop-row")).toHaveLength(1);
+    expect(screen.getAllByText("GRANJA PINHEIROS LTDA").length).toBeGreaterThan(0);
+    expect(screen.queryByText("PAMPLONA ALIMENTOS S/A")).not.toBeInTheDocument();
+  });
+
   it("mostra estado vazio sem misturar agendas anteriores", async () => {
     vi.stubGlobal(
       "fetch",
@@ -155,6 +190,10 @@ describe("TodayPage", () => {
     expect(
       within(card).queryByRole("button", { name: "Aguardando" }),
     ).not.toBeInTheDocument();
+
+    expect(within(card).getByRole("button", { name: "Recebido" })).toHaveTextContent("✓");
+    expect(within(card).getByRole("button", { name: "Não chegou" })).toHaveTextContent("−");
+    expect(within(card).getByRole("button", { name: "Recusado" })).toHaveTextContent("✕");
 
     fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
