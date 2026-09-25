@@ -245,6 +245,58 @@ describe("admin agenda import", () => {
     expect(history?.total).toBe(1);
   });
 
+  it("replace preserva fornecedor manual mesmo se ele não existir no PDF", async () => {
+    const cookie = await seedAdmin("admin-import-manual");
+    await seedStore("store-import-manual", "F66");
+
+    const first = await importAgenda(
+      cookie,
+      payload("F66", [appointment("90000201", "FORNECEDOR IMPORTADO")]),
+    );
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as {
+      agenda: { id: string };
+    };
+
+    await db
+      .prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:30', '12:30', ?, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+      )
+      .bind(
+        "appt-manual-preserved",
+        firstBody.agenda.id,
+        "manual:appt-manual-preserved",
+        "FORNECEDOR MANUAL",
+        now,
+        now,
+      )
+      .run();
+
+    const replaced = await importAgenda(
+      cookie,
+      payload(
+        "F66",
+        [appointment("90000202", "NOVO FORNECEDOR IMPORTADO")],
+        { replace: true, originalFileName: "agenda-f66-revisada.pdf" },
+      ),
+    );
+
+    expect(replaced.status).toBe(200);
+
+    const manual = await db
+      .prepare(
+        "SELECT ativo, origem, fornecedor FROM agendamentos WHERE id = ?",
+      )
+      .bind("appt-manual-preserved")
+      .first<{ ativo: number; origem: string; fornecedor: string }>();
+
+    expect(manual).toEqual({
+      ativo: 1,
+      origem: "manual",
+      fornecedor: "FORNECEDOR MANUAL",
+    });
+  });
+
   it("falha no batch não deixa substituição parcial", async () => {
     const cookie = await seedAdmin("admin-import-atomic");
     await seedStore("store-import-atomic", "F66");
