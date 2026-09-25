@@ -168,6 +168,18 @@ describe("auth", () => {
     });
   });
 
+  it("aceita login sem diferenciar maiúsculas e minúsculas", async () => {
+    await seedUser({
+      id: "admin-case-insensitive",
+      login: "Conferente08",
+      perfil: "admin",
+    });
+
+    const response = await login("conferente08");
+
+    expect(response.status).toBe(200);
+  });
+
   it("rejeita senha incorreta com mensagem neutra", async () => {
     await seedUser({ id: "admin-wrong", login: "admin-wrong", perfil: "admin" });
 
