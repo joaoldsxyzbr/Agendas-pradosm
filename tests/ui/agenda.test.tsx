@@ -92,6 +92,10 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 recusado")).toBeInTheDocument();
 
     expect(
+      screen.getByRole("button", { name: "Exportar PDF" }),
+    ).toBeInTheDocument();
+
+    expect(
       screen.getByRole("columnheader", { name: "Horário" }),
     ).toBeInTheDocument();
     expect(
