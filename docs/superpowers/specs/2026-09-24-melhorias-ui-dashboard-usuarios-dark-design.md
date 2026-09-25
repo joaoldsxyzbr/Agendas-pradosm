@@ -182,12 +182,12 @@ Permitir ao administrador controlar completamente os usuários das lojas.
 
 Cada usuário deve permitir:
 
-- [ ] Editar nome.
-- [ ] Editar login.
-- [ ] Alterar loja vinculada.
-- [ ] Ativar ou desativar.
-- [ ] Alterar senha.
-- [ ] Excluir usuário.
+- [x] Editar nome.
+- [x] Editar login.
+- [x] Alterar loja vinculada.
+- [x] Ativar ou desativar.
+- [x] Alterar senha.
+- [x] Excluir usuário.
 
 ## Tela de usuários
 
@@ -215,50 +215,50 @@ Se o campo de nova senha ficar vazio, a senha existente deve permanecer.
 
 ## Exclusão
 
-- [ ] Solicitar confirmação antes de excluir.
-- [ ] Informar claramente qual usuário será removido.
-- [ ] Não permitir exclusão acidental do próprio administrador logado.
-- [ ] Atualizar a listagem imediatamente após sucesso.
-- [ ] Exibir erro amigável em caso de falha.
+- [x] Solicitar confirmação antes de excluir.
+- [x] Informar claramente qual usuário será removido.
+- [x] Não permitir exclusão acidental do próprio administrador logado.
+- [x] Atualizar a listagem imediatamente após sucesso.
+- [x] Exibir erro amigável em caso de falha.
 
 ## Validações
 
-- [ ] Login obrigatório.
-- [ ] Login único.
-- [ ] Nome obrigatório.
-- [ ] Usuário de loja deve possuir uma loja válida.
-- [ ] Nova senha deve respeitar as regras existentes do sistema.
-- [ ] Não retornar senha_hash para o frontend.
+- [x] Login obrigatório.
+- [x] Login único.
+- [x] Nome obrigatório.
+- [x] Usuário de loja deve possuir uma loja válida.
+- [x] Nova senha deve respeitar as regras existentes do sistema.
+- [x] Não retornar senha_hash para o frontend.
 
 ## Backend
 
 A API deve suportar:
 
-- [ ] consultar usuários;
-- [ ] editar usuário;
-- [ ] atualizar senha;
-- [ ] alterar status;
-- [ ] excluir usuário.
+- [x] consultar usuários;
+- [x] editar usuário;
+- [x] atualizar senha;
+- [x] alterar status;
+- [x] excluir usuário.
 
 Quando possível, reutilizar o endpoint de edição para nome, login, loja, status e senha, evitando endpoints desnecessários.
 
 ## Segurança
 
-- [ ] Apenas administrador pode executar essas ações.
-- [ ] Hash da senha deve continuar sendo gerado somente no backend.
-- [ ] Nunca armazenar senha em texto puro.
-- [ ] Nunca retornar senha/hash em respostas da API.
-- [ ] Validar usuário e loja antes de atualizar.
-- [ ] Tratar login duplicado corretamente.
+- [x] Apenas administrador pode executar essas ações.
+- [x] Hash da senha deve continuar sendo gerado somente no backend.
+- [x] Nunca armazenar senha em texto puro.
+- [x] Nunca retornar senha/hash em respostas da API.
+- [x] Validar usuário e loja antes de atualizar.
+- [x] Tratar login duplicado corretamente.
 
 ## Critérios de aceite
 
-- [ ] Administrador consegue editar todas as informações permitidas.
-- [ ] Alteração de senha funciona.
-- [ ] Usuário excluído deixa de aparecer e não consegue autenticar.
-- [ ] Usuário desativado não consegue autenticar.
-- [ ] Login duplicado é rejeitado sem erro 500.
-- [ ] Ações destrutivas possuem confirmação.
+- [x] Administrador consegue editar todas as informações permitidas.
+- [x] Alteração de senha funciona.
+- [x] Usuário excluído deixa de aparecer e não consegue autenticar.
+- [x] Usuário desativado não consegue autenticar.
+- [x] Login duplicado é rejeitado sem erro 500.
+- [x] Ações destrutivas possuem confirmação.
 
 ---
 
@@ -375,7 +375,7 @@ A importação passa a ser uma ação contextual do Dashboard.
 1. [x] **Task 0 — Corrigir importação incompleta do PDF**
 2. [x] **Task 1 — Mover Importar agenda**
 3. [x] **Task 2 — Redesign azul + amarelo**
-4. [ ] **Task 3 — Gerenciamento completo de usuários**
+4. [x] **Task 3 — Gerenciamento completo de usuários**
 5. [ ] **Task 4 — Modo dark**
 
 ---

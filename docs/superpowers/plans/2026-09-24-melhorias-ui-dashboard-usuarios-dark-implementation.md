@@ -450,7 +450,7 @@ Marcar a Task 2 como [x] na spec somente após validação e executar o CI uma �
 - DELETE /api/admin/users/:id -> marca usuário de loja como excluído e retorna 204.
 - UserEditDialog recebe user, stores, onClose, onSaved e onDeleted.
 
-- [ ] **Step 1: adicionar a migration de exclusão lógica**
+- [x] **Step 1: adicionar a migration de exclusão lógica**
 
 Criar migrations/0002_user_soft_delete.sql:
 
@@ -463,7 +463,7 @@ CREATE INDEX idx_usuarios_perfil_excluido
 
 A migration é aditiva: nenhum registro existente é removido ou modificado.
 
-- [ ] **Step 2: ajustar o repositório de usuários**
+- [x] **Step 2: ajustar o repositório de usuários**
 
 Em worker/repositories/users.ts:
 - adicionar excluido_em: string | null em UserRecord;
@@ -494,7 +494,7 @@ export async function softDeleteStoreUser(
 }
 ~~~
 
-- [ ] **Step 3: criar a rota DELETE**
+- [x] **Step 3: criar a rota DELETE**
 
 Em worker/routes/admin-users.ts:
 - importar z de zod;
@@ -533,7 +533,7 @@ adminUserRoutes.delete("/:id", async (c) => {
 
 O middleware já aplicado em worker/app.ts mantém GET/PATCH/DELETE restritos a admin.
 
-- [ ] **Step 4: ampliar os testes de backend antes da UI**
+- [x] **Step 4: ampliar os testes de backend antes da UI**
 
 Em tests/worker/admin.test.ts, ampliar jsonRequest para aceitar DELETE e body opcional:
 
@@ -705,7 +705,7 @@ it("DELETE de administrador é rejeitado", async () => {
 });
 ~~~
 
-- [ ] **Step 5: criar UserEditDialog com edição e confirmação**
+- [x] **Step 5: criar UserEditDialog com edição e confirmação**
 
 Criar src/admin/UserEditDialog.tsx com:
 
@@ -755,7 +755,7 @@ onDeleted(user.id);
 
 O formulário contém labels exatos Nome, Login, Loja, Status e Nova senha (opcional). Nova senha usa type="password", minLength={8} e autoComplete="new-password".
 
-- [ ] **Step 6: testar o diálogo de usuário**
+- [x] **Step 6: testar o diálogo de usuário**
 
 Criar tests/ui/admin-users.test.tsx usando mock de apiFetch:
 
@@ -883,7 +883,7 @@ describe("UserEditDialog", () => {
 });
 ~~~
 
-- [ ] **Step 7: integrar o diálogo na UsersPage**
+- [x] **Step 7: integrar o diálogo na UsersPage**
 
 Em src/admin/UsersPage.tsx:
 - adicionar selectedUser: AdminUser | null;
@@ -910,7 +910,7 @@ function userDeleted(userId: string) {
 }
 ~~~
 
-- [ ] **Step 8: validar a task**
+- [x] **Step 8: validar a task**
 
 Executar:
 
@@ -928,7 +928,7 @@ Confirmar no diff:
 - admin não pode ser excluído;
 - userJson não contém senha_hash.
 
-- [ ] **Step 9: checkpoint e CI**
+- [x] **Step 9: checkpoint e CI**
 
 Criar um único commit:
 
