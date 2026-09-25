@@ -122,7 +122,7 @@ describe("TodayPage", () => {
     expect(within(firstRowCells[5]).getByRole("button", { name: "Recebido" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).getByRole("button", { name: "Não chegou" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).getByRole("button", { name: "Recusado" })).toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Ver detalhes" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).queryByRole("button", { name: "Ver detalhes" })).not.toBeInTheDocument();
 
     const mobileCard = screen.getAllByTestId("agenda-mobile-card")[0];
     expect(within(mobileCard).getByText("08:00 - 08:10")).toBeInTheDocument();
@@ -258,94 +258,140 @@ describe("TodayPage", () => {
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
   });
 
-  it("abre detalhes com campos importados e histórico", async () => {
-    const detail = {
-      ...appointment("appt-detail", "08:00", "recebido"),
-      history: [
-        {
-          id: "h1",
-          statusAnterior: "aguardando",
-          statusNovo: "recebido",
-          alteradoEm: "2026-09-24T12:00:00.000Z",
-          usuario: { id: "u1", nome: "Conferente" },
-        },
-      ],
-    };
-
-    const fetchMock = vi
-      .fn()
-      .mockImplementationOnce(() =>
+  it("não mostra ação de detalhes na agenda de hoje", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
         json(200, agendaBody([appointment("appt-detail", "08:00", "recebido")])),
-      )
-      .mockImplementationOnce(() => json(200, detail));
+      ),
+    );
 
-    vi.stubGlobal("fetch", fetchMock);
     render(<TodayPage />);
 
-    const detailButtons = await screen.findAllByRole("button", { name: "Ver detalhes" });
-    fireEvent.click(detailButtons[0]);
-
-    const detailsTitle = await screen.findByText("Detalhes do agendamento");
-    const details = detailsTitle.closest("section");
-    expect(details).not.toBeNull();
-    const scoped = within(details!);
-    expect(scoped.getByText("123456")).toBeInTheDocument();
-    expect(scoped.getByText("50001")).toBeInTheDocument();
-    expect(scoped.getByText("Pedido")).toBeInTheDocument();
-    expect(scoped.getByText("aguardando → recebido")).toBeInTheDocument();
+    await screen.findByTestId("agenda-mobile-card");
+    expect(
+      screen.queryByRole("button", { name: "Ver detalhes" }),
+    ).not.toBeInTheDocument();
   });
 });
 
 describe("HistoryPage", () => {
-  it("lista datas e busca somente a agenda escolhida", async () => {
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+  function historyFetchMock() {
+    return vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
 
       if (url === "/api/store/history") {
         return (await json(200, [
           {
-            id: "a2",
+            id: "a3",
             storeCode: "F03",
             storeName: "LOJA 03",
-            date: "2026-09-23",
+            date: "2026-09-25",
             total: 2,
-            aguardando: 0,
-            recebido: 2,
+            aguardando: 1,
+            recebido: 1,
             naoChegou: 0,
             recusado: 0,
           },
           {
-            id: "a1",
+            id: "a2",
             storeCode: "F03",
             storeName: "LOJA 03",
-            date: "2026-09-22",
+            date: "2026-09-24",
             total: 1,
-            aguardando: 1,
+            aguardando: 0,
             recebido: 0,
-            naoChegou: 0,
+            naoChegou: 1,
             recusado: 0,
           },
         ]));
       }
 
-      if (url === "/api/store/history/2026-09-22") {
-        return (await json(200, agendaBody([
-          appointment("appt-history", "08:00"),
-        ])));
+      if (url === "/api/store/history/2026-09-25") {
+        return (await json(200, {
+          agenda: {
+            id: "agenda-history-latest",
+            storeCode: "F03",
+            storeName: "LOJA 03",
+            date: "2026-09-25",
+            originalFileName: "agenda.pdf",
+          },
+          appointments: [
+            {
+              ...appointment("appt-history-alpha", "08:00", "recebido"),
+              supplier: "PAMPLONA ALIMENTOS S/A",
+              protocol: "12458375",
+            },
+            {
+              ...appointment("appt-history-beta", "09:00", "aguardando"),
+              supplier: "GRANJA PINHEIROS LTDA",
+              protocol: "12473312",
+            },
+          ],
+        }));
+      }
+
+      if (url === "/api/store/history/2026-09-24") {
+        return (await json(200, {
+          agenda: {
+            id: "agenda-history-old",
+            storeCode: "F03",
+            storeName: "LOJA 03",
+            date: "2026-09-24",
+            originalFileName: "agenda.pdf",
+          },
+          appointments: [
+            {
+              ...appointment("appt-history-old", "08:00", "nao_chegou"),
+              supplier: "FORNECEDOR ANTIGO LTDA",
+              protocol: "12000001",
+            },
+          ],
+        }));
       }
 
       return new Response(null, { status: 404 });
     });
+  }
 
+  it("abre automaticamente o dia mais recente com resumo e busca", async () => {
+    const fetchMock = historyFetchMock();
     vi.stubGlobal("fetch", fetchMock);
+
     render(<HistoryPage />);
 
-    fireEvent.click(await screen.findByRole("button", { name: /22\/09\/2026/ }));
-
-    const historyRows = await screen.findAllByTestId("agenda-desktop-row");
-    expect(within(historyRows[0]).getByText("Fornecedor appt-history")).toBeInTheDocument();
+    expect((await screen.findAllByText("2 agendamentos")).length).toBeGreaterThan(0);
+    expect(screen.getByText("1 aguardando")).toBeInTheDocument();
+    expect(screen.getByText("1 recebido")).toBeInTheDocument();
+    expect(
+      screen.getByRole("searchbox", { name: "Pesquisar fornecedor ou protocolo" }),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/history/2026-09-22",
+      "/api/store/history/2026-09-25",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("filtra o dia selecionado e permite trocar de data", async () => {
+    const fetchMock = historyFetchMock();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<HistoryPage />);
+
+    const search = await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    fireEvent.change(search, { target: { value: "pamplona" } });
+    expect(screen.getAllByTestId("agenda-desktop-row")).toHaveLength(1);
+    expect(screen.getAllByText("PAMPLONA ALIMENTOS S/A").length).toBeGreaterThan(0);
+    expect(screen.queryByText("GRANJA PINHEIROS LTDA")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /24\/09\/2026/ }));
+
+    expect((await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/history/2026-09-24",
       expect.objectContaining({ credentials: "include" }),
     );
   });

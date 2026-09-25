@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
-import { AgendaDetails } from "./AgendaDetails";
 import { AgendaList } from "./AgendaList";
 import { downloadAgendaPdf } from "./exportAgendaPdf";
 import type { StoreAgenda, StoreAppointment } from "./types";
@@ -24,7 +23,6 @@ export function TodayPage() {
   const [agenda, setAgenda] = useState<StoreAgenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -143,7 +141,6 @@ export function TodayPage() {
           {filteredAppointments.length > 0 ? (
             <AgendaList
               appointments={filteredAppointments}
-              onOpen={setSelectedId}
               onChanged={statusChanged}
             />
           ) : (
@@ -152,10 +149,6 @@ export function TodayPage() {
             </div>
           )}
 
-          <AgendaDetails
-            appointmentId={selectedId}
-            onClose={() => setSelectedId(null)}
-          />
         </>
       ) : null}
     </section>

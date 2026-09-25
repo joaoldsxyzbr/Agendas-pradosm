@@ -14,5 +14,13 @@ assert.ok(css.includes("--color-background: #0d1624"), "fundo dark ausente");
 assert.ok(css.includes("--color-surface: #142033"), "surface dark ausente");
 assert.ok(css.includes("--color-primary: #5ca8ff"), "primary dark ausente");
 assert.ok(css.includes("--color-accent: #ffd449"), "accent dark ausente");
+assert.ok(
+  css.includes("grid-template-columns: 208px minmax(0, 1fr)"),
+  "sidebar compacta do conferente ausente",
+);
+assert.ok(
+  css.includes(".sidebar-footer-actions"),
+  "ações compactas do rodapé da sidebar ausentes",
+);
 
 console.log("Design system light/dark validado.");

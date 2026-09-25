@@ -8,7 +8,7 @@ export function AgendaList({
   editable = true,
 }: {
   appointments: StoreAppointment[];
-  onOpen: (appointmentId: string) => void;
+  onOpen?: (appointmentId: string) => void;
   onChanged?: (appointment: StoreAppointment) => void;
   editable?: boolean;
 }) {
@@ -29,13 +29,15 @@ export function AgendaList({
           />
         ) : null}
 
-        <button
-          className="ghost-button agenda-detail-button"
-          type="button"
-          onClick={() => onOpen(appointment.id)}
-        >
-          Ver detalhes
-        </button>
+        {onOpen ? (
+          <button
+            className="ghost-button agenda-detail-button"
+            type="button"
+            onClick={() => onOpen(appointment.id)}
+          >
+            Ver detalhes
+          </button>
+        ) : null}
       </div>
     );
   }
