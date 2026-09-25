@@ -122,7 +122,7 @@ describe("TodayPage", () => {
     expect(within(firstRowCells[5]).getByRole("button", { name: "Recebido" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).getByRole("button", { name: "Não chegou" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).getByRole("button", { name: "Recusado" })).toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Ver detalhes" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).queryByRole("button", { name: "Ver detalhes" })).not.toBeInTheDocument();
 
     const mobileCard = screen.getAllByTestId("agenda-mobile-card")[0];
     expect(within(mobileCard).getByText("08:00 - 08:10")).toBeInTheDocument();
@@ -258,41 +258,20 @@ describe("TodayPage", () => {
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
   });
 
-  it("abre detalhes com campos importados e histórico", async () => {
-    const detail = {
-      ...appointment("appt-detail", "08:00", "recebido"),
-      history: [
-        {
-          id: "h1",
-          statusAnterior: "aguardando",
-          statusNovo: "recebido",
-          alteradoEm: "2026-09-24T12:00:00.000Z",
-          usuario: { id: "u1", nome: "Conferente" },
-        },
-      ],
-    };
-
-    const fetchMock = vi
-      .fn()
-      .mockImplementationOnce(() =>
+  it("não mostra ação de detalhes na agenda de hoje", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
         json(200, agendaBody([appointment("appt-detail", "08:00", "recebido")])),
-      )
-      .mockImplementationOnce(() => json(200, detail));
+      ),
+    );
 
-    vi.stubGlobal("fetch", fetchMock);
     render(<TodayPage />);
 
-    const detailButtons = await screen.findAllByRole("button", { name: "Ver detalhes" });
-    fireEvent.click(detailButtons[0]);
-
-    const detailsTitle = await screen.findByText("Detalhes do agendamento");
-    const details = detailsTitle.closest("section");
-    expect(details).not.toBeNull();
-    const scoped = within(details!);
-    expect(scoped.getByText("123456")).toBeInTheDocument();
-    expect(scoped.getByText("50001")).toBeInTheDocument();
-    expect(scoped.getByText("Pedido")).toBeInTheDocument();
-    expect(scoped.getByText("aguardando → recebido")).toBeInTheDocument();
+    await screen.findByTestId("agenda-mobile-card");
+    expect(
+      screen.queryByRole("button", { name: "Ver detalhes" }),
+    ).not.toBeInTheDocument();
   });
 });
 
