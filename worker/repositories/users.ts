@@ -20,7 +20,7 @@ export async function findUserByLogin(
 ): Promise<UserRecord | null> {
   return db
     .prepare(
-      `SELECT ${USER_COLUMNS} FROM usuarios WHERE login = ? AND excluido_em IS NULL LIMIT 1`,
+      `SELECT ${USER_COLUMNS} FROM usuarios WHERE login = ? COLLATE NOCASE AND excluido_em IS NULL LIMIT 1`,
     )
     .bind(login)
     .first<UserRecord>();
