@@ -1,5 +1,10 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import css from "../../src/styles.css?raw";
+
+const css = readFileSync(
+  new URL("../../src/styles.css", import.meta.url),
+  "utf8",
+);
 
 describe("design system", () => {
   it("define a identidade azul e amarela por tokens semânticos", () => {
@@ -17,5 +22,13 @@ describe("design system", () => {
     expect(css.toLowerCase()).not.toContain("#1f6848");
     expect(css).toContain("background: var(--color-primary)");
     expect(css).toContain("border-color: var(--color-primary)");
+  });
+
+  it("define o dark mode pela mesma camada de tokens", () => {
+    expect(css).toContain('html[data-theme="dark"]');
+    expect(css).toContain("--color-background: #0d1624");
+    expect(css).toContain("--color-surface: #142033");
+    expect(css).toContain("--color-primary: #5ca8ff");
+    expect(css).toContain("--color-accent: #ffd449");
   });
 });
