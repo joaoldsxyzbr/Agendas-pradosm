@@ -3,9 +3,10 @@ import type { Context } from "hono";
 import { z } from "zod";
 import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
-import { businessDate } from "../lib/time";
+import { businessDate, businessTime } from "../lib/time";
 import {
   changeAppointmentStatus,
+  createManualAppointment,
   findAppointmentForStore,
   findStoreAgendaByDate,
   listAppointmentHistory,
@@ -24,6 +25,10 @@ const ChangeStatusInput = z.object({
 });
 
 const DateParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+
+const ManualAppointmentInput = z.object({
+  supplier: z.string().trim().min(1).max(160),
+});
 
 type StoreAuthUser = AuthUser & {
   perfil: "loja";
@@ -60,9 +65,11 @@ function parseStringArray(value: string) {
 }
 
 function appointmentJson(appointment: AppointmentRecord) {
+  const manual = appointment.origem === "manual";
+
   return {
     id: appointment.id,
-    protocol: appointment.protocolo,
+    protocol: manual ? "Sem agenda" : appointment.protocolo,
     startTime: appointment.horario_inicio,
     endTime: appointment.horario_fim,
     supplier: appointment.fornecedor,
@@ -70,10 +77,11 @@ function appointmentJson(appointment: AppointmentRecord) {
     volumes: appointment.volumes,
     pallets: appointment.paletes,
     cargaBatida: appointment.carga_batida,
-    type: appointment.tipo,
+    type: manual ? "Sem agenda" : appointment.tipo,
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
   };
 }
@@ -127,6 +135,61 @@ storeAgendaRoutes.get("/today", async (c) => {
   }
 
   return c.json(result);
+});
+
+storeAgendaRoutes.post("/today/manual", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+
+  const parsed = ManualAppointmentInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "REQUISICAO_INVALIDA",
+        message: "Informe o nome do fornecedor.",
+      },
+      400,
+    );
+  }
+
+  const now = new Date();
+  const agenda = await findStoreAgendaByDate(
+    c.env.DB,
+    user.lojaId,
+    businessDate(now),
+  );
+
+  if (!agenda) {
+    return c.json(
+      {
+        error: "AGENDA_NAO_DISPONIVEL",
+        message: "Não existe agenda importada para hoje.",
+      },
+      409,
+    );
+  }
+
+  try {
+    const appointment = await createManualAppointment(
+      c.env.DB,
+      agenda.id,
+      parsed.data.supplier,
+      businessTime(now),
+    );
+
+    return c.json(appointmentJson(appointment), 201);
+  } catch (error) {
+    console.error("Manual supplier creation failed", error);
+    return c.json(
+      {
+        error: "FORNECEDOR_MANUAL_NAO_CRIADO",
+        message: "Não foi possível adicionar o fornecedor.",
+      },
+      500,
+    );
+  }
 });
 
 storeAgendaRoutes.get("/history", async (c) => {
