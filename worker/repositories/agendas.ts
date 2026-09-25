@@ -75,7 +75,7 @@ export async function findStoreByCode(
 ): Promise<StoreLookup | null> {
   return db
     .prepare(
-      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? AND ativo = 1 LIMIT 1",
+      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? AND ativo = 1 AND excluido_em IS NULL LIMIT 1",
     )
     .bind(code)
     .first<StoreLookup>();

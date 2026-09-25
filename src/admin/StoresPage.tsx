@@ -1,9 +1,11 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../lib/api";
+import { StoreEditDialog } from "./StoreEditDialog";
 import type { AdminStore } from "./types";
 
 export function StoresPage() {
   const [stores, setStores] = useState<AdminStore[]>([]);
+  const [selectedStore, setSelectedStore] = useState<AdminStore | null>(null);
   const [codigo, setCodigo] = useState("");
   const [nome, setNome] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -44,20 +46,18 @@ export function StoresPage() {
     }
   }
 
-  async function toggle(store: AdminStore) {
-    setMessage(null);
-    try {
-      await apiFetch<AdminStore>("/api/admin/stores", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: store.id, ativo: !store.ativo }),
-      });
-      await load();
-    } catch (error) {
-      setMessage(
-        error instanceof ApiError ? error.message : "Não foi possível alterar a loja.",
-      );
-    }
+  function storeSaved(updated: AdminStore) {
+    setStores((current) =>
+      current.map((item) => (item.id === updated.id ? updated : item)),
+    );
+    setSelectedStore(null);
+    setMessage("Loja atualizada com sucesso.");
+  }
+
+  function storeDeleted(storeId: string) {
+    setStores((current) => current.filter((item) => item.id !== storeId));
+    setSelectedStore(null);
+    setMessage("Loja excluída com sucesso.");
   }
 
   return (
@@ -118,9 +118,9 @@ export function StoresPage() {
                     <button
                       className="ghost-button"
                       type="button"
-                      onClick={() => void toggle(store)}
+                      onClick={() => setSelectedStore(store)}
                     >
-                      {store.ativo ? "Desativar" : "Ativar"}
+                      Editar
                     </button>
                   </td>
                 </tr>
@@ -132,6 +132,15 @@ export function StoresPage() {
           </table>
         </div>
       </div>
+
+      {selectedStore ? (
+        <StoreEditDialog
+          store={selectedStore}
+          onClose={() => setSelectedStore(null)}
+          onSaved={storeSaved}
+          onDeleted={storeDeleted}
+        />
+      ) : null}
     </section>
   );
 }
