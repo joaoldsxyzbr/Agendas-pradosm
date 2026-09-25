@@ -18,6 +18,8 @@ import { LoginPage } from "./auth/LoginPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { HistoryPage } from "./agenda/HistoryPage";
 import { TodayPage } from "./agenda/TodayPage";
+import { ThemeProvider } from "./theme/ThemeProvider";
+import { ThemeToggle } from "./theme/ThemeToggle";
 
 const STORE_NAV = [
   { to: "/app", label: "Hoje", end: true },
@@ -86,6 +88,7 @@ function StoreLayout() {
             <span>{user.nome}</span>
             <small>Loja</small>
           </div>
+          <ThemeToggle />
           <button className="ghost-button" type="button" onClick={handleLogout}>
             Sair
           </button>
@@ -98,9 +101,12 @@ function StoreLayout() {
             <strong>Agenda Prado</strong>
             <span>{user.nome}</span>
           </div>
-          <button className="ghost-button" type="button" onClick={handleLogout}>
-            Sair
-          </button>
+          <div className="mobile-header-actions">
+            <ThemeToggle />
+            <button className="ghost-button" type="button" onClick={handleLogout}>
+              Sair
+            </button>
+          </div>
         </header>
 
         <nav className="mobile-nav" aria-label="Navegação principal">
@@ -182,9 +188,11 @@ export function AppRoutes() {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

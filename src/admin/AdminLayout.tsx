@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
+import { ThemeToggle } from "../theme/ThemeToggle";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", end: true },
@@ -52,6 +53,7 @@ export function AdminLayout() {
             <span>{user.nome}</span>
             <small>Administrador</small>
           </div>
+          <ThemeToggle />
           <button className="ghost-button" type="button" onClick={handleLogout}>
             Sair
           </button>
@@ -64,9 +66,12 @@ export function AdminLayout() {
             <strong>Agenda Prado</strong>
             <span>{user.nome}</span>
           </div>
-          <button className="ghost-button" type="button" onClick={handleLogout}>
-            Sair
-          </button>
+          <div className="mobile-header-actions">
+            <ThemeToggle />
+            <button className="ghost-button" type="button" onClick={handleLogout}>
+              Sair
+            </button>
+          </div>
         </header>
 
         <nav className="mobile-nav" aria-label="Navegação principal">

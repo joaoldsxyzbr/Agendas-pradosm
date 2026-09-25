@@ -41,6 +41,42 @@
   text-rendering: optimizeLegibility;
 }
 
+html[data-theme="dark"] {
+  --color-primary: #5ca8ff;
+  --color-primary-strong: #8bc1ff;
+  --color-primary-soft: #1c3554;
+  --color-accent: #ffd449;
+  --color-accent-strong: #e3b51b;
+  --color-background: #0d1624;
+  --color-surface: #142033;
+  --color-surface-glass: rgba(20, 32, 51, 0.96);
+  --color-surface-muted: #1a2940;
+  --color-neutral-soft: #202e43;
+  --color-text: #f3f6fa;
+  --color-text-strong: #ffffff;
+  --color-text-muted: #a9b4c4;
+  --color-text-soft: #8493a8;
+  --color-border: #2b3b52;
+  --color-border-soft: #233349;
+  --color-border-strong: #455a74;
+  --color-on-primary: #08111f;
+  --color-danger: #ff9b93;
+  --color-danger-strong: #ffb7b1;
+  --color-danger-soft: #351b1f;
+  --color-danger-border: #633037;
+  --color-success: #70d7a4;
+  --color-success-soft: #153127;
+  --color-success-border: #28533f;
+  --color-warning: #ffd86b;
+  --color-warning-soft: #342d17;
+  --color-warning-border: #5d4d20;
+  --color-primary-glow: rgba(92, 168, 255, 0.16);
+  --color-focus-ring: rgba(92, 168, 255, 0.22);
+  --color-overlay: rgba(3, 8, 15, 0.72);
+  --shadow-card: 0 12px 30px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 22px 64px rgba(0, 0, 0, 0.32);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -53,6 +89,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  color: var(--color-text);
+  background: var(--color-background);
 }
 
 button,
@@ -1512,5 +1550,40 @@ td {
   .confirm-actions button,
   .modal-danger-zone > .danger-button {
     width: 100%;
+  }
+}
+
+
+.login-toolbar,
+.mobile-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+}
+
+.sidebar-footer .theme-toggle {
+  width: 100%;
+}
+
+.login-toolbar .theme-toggle {
+  min-height: 40px;
+}
+
+@media (max-width: 760px) {
+  .mobile-header-actions .theme-toggle span:last-child {
+    display: none;
+  }
+
+  .mobile-header-actions .theme-toggle {
+    min-width: 42px;
+    padding-inline: 0.65rem;
   }
 }
