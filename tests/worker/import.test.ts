@@ -247,11 +247,11 @@ describe("admin agenda import", () => {
 
   it("replace preserva fornecedor manual mesmo se ele não existir no PDF", async () => {
     const cookie = await seedAdmin("admin-import-manual");
-    await seedStore("store-import-manual", "F66");
+    await seedStore("store-import-manual", "F68");
 
     const first = await importAgenda(
       cookie,
-      payload("F66", [appointment("90000201", "FORNECEDOR IMPORTADO")]),
+      payload("F68", [appointment("90000201", "FORNECEDOR IMPORTADO")]),
     );
     expect(first.status).toBe(201);
     const firstBody = (await first.json()) as {
@@ -275,9 +275,9 @@ describe("admin agenda import", () => {
     const replaced = await importAgenda(
       cookie,
       payload(
-        "F66",
+        "F68",
         [appointment("90000202", "NOVO FORNECEDOR IMPORTADO")],
-        { replace: true, originalFileName: "agenda-f66-revisada.pdf" },
+        { replace: true, originalFileName: "agenda-f68-revisada.pdf" },
       ),
     );
 
