@@ -80,6 +80,28 @@ describe("parseAgendaText", () => {
     });
   });
 
+  it("recupera Nota fiscal quando NF-e e pedidos vazam para a coluna Tipo", () => {
+    const result = parseAgendaText(
+      [
+        "Prado Supermercados Filtros: Dia: 24/09/2026 | Filiais: F03 - CANASVIEIRAS | Doca: Todas",
+        "Agendas de recebimento Total: 1",
+        "Protocolo\tData agenda\tFornecedor\tItens\tVol.\tPaletes\tCarga batida\tTipo\tN° NFe\tPedidos",
+        "\t24/09/2026\tDEYCON COMERCIO E\t\t\t\t\tNota\t\t",
+        "12464926\t08:00 às 08:10\tDISTRIBUICAO LTDA.\t40\t40\t1\t-\t\t\t",
+        "\t\t\t\t\t\t\tfiscal 735889 735888 736048 736047 736049 62965 62971 62970 508287 508354\t\t",
+      ].join("\n"),
+    );
+
+    expect(result.blockingErrors).toEqual([]);
+    expect(result.appointments).toHaveLength(1);
+    expect(result.appointments[0]).toMatchObject({
+      protocol: "12464926",
+      type: "Nota fiscal",
+      nfe: ["735889", "735888", "736048", "736047", "736049"],
+      orders: ["62965", "62971", "62970", "508287", "508354"],
+    });
+  });
+
   it("preserva listas múltiplas de NF-e e pedidos", () => {
     const result = parseAgendaText(fixture);
 
