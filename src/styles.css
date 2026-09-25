@@ -1106,6 +1106,35 @@ td {
   font-size: 0.86rem;
 }
 
+.agenda-search {
+  width: min(100%, 520px);
+  display: block;
+}
+
+.agenda-search input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.68rem 0.82rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  outline: none;
+  background: var(--color-surface);
+  color: var(--color-text);
+}
+
+.agenda-search input::placeholder {
+  color: var(--color-text-soft);
+}
+
+.agenda-search input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+
+.agenda-search-empty {
+  text-align: left;
+}
+
 .agenda-mobile {
   display: none;
 }
@@ -1148,33 +1177,65 @@ td {
 .status-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 .status-action {
-  min-height: 34px;
-  padding: 0.4rem 0.55rem;
+  width: 36px;
+  height: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+  padding: 0;
   border: 1px solid var(--color-border);
   border-radius: 8px;
   background: var(--color-surface);
   color: var(--color-text-muted);
-  font-size: 0.72rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1;
+  transition:
+    border-color 140ms ease,
+    background 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
 }
 
 .status-action:hover {
   background: var(--color-surface-muted);
+  transform: translateY(-1px);
 }
 
-.status-action.current {
-  border-color: var(--color-border-strong);
-  background: var(--color-primary-soft);
-  color: var(--color-primary-strong);
+.status-action-recebido:hover,
+.status-action-recebido.current {
+  border-color: var(--color-success-border);
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status-action-nao_chegou:hover,
+.status-action-nao_chegou.current {
+  border-color: var(--color-warning-border);
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.status-action-recusado:hover,
+.status-action-recusado.current {
+  border-color: var(--color-danger-border);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.status-action:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
 }
 
 .status-action:disabled {
   cursor: wait;
   opacity: 0.65;
+  transform: none;
 }
 
 .inline-error {
@@ -1403,11 +1464,13 @@ td {
   }
 
   .status-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .status-action {
+    width: 44px;
+    height: 44px;
     min-height: 44px;
   }
 

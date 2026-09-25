@@ -2,10 +2,14 @@ import { useState } from "react";
 import { ApiError, apiFetch } from "../lib/api";
 import type { AppointmentStatus, StoreAppointment } from "./types";
 
-const STATUS_OPTIONS: Array<{ value: AppointmentStatus; label: string }> = [
-  { value: "recebido", label: "Recebido" },
-  { value: "nao_chegou", label: "Não chegou" },
-  { value: "recusado", label: "Recusado" },
+const STATUS_OPTIONS: Array<{
+  value: AppointmentStatus;
+  label: string;
+  symbol: string;
+}> = [
+  { value: "recebido", label: "Recebido", symbol: "✓" },
+  { value: "nao_chegou", label: "Não chegou", symbol: "−" },
+  { value: "recusado", label: "Recusado", symbol: "✕" },
 ];
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -65,12 +69,20 @@ export function StatusControl({
           <button
             key={option.value}
             type="button"
-            className={option.value === status ? "status-action current" : "status-action"}
+            className={
+              option.value === status
+                ? `status-action status-action-${option.value} current`
+                : `status-action status-action-${option.value}`
+            }
+            aria-label={option.label}
+            title={option.label}
             aria-pressed={option.value === status}
             disabled={Boolean(saving)}
             onClick={() => void changeStatus(option.value)}
           >
-            {saving === option.value ? "Salvando..." : option.label}
+            <span aria-hidden="true">
+              {saving === option.value ? "…" : option.symbol}
+            </span>
           </button>
         ))}
       </div>

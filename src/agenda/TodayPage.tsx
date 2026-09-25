@@ -11,11 +11,20 @@ function countStatus(
   return appointments.filter((appointment) => appointment.status === status).length;
 }
 
+function normalizeSearch(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
 export function TodayPage() {
   const [agenda, setAgenda] = useState<StoreAgenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -45,6 +54,15 @@ export function TodayPage() {
       ),
     [agenda],
   );
+
+  const filteredAppointments = useMemo(() => {
+    const query = normalizeSearch(searchQuery);
+    if (!query) return appointments;
+
+    return appointments.filter((appointment) =>
+      normalizeSearch(`${appointment.supplier} ${appointment.protocol}`).includes(query),
+    );
+  }, [appointments, searchQuery]);
 
   function statusChanged(updated: StoreAppointment) {
     setAgenda((current) => {
@@ -94,11 +112,29 @@ export function TodayPage() {
             <div><strong>{recusado} {recusado === 1 ? "recusado" : "recusados"}</strong><span>Recusados</span></div>
           </section>
 
-          <AgendaList
-            appointments={appointments}
-            onOpen={setSelectedId}
-            onChanged={statusChanged}
-          />
+          <label className="agenda-search">
+            <span className="sr-only">Pesquisar fornecedor ou protocolo</span>
+            <input
+              type="search"
+              value={searchQuery}
+              aria-label="Pesquisar fornecedor ou protocolo"
+              placeholder="Pesquisar fornecedor ou protocolo"
+              autoComplete="off"
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </label>
+
+          {filteredAppointments.length > 0 ? (
+            <AgendaList
+              appointments={filteredAppointments}
+              onOpen={setSelectedId}
+              onChanged={statusChanged}
+            />
+          ) : (
+            <div className="empty-panel agenda-search-empty">
+              Nenhum fornecedor ou protocolo encontrado.
+            </div>
+          )}
 
           <AgendaDetails
             appointmentId={selectedId}
