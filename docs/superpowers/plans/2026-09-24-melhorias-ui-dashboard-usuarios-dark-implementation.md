@@ -128,6 +128,28 @@ Estas decisões fecham pontos técnicos que a spec não define em detalhe:
 
 ---
 
+# Task 0 — Corrigir importação incompleta do PDF
+
+**Deliverable:** o parser estruturado mantém cada linha visual no agendamento correto mesmo quando data, fornecedor ou parte do tipo aparecem acima do protocolo centralizado.
+
+**Files**
+- Create: tests/fixtures/agenda-sintetica-alinhamento-vertical.txt
+- Modify: tests/ui/parser.test.ts
+- Modify: src/import/parseAgendaText.ts
+- Update checklist após validação: docs/superpowers/specs/2026-09-24-melhorias-ui-dashboard-usuarios-dark-design.md
+
+**Root cause:** o extrator ordena texto por coordenada vertical. Em células com protocolo centralizado, a primeira linha da data/fornecedor/tipo pode aparecer antes da linha que contém o protocolo. parseStructuredText tratava essas linhas como continuação do registro anterior.
+
+- [x] **Step 1: reproduzir com fixture sintética de 24 registros**
+- [x] **Step 2: confirmar RED: parser atual não entrega 24 registros**
+- [x] **Step 3: manter linhas iniciadas por data em buffer até surgir o protocolo**
+- [x] **Step 4: manter prefixo sem protocolo como registro inválido, sem silenciar erro**
+- [x] **Step 5: rodar parser.test.ts e import.test.tsx**
+- [x] **Step 6: revisar o diff e executar o CI uma única vez**
+- [x] **Step 7: marcar Task 0 como [x] somente após CI verde**
+
+---
+
 # Task 1 — Mover “Importar agenda” para o Dashboard
 
 **Deliverable:** Dashboard, Histórico, Lojas e Usuários ficam na navegação; “Importar agenda” aparece no cabeçalho do Dashboard e abre o fluxo atual.
@@ -137,7 +159,7 @@ Estas decisões fecham pontos técnicos que a spec não define em detalhe:
 - Produces: link contextual para /admin/import.
 - Não altera: ImportAgendaPage, parser ou API de importação.
 
-- [ ] **Step 1: criar o teste de navegação**
+- [x] **Step 1: criar o teste de navegação**
 
 Criar tests/ui/admin-navigation.test.tsx:
 
@@ -215,7 +237,7 @@ describe("admin navigation", () => {
 });
 ~~~
 
-- [ ] **Step 2: remover a entrada da navegação**
+- [x] **Step 2: remover a entrada da navegação**
 
 Em src/admin/AdminLayout.tsx, NAV_ITEMS passa a ser:
 
@@ -230,7 +252,7 @@ const NAV_ITEMS = [
 
 Não remover a Route path="import" de src/App.tsx.
 
-- [ ] **Step 3: adicionar a ação ao Dashboard**
+- [x] **Step 3: adicionar a ação ao Dashboard**
 
 Em src/admin/DashboardPage.tsx importar Link de react-router-dom e usar:
 
@@ -248,7 +270,7 @@ Em src/admin/DashboardPage.tsx importar Link de react-router-dom e usar:
 </header>
 ~~~
 
-- [ ] **Step 4: ajustar o layout responsivo**
+- [x] **Step 4: ajustar o layout responsivo**
 
 Adicionar em src/styles.css:
 
@@ -277,7 +299,7 @@ Adicionar em src/styles.css:
 }
 ~~~
 
-- [ ] **Step 5: validar a task**
+- [x] **Step 5: validar a task**
 
 Executar:
 
@@ -287,7 +309,7 @@ npx vitest run --config vitest.ui.config.ts tests/ui/admin-navigation.test.tsx t
 
 Revisar o diff e confirmar que src/App.tsx ainda contém /admin/import e que ImportAgendaPage não foi duplicada.
 
-- [ ] **Step 6: checkpoint e CI**
+- [x] **Step 6: checkpoint e CI**
 
 Criar um único commit:
 
@@ -310,7 +332,7 @@ Executar o CI uma única vez.
 - Produces: tokens semânticos reaproveitados pela Task 4.
 - Não altera: API, rotas ou D1.
 
-- [ ] **Step 1: criar o teste dos tokens**
+- [x] **Step 1: criar o teste dos tokens**
 
 Criar tests/ui/design-system.test.ts:
 
@@ -337,7 +359,7 @@ describe("design system", () => {
 });
 ~~~
 
-- [ ] **Step 2: criar os tokens light**
+- [x] **Step 2: criar os tokens light**
 
 No início de src/styles.css:
 
@@ -371,7 +393,7 @@ No início de src/styles.css:
 }
 ~~~
 
-- [ ] **Step 3: migrar os seletores para tokens**
+- [x] **Step 3: migrar os seletores para tokens**
 
 Em src/styles.css substituir cores estruturais fixas por:
 - background -> var(--color-background)
@@ -386,7 +408,7 @@ Em src/styles.css substituir cores estruturais fixas por:
 
 Aplicar isso a login, sidebar, mobile nav, page headings, cards, botões, inputs, selects, tabelas, status-pill, feedbacks, detail-panel, history-box e overlays.
 
-- [ ] **Step 4: refinar peso visual**
+- [x] **Step 4: refinar peso visual**
 
 No mesmo arquivo:
 - remover sombras muito pesadas em favor de var(--shadow-card);
@@ -395,7 +417,7 @@ No mesmo arquivo:
 - não usar amarelo em grandes superfícies;
 - preservar table-scroll e espaçamento em mobile.
 
-- [ ] **Step 5: validar a task**
+- [x] **Step 5: validar a task**
 
 Executar:
 
@@ -405,7 +427,7 @@ npx vitest run --config vitest.ui.config.ts tests/ui/design-system.test.ts tests
 
 Revisar visualmente /login, /admin, /admin/history, /admin/import, /admin/stores, /admin/users, /app e /app/history.
 
-- [ ] **Step 6: checkpoint e CI**
+- [x] **Step 6: checkpoint e CI**
 
 Criar um único commit:
 
@@ -428,7 +450,7 @@ Marcar a Task 2 como [x] na spec somente após validação e executar o CI uma �
 - DELETE /api/admin/users/:id -> marca usuário de loja como excluído e retorna 204.
 - UserEditDialog recebe user, stores, onClose, onSaved e onDeleted.
 
-- [ ] **Step 1: adicionar a migration de exclusão lógica**
+- [x] **Step 1: adicionar a migration de exclusão lógica**
 
 Criar migrations/0002_user_soft_delete.sql:
 
@@ -441,7 +463,7 @@ CREATE INDEX idx_usuarios_perfil_excluido
 
 A migration é aditiva: nenhum registro existente é removido ou modificado.
 
-- [ ] **Step 2: ajustar o repositório de usuários**
+- [x] **Step 2: ajustar o repositório de usuários**
 
 Em worker/repositories/users.ts:
 - adicionar excluido_em: string | null em UserRecord;
@@ -472,7 +494,7 @@ export async function softDeleteStoreUser(
 }
 ~~~
 
-- [ ] **Step 3: criar a rota DELETE**
+- [x] **Step 3: criar a rota DELETE**
 
 Em worker/routes/admin-users.ts:
 - importar z de zod;
@@ -511,7 +533,7 @@ adminUserRoutes.delete("/:id", async (c) => {
 
 O middleware já aplicado em worker/app.ts mantém GET/PATCH/DELETE restritos a admin.
 
-- [ ] **Step 4: ampliar os testes de backend antes da UI**
+- [x] **Step 4: ampliar os testes de backend antes da UI**
 
 Em tests/worker/admin.test.ts, ampliar jsonRequest para aceitar DELETE e body opcional:
 
@@ -683,7 +705,7 @@ it("DELETE de administrador é rejeitado", async () => {
 });
 ~~~
 
-- [ ] **Step 5: criar UserEditDialog com edição e confirmação**
+- [x] **Step 5: criar UserEditDialog com edição e confirmação**
 
 Criar src/admin/UserEditDialog.tsx com:
 
@@ -733,7 +755,7 @@ onDeleted(user.id);
 
 O formulário contém labels exatos Nome, Login, Loja, Status e Nova senha (opcional). Nova senha usa type="password", minLength={8} e autoComplete="new-password".
 
-- [ ] **Step 6: testar o diálogo de usuário**
+- [x] **Step 6: testar o diálogo de usuário**
 
 Criar tests/ui/admin-users.test.tsx usando mock de apiFetch:
 
@@ -861,7 +883,7 @@ describe("UserEditDialog", () => {
 });
 ~~~
 
-- [ ] **Step 7: integrar o diálogo na UsersPage**
+- [x] **Step 7: integrar o diálogo na UsersPage**
 
 Em src/admin/UsersPage.tsx:
 - adicionar selectedUser: AdminUser | null;
@@ -888,7 +910,7 @@ function userDeleted(userId: string) {
 }
 ~~~
 
-- [ ] **Step 8: validar a task**
+- [x] **Step 8: validar a task**
 
 Executar:
 
@@ -906,7 +928,7 @@ Confirmar no diff:
 - admin não pode ser excluído;
 - userJson não contém senha_hash.
 
-- [ ] **Step 9: checkpoint e CI**
+- [x] **Step 9: checkpoint e CI**
 
 Criar um único commit:
 
@@ -929,7 +951,7 @@ Marcar a Task 3 como [x] na spec somente após validação e executar o CI uma �
 - ThemeProvider fornece theme e toggleTheme.
 - ThemeToggle expõe um botão acessível.
 
-- [ ] **Step 1: criar o teste de tema**
+- [x] **Step 1: criar o teste de tema**
 
 Criar tests/ui/theme.test.tsx:
 
@@ -980,7 +1002,7 @@ describe("theme", () => {
 });
 ~~~
 
-- [ ] **Step 2: criar os utilitários de tema**
+- [x] **Step 2: criar os utilitários de tema**
 
 Criar src/theme/theme.ts:
 
@@ -1005,7 +1027,7 @@ export function applyTheme(theme: Theme) {
 }
 ~~~
 
-- [ ] **Step 3: criar ThemeProvider**
+- [x] **Step 3: criar ThemeProvider**
 
 Criar src/theme/ThemeProvider.tsx:
 
@@ -1060,7 +1082,7 @@ export function useTheme() {
 }
 ~~~
 
-- [ ] **Step 4: criar ThemeToggle**
+- [x] **Step 4: criar ThemeToggle**
 
 Criar src/theme/ThemeToggle.tsx:
 
@@ -1084,7 +1106,7 @@ export function ThemeToggle() {
 }
 ~~~
 
-- [ ] **Step 5: ligar o provider e os controles**
+- [x] **Step 5: ligar o provider e os controles**
 
 Em src/App.tsx envolver AuthProvider:
 
@@ -1105,7 +1127,7 @@ Adicionar ThemeToggle:
 
 Em mobile, posicionar o mesmo controle por CSS; não renderizar duas cópias do toggle no mesmo layout.
 
-- [ ] **Step 6: evitar flash do tema errado**
+- [x] **Step 6: evitar flash do tema errado**
 
 Em index.html, dentro de head e antes do módulo principal:
 
@@ -1125,7 +1147,7 @@ Em index.html, dentro de head e antes do módulo principal:
 
 Sem valor válido, o CSS light continua sendo o default.
 
-- [ ] **Step 7: adicionar os tokens dark**
+- [x] **Step 7: adicionar os tokens dark**
 
 Em src/styles.css:
 
@@ -1154,7 +1176,7 @@ html[data-theme="dark"] {
 
 Revisar os seletores para remover white, #fff, #ffffff, black e cores legadas onde representem superfície/texto estrutural. Exceções aceitáveis: cores intencionais de conteúdo que permaneçam legíveis nos dois temas.
 
-- [ ] **Step 8: validar todas as telas**
+- [x] **Step 8: validar todas as telas**
 
 Executar:
 
@@ -1174,7 +1196,7 @@ Fazer smoke nos dois temas em:
 
 Validar sidebar, cards, tabelas, forms, modal de usuário, dropdowns, badges, hover, foco e disabled.
 
-- [ ] **Step 9: checkpoint e CI**
+- [x] **Step 9: checkpoint e CI**
 
 Criar um único commit:
 
@@ -1188,15 +1210,15 @@ Marcar a Task 4 e a definição de pronto na spec apenas para itens com evidênc
 
 # Fechamento
 
-- [ ] As quatro tasks estão [x] na spec.
-- [ ] O último CI está verde.
-- [ ] O diff completo da branch contra main foi revisado.
-- [ ] A única migration é aditiva e preserva dados.
-- [ ] Login admin e loja continuam funcionando.
-- [ ] Importação continua usando o fluxo existente.
-- [ ] Usuários excluídos não aparecem e não autenticam, com auditoria preservada.
-- [ ] Light/dark estão consistentes em desktop e mobile.
-- [ ] A documentação final reflete o comportamento entregue.
+- [x] As cinco tasks estão [x] na spec.
+- [x] O último CI está verde.
+- [x] O diff completo da branch contra main foi revisado.
+- [x] A única migration é aditiva e preserva dados.
+- [x] Login admin e loja continuam funcionando.
+- [x] Importação continua usando o fluxo existente.
+- [x] Usuários excluídos não aparecem e não autenticam, com auditoria preservada.
+- [x] Light/dark estão consistentes em desktop e mobile.
+- [x] A documentação final reflete o comportamento entregue.
 
 ## Critério para merge
 

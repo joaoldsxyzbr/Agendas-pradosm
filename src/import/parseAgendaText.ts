@@ -202,9 +202,29 @@ function finalizeStructuredRecord(
   };
 }
 
+function appendStructuredCells(
+  record: StructuredRecord,
+  cells: string[],
+) {
+  appendPart(record.dateParts, cells[1]);
+  appendPart(record.supplierParts, cells[2]);
+  if (record.itemsRaw === undefined && cells[3]) record.itemsRaw = cells[3];
+  if (record.volumesRaw === undefined && cells[4]) {
+    record.volumesRaw = cells[4];
+  }
+  if (record.palletsRaw === undefined && cells[5]) {
+    record.palletsRaw = cells[5];
+  }
+  appendPart(record.cargaBatidaParts, cells[6]);
+  appendPart(record.typeParts, cells[7]);
+  appendPart(record.nfeParts, cells[8]);
+  appendPart(record.orderParts, cells[9]);
+}
+
 function parseStructuredText(text: string) {
   const appointments: ParsedAgendaAppointment[] = [];
   let current: StructuredRecord | null = null;
+  let pendingPrefixLines: string[][] = [];
   let invalidCount = 0;
 
   const finishCurrent = () => {
@@ -220,6 +240,24 @@ function parseStructuredText(text: string) {
 
     const cells = normalizeCells(rawLine);
     const protocol = /^\d{6,20}$/.test(cells[0]) ? cells[0] : null;
+    const startsRowBeforeProtocol =
+      !protocol && parseIsoDate(cells[1]) !== null;
+
+    if (startsRowBeforeProtocol) {
+      finishCurrent();
+
+      if (pendingPrefixLines.length > 0) {
+        invalidCount += 1;
+      }
+
+      pendingPrefixLines = [cells];
+      continue;
+    }
+
+    if (!protocol && pendingPrefixLines.length > 0) {
+      pendingPrefixLines.push(cells);
+      continue;
+    }
 
     if (protocol) {
       finishCurrent();
@@ -232,26 +270,26 @@ function parseStructuredText(text: string) {
         nfeParts: [],
         orderParts: [],
       };
+
+      for (const prefixCells of pendingPrefixLines) {
+        appendStructuredCells(current, prefixCells);
+      }
+      pendingPrefixLines = [];
+
+      appendStructuredCells(current, cells);
+      continue;
     }
 
     if (!current) continue;
-
-    appendPart(current.dateParts, cells[1]);
-    appendPart(current.supplierParts, cells[2]);
-    if (current.itemsRaw === undefined && cells[3]) current.itemsRaw = cells[3];
-    if (current.volumesRaw === undefined && cells[4]) {
-      current.volumesRaw = cells[4];
-    }
-    if (current.palletsRaw === undefined && cells[5]) {
-      current.palletsRaw = cells[5];
-    }
-    appendPart(current.cargaBatidaParts, cells[6]);
-    appendPart(current.typeParts, cells[7]);
-    appendPart(current.nfeParts, cells[8]);
-    appendPart(current.orderParts, cells[9]);
+    appendStructuredCells(current, cells);
   }
 
   finishCurrent();
+
+  if (pendingPrefixLines.length > 0) {
+    invalidCount += 1;
+  }
+
   return { appointments, invalidCount };
 }
 

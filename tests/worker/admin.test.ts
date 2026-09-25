@@ -68,20 +68,48 @@ async function adminCookie(id: string, loginValue: string) {
 
 function jsonRequest(
   url: string,
-  method: "POST" | "PATCH",
+  method: "POST" | "PATCH" | "DELETE",
   cookie: string,
-  body: unknown,
+  body?: unknown,
 ) {
   return exports.default.fetch(
     new Request(`https://example.com${url}`, {
       method,
       headers: {
-        "Content-Type": "application/json",
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
         Cookie: cookie,
       },
-      body: JSON.stringify(body),
+      ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     }),
   );
+}
+
+async function createManagedUser(
+  cookie: string,
+  storeCode: string,
+  loginValue: string,
+) {
+  const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+    codigo: storeCode,
+    nome: `Loja ${storeCode}`,
+  });
+  expect(storeResponse.status).toBe(201);
+  const store = (await storeResponse.json()) as { id: string };
+
+  const userResponse = await jsonRequest("/api/admin/users", "POST", cookie, {
+    nome: `Usuário ${storeCode}`,
+    login: loginValue,
+    senha: password,
+    lojaId: store.id,
+  });
+  expect(userResponse.status).toBe(201);
+  const user = (await userResponse.json()) as {
+    id: string;
+    login: string;
+    lojaId: string;
+  };
+
+  return { store, user };
 }
 
 describe("admin store and user management", () => {
@@ -230,4 +258,139 @@ describe("admin store and user management", () => {
     const relogin = await login("usuario-desativavel");
     expect(relogin.status).toBe(401);
   });
+  it("admin edita login e senha do usuário", async () => {
+    const cookie = await adminCookie("admin-edit-user", "admin-edit-user");
+    const { user } = await createManagedUser(
+      cookie,
+      "F97",
+      "usuario-edit-user",
+    );
+
+    const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: user.id,
+      nome: "Usuário Editado",
+      login: "usuario-editado",
+      senha: "nova-senha-segura-123",
+      lojaId: user.lojaId,
+      ativo: true,
+    });
+
+    expect(update.status).toBe(200);
+    const body = (await update.json()) as Record<string, unknown>;
+    expect(body).toMatchObject({
+      nome: "Usuário Editado",
+      login: "usuario-editado",
+      ativo: true,
+    });
+    expect(body).not.toHaveProperty("senha_hash");
+    expect((await login("usuario-edit-user")).status).toBe(401);
+    expect(
+      (await login("usuario-editado", "nova-senha-segura-123")).status,
+    ).toBe(200);
+  });
+
+  it("editar sem senha preserva a senha atual", async () => {
+    const cookie = await adminCookie(
+      "admin-edit-no-password",
+      "admin-edit-no-password",
+    );
+    const { user } = await createManagedUser(
+      cookie,
+      "F98",
+      "usuario-keep-password",
+    );
+
+    const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: user.id,
+      nome: "Nome Atualizado",
+    });
+
+    expect(update.status).toBe(200);
+    expect((await login("usuario-keep-password")).status).toBe(200);
+  });
+
+  it("login duplicado na edição retorna 409", async () => {
+    const cookie = await adminCookie("admin-edit-dup", "admin-edit-dup");
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F99",
+      nome: "Loja Duplicidade",
+    });
+    const store = (await storeResponse.json()) as { id: string };
+
+    const firstResponse = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Usuário A",
+      login: "usuario-dup-a",
+      senha: password,
+      lojaId: store.id,
+    });
+    const first = (await firstResponse.json()) as { id: string; login: string };
+
+    const secondResponse = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Usuário B",
+      login: "usuario-dup-b",
+      senha: password,
+      lojaId: store.id,
+    });
+    const second = (await secondResponse.json()) as { id: string };
+
+    const update = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: second.id,
+      login: first.login,
+    });
+
+    expect(update.status).toBe(409);
+    expect(await update.json()).toMatchObject({ error: "LOGIN_EM_USO" });
+  });
+
+  it("exclusão lógica remove da lista e impede login", async () => {
+    const cookie = await adminCookie("admin-delete-user", "admin-delete-user");
+    const { user } = await createManagedUser(
+      cookie,
+      "F100",
+      "usuario-delete",
+    );
+
+    const deleted = await jsonRequest(
+      `/api/admin/users/${user.id}`,
+      "DELETE",
+      cookie,
+    );
+    expect(deleted.status).toBe(204);
+
+    const list = await exports.default.fetch(
+      new Request("https://example.com/api/admin/users", {
+        headers: { Cookie: cookie },
+      }),
+    );
+    const users = (await list.json()) as Array<{ id: string }>;
+    expect(users.some((item) => item.id === user.id)).toBe(false);
+    expect((await login(user.login)).status).toBe(401);
+
+    const stored = await db
+      .prepare(
+        "SELECT ativo, excluido_em FROM usuarios WHERE id = ? LIMIT 1",
+      )
+      .bind(user.id)
+      .first<{ ativo: number; excluido_em: string | null }>();
+
+    expect(stored?.ativo).toBe(0);
+    expect(stored?.excluido_em).toBeTruthy();
+  });
+
+  it("DELETE de administrador é rejeitado", async () => {
+    const adminId = crypto.randomUUID();
+    await seedAdmin(adminId, "admin-protected");
+    const cookie = cookiePair(await login("admin-protected"));
+
+    const response = await jsonRequest(
+      `/api/admin/users/${adminId}`,
+      "DELETE",
+      cookie,
+    );
+
+    expect(response.status).toBe(404);
+    expect((await login("admin-protected")).status).toBe(200);
+  });
+
 });

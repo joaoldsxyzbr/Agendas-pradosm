@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
 import type { AdminAgendaSummary, AdminStore } from "./types";
 
@@ -36,12 +37,15 @@ export function DashboardPage() {
 
   return (
     <section className="admin-page">
-      <header className="page-heading">
+      <header className="page-heading page-heading-actions">
         <div>
           <span className="eyebrow">Administração</span>
           <h1>Dashboard</h1>
           <p>Acompanhe a situação das agendas de hoje por loja.</p>
         </div>
+        <Link className="primary-button dashboard-import-action" to="/admin/import">
+          Importar agenda
+        </Link>
       </header>
 
       {loading ? <p className="muted-state">Carregando agendas...</p> : null}

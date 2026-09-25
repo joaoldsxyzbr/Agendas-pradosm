@@ -4,6 +4,7 @@ import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { AppRoutes } from "../../src/App";
 import { AuthProvider } from "../../src/auth/AuthProvider";
+import { ThemeProvider } from "../../src/theme/ThemeProvider";
 
 type User = {
   id: string;
@@ -27,9 +28,11 @@ function jsonResponse(status: number, body?: unknown) {
 function renderApp(initialPath = "/login") {
   return render(
     <MemoryRouter initialEntries={[initialPath]}>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </ThemeProvider>
     </MemoryRouter>,
   );
 }

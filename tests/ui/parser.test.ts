@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import fixture from "../fixtures/agenda-sintetica.txt?raw";
+import verticalAlignmentFixture from "../fixtures/agenda-sintetica-alinhamento-vertical.txt?raw";
 import { parseAgendaText } from "../../src/import/parseAgendaText";
 
 describe("parseAgendaText", () => {
@@ -22,6 +23,39 @@ describe("parseAgendaText", () => {
       cargaBatida: null,
       type: "Nota fiscal",
       status: "aguardando",
+    });
+  });
+
+  it("mantém 24 registros quando data e fornecedor aparecem antes do protocolo", () => {
+    const result = parseAgendaText(verticalAlignmentFixture);
+
+    expect(result.blockingErrors).toEqual([]);
+    expect(result.appointments).toHaveLength(24);
+    expect(result.appointments.map((appointment) => appointment.supplier)).toEqual(
+      Array.from(
+        { length: 24 },
+        (_, index) =>
+          `FORNECEDOR ${String(index + 1).padStart(2, "0")} LTDA`,
+      ),
+    );
+    expect(
+      result.appointments.every(
+        (appointment) => appointment.type === "Nota fiscal",
+      ),
+    ).toBe(true);
+    expect(result.appointments[0]).toMatchObject({
+      protocol: "91000001",
+      startTime: "08:00",
+      endTime: "08:10",
+      nfe: ["700001"],
+      orders: ["50001"],
+    });
+    expect(result.appointments[23]).toMatchObject({
+      protocol: "91000024",
+      startTime: "11:50",
+      endTime: "12:00",
+      nfe: ["700024"],
+      orders: ["50024"],
     });
   });
 
