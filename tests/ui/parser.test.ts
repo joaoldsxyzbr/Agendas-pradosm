@@ -59,6 +59,27 @@ describe("parseAgendaText", () => {
     });
   });
 
+  it("recupera Nota fiscal quando fiscal cai na coluna de NF-e", () => {
+    const result = parseAgendaText(
+      [
+        "Prado Supermercados Filtros: Dia: 24/09/2026 | Filiais: F03 - CANASVIEIRAS | Doca: Todas",
+        "Agendas de recebimento Total: 1",
+        "Protocolo\tData agenda\tFornecedor\tItens\tVol.\tPaletes\tCarga batida\tTipo\tN° NFe\tPedidos",
+        "12464926\t24/09/2026 08:00 às 08:10\tDEYCON COMERCIO E DISTRIBUICAO LTDA.\t40\t40\t1\t-\tNota\t\t",
+        "\t\t\t\t\t\t\t\tfiscal 735889, 735888\t62965",
+      ].join("\n"),
+    );
+
+    expect(result.blockingErrors).toEqual([]);
+    expect(result.appointments).toHaveLength(1);
+    expect(result.appointments[0]).toMatchObject({
+      protocol: "12464926",
+      type: "Nota fiscal",
+      nfe: ["735889", "735888"],
+      orders: ["62965"],
+    });
+  });
+
   it("preserva listas múltiplas de NF-e e pedidos", () => {
     const result = parseAgendaText(fixture);
 

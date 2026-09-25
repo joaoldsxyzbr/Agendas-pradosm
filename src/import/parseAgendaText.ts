@@ -83,6 +83,33 @@ function canonicalType(value: string): AgendaDocumentType | null {
   return KNOWN_TYPES[normalizeKey(value)] ?? null;
 }
 
+function resolveStructuredType(record: StructuredRecord) {
+  const typeText = record.typeParts.join(" ");
+  const directType = canonicalType(typeText);
+
+  if (directType) {
+    return { type: directType, nfeParts: record.nfeParts };
+  }
+
+  if (normalizeKey(typeText) === "nota" && record.nfeParts.length > 0) {
+    const [firstNfePart, ...remainingNfeParts] = record.nfeParts;
+    const fiscalMatch = firstNfePart.match(/^fiscal\b\s*(.*)$/i);
+
+    if (fiscalMatch) {
+      const recoveredFirstNfe = fiscalMatch[1].trim();
+      return {
+        type: "Nota fiscal" as const,
+        nfeParts: [
+          ...(recoveredFirstNfe ? [recoveredFirstNfe] : []),
+          ...remainingNfeParts,
+        ],
+      };
+    }
+  }
+
+  return { type: null, nfeParts: record.nfeParts };
+}
+
 function parseCount(value: string | undefined) {
   const normalized = value?.trim() ?? "";
   if (!normalized || normalized === "-") {
@@ -163,7 +190,7 @@ function finalizeStructuredRecord(
   const date = dateText.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] ?? null;
   const timeRange = parseTimeRange(dateText);
   const supplier = record.supplierParts.join(" ").replace(/\s+/g, " ").trim();
-  const type = canonicalType(record.typeParts.join(" "));
+  const { type, nfeParts } = resolveStructuredType(record);
   const items = parseCount(record.itemsRaw);
   const volumes = parseCount(record.volumesRaw);
   const pallets = parseCount(record.palletsRaw);
@@ -196,7 +223,7 @@ function finalizeStructuredRecord(
     pallets: pallets.value,
     cargaBatida: !cargaText || cargaText === "-" ? null : cargaText,
     type,
-    nfe: parseNumberList(record.nfeParts),
+    nfe: parseNumberList(nfeParts),
     orders: parseNumberList(record.orderParts),
     status: "aguardando",
   };
