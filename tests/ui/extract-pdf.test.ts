@@ -80,6 +80,70 @@ describe("extractPdfText", () => {
     expect(destroy).toHaveBeenCalledOnce();
   });
 
+  it("agrupa cada registro pela linha do protocolo quando as células ficam desalinhadas", async () => {
+    const cleanup = vi.fn();
+    const destroy = vi.fn().mockResolvedValue(undefined);
+
+    mockedGetDocument.mockReturnValue({
+      promise: Promise.resolve({
+        numPages: 1,
+        getPage: async () => ({
+          getViewport: () => ({ width: 1000 }),
+          getTextContent: async () => ({
+            items: [
+              item("Protocolo", 50, 900),
+              item("Data agenda", 120, 900),
+              item("Fornecedor", 240, 900),
+              item("Tipo", 730, 900),
+              item("N° NFe", 790, 900),
+              item("Pedidos", 860, 900),
+              item("90000001", 20, 800),
+              item("24/09/2026", 120, 804),
+              item("08:00 às 08:10", 120, 796),
+              item("FORNECEDOR ALFA", 240, 804),
+              item("LTDA", 240, 796),
+              item("3", 420, 800),
+              item("3", 475, 800),
+              item("1", 530, 800),
+              item("-", 610, 800),
+              item("CNPJ", 730, 800),
+              item("-", 805, 800),
+              item("-", 890, 800),
+              item("DISTRIBUIDORA", 240, 782),
+              item("24/09/2026", 120, 776),
+              item("Nota", 730, 776),
+              item("90000002", 20, 772),
+              item("08:10 às 08:20", 120, 768),
+              item("DE ALIMENTOS", 240, 772),
+              item("15", 420, 772),
+              item("15", 475, 772),
+              item("1", 530, 772),
+              item("-", 610, 772),
+              item("123456", 791, 772),
+              item("654321", 868, 772),
+              item("LTDA", 240, 764),
+              item("fiscal", 730, 764),
+            ],
+          }),
+          cleanup,
+        }),
+      }),
+      destroy,
+    } as never);
+
+    const text = await extractPdfText(fakeFile());
+    const lines = text.split("\n");
+
+    expect(lines).toContain(
+      "90000001\t24/09/2026 08:00 às 08:10\tFORNECEDOR ALFA LTDA\t3\t3\t1\t-\tCNPJ\t-\t-",
+    );
+    expect(lines).toContain(
+      "90000002\t24/09/2026 08:10 às 08:20\tDISTRIBUIDORA DE ALIMENTOS LTDA\t15\t15\t1\t-\tNota fiscal\t123456\t654321",
+    );
+    expect(cleanup).toHaveBeenCalledOnce();
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
   it("converte falha de leitura em PDF_INVALIDO", async () => {
     mockedGetDocument.mockReturnValue({
       promise: Promise.reject(new Error("arquivo corrompido")),
