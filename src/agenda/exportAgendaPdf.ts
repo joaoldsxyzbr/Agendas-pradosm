@@ -3,22 +3,28 @@ import type { StoreAgenda, StoreAppointment } from "./types";
 type AgendaMeta = NonNullable<StoreAgenda["agenda"]>;
 
 type PdfRow = {
-  time: string[];
-  supplier: string[];
   protocol: string[];
+  agendaDate: string[];
+  supplier: string[];
+  items: string[];
+  volumes: string[];
+  pallets: string[];
+  cargaBatida: string[];
   type: string[];
+  nfe: string[];
+  orders: string[];
   status: string[];
   height: number;
 };
 
-const PAGE_WIDTH = 842;
-const PAGE_HEIGHT = 595;
-const MARGIN = 34;
-const TABLE_TOP = 456;
-const TABLE_HEADER_HEIGHT = 22;
-const TABLE_BOTTOM = 42;
-const ROW_FONT_SIZE = 8;
-const ROW_LINE_HEIGHT = 9.5;
+const PAGE_WIDTH = 595;
+const PAGE_HEIGHT = 842;
+const MARGIN = 26;
+const TABLE_TOP = 774;
+const TABLE_HEADER_HEIGHT = 28;
+const TABLE_BOTTOM = 34;
+const ROW_FONT_SIZE = 5.6;
+const ROW_LINE_HEIGHT = 7;
 
 const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
   aguardando: "Aguardando",
@@ -28,12 +34,20 @@ const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
 };
 
 const COLUMNS = [
-  { key: "time", label: "Horário", width: 82 },
-  { key: "supplier", label: "Fornecedor", width: 335 },
-  { key: "protocol", label: "Protocolo", width: 92 },
-  { key: "type", label: "Tipo", width: 125 },
-  { key: "status", label: "Status", width: 105 },
+  { key: "protocol", label: "Protocolo", width: 50 },
+  { key: "agendaDate", label: "Data agenda", width: 64 },
+  { key: "supplier", label: "Fornecedor", width: 96 },
+  { key: "items", label: "Itens", width: 26 },
+  { key: "volumes", label: "Vol.", width: 25 },
+  { key: "pallets", label: "Paletes", width: 30 },
+  { key: "cargaBatida", label: "Carga batida", width: 48 },
+  { key: "type", label: "Tipo", width: 40 },
+  { key: "nfe", label: "N° NFe", width: 47 },
+  { key: "orders", label: "Pedidos", width: 43 },
+  { key: "status", label: "Status", width: 74 },
 ] as const;
+
+const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
 
 const CP1252_SPECIAL: Record<string, number> = {
   "€": 0x80,
@@ -82,6 +96,11 @@ export function agendaPdfFileName(agenda: AgendaMeta) {
   return `agenda-${safeFilePart(agenda.storeCode)}-${fileDate(agenda.date)}.pdf`;
 }
 
+function cellValue(value: number | string | null) {
+  if (value === null || value === "") return "-";
+  return String(value);
+}
+
 function textWidthApprox(text: string, fontSize: number) {
   return Array.from(text).reduce((width, char) => {
     if ("MW@#%".includes(char)) return width + fontSize * 0.72;
@@ -111,35 +130,59 @@ function wrapText(value: string, maxWidth: number, fontSize = ROW_FONT_SIZE) {
   return lines.length ? lines : ["-"];
 }
 
-function layoutRow(appointment: StoreAppointment): PdfRow {
-  const time = [`${appointment.startTime} - ${appointment.endTime}`];
-  const supplier = wrapText(appointment.supplier, COLUMNS[1].width - 10);
+function layoutRow(
+  appointment: StoreAppointment,
+  agendaDate: string,
+): PdfRow {
   const protocol = [appointment.protocol];
-  const type = wrapText(appointment.type ?? "-", COLUMNS[3].width - 10);
-  const status = [STATUS_LABELS[appointment.status]];
+  const date = [agendaDate, `${appointment.startTime} às ${appointment.endTime}`];
+  const supplier = wrapText(appointment.supplier, COLUMNS[2].width - 6);
+  const items = [cellValue(appointment.items)];
+  const volumes = [cellValue(appointment.volumes)];
+  const pallets = [cellValue(appointment.pallets)];
+  const cargaBatida = wrapText(
+    appointment.cargaBatida ?? "-",
+    COLUMNS[6].width - 6,
+  );
+  const type = wrapText(appointment.type ?? "-", COLUMNS[7].width - 6);
+  const nfe = wrapText(
+    appointment.nfe.length ? appointment.nfe.join(", ") : "-",
+    COLUMNS[8].width - 6,
+  );
+  const orders = wrapText(
+    appointment.orders.length ? appointment.orders.join(", ") : "-",
+    COLUMNS[9].width - 6,
+  );
+  const status = wrapText(STATUS_LABELS[appointment.status], COLUMNS[10].width - 6);
+
   const lineCount = Math.max(
-    time.length,
-    supplier.length,
     protocol.length,
+    date.length,
+    supplier.length,
+    items.length,
+    volumes.length,
+    pallets.length,
+    cargaBatida.length,
     type.length,
+    nfe.length,
+    orders.length,
     status.length,
   );
 
   return {
-    time,
-    supplier,
     protocol,
+    agendaDate: date,
+    supplier,
+    items,
+    volumes,
+    pallets,
+    cargaBatida,
     type,
+    nfe,
+    orders,
     status,
-    height: Math.max(20, lineCount * ROW_LINE_HEIGHT + 7),
+    height: Math.max(19, lineCount * ROW_LINE_HEIGHT + 6),
   };
-}
-
-function countStatus(
-  appointments: StoreAppointment[],
-  status: StoreAppointment["status"],
-) {
-  return appointments.filter((appointment) => appointment.status === status).length;
 }
 
 function paginateRows(rows: PdfRow[]) {
@@ -196,31 +239,11 @@ function textCommand(
   x: number,
   y: number,
   value: string,
-  size = 9,
+  size = 7,
   font: "F1" | "F2" = "F1",
-  color = "0.09 0.13 0.20",
+  color = "0.08 0.08 0.10",
 ) {
   return `BT /${font} ${size} Tf ${color} rg 1 0 0 1 ${number(x)} ${number(y)} Tm (${pdfText(value)}) Tj ET\n`;
-}
-
-function fillRect(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color: string,
-) {
-  return `q ${color} rg ${number(x)} ${number(y)} ${number(width)} ${number(height)} re f Q\n`;
-}
-
-function strokeRect(
-  x: number,
-  y: number,
-  width: number,
-  height: number,
-  color = "0.82 0.86 0.91",
-) {
-  return `q ${color} RG 0.6 w ${number(x)} ${number(y)} ${number(width)} ${number(height)} re S Q\n`;
 }
 
 function line(
@@ -228,145 +251,161 @@ function line(
   y1: number,
   x2: number,
   y2: number,
-  color = "0.88 0.91 0.95",
+  color = "0.55 0.55 0.58",
+  width = 0.45,
 ) {
-  return `q ${color} RG 0.5 w ${number(x1)} ${number(y1)} m ${number(x2)} ${number(y2)} l S Q\n`;
+  return `q ${color} RG ${number(width)} w ${number(x1)} ${number(y1)} m ${number(x2)} ${number(y2)} l S Q\n`;
 }
 
-function summaryCommand(
-  label: string,
-  value: number,
-  x: number,
-  width: number,
-) {
-  const y = 493;
-  const height = 40;
-  return (
-    fillRect(x, y, width, height, "0.96 0.97 0.99") +
-    strokeRect(x, y, width, height) +
-    textCommand(x + 8, y + 24, String(value), 12, "F2") +
-    textCommand(x + 8, y + 9, label, 7.5, "F1", "0.38 0.44 0.53")
-  );
-}
-
-function pageContent(
+function pageHeader(
   agenda: AgendaMeta,
-  appointments: StoreAppointment[],
-  rows: PdfRow[],
-  pageIndex: number,
-  pageCount: number,
+  total: number,
 ) {
+  const date = formatDateBr(agenda.date);
   let content = "";
 
-  content += fillRect(0, PAGE_HEIGHT - 8, PAGE_WIDTH, 8, "0.96 0.77 0.19");
-  content += textCommand(MARGIN, 557, "Agenda de Recebimento", 16, "F2", "0.05 0.24 0.47");
+  content += textCommand(MARGIN, 814, "Prado Supermercados", 10, "F2");
+  content += textCommand(MARGIN, 795, "Agendas de recebimento", 13, "F2");
+
   content += textCommand(
-    MARGIN,
-    537,
-    `${agenda.storeCode} - ${agenda.storeName}  |  ${formatDateBr(agenda.date)}`,
-    10,
-    "F1",
-    "0.28 0.34 0.43",
+    190,
+    814,
+    `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`,
+    6.5,
+    "F2",
   );
+  content += textCommand(190, 801, "Busca:", 6.5, "F1");
+  content += textCommand(503, 795, `Total: ${total}`, 10.5, "F2");
 
-  const summaryGap = 8;
-  const summaryWidth =
-    (PAGE_WIDTH - MARGIN * 2 - summaryGap * 4) / 5;
-  const summary = [
-    ["Total", appointments.length],
-    ["Aguardando", countStatus(appointments, "aguardando")],
-    ["Recebidos", countStatus(appointments, "recebido")],
-    ["Não chegaram", countStatus(appointments, "nao_chegou")],
-    ["Recusados", countStatus(appointments, "recusado")],
-  ] as const;
+  content += line(MARGIN, 786, PAGE_WIDTH - MARGIN, 786, "0.16 0.16 0.18", 1.2);
+  return content;
+}
 
-  summary.forEach(([label, value], index) => {
-    content += summaryCommand(
-      label,
-      value,
-      MARGIN + index * (summaryWidth + summaryGap),
-      summaryWidth,
-    );
-  });
-
+function tableHeader() {
+  let content = "";
   let x = MARGIN;
-  content += fillRect(
+
+  content += line(MARGIN, TABLE_TOP, MARGIN + TABLE_WIDTH, TABLE_TOP, "0.18 0.18 0.20", 0.9);
+  content += line(
     MARGIN,
     TABLE_TOP - TABLE_HEADER_HEIGHT,
-    COLUMNS.reduce((total, column) => total + column.width, 0),
-    TABLE_HEADER_HEIGHT,
-    "0.05 0.24 0.47",
+    MARGIN + TABLE_WIDTH,
+    TABLE_TOP - TABLE_HEADER_HEIGHT,
+    "0.18 0.18 0.20",
+    0.9,
   );
 
   for (const column of COLUMNS) {
-    content += textCommand(
-      x + 5,
-      TABLE_TOP - 15,
-      column.label,
-      7.5,
-      "F2",
-      "1 1 1",
+    const labelLines = wrapText(column.label, column.width - 5, 5.8);
+    labelLines.forEach((label, index) => {
+      content += textCommand(
+        x + 3,
+        TABLE_TOP - 11 - index * 7,
+        label,
+        5.8,
+        "F2",
+        "0.18 0.18 0.20",
+      );
+    });
+
+    content += line(
+      x,
+      TABLE_TOP - TABLE_HEADER_HEIGHT,
+      x,
+      TABLE_TOP,
+      "0.52 0.52 0.55",
+      0.4,
     );
     x += column.width;
   }
 
+  content += line(
+    MARGIN + TABLE_WIDTH,
+    TABLE_TOP - TABLE_HEADER_HEIGHT,
+    MARGIN + TABLE_WIDTH,
+    TABLE_TOP,
+    "0.52 0.52 0.55",
+    0.4,
+  );
+
+  return content;
+}
+
+function tableRows(rows: PdfRow[]) {
+  let content = "";
   let rowTop = TABLE_TOP - TABLE_HEADER_HEIGHT;
-  rows.forEach((row, rowIndex) => {
+
+  for (const row of rows) {
     const rowBottom = rowTop - row.height;
+    let x = MARGIN;
 
-    if (rowIndex % 2 === 1) {
-      content += fillRect(
-        MARGIN,
-        rowBottom,
-        COLUMNS.reduce((total, column) => total + column.width, 0),
-        row.height,
-        "0.985 0.989 0.995",
-      );
-    }
-
-    content += strokeRect(
-      MARGIN,
-      rowBottom,
-      COLUMNS.reduce((total, column) => total + column.width, 0),
-      row.height,
-      "0.88 0.91 0.95",
-    );
-
-    let cellX = MARGIN;
-    COLUMNS.forEach((column, columnIndex) => {
+    COLUMNS.forEach((column) => {
       const cellLines = row[column.key];
-      cellLines.forEach((cellLine, lineIndex) => {
+      cellLines.forEach((cellLine, index) => {
+        const isStatus = column.key === "status";
         content += textCommand(
-          cellX + 5,
-          rowTop - 13 - lineIndex * ROW_LINE_HEIGHT,
+          x + 3,
+          rowTop - 9 - index * ROW_LINE_HEIGHT,
           cellLine,
           ROW_FONT_SIZE,
-          column.key === "status" ? "F2" : "F1",
+          isStatus ? "F2" : "F1",
+          "0.12 0.12 0.14",
         );
       });
 
-      if (columnIndex < COLUMNS.length - 1) {
-        content += line(
-          cellX + column.width,
-          rowBottom,
-          cellX + column.width,
-          rowTop,
-        );
-      }
-
-      cellX += column.width;
+      content += line(
+        x,
+        rowBottom,
+        x,
+        rowTop,
+        "0.62 0.62 0.64",
+        0.35,
+      );
+      x += column.width;
     });
 
+    content += line(
+      MARGIN + TABLE_WIDTH,
+      rowBottom,
+      MARGIN + TABLE_WIDTH,
+      rowTop,
+      "0.62 0.62 0.64",
+      0.35,
+    );
+    content += line(
+      MARGIN,
+      rowBottom,
+      MARGIN + TABLE_WIDTH,
+      rowBottom,
+      "0.62 0.62 0.64",
+      0.35,
+    );
+
     rowTop = rowBottom;
-  });
+  }
+
+  return content;
+}
+
+function pageContent(
+  agenda: AgendaMeta,
+  rows: PdfRow[],
+  total: number,
+  pageIndex: number,
+  pageCount: number,
+) {
+  let content = "";
+  content += pageHeader(agenda, total);
+  content += tableHeader();
+  content += tableRows(rows);
 
   content += textCommand(
     PAGE_WIDTH - MARGIN - 72,
-    20,
+    18,
     `Página ${pageIndex + 1} de ${pageCount}`,
-    7.5,
+    6.5,
     "F1",
-    "0.45 0.50 0.58",
+    "0.42 0.42 0.46",
   );
 
   return content;
@@ -389,7 +428,10 @@ export function buildAgendaPdf(
       a.startTime.localeCompare(b.startTime) ||
       a.protocol.localeCompare(b.protocol),
   );
-  const pages = paginateRows(sorted.map(layoutRow));
+  const agendaDate = formatDateBr(agenda.date);
+  const pages = paginateRows(
+    sorted.map((appointment) => layoutRow(appointment, agendaDate)),
+  );
   const objects: string[] = [];
 
   objects[1] = "<< /Type /Catalog /Pages 2 0 R >>";
@@ -405,8 +447,8 @@ export function buildAgendaPdf(
     const contentObjectId = pageObjectId + 1;
     const content = pageContent(
       agenda,
-      sorted,
       rows,
+      sorted.length,
       pageIndex,
       pages.length,
     );
