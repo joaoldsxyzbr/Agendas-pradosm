@@ -84,13 +84,37 @@ describe("agenda PDF export", () => {
     const text = new TextDecoder("windows-1252").decode(bytes);
 
     expect(text.startsWith("%PDF-1.4")).toBe(true);
-    expect(text).toContain("Agenda de Recebimento");
-    expect(text).toContain("F08 - PORTO BELO");
-    expect(text).toContain("25/09/2026");
+    expect(text).toContain("/MediaBox [0 0 595 842]");
+    expect(text).toContain("Prado Supermercados");
+    expect(text).toContain("Agendas de recebimento");
+    expect(text).toContain(
+      "Filtros: Dia: 25/09/2026 | Filiais: F08 - PORTO BELO | Doca: Todas",
+    );
+    expect(text).toContain("Busca:");
+    expect(text).toContain("Total: 4");
+
+    for (const header of [
+      "Protocolo",
+      "Data agenda",
+      "Fornecedor",
+      "Itens",
+      "Vol.",
+      "Paletes",
+      "Carga batida",
+      "Tipo",
+      "N° NFe",
+      "Pedidos",
+      "Status",
+    ]) {
+      expect(text).toContain(header);
+    }
+
     expect(text).toContain("PAMPLONA ALIMENTOS S/A");
     expect(text).toContain("GRANJA PINHEIROS LTDA");
     expect(text).toContain("FRIGORIFICO GESSNER LTDA");
     expect(text).toContain("J.J COMERCIO DE CARVAO LTDA");
+    expect(text).toContain("93469");
+    expect(text).toContain("17126");
     expect(text).toContain("Recebido");
     expect(text).toContain("Não chegou");
     expect(text).toContain("Aguardando");
