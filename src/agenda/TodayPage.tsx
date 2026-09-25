@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { apiFetch } from "../lib/api";
 import { AgendaDetails } from "./AgendaDetails";
 import { AgendaList } from "./AgendaList";
+import { downloadAgendaPdf } from "./exportAgendaPdf";
 import type { StoreAgenda, StoreAppointment } from "./types";
 
 function countStatus(
@@ -64,6 +65,11 @@ export function TodayPage() {
     );
   }, [appointments, searchQuery]);
 
+  function exportPdf() {
+    if (!agenda?.agenda) return;
+    downloadAgendaPdf(agenda.agenda, appointments);
+  }
+
   function statusChanged(updated: StoreAppointment) {
     setAgenda((current) => {
       if (!current) return current;
@@ -84,12 +90,22 @@ export function TodayPage() {
 
   return (
     <section className="store-page">
-      <header className="page-heading">
+      <header className="page-heading page-heading-actions">
         <div>
           <span className="eyebrow">Recebimento</span>
           <h1>Agenda de hoje</h1>
           <p>Confira os horários e marque o resultado de cada recebimento.</p>
         </div>
+
+        {agenda?.agenda ? (
+          <button
+            className="primary-button agenda-export-button"
+            type="button"
+            onClick={exportPdf}
+          >
+            Exportar PDF
+          </button>
+        ) : null}
       </header>
 
       {loading ? <p className="muted-state">Carregando agenda...</p> : null}
