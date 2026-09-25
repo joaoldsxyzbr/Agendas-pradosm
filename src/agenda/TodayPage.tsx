@@ -150,22 +150,13 @@ export function TodayPage() {
         </div>
 
         {agenda?.agenda ? (
-          <div className="today-heading-actions">
-            <button
-              className="primary-button"
-              type="button"
-              onClick={openManualSupplier}
-            >
-              + Fornecedor sem agenda
-            </button>
-            <button
-              className="ghost-button agenda-export-button"
-              type="button"
-              onClick={exportPdf}
-            >
-              Exportar PDF
-            </button>
-          </div>
+          <button
+            className="ghost-button agenda-export-button"
+            type="button"
+            onClick={exportPdf}
+          >
+            Exportar PDF
+          </button>
         ) : null}
       </header>
 
@@ -189,17 +180,27 @@ export function TodayPage() {
             <div><strong>{recusado} {recusado === 1 ? "recusado" : "recusados"}</strong><span>Recusados</span></div>
           </section>
 
-          <label className="agenda-search">
-            <span className="sr-only">Pesquisar fornecedor ou protocolo</span>
-            <input
-              type="search"
-              value={searchQuery}
-              aria-label="Pesquisar fornecedor ou protocolo"
-              placeholder="Pesquisar fornecedor ou protocolo"
-              autoComplete="off"
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </label>
+          <div className="agenda-toolbar">
+            <label className="agenda-search">
+              <span className="sr-only">Pesquisar fornecedor ou protocolo</span>
+              <input
+                type="search"
+                value={searchQuery}
+                aria-label="Pesquisar fornecedor ou protocolo"
+                placeholder="Pesquisar fornecedor ou protocolo"
+                autoComplete="off"
+                onChange={(event) => setSearchQuery(event.target.value)}
+              />
+            </label>
+
+            <button
+              className="primary-button agenda-manual-button"
+              type="button"
+              onClick={openManualSupplier}
+            >
+              + Fornecedor sem agenda
+            </button>
+          </div>
 
           {filteredAppointments.length > 0 ? (
             <AgendaList

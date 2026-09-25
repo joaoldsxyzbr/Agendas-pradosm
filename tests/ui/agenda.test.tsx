@@ -91,9 +91,15 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 não chegou")).toBeInTheDocument();
     expect(screen.getByText("1 recusado")).toBeInTheDocument();
 
-    expect(
-      screen.getByRole("button", { name: "Exportar PDF" }),
-    ).toBeInTheDocument();
+    const exportButton = screen.getByRole("button", { name: "Exportar PDF" });
+    expect(exportButton).toBeInTheDocument();
+    expect(exportButton.closest("header")).not.toBeNull();
+
+    const manualButton = screen.getByRole("button", {
+      name: /Fornecedor sem agenda/,
+    });
+    expect(manualButton.closest(".agenda-toolbar")).not.toBeNull();
+    expect(manualButton.closest("header")).toBeNull();
 
     expect(
       screen.getByRole("columnheader", { name: "Horário" }),
