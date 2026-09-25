@@ -97,16 +97,21 @@ describe("agenda PDF export", () => {
       "Protocolo",
       "Data agenda",
       "Fornecedor",
+      "Tipo",
+      "N° NFe",
+      "Pedidos",
+    ]) {
+      expect(text).toContain(header);
+    }
+
+    for (const removedHeader of [
       "Itens",
       "Vol.",
       "Paletes",
       "Carga batida",
-      "Tipo",
-      "N° NFe",
-      "Pedidos",
       "Status",
     ]) {
-      expect(text).toContain(header);
+      expect(text).not.toContain(`(${removedHeader}) Tj`);
     }
 
     expect(text).toContain("PAMPLONA ALIMENTOS S/A");
@@ -119,6 +124,9 @@ describe("agenda PDF export", () => {
     expect(text).toContain("Não chegou");
     expect(text).toContain("Aguardando");
     expect(text).toContain("Recusado");
+    expect(text).toContain("0.09 0.48 0.31 rg");
+    expect(text).toContain("0.55 0.38 0.00 rg");
+    expect(text).toContain("0.71 0.14 0.09 rg");
   });
 
   it("gera um nome de arquivo identificável pela loja e data", () => {

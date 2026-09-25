@@ -6,14 +6,11 @@ type PdfRow = {
   protocol: string[];
   agendaDate: string[];
   supplier: string[];
-  items: string[];
-  volumes: string[];
-  pallets: string[];
-  cargaBatida: string[];
   type: string[];
   nfe: string[];
   orders: string[];
-  status: string[];
+  status: string;
+  statusColor: string;
   height: number;
 };
 
@@ -23,8 +20,8 @@ const MARGIN = 26;
 const TABLE_TOP = 774;
 const TABLE_HEADER_HEIGHT = 28;
 const TABLE_BOTTOM = 34;
-const ROW_FONT_SIZE = 5.6;
-const ROW_LINE_HEIGHT = 7;
+const ROW_FONT_SIZE = 6;
+const ROW_LINE_HEIGHT = 7.4;
 
 const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
   aguardando: "Aguardando",
@@ -33,21 +30,25 @@ const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
   recusado: "Recusado",
 };
 
+const STATUS_COLORS: Record<StoreAppointment["status"], string> = {
+  aguardando: "0.40 0.45 0.52",
+  recebido: "0.09 0.48 0.31",
+  nao_chegou: "0.55 0.38 0.00",
+  recusado: "0.71 0.14 0.09",
+};
+
 const COLUMNS = [
-  { key: "protocol", label: "Protocolo", width: 50 },
-  { key: "agendaDate", label: "Data agenda", width: 64 },
-  { key: "supplier", label: "Fornecedor", width: 96 },
-  { key: "items", label: "Itens", width: 26 },
-  { key: "volumes", label: "Vol.", width: 25 },
-  { key: "pallets", label: "Paletes", width: 30 },
-  { key: "cargaBatida", label: "Carga batida", width: 48 },
-  { key: "type", label: "Tipo", width: 40 },
-  { key: "nfe", label: "N° NFe", width: 47 },
-  { key: "orders", label: "Pedidos", width: 43 },
-  { key: "status", label: "Status", width: 74 },
+  { key: "protocol", label: "Protocolo", width: 58 },
+  { key: "agendaDate", label: "Data agenda", width: 78 },
+  { key: "supplier", label: "Fornecedor", width: 238 },
+  { key: "type", label: "Tipo", width: 55 },
+  { key: "nfe", label: "N° NFe", width: 64 },
+  { key: "orders", label: "Pedidos", width: 50 },
 ] as const;
 
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
+const SUPPLIER_STATUS_WIDTH = 68;
+const SUPPLIER_TEXT_WIDTH = COLUMNS[2].width - SUPPLIER_STATUS_WIDTH - 9;
 
 const CP1252_SPECIAL: Record<string, number> = {
   "€": 0x80,
@@ -96,11 +97,6 @@ export function agendaPdfFileName(agenda: AgendaMeta) {
   return `agenda-${safeFilePart(agenda.storeCode)}-${fileDate(agenda.date)}.pdf`;
 }
 
-function cellValue(value: number | string | null) {
-  if (value === null || value === "") return "-";
-  return String(value);
-}
-
 function textWidthApprox(text: string, fontSize: number) {
   return Array.from(text).reduce((width, char) => {
     if ("MW@#%".includes(char)) return width + fontSize * 0.72;
@@ -136,51 +132,35 @@ function layoutRow(
 ): PdfRow {
   const protocol = [appointment.protocol];
   const date = [agendaDate, `${appointment.startTime} às ${appointment.endTime}`];
-  const supplier = wrapText(appointment.supplier, COLUMNS[2].width - 6);
-  const items = [cellValue(appointment.items)];
-  const volumes = [cellValue(appointment.volumes)];
-  const pallets = [cellValue(appointment.pallets)];
-  const cargaBatida = wrapText(
-    appointment.cargaBatida ?? "-",
-    COLUMNS[6].width - 6,
-  );
-  const type = wrapText(appointment.type ?? "-", COLUMNS[7].width - 6);
+  const supplier = wrapText(appointment.supplier, SUPPLIER_TEXT_WIDTH);
+  const type = wrapText(appointment.type ?? "-", COLUMNS[3].width - 6);
   const nfe = wrapText(
     appointment.nfe.length ? appointment.nfe.join(", ") : "-",
-    COLUMNS[8].width - 6,
+    COLUMNS[4].width - 6,
   );
   const orders = wrapText(
     appointment.orders.length ? appointment.orders.join(", ") : "-",
-    COLUMNS[9].width - 6,
+    COLUMNS[5].width - 6,
   );
-  const status = wrapText(STATUS_LABELS[appointment.status], COLUMNS[10].width - 6);
 
   const lineCount = Math.max(
     protocol.length,
     date.length,
     supplier.length,
-    items.length,
-    volumes.length,
-    pallets.length,
-    cargaBatida.length,
     type.length,
     nfe.length,
     orders.length,
-    status.length,
   );
 
   return {
     protocol,
     agendaDate: date,
     supplier,
-    items,
-    volumes,
-    pallets,
-    cargaBatida,
     type,
     nfe,
     orders,
-    status,
+    status: STATUS_LABELS[appointment.status],
+    statusColor: STATUS_COLORS[appointment.status],
     height: Math.max(19, lineCount * ROW_LINE_HEIGHT + 6),
   };
 }
@@ -341,17 +321,28 @@ function tableRows(rows: PdfRow[]) {
 
     COLUMNS.forEach((column) => {
       const cellLines = row[column.key];
+
       cellLines.forEach((cellLine, index) => {
-        const isStatus = column.key === "status";
         content += textCommand(
           x + 3,
           rowTop - 9 - index * ROW_LINE_HEIGHT,
           cellLine,
           ROW_FONT_SIZE,
-          isStatus ? "F2" : "F1",
+          "F1",
           "0.12 0.12 0.14",
         );
       });
+
+      if (column.key === "supplier") {
+        content += textCommand(
+          x + column.width - SUPPLIER_STATUS_WIDTH + 2,
+          rowTop - 9,
+          row.status,
+          5.8,
+          "F2",
+          row.statusColor,
+        );
+      }
 
       content += line(
         x,
@@ -445,7 +436,7 @@ export function buildAgendaPdf(
   pages.forEach((rows, pageIndex) => {
     const pageObjectId = 5 + pageIndex * 2;
     const contentObjectId = pageObjectId + 1;
-    const content = pageContent(
+    const page = pageContent(
       agenda,
       rows,
       sorted.length,
@@ -459,7 +450,7 @@ export function buildAgendaPdf(
       `/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> ` +
       `/Contents ${contentObjectId} 0 R >>`;
     objects[contentObjectId] =
-      `<< /Length ${content.length} >>\nstream\n${content}endstream`;
+      `<< /Length ${page.length} >>\nstream\n${page}endstream`;
   });
 
   objects[2] =
