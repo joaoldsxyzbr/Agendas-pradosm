@@ -1,4 +1,4 @@
-import { StatusControl, STATUS_LABELS } from "./StatusControl";
+import { StatusActions, StatusBadge } from "./StatusControl";
 import type { StoreAppointment } from "./types";
 
 export function AgendaList({
@@ -18,21 +18,25 @@ export function AgendaList({
       a.protocol.localeCompare(b.protocol),
   );
 
-  function statusCell(appointment: StoreAppointment) {
-    if (editable && onChanged) {
-      return (
-        <StatusControl
-          appointmentId={appointment.id}
-          status={appointment.status}
-          onChanged={onChanged}
-        />
-      );
-    }
-
+  function actions(appointment: StoreAppointment) {
     return (
-      <span className={`store-status status-${appointment.status}`}>
-        {STATUS_LABELS[appointment.status]}
-      </span>
+      <div className="agenda-row-actions">
+        {editable && onChanged ? (
+          <StatusActions
+            appointmentId={appointment.id}
+            status={appointment.status}
+            onChanged={onChanged}
+          />
+        ) : null}
+
+        <button
+          className="ghost-button agenda-detail-button"
+          type="button"
+          onClick={() => onOpen(appointment.id)}
+        >
+          Ver detalhes
+        </button>
+      </div>
     );
   }
 
@@ -48,7 +52,7 @@ export function AgendaList({
                 <th>Protocolo</th>
                 <th>Tipo</th>
                 <th>Status</th>
-                <th><span className="sr-only">Ações</span></th>
+                <th>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -58,16 +62,8 @@ export function AgendaList({
                   <td>{appointment.supplier}</td>
                   <td>{appointment.protocol}</td>
                   <td>{appointment.type ?? "-"}</td>
-                  <td>{statusCell(appointment)}</td>
-                  <td className="table-action">
-                    <button
-                      className="ghost-button"
-                      type="button"
-                      onClick={() => onOpen(appointment.id)}
-                    >
-                      Ver detalhes
-                    </button>
-                  </td>
+                  <td><StatusBadge status={appointment.status} /></td>
+                  <td className="table-action">{actions(appointment)}</td>
                 </tr>
               ))}
               {sorted.length === 0 ? (
@@ -101,15 +97,8 @@ export function AgendaList({
               <span>{appointment.type ?? "Tipo não informado"}</span>
             </div>
 
-            {statusCell(appointment)}
-
-            <button
-              className="ghost-button agenda-detail-button"
-              type="button"
-              onClick={() => onOpen(appointment.id)}
-            >
-              Ver detalhes
-            </button>
+            <StatusBadge status={appointment.status} />
+            {actions(appointment)}
           </article>
         ))}
       </div>
