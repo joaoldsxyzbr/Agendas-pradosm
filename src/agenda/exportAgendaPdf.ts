@@ -47,8 +47,6 @@ const COLUMNS = [
 ] as const;
 
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
-const SUPPLIER_STATUS_WIDTH = 68;
-const SUPPLIER_TEXT_WIDTH = COLUMNS[2].width - SUPPLIER_STATUS_WIDTH - 9;
 
 const CP1252_SPECIAL: Record<string, number> = {
   "€": 0x80,
@@ -132,7 +130,7 @@ function layoutRow(
 ): PdfRow {
   const protocol = [appointment.protocol];
   const date = [agendaDate, `${appointment.startTime} às ${appointment.endTime}`];
-  const supplier = wrapText(appointment.supplier, SUPPLIER_TEXT_WIDTH);
+  const supplier = wrapText(appointment.supplier, COLUMNS[2].width - 6);
   const type = wrapText(appointment.type ?? "-", COLUMNS[3].width - 6);
   const nfe = wrapText(
     appointment.nfe.length ? appointment.nfe.join(", ") : "-",
@@ -146,7 +144,7 @@ function layoutRow(
   const lineCount = Math.max(
     protocol.length,
     date.length,
-    supplier.length,
+    supplier.length + 1,
     type.length,
     nfe.length,
     orders.length,
@@ -335,8 +333,8 @@ function tableRows(rows: PdfRow[]) {
 
       if (column.key === "supplier") {
         content += textCommand(
-          x + column.width - SUPPLIER_STATUS_WIDTH + 2,
-          rowTop - 9,
+          x + 3,
+          rowTop - 9 - row.supplier.length * ROW_LINE_HEIGHT,
           row.status,
           5.8,
           "F2",
