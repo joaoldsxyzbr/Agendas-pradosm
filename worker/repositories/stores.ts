@@ -3,16 +3,19 @@ export type StoreRecord = {
   codigo: string;
   nome: string;
   ativo: number;
+  excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
 
 const STORE_COLUMNS =
-  "id, codigo, nome, ativo, criado_em, atualizado_em";
+  "id, codigo, nome, ativo, excluido_em, criado_em, atualizado_em";
 
 export async function listStores(db: D1Database): Promise<StoreRecord[]> {
   const result = await db
-    .prepare(`SELECT ${STORE_COLUMNS} FROM lojas ORDER BY codigo ASC`)
+    .prepare(
+      `SELECT ${STORE_COLUMNS} FROM lojas WHERE excluido_em IS NULL ORDER BY codigo ASC`,
+    )
     .all<StoreRecord>();
   return result.results;
 }
@@ -22,7 +25,9 @@ export async function findStoreById(
   id: string,
 ): Promise<StoreRecord | null> {
   return db
-    .prepare(`SELECT ${STORE_COLUMNS} FROM lojas WHERE id = ? LIMIT 1`)
+    .prepare(
+      `SELECT ${STORE_COLUMNS} FROM lojas WHERE id = ? AND excluido_em IS NULL LIMIT 1`,
+    )
     .bind(id)
     .first<StoreRecord>();
 }
@@ -63,4 +68,34 @@ export async function updateStore(
     .run();
 
   return (await findStoreById(db, current.id))!;
+}
+
+
+export async function hasStoreUsers(
+  db: D1Database,
+  storeId: string,
+): Promise<boolean> {
+  const result = await db
+    .prepare(
+      "SELECT 1 AS presente FROM usuarios WHERE loja_id = ? AND perfil = 'loja' AND excluido_em IS NULL LIMIT 1",
+    )
+    .bind(storeId)
+    .first<{ presente: number }>();
+
+  return result !== null;
+}
+
+export async function softDeleteStore(
+  db: D1Database,
+  id: string,
+): Promise<boolean> {
+  const now = new Date().toISOString();
+  const result = await db
+    .prepare(
+      "UPDATE lojas SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
+    )
+    .bind(now, now, id)
+    .run();
+
+  return result.meta.changes > 0;
 }
