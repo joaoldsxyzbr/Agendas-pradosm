@@ -84,30 +84,54 @@ function canonicalType(value: string): AgendaDocumentType | null {
 }
 
 function resolveStructuredType(record: StructuredRecord) {
-  const typeText = record.typeParts.join(" ");
-  const directType = canonicalType(typeText);
+  let typeText = record.typeParts.join(" ").trim();
+  let nfeParts = [...record.nfeParts];
+  let orderParts = [...record.orderParts];
 
+  const directType = canonicalType(typeText);
   if (directType) {
-    return { type: directType, nfeParts: record.nfeParts };
+    return { type: directType, nfeParts, orderParts };
   }
 
-  if (normalizeKey(typeText) === "nota" && record.nfeParts.length > 0) {
-    const [firstNfePart, ...remainingNfeParts] = record.nfeParts;
+  if (normalizeKey(typeText) === "nota" && nfeParts.length > 0) {
+    const [firstNfePart, ...remainingNfeParts] = nfeParts;
     const fiscalMatch = firstNfePart.match(/^fiscal\b\s*(.*)$/i);
 
     if (fiscalMatch) {
-      const recoveredFirstNfe = fiscalMatch[1].trim();
-      return {
-        type: "Nota fiscal" as const,
-        nfeParts: [
-          ...(recoveredFirstNfe ? [recoveredFirstNfe] : []),
-          ...remainingNfeParts,
-        ],
-      };
+      typeText = `Nota fiscal${fiscalMatch[1] ? ` ${fiscalMatch[1]}` : ""}`;
+      nfeParts = remainingNfeParts;
     }
   }
 
-  return { type: null, nfeParts: record.nfeParts };
+  const noteFiscalMatch = typeText.match(/^Nota\s+fiscal\b\s*(.*)$/i);
+  if (!noteFiscalMatch) {
+    return { type: null, nfeParts, orderParts };
+  }
+
+  const overflowNumbers = noteFiscalMatch[1].match(/\d+/g) ?? [];
+  const explicitNfe = parseNumberList(nfeParts);
+  const explicitOrders = parseNumberList(orderParts);
+
+  if (overflowNumbers.length > 0) {
+    if (
+      explicitNfe.length === 0 &&
+      explicitOrders.length === 0 &&
+      overflowNumbers.length > 1 &&
+      overflowNumbers.length % 2 === 0
+    ) {
+      const half = overflowNumbers.length / 2;
+      nfeParts = overflowNumbers.slice(0, half);
+      orderParts = overflowNumbers.slice(half);
+    } else {
+      nfeParts = [...overflowNumbers, ...nfeParts];
+    }
+  }
+
+  return {
+    type: "Nota fiscal" as const,
+    nfeParts,
+    orderParts,
+  };
 }
 
 function parseCount(value: string | undefined) {
@@ -190,7 +214,7 @@ function finalizeStructuredRecord(
   const date = dateText.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] ?? null;
   const timeRange = parseTimeRange(dateText);
   const supplier = record.supplierParts.join(" ").replace(/\s+/g, " ").trim();
-  const { type, nfeParts } = resolveStructuredType(record);
+  const { type, nfeParts, orderParts } = resolveStructuredType(record);
   const items = parseCount(record.itemsRaw);
   const volumes = parseCount(record.volumesRaw);
   const pallets = parseCount(record.palletsRaw);
@@ -224,7 +248,7 @@ function finalizeStructuredRecord(
     cargaBatida: !cargaText || cargaText === "-" ? null : cargaText,
     type,
     nfe: parseNumberList(nfeParts),
-    orders: parseNumberList(record.orderParts),
+    orders: parseNumberList(orderParts),
     status: "aguardando",
   };
 }
