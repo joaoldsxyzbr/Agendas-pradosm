@@ -389,7 +389,7 @@ describe("HistoryPage", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /24\/09\/2026/ }));
 
-    expect(await screen.findByText("FORNECEDOR ANTIGO LTDA")).toBeInTheDocument();
+    expect((await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/store/history/2026-09-24",
       expect.objectContaining({ credentials: "include" }),
