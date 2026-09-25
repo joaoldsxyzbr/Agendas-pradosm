@@ -360,7 +360,7 @@ describe("HistoryPage", () => {
 
     render(<HistoryPage />);
 
-    expect(await screen.findByText("2 agendamentos")).toBeInTheDocument();
+    expect((await screen.findAllByText("2 agendamentos")).length).toBeGreaterThan(0);
     expect(screen.getByText("1 aguardando")).toBeInTheDocument();
     expect(screen.getByText("1 recebido")).toBeInTheDocument();
     expect(

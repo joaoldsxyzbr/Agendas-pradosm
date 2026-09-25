@@ -88,10 +88,12 @@ function StoreLayout() {
             <span>{user.nome}</span>
             <small>Loja</small>
           </div>
-          <ThemeToggle />
-          <button className="ghost-button" type="button" onClick={handleLogout}>
-            Sair
-          </button>
+          <div className="sidebar-footer-actions">
+            <ThemeToggle />
+            <button className="ghost-button" type="button" onClick={handleLogout}>
+              Sair
+            </button>
+          </div>
         </div>
       </aside>
 
