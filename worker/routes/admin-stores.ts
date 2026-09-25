@@ -1,10 +1,13 @@
 import { Hono } from "hono";
+import { z } from "zod";
 import { CreateStoreInput, UpdateStoreInput } from "../../shared/api";
 import type { AppEnv } from "../env";
 import {
   createStore,
   findStoreById,
+  hasStoreUsers,
   listStores,
+  softDeleteStore,
   type StoreRecord,
   updateStore,
 } from "../repositories/stores";
@@ -77,4 +80,44 @@ adminStoreRoutes.patch("/", async (c) => {
     }
     throw error;
   }
+});
+
+
+adminStoreRoutes.delete("/:id", async (c) => {
+  const parsedId = z.string().uuid().safeParse(c.req.param("id"));
+  if (!parsedId.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Loja inválida." },
+      400,
+    );
+  }
+
+  const current = await findStoreById(c.env.DB, parsedId.data);
+  if (!current) {
+    return c.json(
+      { error: "LOJA_NAO_ENCONTRADA", message: "Loja não encontrada." },
+      404,
+    );
+  }
+
+  if (await hasStoreUsers(c.env.DB, current.id)) {
+    return c.json(
+      {
+        error: "LOJA_POSSUI_USUARIOS",
+        message:
+          "Mova ou exclua os usuários vinculados antes de excluir a loja.",
+      },
+      409,
+    );
+  }
+
+  const deleted = await softDeleteStore(c.env.DB, current.id);
+  if (!deleted) {
+    return c.json(
+      { error: "LOJA_NAO_ENCONTRADA", message: "Loja não encontrada." },
+      404,
+    );
+  }
+
+  return c.body(null, 204);
 });
