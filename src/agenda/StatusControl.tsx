@@ -19,7 +19,15 @@ export const STATUS_LABELS: Record<AppointmentStatus, string> = {
   recusado: "Recusado",
 };
 
-export function StatusControl({
+export function StatusBadge({ status }: { status: AppointmentStatus }) {
+  return (
+    <span className={`store-status status-${status}`}>
+      {STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+export function StatusActions({
   appointmentId,
   status,
   onChanged,
@@ -59,11 +67,7 @@ export function StatusControl({
   }
 
   return (
-    <div className="status-control">
-      <span className={`store-status status-${status}`}>
-        {STATUS_LABELS[status]}
-      </span>
-
+    <div className="status-actions-wrap">
       <div className="status-actions" aria-label="Alterar status">
         {STATUS_OPTIONS.map((option) => (
           <button
@@ -92,6 +96,27 @@ export function StatusControl({
           {error}
         </p>
       ) : null}
+    </div>
+  );
+}
+
+export function StatusControl({
+  appointmentId,
+  status,
+  onChanged,
+}: {
+  appointmentId: string;
+  status: AppointmentStatus;
+  onChanged: (appointment: StoreAppointment) => void;
+}) {
+  return (
+    <div className="status-control">
+      <StatusBadge status={status} />
+      <StatusActions
+        appointmentId={appointmentId}
+        status={status}
+        onChanged={onChanged}
+      />
     </div>
   );
 }
