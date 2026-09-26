@@ -17,8 +17,8 @@
     "test:deploy-flow": "node scripts/check-deploy-flow.mjs"
   },
   "dependencies": {
+    "@llamaindex/liteparse-wasm": "^2.14.7",
     "hono": "^4.9.8",
-    "pdfjs-dist": "6.3.289",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.1",
