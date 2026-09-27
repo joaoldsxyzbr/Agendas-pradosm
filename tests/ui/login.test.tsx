@@ -258,6 +258,12 @@ describe("login e rotas protegidas", () => {
     const topbar = screen.getByText("Agenda Prado").closest("header");
     expect(topbar).toHaveTextContent("Agenda Prado");
     expect(topbar).toHaveTextContent("Conferente");
+    expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
+      "Agenda Prado",
+    );
+    expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
+      "Loja 03",
+    );
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 

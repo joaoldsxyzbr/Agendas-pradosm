@@ -1,4 +1,21 @@
 @media (min-width: 981px) {
+  .store-topbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .store-topbar-left {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 2.25rem;
+  }
+
+  .store-topbar-user {
+    min-width: 0;
+    justify-items: start;
+    text-align: left;
+  }
+
   .store-content {
     width: 100%;
     margin: 0;

@@ -55,23 +55,25 @@ function StoreLayout() {
   return (
     <div className="store-shell">
       <header className="store-topbar">
-        <div className="store-topbar-brand">
-          <img
-            className="brand-icon small"
-            src="/agenda-prado-icon.svg"
-            alt=""
-            aria-hidden="true"
-          />
-          <div>
-            <strong>Agenda Prado</strong>
-            <span>Recebimento</span>
+        <div className="store-topbar-left">
+          <div className="store-topbar-brand">
+            <img
+              className="brand-icon small"
+              src="/agenda-prado-icon.svg"
+              alt=""
+              aria-hidden="true"
+            />
+            <div>
+              <strong>Agenda Prado</strong>
+              <span>Recebimento</span>
+            </div>
           </div>
-        </div>
 
-        <div className="store-topbar-user">
-          <span>Conferente</span>
-          <strong>{user.nome}</strong>
-          <small>{storeLabel}</small>
+          <div className="store-topbar-user">
+            <span>Conferente</span>
+            <strong>{user.nome}</strong>
+            <small>{storeLabel}</small>
+          </div>
         </div>
 
         <div className="store-topbar-actions">
