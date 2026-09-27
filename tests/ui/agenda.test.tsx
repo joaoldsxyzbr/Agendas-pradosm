@@ -92,11 +92,11 @@ describe("TodayPage", () => {
     expect(screen.getByText("1 aguardando")).toBeInTheDocument();
     expect(screen.getByText("1 recebido")).toBeInTheDocument();
     expect(screen.getByText("1 não recebido")).toBeInTheDocument();
-    expect(screen.getByText("1 recusado")).toBeInTheDocument();
+    expect(screen.getByText("0 com trocas")).toBeInTheDocument();
 
     const exportButton = screen.getByRole("button", { name: "Exportar PDF" });
     expect(exportButton).toBeInTheDocument();
-    expect(exportButton.closest("header")).not.toBeNull();
+    expect(exportButton.closest(".agenda-date-bar")).not.toBeNull();
 
     const manualButton = screen.getByRole("button", {
       name: /Fornecedor sem agenda/,
@@ -364,6 +364,9 @@ describe("TodayPage", () => {
     expect(
       screen.queryByRole("button", { name: "Ver detalhes" }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("columnheader", { name: "Trocas" }).length,
+    ).toBeGreaterThan(0);
   });
 });
 

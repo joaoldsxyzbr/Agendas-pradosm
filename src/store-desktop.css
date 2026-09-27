@@ -81,3 +81,33 @@
   color: var(--color-text-soft);
   font-size: 0.82rem;
 }
+
+
+@media (min-width: 981px) {
+  .store-page {
+    gap: 1rem;
+  }
+
+  .agenda-search {
+    width: auto;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .agenda-date-context {
+    gap: 0.55rem;
+  }
+
+  .agenda-date-bar {
+    padding-block: 0.8rem;
+  }
+}
+
+.exchange-readonly {
+  display: inline-flex;
+  min-width: 36px;
+  justify-content: center;
+  color: var(--color-text-soft);
+  font-size: 0.8rem;
+  font-weight: 750;
+}

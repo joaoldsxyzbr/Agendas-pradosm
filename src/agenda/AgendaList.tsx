@@ -77,7 +77,7 @@ export function AgendaList({
                 <th>Tipo</th>
                 <th>Status</th>
                 <th>Ações</th>
-                {editable && onChanged ? <th>Trocas</th> : null}
+                <th>Trocas</th>
               </tr>
             </thead>
             <tbody>
@@ -89,14 +89,20 @@ export function AgendaList({
                   <td>{appointment.type ?? "-"}</td>
                   <td><StatusBadge status={appointment.status} /></td>
                   <td className="table-action">{actions(appointment)}</td>
-                  {editable && onChanged ? (
-                    <td className="exchange-cell">{exchangeControl(appointment)}</td>
-                  ) : null}
+                  <td className="exchange-cell">
+                    {editable && onChanged ? (
+                      exchangeControl(appointment)
+                    ) : (
+                      <span className="exchange-readonly">
+                        {appointment.hasExchanges ? "Sim" : "Não"}
+                      </span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={editable && onChanged ? 7 : 6} className="empty-cell">
+                  <td colSpan={7} className="empty-cell">
                     Nenhum agendamento nesta agenda.
                   </td>
                 </tr>
@@ -127,12 +133,14 @@ export function AgendaList({
 
             <StatusBadge status={appointment.status} />
             {actions(appointment)}
-            {editable && onChanged ? (
-              <div className="agenda-card-exchanges">
-                <span>Trocas</span>
-                {exchangeControl(appointment)}
-              </div>
-            ) : null}
+            <div className="agenda-card-exchanges">
+              <span>Trocas</span>
+              {editable && onChanged ? (
+                exchangeControl(appointment)
+              ) : (
+                <strong>{appointment.hasExchanges ? "Sim" : "Não"}</strong>
+              )}
+            </div>
           </article>
         ))}
       </div>

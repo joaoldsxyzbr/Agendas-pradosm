@@ -236,26 +236,16 @@ export function TodayPage() {
   const aguardando = countStatus(appointments, "aguardando");
   const recebido = countStatus(appointments, "recebido");
   const naoChegou = countStatus(appointments, "nao_chegou");
-  const recusado = countStatus(appointments, "recusado");
+  const trocas = appointments.filter((appointment) => appointment.hasExchanges).length;
 
   return (
     <section className="store-page">
-      <header className="page-heading page-heading-actions">
+      <header className="page-heading">
         <div>
           <span className="eyebrow">Recebimento</span>
           <h1>Agenda de recebimento</h1>
-          <p>Selecione o dia e consulte a agenda da unidade.</p>
+          <p>Selecione o dia e acompanhe os recebimentos da unidade.</p>
         </div>
-
-        {agenda?.agenda ? (
-          <button
-            className="ghost-button agenda-export-button"
-            type="button"
-            onClick={exportPdf}
-          >
-            Exportar PDF
-          </button>
-        ) : null}
       </header>
 
       <section className="agenda-date-bar" aria-label="Selecionar dia da agenda">
@@ -321,6 +311,16 @@ export function TodayPage() {
               Voltar para hoje
             </button>
           ) : null}
+
+          {agenda?.agenda ? (
+            <button
+              className="ghost-button agenda-export-button"
+              type="button"
+              onClick={exportPdf}
+            >
+              Exportar PDF
+            </button>
+          ) : null}
         </div>
       </section>
 
@@ -358,8 +358,8 @@ export function TodayPage() {
             <div><strong>{total} {total === 1 ? "agendamento" : "agendamentos"}</strong><span>Total</span></div>
             <div><strong>{aguardando} aguardando</strong><span>Pendentes</span></div>
             <div><strong>{recebido} {recebido === 1 ? "recebido" : "recebidos"}</strong><span>Recebidos</span></div>
-            <div><strong>{naoChegou} {naoChegou === 1 ? "não recebido" : "não recebidos"}</strong><span>Ausentes</span></div>
-            <div><strong>{recusado} {recusado === 1 ? "recusado" : "recusados"}</strong><span>Recusados</span></div>
+            <div><strong>{naoChegou} {naoChegou === 1 ? "não recebido" : "não recebidos"}</strong><span>Não recebidos</span></div>
+            <div><strong>{trocas} {trocas === 1 ? "com troca" : "com trocas"}</strong><span>Trocas</span></div>
           </section>
 
           <div className="agenda-toolbar">
