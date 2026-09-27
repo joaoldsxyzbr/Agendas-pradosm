@@ -31,6 +31,9 @@ export type StoreAgenda = {
     storeName: string;
     date: string;
     originalFileName?: string;
+    dayStatus: "aberto" | "concluido";
+    completedAt: string | null;
+    completedBy: { id: string; name: string | null } | null;
   } | null;
   appointments: StoreAppointment[];
 };

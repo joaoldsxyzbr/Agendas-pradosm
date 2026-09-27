@@ -9,12 +9,17 @@ export type StoreLookup = {
   nome: string;
 };
 
+export type AgendaDayStatus = "aberto" | "concluido";
+
 export type AgendaRecord = {
   id: string;
   loja_id: string;
   data_agenda: string;
   arquivo_original: string;
   criado_por: string;
+  status_dia: AgendaDayStatus;
+  concluido_em: string | null;
+  concluido_por: string | null;
   criado_em: string;
   atualizado_em: string;
 };
@@ -22,6 +27,7 @@ export type AgendaRecord = {
 export type AgendaWithStoreRecord = AgendaRecord & {
   store_code: string;
   store_name: string;
+  concluido_por_nome: string | null;
 };
 
 export type AgendaSummaryRecord = AgendaWithStoreRecord & {
@@ -66,7 +72,7 @@ export type StatusHistoryRecord = {
 };
 
 const AGENDA_COLUMNS =
-  "id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em";
+  "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, criado_em, atualizado_em";
 
 const APPOINTMENT_COLUMNS =
   "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, origem, ativo, criado_em, atualizado_em";
@@ -102,9 +108,13 @@ export async function findAgendaById(
 ): Promise<AgendaWithStoreRecord | null> {
   return db
     .prepare(
-      `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")}, l.codigo AS store_code, l.nome AS store_name
+      `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
+              l.codigo AS store_code,
+              l.nome AS store_name,
+              concluidor.nome AS concluido_por_nome
        FROM agendas a
        JOIN lojas l ON l.id = a.loja_id
+       LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
        WHERE a.id = ?
        LIMIT 1`,
     )
@@ -135,6 +145,7 @@ export async function listAdminAgendas(
        a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
        l.codigo AS store_code,
        l.nome AS store_name,
+       concluidor.nome AS concluido_por_nome,
        SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
        SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
        SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
@@ -143,9 +154,10 @@ export async function listAdminAgendas(
        SUM(CASE WHEN ag.ativo = 1 AND ag.origem = 'manual' THEN 1 ELSE 0 END) AS sem_agenda
      FROM agendas a
      JOIN lojas l ON l.id = a.loja_id
+     LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
      LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
      ${where}
-     GROUP BY a.id, l.codigo, l.nome
+     GROUP BY a.id, l.codigo, l.nome, concluidor.nome
      ORDER BY a.data_agenda DESC, l.codigo ASC`,
   );
 
@@ -383,9 +395,13 @@ export async function findStoreAgendaByDate(
 ): Promise<AgendaWithStoreRecord | null> {
   return db
     .prepare(
-      `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")}, l.codigo AS store_code, l.nome AS store_name
+      `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
+              l.codigo AS store_code,
+              l.nome AS store_name,
+              concluidor.nome AS concluido_por_nome
        FROM agendas a
        JOIN lojas l ON l.id = a.loja_id
+       LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
        WHERE a.loja_id = ? AND a.data_agenda = ?
        LIMIT 1`,
     )
@@ -403,6 +419,7 @@ export async function listStoreAgendas(
          a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
          l.codigo AS store_code,
          l.nome AS store_name,
+         concluidor.nome AS concluido_por_nome,
          SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
          SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
          SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
@@ -411,9 +428,10 @@ export async function listStoreAgendas(
          SUM(CASE WHEN ag.ativo = 1 AND ag.origem = 'manual' THEN 1 ELSE 0 END) AS sem_agenda
        FROM agendas a
        JOIN lojas l ON l.id = a.loja_id
+       LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
        LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
        WHERE a.loja_id = ?
-       GROUP BY a.id, l.codigo, l.nome
+       GROUP BY a.id, l.codigo, l.nome, concluidor.nome
        ORDER BY a.data_agenda DESC`,
     )
     .bind(storeId)
@@ -504,4 +522,87 @@ export async function changeAppointmentStatus(
   }
 
   return updated;
+}
+
+
+export type AgendaEventRecord = {
+  id: string;
+  agenda_id: string;
+  usuario_id: string;
+  usuario_nome: string;
+  acao: "concluido" | "reaberto" | "ajuste_admin";
+  detalhes: string | null;
+  alterado_em: string;
+};
+
+export async function changeAgendaDayStatus(
+  db: D1Database,
+  agenda: AgendaRecord,
+  userId: string,
+  status: AgendaDayStatus,
+): Promise<AgendaWithStoreRecord> {
+  if (agenda.status_dia === status) {
+    const current = await findAgendaById(db, agenda.id);
+    if (!current) throw new Error("Agenda não pôde ser relida.");
+    return current;
+  }
+
+  const now = new Date().toISOString();
+  const action = status === "concluido" ? "concluido" : "reaberto";
+
+  await db.batch([
+    db
+      .prepare(
+        status === "concluido"
+          ? "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ?, atualizado_em = ? WHERE id = ?"
+          : "UPDATE agendas SET status_dia = 'aberto', concluido_em = NULL, concluido_por = NULL, atualizado_em = ? WHERE id = ?",
+      )
+      .bind(
+        ...(status === "concluido"
+          ? [now, userId, now, agenda.id]
+          : [now, agenda.id]),
+      ),
+    db
+      .prepare(
+        "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, ?, NULL, ?)",
+      )
+      .bind(crypto.randomUUID(), agenda.id, userId, action, now),
+  ]);
+
+  const updated = await findAgendaById(db, agenda.id);
+  if (!updated) throw new Error("Agenda atualizada não pôde ser relida.");
+  return updated;
+}
+
+export async function recordAgendaAdminAdjustment(
+  db: D1Database,
+  agendaId: string,
+  userId: string,
+  details: string,
+): Promise<void> {
+  await db
+    .prepare(
+      "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, 'ajuste_admin', ?, ?)",
+    )
+    .bind(crypto.randomUUID(), agendaId, userId, details, new Date().toISOString())
+    .run();
+}
+
+export async function listAgendaHistory(
+  db: D1Database,
+  agendaId: string,
+): Promise<AgendaEventRecord[]> {
+  const result = await db
+    .prepare(
+      `SELECT h.id, h.agenda_id, h.usuario_id, u.nome AS usuario_nome,
+              h.acao, h.detalhes, h.alterado_em
+       FROM historico_agenda h
+       JOIN usuarios u ON u.id = h.usuario_id
+       WHERE h.agenda_id = ?
+       ORDER BY h.alterado_em ASC, h.id ASC`,
+    )
+    .bind(agendaId)
+    .all<AgendaEventRecord>();
+
+  return result.results;
 }

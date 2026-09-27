@@ -5,6 +5,7 @@ import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
 import { businessDate, businessTime } from "../lib/time";
 import {
+  changeAgendaDayStatus,
   changeAppointmentExchanges,
   changeAppointmentStatus,
   createManualAppointment,
@@ -100,6 +101,11 @@ function agendaJson(agenda: AgendaWithStoreRecord) {
     storeName: agenda.store_name,
     date: agenda.data_agenda,
     originalFileName: agenda.arquivo_original,
+    dayStatus: agenda.status_dia,
+    completedAt: agenda.concluido_em,
+    completedBy: agenda.concluido_por
+      ? { id: agenda.concluido_por, name: agenda.concluido_por_nome }
+      : null,
     createdAt: agenda.criado_em,
     updatedAt: agenda.atualizado_em,
   };
@@ -192,6 +198,46 @@ storeAgendaRoutes.post("/today/manual", async (c) => {
       {
         error: "FORNECEDOR_MANUAL_NAO_CRIADO",
         message: "Não foi possível adicionar o fornecedor.",
+      },
+      500,
+    );
+  }
+});
+
+storeAgendaRoutes.post("/agenda/:date/complete", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+
+  const parsed = DateParam.safeParse(c.req.param("date"));
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Data inválida." },
+      400,
+    );
+  }
+
+  const agenda = await findStoreAgendaByDate(c.env.DB, user.lojaId, parsed.data);
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  try {
+    const updated = await changeAgendaDayStatus(
+      c.env.DB,
+      agenda,
+      user.id,
+      "concluido",
+    );
+    return c.json(agendaJson(updated));
+  } catch (error) {
+    console.error("Agenda completion failed", error);
+    return c.json(
+      {
+        error: "CONCLUSAO_DIA_FALHOU",
+        message: "Não foi possível concluir o dia.",
       },
       500,
     );

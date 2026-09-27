@@ -396,6 +396,45 @@ describe("store agenda workflow", () => {
     expect(detail.status).toBe(200);
   });
 
+  it("conferente conclui o próprio dia e registra o evento", async () => {
+    const userId = "user-complete-day";
+    const cookie = await seedStoreUser({
+      storeId: "store-complete-day",
+      storeCode: "F85",
+      userId,
+    });
+    await seedAgenda({
+      agendaId: "agenda-complete-day",
+      storeId: "store-complete-day",
+      creatorId: userId,
+      date: "2026-09-20",
+    });
+
+    const response = await request(
+      "/api/store/agenda/2026-09-20/complete",
+      cookie,
+      { method: "POST" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: "agenda-complete-day",
+      dayStatus: "concluido",
+      completedBy: { id: userId },
+    });
+
+    const history = await db
+      .prepare(
+        "SELECT usuario_id, acao FROM historico_agenda WHERE agenda_id = ?",
+      )
+      .bind("agenda-complete-day")
+      .all<{ usuario_id: string; acao: string }>();
+
+    expect(history.results).toEqual([
+      { usuario_id: userId, acao: "concluido" },
+    ]);
+  });
+
   it("marca e desmarca trocas sem alterar o status", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-exchanges-a",

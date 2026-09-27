@@ -3,12 +3,14 @@ import { z } from "zod";
 import { ImportAgendaInput } from "../../shared/agenda";
 import type { AppEnv } from "../env";
 import {
+  changeAgendaDayStatus,
   createAgendaImport,
   findAgendaById,
   findAgendaByStoreDate,
   findAppointmentById,
   findStoreByCode,
   listAdminAgendas,
+  listAgendaHistory,
   listAppointmentHistory,
   listAppointmentsByAgenda,
   replaceAgendaImport,
@@ -61,6 +63,11 @@ function agendaJson(agenda: AgendaWithStoreRecord) {
     storeName: agenda.store_name,
     date: agenda.data_agenda,
     originalFileName: agenda.arquivo_original,
+    dayStatus: agenda.status_dia,
+    completedAt: agenda.concluido_em,
+    completedBy: agenda.concluido_por
+      ? { id: agenda.concluido_por, name: agenda.concluido_por_nome }
+      : null,
     createdBy: agenda.criado_por,
     createdAt: agenda.criado_em,
     updatedAt: agenda.atualizado_em,
@@ -232,6 +239,71 @@ adminAgendaRoutes.get("/", async (c) => {
 
   const agendas = await listAdminAgendas(c.env.DB, parsed.data);
   return c.json(agendas.map(agendaSummaryJson));
+});
+
+const AgendaDayStatusInput = z.object({
+  status: z.enum(["aberto", "concluido"]),
+});
+
+adminAgendaRoutes.patch("/:id/status", async (c) => {
+  const parsed = AgendaDayStatusInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Status do dia inválido." },
+      400,
+    );
+  }
+
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  const user = c.get("authUser");
+  try {
+    const updated = await changeAgendaDayStatus(
+      c.env.DB,
+      agenda,
+      user.id,
+      parsed.data.status,
+    );
+    return c.json(agendaJson(updated));
+  } catch (error) {
+    console.error("Agenda day status change failed", error);
+    return c.json(
+      {
+        error: "ALTERACAO_DIA_FALHOU",
+        message: "Não foi possível alterar o status do dia.",
+      },
+      500,
+    );
+  }
+});
+
+adminAgendaRoutes.get("/:id/history", async (c) => {
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  const history = await listAgendaHistory(c.env.DB, agenda.id);
+  return c.json(
+    history.map((item) => ({
+      id: item.id,
+      action: item.acao,
+      details: item.detalhes,
+      changedAt: item.alterado_em,
+      user: { id: item.usuario_id, name: item.usuario_nome },
+    })),
+  );
 });
 
 adminAgendaRoutes.get("/:id", async (c) => {

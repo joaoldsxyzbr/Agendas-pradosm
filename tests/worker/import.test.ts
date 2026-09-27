@@ -435,6 +435,47 @@ describe("admin agenda import", () => {
     );
   });
 
+  it("admin reabre um dia concluído e registra o evento", async () => {
+    const adminId = "admin-reopen-day";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-reopen-day", "F70");
+
+    const imported = await importAgenda(cookie, payload("F70"));
+    const importedBody = (await imported.json()) as { agenda: { id: string } };
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    const response = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "aberto" } },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: importedBody.agenda.id,
+      dayStatus: "aberto",
+      completedAt: null,
+      completedBy: null,
+    });
+
+    const history = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/history`,
+      cookie,
+    );
+    expect(await history.json()).toEqual([
+      expect.objectContaining({
+        action: "reaberto",
+        user: expect.objectContaining({ id: adminId }),
+      }),
+    ]);
+  });
+
   it("admin consulta agenda histórica e histórico de status", async () => {
     const adminId = "admin-import-history";
     const cookie = await seedAdmin(adminId);
