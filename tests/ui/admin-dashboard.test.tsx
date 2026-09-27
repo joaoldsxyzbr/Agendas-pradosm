@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("dashboard operacional", () => {
-  it("resume o dia e destaca lojas que precisam de atenção", async () => {
+  it("resume o dia e mostra a situação por loja", async () => {
     const stores = [
       { id: "s1", codigo: "F03", nome: "Canasvieiras", ativo: true },
       { id: "s2", codigo: "F04", nome: "Centro", ativo: true },
@@ -93,50 +93,13 @@ describe("dashboard operacional", () => {
       within(summary).getByTestId("dashboard-kpi-lojas-sem-agenda"),
     ).toHaveTextContent("1");
 
-    const attention = screen.getByRole("region", { name: "Atenção agora" });
-    expect(within(attention).getByText("F03")).toBeInTheDocument();
-    expect(within(attention).getByText("2 aguardando")).toBeInTheDocument();
-    expect(within(attention).getByText("F05")).toBeInTheDocument();
-    expect(within(attention).getByText("Agenda não importada")).toBeInTheDocument();
-    expect(within(attention).queryByText("F04")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("region", { name: "Atenção agora" }),
+    ).not.toBeInTheDocument();
 
     const f03Card = screen.getByTestId("dashboard-store-F03");
     expect(within(f03Card).getByText("2 / 5")).toBeInTheDocument();
     expect(within(f03Card).getByText("1 sem agenda")).toBeInTheDocument();
   });
 
-  it("mostra estado tranquilo quando nenhuma loja precisa de atenção", async () => {
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockImplementationOnce(() =>
-          json([{ id: "s1", codigo: "F03", nome: "Canasvieiras", ativo: true }]),
-        )
-        .mockImplementationOnce(() =>
-          json([
-            {
-              id: "a1",
-              storeCode: "F03",
-              storeName: "Canasvieiras",
-              date: "2026-09-25",
-              total: 2,
-              aguardando: 0,
-              recebido: 2,
-              naoChegou: 0,
-              recusado: 0,
-              semAgenda: 0,
-            },
-          ]),
-        ),
-    );
-
-    render(
-      <MemoryRouter>
-        <DashboardPage />
-      </MemoryRouter>,
-    );
-
-    expect(await screen.findByText("Nenhuma pendência agora.")).toBeInTheDocument();
-  });
 });

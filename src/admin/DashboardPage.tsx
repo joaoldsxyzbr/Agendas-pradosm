@@ -71,18 +71,6 @@ export function DashboardPage() {
     (store) => !agendaByStore.has(store.codigo),
   ).length;
 
-  const attention = stores
-    .map((store) => ({
-      store,
-      agenda: agendaByStore.get(store.codigo),
-    }))
-    .filter((item) => !item.agenda || item.agenda.aguardando > 0)
-    .sort((a, b) => {
-      if (!a.agenda && b.agenda) return -1;
-      if (a.agenda && !b.agenda) return 1;
-      return (b.agenda?.aguardando ?? 0) - (a.agenda?.aguardando ?? 0);
-    });
-
   return (
     <section className="admin-page">
       <header className="page-heading page-heading-actions">
@@ -133,40 +121,6 @@ export function DashboardPage() {
               <span>Lojas sem agenda</span>
               <strong>{storesWithoutAgenda}</strong>
             </article>
-          </section>
-
-          <section className="dashboard-attention" aria-label="Atenção agora">
-            <div className="dashboard-section-heading">
-              <div>
-                <span className="eyebrow">Prioridade</span>
-                <h2>Atenção agora</h2>
-              </div>
-              <span>{attention.length} {attention.length === 1 ? "loja" : "lojas"}</span>
-            </div>
-
-            {attention.length > 0 ? (
-              <div className="dashboard-attention-list">
-                {attention.map(({ store, agenda }) => (
-                  <article className="dashboard-attention-item" key={store.id}>
-                    <div>
-                      <strong>{store.codigo}</strong>
-                      <span>{store.nome}</span>
-                    </div>
-                    {agenda ? (
-                      <span className="status-pill warning">
-                        {agenda.aguardando} aguardando
-                      </span>
-                    ) : (
-                      <span className="status-pill warning">
-                        Agenda não importada
-                      </span>
-                    )}
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="dashboard-all-clear">Nenhuma pendência agora.</p>
-            )}
           </section>
 
           <section className="dashboard-section" aria-label="Situação por loja">
