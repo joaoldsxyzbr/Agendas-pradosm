@@ -391,3 +391,65 @@
     font-weight: 800;
   }
 }
+
+
+@media (min-width: 981px) {
+  .agenda-command-bar .agenda-date-controls {
+    display: inline-flex;
+    align-items: stretch;
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: var(--color-surface);
+  }
+
+  .agenda-command-bar .agenda-date-step {
+    width: 38px;
+    min-height: 38px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--color-text-soft);
+    font-size: 1.15rem;
+  }
+
+  .agenda-command-bar .agenda-date-step:hover {
+    background: var(--color-surface-strong);
+    color: var(--color-text);
+  }
+
+  .agenda-command-bar .agenda-date-field {
+    min-width: 168px;
+    margin: 0;
+  }
+
+  .agenda-command-bar .agenda-date-field input {
+    width: 168px;
+    min-height: 38px;
+    margin: 0;
+    padding: 0.45rem 0.65rem;
+    border: 0;
+    border-right: 1px solid var(--color-border);
+    border-left: 1px solid var(--color-border);
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--color-text);
+    font-weight: 700;
+  }
+
+  .agenda-command-bar .agenda-date-field input:focus {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+    box-shadow: none;
+  }
+
+  .agenda-command-bar .agenda-date-field input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.72;
+  }
+}
