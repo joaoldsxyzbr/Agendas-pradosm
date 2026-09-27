@@ -75,7 +75,7 @@ describe("dashboard operacional", () => {
       screen.queryByRole("region", { name: "Atenção agora" }),
     ).not.toBeInTheDocument();
 
-    const f03Card = screen.getByTestId("dashboard-store-F03");
+    const f03Card = await screen.findByTestId("dashboard-store-F03");
     expect(within(f03Card).getByText("2 / 5")).toBeInTheDocument();
     expect(within(f03Card).getByText("1 sem agenda")).toBeInTheDocument();
 
