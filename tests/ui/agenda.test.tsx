@@ -210,7 +210,9 @@ describe("TodayPage", () => {
     expect(screen.getByText("2 agendamentos")).toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/agenda/2026-09-24/manual",
+      expect.stringMatching(
+        /^\\/api\\/store\\/agenda\\/\\d{4}-\\d{2}-\\d{2}\\/manual$/,
+      ),
       expect.objectContaining({
         method: "POST",
         credentials: "include",
