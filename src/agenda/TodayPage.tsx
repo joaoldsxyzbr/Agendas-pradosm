@@ -176,7 +176,7 @@ export function TodayPage() {
             <div><strong>{total} {total === 1 ? "agendamento" : "agendamentos"}</strong><span>Total</span></div>
             <div><strong>{aguardando} aguardando</strong><span>Pendentes</span></div>
             <div><strong>{recebido} {recebido === 1 ? "recebido" : "recebidos"}</strong><span>Recebidos</span></div>
-            <div><strong>{naoChegou} {naoChegou === 1 ? "não chegou" : "não chegaram"}</strong><span>Ausentes</span></div>
+            <div><strong>{naoChegou} {naoChegou === 1 ? "não recebido" : "não recebidos"}</strong><span>Ausentes</span></div>
             <div><strong>{recusado} {recusado === 1 ? "recusado" : "recusados"}</strong><span>Recusados</span></div>
           </section>
 

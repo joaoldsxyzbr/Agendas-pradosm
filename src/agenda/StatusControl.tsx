@@ -7,14 +7,14 @@ const STATUS_OPTIONS: Array<{
   label: string;
   symbol: string;
 }> = [
-  { value: "recebido", label: "Chegou", symbol: "✓" },
-  { value: "nao_chegou", label: "Não chegou", symbol: "✕" },
+  { value: "recebido", label: "Recebido", symbol: "✓" },
+  { value: "nao_chegou", label: "Não recebido", symbol: "✕" },
 ];
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
   aguardando: "Aguardando",
   recebido: "Recebido",
-  nao_chegou: "Não chegou",
+  nao_chegou: "Não recebido",
   recusado: "Recusado",
 };
 

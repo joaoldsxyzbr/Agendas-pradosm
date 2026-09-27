@@ -89,7 +89,7 @@ describe("TodayPage", () => {
     expect(await screen.findByText("4 agendamentos")).toBeInTheDocument();
     expect(screen.getByText("1 aguardando")).toBeInTheDocument();
     expect(screen.getByText("1 recebido")).toBeInTheDocument();
-    expect(screen.getByText("1 não chegou")).toBeInTheDocument();
+    expect(screen.getByText("1 não recebido")).toBeInTheDocument();
     expect(screen.getByText("1 recusado")).toBeInTheDocument();
 
     const exportButton = screen.getByRole("button", { name: "Exportar PDF" });
@@ -129,8 +129,8 @@ describe("TodayPage", () => {
     const firstRowCells = within(desktopRows[0]).getAllByRole("cell");
     expect(within(firstRowCells[4]).getByText("Aguardando")).toBeInTheDocument();
     expect(within(firstRowCells[4]).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Chegou" })).toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Não chegou" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Recebido" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Não recebido" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
     expect(within(firstRowCells[5]).queryByRole("button", { name: "Ver detalhes" })).not.toBeInTheDocument();
     expect(within(firstRowCells[6]).getByRole("checkbox", { name: "Trocas" })).not.toBeChecked();
@@ -261,11 +261,11 @@ describe("TodayPage", () => {
       within(card).queryByRole("button", { name: "Aguardando" }),
     ).not.toBeInTheDocument();
 
-    expect(within(card).getByRole("button", { name: "Chegou" })).toHaveTextContent("✓");
-    expect(within(card).getByRole("button", { name: "Não chegou" })).toHaveTextContent("✕");
+    expect(within(card).getByRole("button", { name: "Recebido" })).toHaveTextContent("✓");
+    expect(within(card).getByRole("button", { name: "Não recebido" })).toHaveTextContent("✕");
     expect(within(card).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Chegou" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
 
     resolveFirst(
@@ -279,8 +279,8 @@ describe("TodayPage", () => {
 
     expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Não chegou" }));
-    expect(await within(card).findByText("Não chegou", { selector: ".store-status" })).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: "Não recebido" }));
+    expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
 
     const calls = fetchMock.mock.calls
       .filter((call) => String(call[0]).includes("/status"));
@@ -337,7 +337,7 @@ describe("TodayPage", () => {
     render(<TodayPage />);
 
     const card = await screen.findByTestId("agenda-mobile-card");
-    fireEvent.click(within(card).getByRole("button", { name: "Não chegou" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Não recebido" }));
 
     expect(
       await within(card).findByText("O status não foi alterado."),
