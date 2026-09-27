@@ -168,6 +168,38 @@ describe("auth", () => {
     });
   });
 
+  it("retorna o nome e a loja do conferente na sessão", async () => {
+    await seedUser({
+      id: "store-session",
+      login: "store-session",
+      perfil: "loja",
+      lojaId: "store-session-id",
+    });
+
+    const response = await login("store-session");
+    const cookie = cookiePair(response);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: "store-session",
+      nome: "Usuário store-session",
+      lojaId: "store-session-id",
+      lojaCodigo: "F-store-session",
+      lojaNome: "Loja store-session",
+    });
+
+    const me = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: cookie },
+      }),
+    );
+
+    expect(await me.json()).toMatchObject({
+      lojaCodigo: "F-store-session",
+      lojaNome: "Loja store-session",
+    });
+  });
+
   it("aceita login sem diferenciar maiúsculas e minúsculas", async () => {
     await seedUser({
       id: "admin-case-insensitive",

@@ -24,9 +24,12 @@ export function AdminLayout() {
     <div className="app-frame">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="brand-mark small" aria-hidden="true">
-            AP
-          </div>
+          <img
+            className="brand-icon small"
+            src="/agenda-prado-icon.svg"
+            alt=""
+            aria-hidden="true"
+          />
           <div>
             <strong>Agenda Prado</strong>
             <span>Administração</span>

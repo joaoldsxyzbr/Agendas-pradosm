@@ -3,6 +3,7 @@ import { createMiddleware } from "hono/factory";
 import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
 import { verifySessionToken } from "../lib/session";
+import { findStoreById } from "../repositories/stores";
 import { findUserById } from "../repositories/users";
 
 const COOKIE_NAME = "agenda_session";
@@ -24,11 +25,17 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const user = await findUserById(c.env.DB, payload.userId);
   if (!user || user.ativo !== 1) return c.json(unauthorized(), 401);
 
+  const store = user.loja_id
+    ? await findStoreById(c.env.DB, user.loja_id)
+    : null;
+
   const authUser: AuthUser = {
     id: user.id,
     nome: user.nome,
     perfil: user.perfil,
     lojaId: user.loja_id,
+    lojaCodigo: store?.codigo ?? null,
+    lojaNome: store?.nome ?? null,
   };
 
   c.set("authUser", authUser);

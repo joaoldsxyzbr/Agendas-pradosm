@@ -1,0 +1,16 @@
+{
+  "name": "Agenda Prado",
+  "short_name": "Agenda Prado",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0d1624",
+  "theme_color": "#0d2235",
+  "icons": [
+    {
+      "src": "/agenda-prado-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

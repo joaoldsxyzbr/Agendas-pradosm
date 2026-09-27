@@ -134,9 +134,12 @@ export function LoginPage() {
     <main className="login-page">
       <section className="login-card" aria-labelledby="login-title">
         <div className="login-toolbar">
-          <div className="brand-mark" aria-hidden="true">
-            AP
-          </div>
+          <img
+            className="brand-icon"
+            src="/agenda-prado-icon.svg"
+            alt=""
+            aria-hidden="true"
+          />
           <ThemeToggle />
         </div>
 

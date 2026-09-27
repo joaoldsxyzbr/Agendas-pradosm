@@ -7,6 +7,7 @@ import type { AppEnv } from "../env";
 import { verifyPassword } from "../lib/password";
 import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
+import { findStoreById } from "../repositories/stores";
 import {
   createInactiveFirstAdmin,
   findUserByLogin,
@@ -109,6 +110,10 @@ authRoutes.post("/login", async (c) => {
   const passwordOk = await verifyPassword(parsed.data.senha, user.senha_hash);
   if (!passwordOk) return invalidCredentials(c);
 
+  const store = user.loja_id
+    ? await findStoreById(c.env.DB, user.loja_id)
+    : null;
+
   const token = await createSessionToken(user.id, c.env.SESSION_SECRET);
   setCookie(c, COOKIE_NAME, token, {
     httpOnly: true,
@@ -123,6 +128,8 @@ authRoutes.post("/login", async (c) => {
     nome: user.nome,
     perfil: user.perfil,
     lojaId: user.loja_id,
+    lojaCodigo: store?.codigo ?? null,
+    lojaNome: store?.nome ?? null,
   });
 });
 

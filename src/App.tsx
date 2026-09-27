@@ -50,6 +50,9 @@ function StoreLayout() {
 
   if (!user) return null;
 
+  const storeLabel =
+    user.lojaNome ?? (user.lojaCodigo ? `Loja ${user.lojaCodigo}` : "Loja");
+
   async function handleLogout() {
     await logout();
     navigate("/login", { replace: true });
@@ -59,12 +62,16 @@ function StoreLayout() {
     <div className="app-frame">
       <aside className="sidebar">
         <div className="sidebar-brand">
-          <div className="brand-mark small" aria-hidden="true">
-            AP
-          </div>
-          <div>
+          <img
+            className="brand-icon small"
+            src="/agenda-prado-icon.svg"
+            alt=""
+            aria-hidden="true"
+          />
+          <div className="sidebar-brand-copy">
             <strong>Agenda Prado</strong>
-            <span>Recebimento</span>
+            <span className="conferente-name">{user.nome}</span>
+            <small className="conferente-store">{storeLabel}</small>
           </div>
         </div>
 
@@ -84,10 +91,6 @@ function StoreLayout() {
         </nav>
 
         <div className="sidebar-footer">
-          <div className="user-summary">
-            <span>{user.nome}</span>
-            <small>Loja</small>
-          </div>
           <div className="sidebar-footer-actions">
             <ThemeToggle />
             <button className="ghost-button" type="button" onClick={handleLogout}>
@@ -101,7 +104,7 @@ function StoreLayout() {
         <header className="mobile-header">
           <div>
             <strong>Agenda Prado</strong>
-            <span>{user.nome}</span>
+            <span>{user.nome} · {storeLabel}</span>
           </div>
           <div className="mobile-header-actions">
             <ThemeToggle />

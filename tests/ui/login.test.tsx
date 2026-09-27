@@ -11,6 +11,8 @@ type User = {
   nome: string;
   perfil: "admin" | "loja";
   lojaId: string | null;
+  lojaCodigo?: string | null;
+  lojaNome?: string | null;
 };
 
 function jsonResponse(status: number, body?: unknown) {
@@ -236,6 +238,8 @@ describe("login e rotas protegidas", () => {
       nome: "Conferente",
       perfil: "loja",
       lojaId: "store-1",
+      lojaCodigo: "03",
+      lojaNome: "Loja 03",
     });
     renderApp();
 
@@ -250,6 +254,7 @@ describe("login e rotas protegidas", () => {
     expect(
       await screen.findByRole("heading", { name: "Agenda de hoje" }),
     ).toBeInTheDocument();
+    expect(screen.getByText("Loja 03")).toBeInTheDocument();
   });
 
   it("redireciona perfil incorreto sem renderizar conteúdo protegido", async () => {
