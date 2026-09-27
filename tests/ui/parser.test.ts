@@ -128,9 +128,9 @@ describe("parseAgendaText", () => {
     const base = [
       "Prado Supermercados Filtros: Dia: 28/09/2026 | Filiais: CD | Docas: DOCA 01 - CD |",
       "Agendas de recebimento Total: 1",
-      "Protocolo\\tData agenda\\tFornecedor\\tItens\\tVol.\\tPaletes\\tCarga batida\\tTipo\\tN° NFe\\tPedidos",
-      "12458985\\t28/09/2026 07:00 às 08:00\\tNINFA INDUSTRIA DE ALIMENTOS LTDA\\t10\\t115\\t2\\t-\\tNota fiscal\\t73699\\t47142",
-    ].join("\\n");
+      "Protocolo\tData agenda\tFornecedor\tItens\tVol.\tPaletes\tCarga batida\tTipo\tN° NFe\tPedidos",
+      "12458985\t28/09/2026 07:00 às 08:00\tNINFA INDUSTRIA DE ALIMENTOS LTDA\t10\t115\t2\t-\tNota fiscal\t73699\t47142",
+    ].join("\n");
 
     const dock01 = parseAgendaText(base);
     const dock02 = parseAgendaText(base.replace("DOCA 01 - CD", "DOCA 02 - CD"));
