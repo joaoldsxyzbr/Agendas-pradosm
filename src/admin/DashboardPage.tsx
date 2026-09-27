@@ -1,9 +1,40 @@
 import { useEffect, useState } from "react";
+import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
 import { ImportAgendaPage } from "./ImportAgendaPage";
 import type { AdminAgendaSummary, AdminStore } from "./types";
 
+function businessDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function addDays(value: string, amount: number) {
+  const date = new Date(`${value}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return day && month && year ? `${day}/${month}/${year}` : value;
+}
+
 export function DashboardPage() {
+  const [today] = useState(businessDate);
+  const [selectedDate, setSelectedDate] = useState(today);
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
   const [loading, setLoading] = useState(true);
@@ -13,9 +44,14 @@ export function DashboardPage() {
   useEffect(() => {
     let active = true;
 
+    setLoading(true);
+    setError(null);
+
     void Promise.all([
       apiFetch<AdminStore[]>("/api/admin/stores"),
-      apiFetch<AdminAgendaSummary[]>("/api/admin/agendas/today"),
+      apiFetch<AdminAgendaSummary[]>(
+        `/api/admin/agendas?date=${selectedDate}`,
+      ),
     ])
       .then(([storeData, agendaData]) => {
         if (!active) return;
@@ -32,7 +68,7 @@ export function DashboardPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [selectedDate]);
 
   const agendaByStore = new Map(
     agendas.map((agenda) => [agenda.storeCode, agenda]),
@@ -41,7 +77,7 @@ export function DashboardPage() {
   async function refreshAgendas() {
     try {
       const agendaData = await apiFetch<AdminAgendaSummary[]>(
-        "/api/admin/agendas/today",
+        `/api/admin/agendas?date=${selectedDate}`,
       );
       setAgendas(agendaData);
     } catch {
@@ -57,13 +93,45 @@ export function DashboardPage() {
           <h1>Dashboard</h1>
           <p>Acompanhe as agendas por loja e importe novas agendas.</p>
         </div>
-        <button
-          className="primary-button dashboard-import-action"
-          type="button"
-          onClick={() => setImportOpen(true)}
-        >
-          Importar agenda
-        </button>
+        <div className="dashboard-header-actions">
+          <div className="dashboard-date-controls">
+            <button
+              className="ghost-button dashboard-date-step"
+              type="button"
+              aria-label="Dia anterior"
+              onClick={() =>
+                setSelectedDate((current) => addDays(current, -1))
+              }
+            >
+              ‹
+            </button>
+
+            <AgendaDatePicker
+              value={selectedDate}
+              today={today}
+              onChange={setSelectedDate}
+            />
+
+            <button
+              className="ghost-button dashboard-date-step"
+              type="button"
+              aria-label="Dia seguinte"
+              onClick={() =>
+                setSelectedDate((current) => addDays(current, 1))
+              }
+            >
+              ›
+            </button>
+          </div>
+
+          <button
+            className="primary-button dashboard-import-action"
+            type="button"
+            onClick={() => setImportOpen(true)}
+          >
+            Importar agenda
+          </button>
+        </div>
       </header>
 
       {loading ? <p className="muted-state">Carregando agendas...</p> : null}
@@ -104,7 +172,7 @@ export function DashboardPage() {
                         <span>{store.nome}</span>
                       </div>
                       <span className={agenda ? "status-pill neutral" : "status-pill warning"}>
-                        {agenda ? "Agenda importada" : "Sem agenda hoje"}
+                        {agenda ? "Agenda importada" : "Sem agenda"}
                       </span>
                     </div>
 
@@ -125,7 +193,8 @@ export function DashboardPage() {
                       </>
                     ) : (
                       <p className="empty-copy">
-                        Nenhuma agenda foi importada para esta loja hoje.
+                        Nenhuma agenda foi importada para esta loja em{" "}
+                        {formatDate(selectedDate)}.
                       </p>
                     )}
                   </article>

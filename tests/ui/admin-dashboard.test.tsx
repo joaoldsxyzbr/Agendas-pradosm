@@ -53,13 +53,14 @@ describe("dashboard operacional", () => {
       },
     ];
 
-    vi.stubGlobal(
-      "fetch",
-      vi
-        .fn()
-        .mockImplementationOnce(() => json(stores))
-        .mockImplementationOnce(() => json(agendas)),
-    );
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/admin/stores") return json(stores);
+      if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
+      return new Response(null, { status: 404 });
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
 
     render(
       <MemoryRouter>
@@ -78,6 +79,21 @@ describe("dashboard operacional", () => {
     const f03Card = await screen.findByTestId("dashboard-store-F03");
     expect(within(f03Card).getByText("2 / 5")).toBeInTheDocument();
     expect(within(f03Card).getByText("1 sem agenda")).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("button", { name: "Data da agenda" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Data da agenda" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "25 de setembro de 2026" }),
+    );
+
+    await screen.findByTestId("dashboard-store-F03");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/agendas?date=2026-09-25",
+      expect.objectContaining({ credentials: "include" }),
+    );
 
     fireEvent.click(screen.getByRole("button", { name: "Importar agenda" }));
     expect(screen.getByRole("dialog", { name: "Importar agenda" })).toBeInTheDocument();
