@@ -88,11 +88,12 @@ describe("TodayPage", () => {
 
     render(<TodayPage />);
 
-    expect(await screen.findByText("4 total")).toBeInTheDocument();
-    expect(screen.getByText("1 aguardando")).toBeInTheDocument();
-    expect(screen.getByText("1 recebidos")).toBeInTheDocument();
-    expect(screen.getByText("1 não recebidos")).toBeInTheDocument();
-    expect(screen.getByText("0 trocas")).toBeInTheDocument();
+    const summary = await screen.findByLabelText("Resumo da agenda");
+    expect(summary).toHaveTextContent("4 total");
+    expect(summary).toHaveTextContent("1 aguardando");
+    expect(summary).toHaveTextContent("1 recebidos");
+    expect(summary).toHaveTextContent("1 não recebidos");
+    expect(summary).toHaveTextContent("0 trocas");
 
     expect(
       screen.getByRole("heading", { name: "Agenda de recebimento" }),
@@ -211,7 +212,7 @@ describe("TodayPage", () => {
 
     expect((await screen.findAllByText("FORNECEDOR EXTRA LTDA")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sem agenda").length).toBeGreaterThan(0);
-    expect(screen.getByText("2 total")).toBeInTheDocument();
+    expect(screen.getByLabelText("Resumo da agenda")).toHaveTextContent("2 total");
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/store/agenda/"),
