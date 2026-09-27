@@ -176,7 +176,9 @@ export function ImportAgendaPage({
               <span>Loja</span>
               <strong>
                 {preview.storeCode
-                  ? `${preview.storeCode} - ${preview.storeName ?? "Nome não identificado"}`
+                  ? preview.storeName && preview.storeName !== preview.storeCode
+                    ? `${preview.storeCode} - ${preview.storeName}`
+                    : preview.storeCode
                   : "Não identificada"}
               </strong>
             </div>

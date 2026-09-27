@@ -124,6 +124,25 @@ describe("parseAgendaText", () => {
     ]);
   });
 
+  it("identifica CD DOCA 01 e CD DOCA 02 como unidades distintas", () => {
+    const base = [
+      "Prado Supermercados Filtros: Dia: 28/09/2026 | Filiais: CD | Docas: DOCA 01 - CD |",
+      "Agendas de recebimento Total: 1",
+      "Protocolo\\tData agenda\\tFornecedor\\tItens\\tVol.\\tPaletes\\tCarga batida\\tTipo\\tN° NFe\\tPedidos",
+      "12458985\\t28/09/2026 07:00 às 08:00\\tNINFA INDUSTRIA DE ALIMENTOS LTDA\\t10\\t115\\t2\\t-\\tNota fiscal\\t73699\\t47142",
+    ].join("\\n");
+
+    const dock01 = parseAgendaText(base);
+    const dock02 = parseAgendaText(base.replace("DOCA 01 - CD", "DOCA 02 - CD"));
+
+    expect(dock01.storeCode).toBe("CD DOCA 01");
+    expect(dock01.storeName).toBe("CD DOCA 01");
+    expect(dock01.blockingErrors).toEqual([]);
+    expect(dock02.storeCode).toBe("CD DOCA 02");
+    expect(dock02.storeName).toBe("CD DOCA 02");
+    expect(dock02.blockingErrors).toEqual([]);
+  });
+
   it("bloqueia texto sem filial", () => {
     const result = parseAgendaText(
       fixture.replace("Filiais: F99 - LOJA TESTE", "Filiais: -"),

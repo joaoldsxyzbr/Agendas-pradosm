@@ -211,7 +211,8 @@ const AgendaFilters = z.object({
   storeCode: z
     .string()
     .trim()
-    .regex(/^F\d{1,4}$/i)
+    .min(1)
+    .max(20)
     .transform((value) => value.toUpperCase())
     .optional(),
 });

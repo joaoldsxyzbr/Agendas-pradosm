@@ -100,7 +100,7 @@ export function StoreEditDialog({
               <input
                 value={codigo}
                 onChange={(event) => setCodigo(event.target.value)}
-                pattern="[Ff][0-9]{1,4}"
+                maxLength={20}
                 required
               />
             </label>

@@ -180,14 +180,20 @@ function metadataFromText(text: string) {
   const storeMatch = normalized.match(
     /Filiais:\s*(F\d+)\s*-\s*([^|\n]+?)(?=\s*\||$)/i,
   );
+  const cdDockMatch = normalized.match(
+    /Filiais:\s*CD\s*\|[^\n]*?Docas?:\s*(DOCA\s*\d+)\s*-\s*CD\b/i,
+  );
+  const cdDockCode = cdDockMatch
+    ? `CD ${cdDockMatch[1].toUpperCase().replace(/\s+/g, " ")}`
+    : null;
   const dateMatch = normalized.match(/Dia:\s*(\d{2}\/\d{2}\/\d{4})/i);
   const totalMatch = normalized.match(
     /Agendas\s+de\s+recebimento\s+Total:\s*(\d+)/i,
   );
 
   return {
-    storeCode: storeMatch?.[1]?.toUpperCase() ?? null,
-    storeName: storeMatch?.[2]?.trim() ?? null,
+    storeCode: storeMatch?.[1]?.toUpperCase() ?? cdDockCode,
+    storeName: storeMatch?.[2]?.trim() ?? cdDockCode,
     date: dateMatch ? parseIsoDate(dateMatch[1]) : null,
     declaredTotal: totalMatch ? Number(totalMatch[1]) : null,
   };

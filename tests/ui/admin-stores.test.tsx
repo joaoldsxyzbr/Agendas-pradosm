@@ -42,6 +42,16 @@ function renderDialog(overrides: Partial<{
 }
 
 describe("gerenciamento de lojas", () => {
+  it("permite cadastrar código composto como CD DOCA 01", async () => {
+    mockedApiFetch.mockResolvedValueOnce([]);
+    render(<StoresPage />);
+
+    const input = await screen.findByLabelText("Código");
+    expect(input).toHaveAttribute("placeholder", "F03 ou CD DOCA 01");
+    expect(input).not.toHaveAttribute("pattern");
+    expect(input).toHaveAttribute("maxlength", "20");
+  });
+
   it("salva código, nome e status no mesmo modal", async () => {
     mockedApiFetch.mockResolvedValueOnce({
       ...store,

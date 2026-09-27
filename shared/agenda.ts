@@ -101,7 +101,8 @@ export const ImportAgendaInput = z
     storeCode: z
       .string()
       .trim()
-      .regex(/^F\d{1,4}$/i)
+      .min(1)
+      .max(20)
       .transform((value) => value.toUpperCase()),
     date: IsoDate,
     originalFileName: z

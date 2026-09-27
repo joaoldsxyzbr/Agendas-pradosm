@@ -143,6 +143,18 @@ describe("admin agenda import", () => {
     ]);
   });
 
+  it("aceita código composto de unidade como CD DOCA 01", async () => {
+    const cookie = await seedAdmin("admin-import-cd-doca");
+    await seedStore("store-import-cd-doca", "CD DOCA 01");
+
+    const response = await importAgenda(cookie, payload("CD DOCA 01"));
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      agenda: { storeCode: "CD DOCA 01", date: "2026-09-24" },
+    });
+  });
+
   it("não duplica a mesma loja e data sem replace explícito", async () => {
     const cookie = await seedAdmin("admin-import-duplicate");
     await seedStore("store-import-duplicate", "F64");

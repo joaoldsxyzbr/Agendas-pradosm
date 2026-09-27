@@ -76,8 +76,8 @@ export function StoresPage() {
           <input
             value={codigo}
             onChange={(event) => setCodigo(event.target.value)}
-            placeholder="F03"
-            pattern="[Ff][0-9]{1,4}"
+            placeholder="F03 ou CD DOCA 01"
+            maxLength={20}
             required
           />
         </label>
