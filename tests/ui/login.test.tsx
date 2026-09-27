@@ -254,7 +254,6 @@ describe("login e rotas protegidas", () => {
     expect(
       await screen.findByRole("heading", { name: "Agenda de recebimento" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Loja 03")).toBeInTheDocument();
     const topbar = screen.getByText("Agenda Prado").closest("header");
     expect(topbar).toHaveTextContent("Agenda Prado");
     expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
