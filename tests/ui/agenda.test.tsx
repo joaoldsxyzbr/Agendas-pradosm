@@ -8,7 +8,6 @@ import {
   within,
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { HistoryPage } from "../../src/agenda/HistoryPage";
 import { TodayPage } from "../../src/agenda/TodayPage";
 
 type AppointmentStatus =
@@ -362,124 +361,88 @@ describe("TodayPage", () => {
   });
 });
 
-describe("HistoryPage", () => {
-  function historyFetchMock() {
-    return vi.fn(async (input: RequestInfo | URL) => {
+describe("seletor de data da agenda", () => {
+  it("abre um dia anterior na mesma tela e deixa a agenda somente para consulta", async () => {
+    const historical = {
+      agenda: {
+        id: "agenda-history-old",
+        storeCode: "F03",
+        storeName: "LOJA 03",
+        date: "2026-09-24",
+        originalFileName: "agenda.pdf",
+      },
+      appointments: [
+        {
+          ...appointment("appt-history-old", "08:00", "nao_chegou"),
+          supplier: "FORNECEDOR ANTIGO LTDA",
+          protocol: "12000001",
+        },
+      ],
+    };
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
-
-      if (url === "/api/store/history") {
-        return (await json(200, [
-          {
-            id: "a3",
-            storeCode: "F03",
-            storeName: "LOJA 03",
-            date: "2026-09-25",
-            total: 2,
-            aguardando: 1,
-            recebido: 1,
-            naoChegou: 0,
-            recusado: 0,
-          },
-          {
-            id: "a2",
-            storeCode: "F03",
-            storeName: "LOJA 03",
-            date: "2026-09-24",
-            total: 1,
-            aguardando: 0,
-            recebido: 0,
-            naoChegou: 1,
-            recusado: 0,
-          },
-        ]));
+      if (url === "/api/store/today") {
+        return json(200, agendaBody([appointment("appt-today", "08:00")]));
       }
-
-      if (url === "/api/store/history/2026-09-25") {
-        return (await json(200, {
-          agenda: {
-            id: "agenda-history-latest",
-            storeCode: "F03",
-            storeName: "LOJA 03",
-            date: "2026-09-25",
-            originalFileName: "agenda.pdf",
-          },
-          appointments: [
-            {
-              ...appointment("appt-history-alpha", "08:00", "recebido"),
-              supplier: "PAMPLONA ALIMENTOS S/A",
-              protocol: "12458375",
-            },
-            {
-              ...appointment("appt-history-beta", "09:00", "aguardando"),
-              supplier: "GRANJA PINHEIROS LTDA",
-              protocol: "12473312",
-            },
-          ],
-        }));
-      }
-
       if (url === "/api/store/history/2026-09-24") {
-        return (await json(200, {
-          agenda: {
-            id: "agenda-history-old",
-            storeCode: "F03",
-            storeName: "LOJA 03",
-            date: "2026-09-24",
-            originalFileName: "agenda.pdf",
-          },
-          appointments: [
-            {
-              ...appointment("appt-history-old", "08:00", "nao_chegou"),
-              supplier: "FORNECEDOR ANTIGO LTDA",
-              protocol: "12000001",
-            },
-          ],
-        }));
+        return json(200, historical);
       }
-
       return new Response(null, { status: 404 });
     });
-  }
 
-  it("abre automaticamente o dia mais recente com resumo e busca", async () => {
-    const fetchMock = historyFetchMock();
     vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
 
-    render(<HistoryPage />);
-
-    expect((await screen.findAllByText("2 agendamentos")).length).toBeGreaterThan(0);
-    expect(screen.getByText("1 aguardando")).toBeInTheDocument();
-    expect(screen.getByText("1 recebido")).toBeInTheDocument();
-    expect(
-      screen.getByRole("searchbox", { name: "Pesquisar fornecedor ou protocolo" }),
-    ).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/history/2026-09-25",
-      expect.objectContaining({ credentials: "include" }),
-    );
-  });
-
-  it("filtra o dia selecionado e permite trocar de data", async () => {
-    const fetchMock = historyFetchMock();
-    vi.stubGlobal("fetch", fetchMock);
-
-    render(<HistoryPage />);
-
-    const search = await screen.findByRole("searchbox", {
+    await screen.findByRole("searchbox", {
       name: "Pesquisar fornecedor ou protocolo",
     });
 
-    fireEvent.change(search, { target: { value: "pamplona" } });
-    expect(screen.getAllByTestId("agenda-desktop-row")).toHaveLength(1);
-    expect(screen.getAllByText("PAMPLONA ALIMENTOS S/A").length).toBeGreaterThan(0);
-    expect(screen.queryByText("GRANJA PINHEIROS LTDA")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Data da agenda"), {
+      target: { value: "2026-09-24" },
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: /24\/09\/2026/ }));
-
-    expect((await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length).toBeGreaterThan(0);
+    expect(
+      (await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText("Somente leitura")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Recebido" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Ver detalhes" }),
+    ).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/store/history/2026-09-24",
       expect.objectContaining({ credentials: "include" }),
     );
+  });
+
+  it("mostra estado vazio ao selecionar um dia sem agenda", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/store/today") {
+        return json(200, agendaBody([appointment("appt-today", "08:00")]));
+      }
+      return json(404, {
+        error: "AGENDA_NAO_ENCONTRADA",
+        message: "Agenda não encontrada.",
+      });
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    fireEvent.change(screen.getByLabelText("Data da agenda"), {
+      target: { value: "2026-09-23" },
+    });
+
+    expect(
+      await screen.findByText("Nenhuma agenda em 23/09/2026."),
+    ).toBeInTheDocument();
   });
 });

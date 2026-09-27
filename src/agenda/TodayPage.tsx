@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { apiFetch } from "../lib/api";
+import { ApiError, apiFetch } from "../lib/api";
+import { AgendaDetails } from "./AgendaDetails";
 import { AgendaList } from "./AgendaList";
 import { downloadAgendaPdf } from "./exportAgendaPdf";
 import type { StoreAgenda, StoreAppointment } from "./types";
@@ -19,25 +20,76 @@ function normalizeSearch(value: string) {
     .trim();
 }
 
+function businessDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return day && month && year ? `${day}/${month}/${year}` : value;
+}
+
+function addDays(value: string, amount: number) {
+  const date = new Date(`${value}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + amount);
+  return date.toISOString().slice(0, 10);
+}
+
 export function TodayPage() {
+  const [today] = useState(businessDate);
+  const [selectedDate, setSelectedDate] = useState(today);
   const [agenda, setAgenda] = useState<StoreAgenda | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
   const [manualSupplier, setManualSupplier] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
 
+  const isToday = selectedDate === today;
+
   useEffect(() => {
     let active = true;
 
-    void apiFetch<StoreAgenda>("/api/store/today")
+    setAgenda(null);
+    setLoading(true);
+    setError(null);
+    setSearchQuery("");
+    setSelectedAppointmentId(null);
+    setManualOpen(false);
+
+    const endpoint = isToday
+      ? "/api/store/today"
+      : `/api/store/history/${selectedDate}`;
+
+    void apiFetch<StoreAgenda>(endpoint)
       .then((data) => {
         if (active) setAgenda(data);
       })
-      .catch(() => {
-        if (active) setError("Não foi possível carregar a agenda de hoje.");
+      .catch((loadError) => {
+        if (!active) return;
+
+        if (loadError instanceof ApiError && loadError.status === 404) {
+          setAgenda({ agenda: null, appointments: [] });
+          return;
+        }
+
+        setError("Não foi possível carregar a agenda selecionada.");
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -46,7 +98,7 @@ export function TodayPage() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [isToday, selectedDate]);
 
   const appointments = useMemo(
     () =>
@@ -84,7 +136,7 @@ export function TodayPage() {
     event.preventDefault();
 
     const supplier = manualSupplier.trim();
-    if (!supplier || manualSaving) return;
+    if (!supplier || manualSaving || !isToday) return;
 
     setManualSaving(true);
     setManualError(null);
@@ -106,10 +158,10 @@ export function TodayPage() {
       setSearchQuery("");
       setManualOpen(false);
       setManualSupplier("");
-    } catch (error) {
+    } catch (saveError) {
       setManualError(
-        error instanceof Error
-          ? error.message
+        saveError instanceof Error
+          ? saveError.message
           : "Não foi possível adicionar o fornecedor.",
       );
     } finally {
@@ -123,6 +175,8 @@ export function TodayPage() {
   }
 
   function statusChanged(updated: StoreAppointment) {
+    if (!isToday) return;
+
     setAgenda((current) => {
       if (!current) return current;
       return {
@@ -145,8 +199,8 @@ export function TodayPage() {
       <header className="page-heading page-heading-actions">
         <div>
           <span className="eyebrow">Recebimento</span>
-          <h1>Agenda de hoje</h1>
-          <p>Confira os horários e marque o resultado de cada recebimento.</p>
+          <h1>Agenda de recebimento</h1>
+          <p>Selecione o dia e consulte a agenda da unidade.</p>
         </div>
 
         {agenda?.agenda ? (
@@ -160,13 +214,70 @@ export function TodayPage() {
         ) : null}
       </header>
 
+      <section className="agenda-date-bar" aria-label="Selecionar dia da agenda">
+        <div className="agenda-date-controls">
+          <button
+            className="ghost-button agenda-date-step"
+            type="button"
+            aria-label="Dia anterior"
+            onClick={() => setSelectedDate((current) => addDays(current, -1))}
+          >
+            ‹
+          </button>
+
+          <label className="agenda-date-field">
+            <span>Data da agenda</span>
+            <input
+              type="date"
+              aria-label="Data da agenda"
+              value={selectedDate}
+              onChange={(event) => setSelectedDate(event.target.value)}
+            />
+          </label>
+
+          <button
+            className="ghost-button agenda-date-step"
+            type="button"
+            aria-label="Dia seguinte"
+            onClick={() => setSelectedDate((current) => addDays(current, 1))}
+          >
+            ›
+          </button>
+        </div>
+
+        <div className="agenda-date-context">
+          <div>
+            <span>{isToday ? "Hoje" : "Consulta"}</span>
+            <strong>{formatDate(selectedDate)}</strong>
+            <small>{isToday ? "Operação do dia" : "Somente leitura"}</small>
+          </div>
+          {!isToday ? (
+            <button
+              className="ghost-button"
+              type="button"
+              onClick={() => setSelectedDate(today)}
+            >
+              Voltar para hoje
+            </button>
+          ) : null}
+        </div>
+      </section>
+
       {loading ? <p className="muted-state">Carregando agenda...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
 
       {!loading && !error && agenda?.agenda === null ? (
         <div className="empty-panel store-empty">
-          <strong>Nenhuma agenda para hoje.</strong>
-          <span>Quando a administração importar a agenda do dia, ela aparecerá aqui.</span>
+          <strong>
+            {isToday
+              ? "Nenhuma agenda para hoje."
+              : `Nenhuma agenda em ${formatDate(selectedDate)}.`}
+          </strong>
+          <span>
+            {isToday
+              ? "Quando a administração importar a agenda do dia, ela aparecerá aqui."
+              : "Escolha outra data para consultar os recebimentos."}
+          </span>
         </div>
       ) : null}
 
@@ -193,19 +304,23 @@ export function TodayPage() {
               />
             </label>
 
-            <button
-              className="primary-button agenda-manual-button"
-              type="button"
-              onClick={openManualSupplier}
-            >
-              + Fornecedor sem agenda
-            </button>
+            {isToday ? (
+              <button
+                className="primary-button agenda-manual-button"
+                type="button"
+                onClick={openManualSupplier}
+              >
+                + Fornecedor sem agenda
+              </button>
+            ) : null}
           </div>
 
           {filteredAppointments.length > 0 ? (
             <AgendaList
               appointments={filteredAppointments}
-              onChanged={statusChanged}
+              onChanged={isToday ? statusChanged : undefined}
+              onOpen={!isToday ? setSelectedAppointmentId : undefined}
+              editable={isToday}
             />
           ) : (
             <div className="empty-panel agenda-search-empty">
@@ -213,9 +328,16 @@ export function TodayPage() {
             </div>
           )}
 
+          {!isToday ? (
+            <AgendaDetails
+              appointmentId={selectedAppointmentId}
+              onClose={() => setSelectedAppointmentId(null)}
+            />
+          ) : null}
         </>
       ) : null}
-      {manualOpen && agenda?.agenda ? (
+
+      {manualOpen && isToday && agenda?.agenda ? (
         <div className="modal-backdrop" role="presentation">
           <div
             className="modal-card manual-supplier-modal"
@@ -273,7 +395,6 @@ export function TodayPage() {
           </div>
         </div>
       ) : null}
-
     </section>
   );
 }

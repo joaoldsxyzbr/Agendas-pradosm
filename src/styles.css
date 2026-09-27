@@ -2204,3 +2204,76 @@ td {
     padding: 1rem;
   }
 }
+
+
+.agenda-date-bar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 16px;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+
+.agenda-date-controls {
+  display: flex;
+  align-items: end;
+  gap: 0.55rem;
+}
+
+.agenda-date-step {
+  width: 42px;
+  min-height: 42px;
+  padding-inline: 0;
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.agenda-date-field {
+  min-width: 200px;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.agenda-date-field > span {
+  color: var(--color-text-soft);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.agenda-date-field input {
+  min-height: 42px;
+}
+
+.agenda-date-context {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.agenda-date-context > div {
+  display: grid;
+  justify-items: end;
+  gap: 0.08rem;
+}
+
+.agenda-date-context span {
+  color: var(--color-accent-strong);
+  font-size: 0.68rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.agenda-date-context strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.agenda-date-context small {
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}

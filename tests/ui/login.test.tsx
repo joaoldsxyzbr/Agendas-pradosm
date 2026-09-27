@@ -252,7 +252,7 @@ describe("login e rotas protegidas", () => {
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Agenda de hoje" }),
+      await screen.findByRole("heading", { name: "Agenda de recebimento" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Loja 03")).toBeInTheDocument();
     const topbar = screen.getByText("Agenda Prado").closest("header");
@@ -277,7 +277,7 @@ describe("login e rotas protegidas", () => {
 
     await waitFor(() => {
       expect(
-        screen.queryByRole("heading", { name: "Agenda de hoje" }),
+        screen.queryByRole("heading", { name: "Agenda de recebimento" }),
       ).not.toBeInTheDocument();
     });
   });

@@ -15,7 +15,6 @@ import { UsersPage } from "./admin/UsersPage";
 import { AuthProvider, useAuth } from "./auth/AuthProvider";
 import { LoginPage } from "./auth/LoginPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
-import { HistoryPage } from "./agenda/HistoryPage";
 import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { ThemeToggle } from "./theme/ThemeToggle";
@@ -134,7 +133,7 @@ export function AppRoutes() {
         }
       >
         <Route index element={<TodayPage />} />
-        <Route path="history" element={<HistoryPage />} />
+        <Route path="history" element={<Navigate to="/app" replace />} />
       </Route>
 
       <Route path="/" element={<HomeRedirect />} />
