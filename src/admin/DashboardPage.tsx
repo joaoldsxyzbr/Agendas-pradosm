@@ -3,24 +3,6 @@ import { apiFetch } from "../lib/api";
 import { ImportAgendaPage } from "./ImportAgendaPage";
 import type { AdminAgendaSummary, AdminStore } from "./types";
 
-type DashboardTotals = {
-  total: number;
-  aguardando: number;
-  recebido: number;
-  naoChegou: number;
-  recusado: number;
-  semAgenda: number;
-};
-
-const emptyTotals: DashboardTotals = {
-  total: 0,
-  aguardando: 0,
-  recebido: 0,
-  naoChegou: 0,
-  recusado: 0,
-  semAgenda: 0,
-};
-
 export function DashboardPage() {
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
@@ -56,22 +38,6 @@ export function DashboardPage() {
     agendas.map((agenda) => [agenda.storeCode, agenda]),
   );
 
-  const totals = agendas.reduce<DashboardTotals>(
-    (current, agenda) => ({
-      total: current.total + agenda.total,
-      aguardando: current.aguardando + agenda.aguardando,
-      recebido: current.recebido + agenda.recebido,
-      naoChegou: current.naoChegou + agenda.naoChegou,
-      recusado: current.recusado + agenda.recusado,
-      semAgenda: current.semAgenda + agenda.semAgenda,
-    }),
-    emptyTotals,
-  );
-
-  const storesWithoutAgenda = stores.filter(
-    (store) => !agendaByStore.has(store.codigo),
-  ).length;
-
   async function refreshAgendas() {
     try {
       const agendaData = await apiFetch<AdminAgendaSummary[]>(
@@ -89,7 +55,7 @@ export function DashboardPage() {
         <div>
           <span className="eyebrow">Administração</span>
           <h1>Dashboard</h1>
-          <p>Veja rapidamente como está o recebimento de hoje em todas as lojas.</p>
+          <p>Acompanhe as agendas por loja e importe novas agendas.</p>
         </div>
         <button
           className="primary-button dashboard-import-action"
@@ -113,40 +79,6 @@ export function DashboardPage() {
 
       {!loading && !error ? (
         <>
-          <section className="dashboard-kpis" aria-label="Resumo operacional">
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-total">
-              <span>Total recebimentos</span>
-              <strong>{totals.total}</strong>
-            </article>
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-aguardando">
-              <span>Aguardando</span>
-              <strong>{totals.aguardando}</strong>
-            </article>
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-recebidos">
-              <span>Recebidos</span>
-              <strong>{totals.recebido}</strong>
-            </article>
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-nao-chegaram">
-              <span>Não chegaram</span>
-              <strong>{totals.naoChegou}</strong>
-            </article>
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-recusados">
-              <span>Recusados</span>
-              <strong>{totals.recusado}</strong>
-            </article>
-            <article className="dashboard-kpi" data-testid="dashboard-kpi-sem-agenda">
-              <span>Sem agenda</span>
-              <strong>{totals.semAgenda}</strong>
-            </article>
-            <article
-              className="dashboard-kpi"
-              data-testid="dashboard-kpi-lojas-sem-agenda"
-            >
-              <span>Lojas sem agenda</span>
-              <strong>{storesWithoutAgenda}</strong>
-            </article>
-          </section>
-
           <section className="dashboard-section" aria-label="Situação por loja">
             <div className="dashboard-section-heading">
               <div>

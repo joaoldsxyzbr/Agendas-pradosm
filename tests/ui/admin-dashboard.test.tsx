@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("dashboard operacional", () => {
-  it("resume o dia e mostra a situação por loja", async () => {
+  it("mostra a operação por loja sem resumo geral", async () => {
     const stores = [
       { id: "s1", codigo: "F03", nome: "Canasvieiras", ativo: true },
       { id: "s2", codigo: "F04", nome: "Centro", ativo: true },
@@ -67,31 +67,9 @@ describe("dashboard operacional", () => {
       </MemoryRouter>,
     );
 
-    const summary = await screen.findByRole("region", {
-      name: "Resumo operacional",
-    });
-
-    expect(within(summary).getByTestId("dashboard-kpi-total")).toHaveTextContent(
-      "8",
-    );
     expect(
-      within(summary).getByTestId("dashboard-kpi-aguardando"),
-    ).toHaveTextContent("2");
-    expect(
-      within(summary).getByTestId("dashboard-kpi-recebidos"),
-    ).toHaveTextContent("5");
-    expect(
-      within(summary).getByTestId("dashboard-kpi-nao-chegaram"),
-    ).toHaveTextContent("1");
-    expect(
-      within(summary).getByTestId("dashboard-kpi-recusados"),
-    ).toHaveTextContent("0");
-    expect(
-      within(summary).getByTestId("dashboard-kpi-sem-agenda"),
-    ).toHaveTextContent("1");
-    expect(
-      within(summary).getByTestId("dashboard-kpi-lojas-sem-agenda"),
-    ).toHaveTextContent("1");
+      screen.queryByRole("region", { name: "Resumo operacional" }),
+    ).not.toBeInTheDocument();
 
     expect(
       screen.queryByRole("region", { name: "Atenção agora" }),
