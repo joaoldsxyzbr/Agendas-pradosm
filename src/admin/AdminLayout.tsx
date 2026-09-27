@@ -4,7 +4,6 @@ import { ThemeToggle } from "../theme/ThemeToggle";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/history", label: "Histórico" },
   { to: "/admin/stores", label: "Lojas" },
   { to: "/admin/users", label: "Usuários" },
 ];
