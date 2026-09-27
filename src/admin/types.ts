@@ -29,6 +29,9 @@ export type AdminAgendaSummary = {
   naoChegou: number;
   recusado: number;
   semAgenda: number;
+  dayStatus: "aberto" | "concluido";
+  completedAt: string | null;
+  completedBy: { id: string; name: string | null } | null;
 };
 
 export type AdminAppointment = {
@@ -45,6 +48,7 @@ export type AdminAppointment = {
   nfe: string[];
   orders: string[];
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
+  hasExchanges: boolean;
   ativo: boolean;
 };
 
@@ -55,6 +59,9 @@ export type AdminAgendaDetail = {
     storeName: string;
     date: string;
     originalFileName?: string;
+    dayStatus: "aberto" | "concluido";
+    completedAt: string | null;
+    completedBy: { id: string; name: string | null } | null;
   };
   appointments: AdminAppointment[];
 };
@@ -67,5 +74,17 @@ export type AppointmentHistoryItem = {
   usuario: {
     id: string;
     nome: string;
+  };
+};
+
+
+export type AgendaDayHistoryItem = {
+  id: string;
+  action: "concluido" | "reaberto" | "ajuste_admin";
+  details: string | null;
+  changedAt: string;
+  user: {
+    id: string;
+    name: string;
   };
 };

@@ -476,6 +476,59 @@ describe("admin agenda import", () => {
     ]);
   });
 
+  it("admin corrige dia concluído sem reabrir e registra ajuste", async () => {
+    const adminId = "admin-edit-closed";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-edit-closed", "F88");
+
+    const imported = await importAgenda(cookie, payload("F88"));
+    const importedBody = (await imported.json()) as {
+      agenda: { id: string };
+      appointments: Array<{ id: string }>;
+    };
+    const appointmentId = importedBody.appointments[0].id;
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    const status = await request(
+      `/api/admin/appointments/${appointmentId}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "recebido" } },
+    );
+    expect(status.status).toBe(200);
+    expect(await status.json()).toMatchObject({ status: "recebido" });
+
+    const exchanges = await request(
+      `/api/admin/appointments/${appointmentId}/exchanges`,
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } },
+    );
+    expect(exchanges.status).toBe(200);
+    expect(await exchanges.json()).toMatchObject({ hasExchanges: true });
+
+    const agenda = await db
+      .prepare("SELECT status_dia FROM agendas WHERE id = ?")
+      .bind(importedBody.agenda.id)
+      .first<{ status_dia: string }>();
+    expect(agenda?.status_dia).toBe("concluido");
+
+    const events = await db
+      .prepare(
+        "SELECT acao FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid",
+      )
+      .bind(importedBody.agenda.id)
+      .all<{ acao: string }>();
+    expect(events.results.map((item) => item.acao)).toEqual([
+      "ajuste_admin",
+      "ajuste_admin",
+    ]);
+  });
+
   it("admin consulta agenda histórica e histórico de status", async () => {
     const adminId = "admin-import-history";
     const cookie = await seedAdmin(adminId);

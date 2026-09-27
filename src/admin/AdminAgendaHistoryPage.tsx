@@ -3,7 +3,9 @@ import { apiFetch } from "../lib/api";
 import type {
   AdminAgendaDetail,
   AdminAgendaSummary,
+  AdminAppointment,
   AdminStore,
+  AgendaDayHistoryItem,
   AppointmentHistoryItem,
 } from "./types";
 
@@ -20,6 +22,9 @@ export function AdminAgendaHistoryPage() {
   const [detail, setDetail] = useState<AdminAgendaDetail | null>(null);
   const [history, setHistory] = useState<AppointmentHistoryItem[]>([]);
   const [historyAppointmentId, setHistoryAppointmentId] = useState<string | null>(null);
+  const [dayHistory, setDayHistory] = useState<AgendaDayHistoryItem[]>([]);
+  const [savingAppointmentId, setSavingAppointmentId] = useState<string | null>(null);
+  const [reopening, setReopening] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -57,11 +62,128 @@ export function AdminAgendaHistoryPage() {
     setMessage(null);
     setHistory([]);
     setHistoryAppointmentId(null);
+    setDayHistory([]);
 
     try {
-      setDetail(await apiFetch<AdminAgendaDetail>(`/api/admin/agendas/${id}`));
+      const [agendaDetail, events] = await Promise.all([
+        apiFetch<AdminAgendaDetail>(`/api/admin/agendas/${id}`),
+        apiFetch<AgendaDayHistoryItem[]>(`/api/admin/agendas/${id}/history`),
+      ]);
+      setDetail(agendaDetail);
+      setDayHistory(events);
     } catch {
       setMessage("Não foi possível abrir a agenda.");
+    }
+  }
+
+  function updateAppointment(updated: AdminAppointment) {
+    setDetail((current) =>
+      current
+        ? {
+            ...current,
+            appointments: current.appointments.map((appointment) =>
+              appointment.id === updated.id ? updated : appointment,
+            ),
+          }
+        : current,
+    );
+  }
+
+  async function changeAppointmentStatus(
+    appointmentId: string,
+    status: AdminAppointment["status"],
+  ) {
+    setSavingAppointmentId(appointmentId);
+    setMessage(null);
+    try {
+      const updated = await apiFetch<AdminAppointment>(
+        `/api/admin/appointments/${appointmentId}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status }),
+        },
+      );
+      updateAppointment(updated);
+      if (detail?.agenda.dayStatus === "concluido") {
+        setDayHistory(
+          await apiFetch<AgendaDayHistoryItem[]>(
+            `/api/admin/agendas/${detail.agenda.id}/history`,
+          ),
+        );
+      }
+    } catch {
+      setMessage("Não foi possível alterar o status.");
+    } finally {
+      setSavingAppointmentId(null);
+    }
+  }
+
+  async function changeAppointmentExchanges(
+    appointmentId: string,
+    hasExchanges: boolean,
+  ) {
+    setSavingAppointmentId(appointmentId);
+    setMessage(null);
+    try {
+      const updated = await apiFetch<AdminAppointment>(
+        `/api/admin/appointments/${appointmentId}/exchanges`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hasExchanges }),
+        },
+      );
+      updateAppointment(updated);
+      if (detail?.agenda.dayStatus === "concluido") {
+        setDayHistory(
+          await apiFetch<AgendaDayHistoryItem[]>(
+            `/api/admin/agendas/${detail.agenda.id}/history`,
+          ),
+        );
+      }
+    } catch {
+      setMessage("Não foi possível alterar a marcação de trocas.");
+    } finally {
+      setSavingAppointmentId(null);
+    }
+  }
+
+  async function reopenForStore() {
+    if (!detail || reopening) return;
+    setReopening(true);
+    setMessage(null);
+    try {
+      const agenda = await apiFetch<AdminAgendaDetail["agenda"]>(
+        `/api/admin/agendas/${detail.agenda.id}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "aberto" }),
+        },
+      );
+      setDetail((current) => (current ? { ...current, agenda } : current));
+      setAgendas((current) =>
+        current.map((item) =>
+          item.id === agenda.id
+            ? {
+                ...item,
+                dayStatus: agenda.dayStatus,
+                completedAt: agenda.completedAt,
+                completedBy: agenda.completedBy,
+              }
+            : item,
+        ),
+      );
+      setDayHistory(
+        await apiFetch<AgendaDayHistoryItem[]>(
+          `/api/admin/agendas/${agenda.id}/history`,
+        ),
+      );
+    } catch {
+      setMessage("Não foi possível reabrir o dia.");
+    } finally {
+      setReopening(false);
     }
   }
 
@@ -128,6 +250,7 @@ export function AdminAgendaHistoryPage() {
                 <th>Total</th>
                 <th>Aguardando</th>
                 <th>Recebidos</th>
+                <th>Status do dia</th>
                 <th><span className="sr-only">Ações</span></th>
               </tr>
             </thead>
@@ -139,6 +262,11 @@ export function AdminAgendaHistoryPage() {
                   <td>{agenda.total}</td>
                   <td>{agenda.aguardando}</td>
                   <td>{agenda.recebido}</td>
+                  <td>
+                    <span className={`status-pill ${agenda.dayStatus === "concluido" ? "success" : "warning"}`}>
+                      {agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto"}
+                    </span>
+                  </td>
                   <td className="table-action">
                     <button
                       className="ghost-button"
@@ -152,7 +280,7 @@ export function AdminAgendaHistoryPage() {
               ))}
               {agendas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-cell">
+                  <td colSpan={7} className="empty-cell">
                     Use os filtros para consultar agendas.
                   </td>
                 </tr>
@@ -168,7 +296,20 @@ export function AdminAgendaHistoryPage() {
             <div>
               <h2>{detail.agenda.storeCode} - {detail.agenda.storeName}</h2>
               <p>{formatDate(detail.agenda.date)}</p>
+              <span className={`status-pill ${detail.agenda.dayStatus === "concluido" ? "success" : "warning"}`}>
+                {detail.agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto"}
+              </span>
             </div>
+            {detail.agenda.dayStatus === "concluido" ? (
+              <button
+                className="primary-button"
+                type="button"
+                disabled={reopening}
+                onClick={() => void reopenForStore()}
+              >
+                {reopening ? "Reabrindo..." : "Reabrir para conferente"}
+              </button>
+            ) : null}
           </div>
 
           <div className="table-scroll">
@@ -179,6 +320,7 @@ export function AdminAgendaHistoryPage() {
                   <th>Protocolo</th>
                   <th>Fornecedor</th>
                   <th>Status</th>
+                  <th>Trocas</th>
                   <th><span className="sr-only">Ações</span></th>
                 </tr>
               </thead>
@@ -189,7 +331,36 @@ export function AdminAgendaHistoryPage() {
                     <td>{appointment.protocol}</td>
                     <td>{appointment.supplier}</td>
                     <td>
-                      <span className="status-pill neutral">{appointment.status}</span>
+                      <select
+                        aria-label={`Status de ${appointment.supplier}`}
+                        value={appointment.status}
+                        disabled={savingAppointmentId === appointment.id}
+                        onChange={(event) =>
+                          void changeAppointmentStatus(
+                            appointment.id,
+                            event.target.value as AdminAppointment["status"],
+                          )
+                        }
+                      >
+                        <option value="aguardando">Aguardando</option>
+                        <option value="recebido">Recebido</option>
+                        <option value="nao_chegou">Não recebido</option>
+                        <option value="recusado">Recusado</option>
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="checkbox"
+                        aria-label={`Trocas de ${appointment.supplier}`}
+                        checked={appointment.hasExchanges}
+                        disabled={savingAppointmentId === appointment.id}
+                        onChange={(event) =>
+                          void changeAppointmentExchanges(
+                            appointment.id,
+                            event.target.checked,
+                          )
+                        }
+                      />
                     </td>
                     <td className="table-action">
                       <button
@@ -204,6 +375,31 @@ export function AdminAgendaHistoryPage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          <div className="history-box">
+            <h3>Histórico do dia</h3>
+            {dayHistory.length ? (
+              <ul>
+                {dayHistory.map((item) => (
+                  <li key={item.id}>
+                    <strong>
+                      {item.action === "concluido"
+                        ? "Dia concluído"
+                        : item.action === "reaberto"
+                          ? "Dia reaberto"
+                          : "Ajuste administrativo"}
+                    </strong>
+                    <span>
+                      {item.user.name}
+                      {item.details ? ` · ${item.details}` : ""}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>Nenhum evento registrado para o dia.</p>
+            )}
           </div>
 
           {historyAppointmentId ? (

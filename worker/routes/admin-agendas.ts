@@ -4,6 +4,8 @@ import { ImportAgendaInput } from "../../shared/agenda";
 import type { AppEnv } from "../env";
 import {
   changeAgendaDayStatus,
+  changeAppointmentExchanges,
+  changeAppointmentStatus,
   createAgendaImport,
   findAgendaById,
   findAgendaByStoreDate,
@@ -13,6 +15,7 @@ import {
   listAgendaHistory,
   listAppointmentHistory,
   listAppointmentsByAgenda,
+  recordAgendaAdminAdjustment,
   replaceAgendaImport,
   type AgendaSummaryRecord,
   type AgendaWithStoreRecord,
@@ -50,6 +53,7 @@ function appointmentJson(appointment: AppointmentRecord) {
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    hasExchanges: appointment.trocas === 1,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
   };
@@ -317,6 +321,134 @@ adminAgendaRoutes.get("/:id", async (c) => {
   }
 
   return c.json(result);
+});
+
+const AdminAppointmentStatusInput = z.object({
+  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
+});
+
+const AdminAppointmentExchangesInput = z.object({
+  hasExchanges: z.boolean(),
+});
+
+async function recordClosedDayAdjustment(
+  db: D1Database,
+  appointment: AppointmentRecord,
+  userId: string,
+  details: string,
+) {
+  const agenda = await findAgendaById(db, appointment.agenda_id);
+  if (agenda?.status_dia === "concluido") {
+    await recordAgendaAdminAdjustment(db, agenda.id, userId, details);
+  }
+}
+
+adminAppointmentRoutes.patch("/:id/status", async (c) => {
+  const parsed = AdminAppointmentStatusInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Status inválido." },
+      400,
+    );
+  }
+
+  const appointment = await findAppointmentById(c.env.DB, c.req.param("id"));
+  if (!appointment) {
+    return c.json(
+      {
+        error: "AGENDAMENTO_NAO_ENCONTRADO",
+        message: "Agendamento não encontrado.",
+      },
+      404,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    const changed = appointment.status !== parsed.data.status;
+    const updated = await changeAppointmentStatus(
+      c.env.DB,
+      appointment,
+      user.id,
+      parsed.data.status,
+    );
+
+    if (changed) {
+      await recordClosedDayAdjustment(
+        c.env.DB,
+        appointment,
+        user.id,
+        `Status alterado de ${appointment.status} para ${parsed.data.status}.`,
+      );
+    }
+
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Admin appointment status change failed", error);
+    return c.json(
+      {
+        error: "ALTERACAO_STATUS_FALHOU",
+        message: "O status não foi alterado.",
+      },
+      500,
+    );
+  }
+});
+
+adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
+  const parsed = AdminAppointmentExchangesInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Valor de trocas inválido." },
+      400,
+    );
+  }
+
+  const appointment = await findAppointmentById(c.env.DB, c.req.param("id"));
+  if (!appointment) {
+    return c.json(
+      {
+        error: "AGENDAMENTO_NAO_ENCONTRADO",
+        message: "Agendamento não encontrado.",
+      },
+      404,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    const nextValue = parsed.data.hasExchanges ? 1 : 0;
+    const changed = appointment.trocas !== nextValue;
+    const updated = await changeAppointmentExchanges(
+      c.env.DB,
+      appointment,
+      parsed.data.hasExchanges,
+    );
+
+    if (changed) {
+      await recordClosedDayAdjustment(
+        c.env.DB,
+        appointment,
+        user.id,
+        `Trocas alteradas para ${parsed.data.hasExchanges ? "sim" : "não"}.`,
+      );
+    }
+
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Admin appointment exchanges change failed", error);
+    return c.json(
+      {
+        error: "ALTERACAO_TROCAS_FALHOU",
+        message: "A marcação de trocas não foi alterada.",
+      },
+      500,
+    );
+  }
 });
 
 adminAppointmentRoutes.get("/:id/history", async (c) => {

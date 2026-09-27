@@ -16,6 +16,116 @@ afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  it("edita dia concluído e permite reabrir para o conferente", async () => {
+    let dayStatus: "aberto" | "concluido" = "concluido";
+    let appointment = {
+      id: "appt-edit",
+      protocol: "90000002",
+      startTime: "09:00",
+      endTime: "09:10",
+      supplier: "FORNECEDOR EDITAVEL",
+      status: "aguardando",
+      hasExchanges: false,
+      ativo: true,
+      nfe: [],
+      orders: [],
+    };
+
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url === "/api/admin/stores") return json([]);
+      if (url === "/api/admin/agendas?date=2026-09-24") {
+        return json([{
+          id: "agenda-edit",
+          storeCode: "F04",
+          storeName: "LOJA 04",
+          date: "2026-09-24",
+          total: 1,
+          aguardando: 1,
+          recebido: 0,
+          naoChegou: 0,
+          recusado: 0,
+          semAgenda: 0,
+          dayStatus,
+          completedAt: "2026-09-24T20:00:00.000Z",
+          completedBy: { id: "u1", name: "Conferente" },
+        }]);
+      }
+      if (url === "/api/admin/agendas/agenda-edit" && !init?.method) {
+        return json({
+          agenda: {
+            id: "agenda-edit",
+            storeCode: "F04",
+            storeName: "LOJA 04",
+            date: "2026-09-24",
+            dayStatus,
+            completedAt: dayStatus === "concluido" ? "2026-09-24T20:00:00.000Z" : null,
+            completedBy: dayStatus === "concluido" ? { id: "u1", name: "Conferente" } : null,
+          },
+          appointments: [appointment],
+        });
+      }
+      if (url === "/api/admin/agendas/agenda-edit/history") {
+        return json([]);
+      }
+      if (url === "/api/admin/appointments/appt-edit/status") {
+        appointment = { ...appointment, status: "recebido" };
+        return json(appointment);
+      }
+      if (url === "/api/admin/appointments/appt-edit/exchanges") {
+        appointment = { ...appointment, hasExchanges: true };
+        return json(appointment);
+      }
+      if (url === "/api/admin/agendas/agenda-edit/status") {
+        dayStatus = "aberto";
+        return json({
+          id: "agenda-edit",
+          storeCode: "F04",
+          storeName: "LOJA 04",
+          date: "2026-09-24",
+          dayStatus,
+          completedAt: null,
+          completedBy: null,
+        });
+      }
+
+      return new Response(null, { status: 404 });
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<AdminAgendaHistoryPage />);
+
+    fireEvent.change(await screen.findByLabelText("Data"), {
+      target: { value: "2026-09-24" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Filtrar" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Abrir agenda" }));
+
+    const statusSelect = await screen.findByLabelText("Status de FORNECEDOR EDITAVEL");
+    fireEvent.change(statusSelect, { target: { value: "recebido" } });
+    await waitFor(() => expect(statusSelect).toHaveValue("recebido"));
+
+    const exchanges = screen.getByLabelText("Trocas de FORNECEDOR EDITAVEL");
+    fireEvent.click(exchanges);
+    await waitFor(() => expect(exchanges).toBeChecked());
+
+    fireEvent.click(screen.getByRole("button", { name: "Reabrir para conferente" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: "Reabrir para conferente" }),
+      ).not.toBeInTheDocument(),
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/agendas/agenda-edit/status",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ status: "aberto" }),
+      }),
+    );
+  });
+
 });
 
 describe("AdminAgendaHistoryPage", () => {
