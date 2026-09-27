@@ -1,4 +1,8 @@
-import { StatusActions, StatusBadge } from "./StatusControl";
+import {
+  ExchangeCheckbox,
+  StatusActions,
+  StatusBadge,
+} from "./StatusControl";
 import type { StoreAppointment } from "./types";
 
 function appointmentTime(appointment: StoreAppointment) {
@@ -23,6 +27,18 @@ export function AgendaList({
       a.startTime.localeCompare(b.startTime) ||
       a.protocol.localeCompare(b.protocol),
   );
+
+  function exchangeControl(appointment: StoreAppointment) {
+    if (!editable || !onChanged) return null;
+
+    return (
+      <ExchangeCheckbox
+        appointmentId={appointment.id}
+        hasExchanges={appointment.hasExchanges}
+        onChanged={onChanged}
+      />
+    );
+  }
 
   function actions(appointment: StoreAppointment) {
     return (
@@ -61,6 +77,7 @@ export function AgendaList({
                 <th>Tipo</th>
                 <th>Status</th>
                 <th>Ações</th>
+                {editable && onChanged ? <th>Trocas</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -72,11 +89,14 @@ export function AgendaList({
                   <td>{appointment.type ?? "-"}</td>
                   <td><StatusBadge status={appointment.status} /></td>
                   <td className="table-action">{actions(appointment)}</td>
+                  {editable && onChanged ? (
+                    <td className="exchange-cell">{exchangeControl(appointment)}</td>
+                  ) : null}
                 </tr>
               ))}
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="empty-cell">
+                  <td colSpan={editable && onChanged ? 7 : 6} className="empty-cell">
                     Nenhum agendamento nesta agenda.
                   </td>
                 </tr>
@@ -107,6 +127,12 @@ export function AgendaList({
 
             <StatusBadge status={appointment.status} />
             {actions(appointment)}
+            {editable && onChanged ? (
+              <div className="agenda-card-exchanges">
+                <span>Trocas</span>
+                {exchangeControl(appointment)}
+              </div>
+            ) : null}
           </article>
         ))}
       </div>

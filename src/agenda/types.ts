@@ -18,6 +18,7 @@ export type StoreAppointment = {
   nfe: string[];
   orders: string[];
   status: AppointmentStatus;
+  hasExchanges: boolean;
   origin?: "imported" | "manual";
   ativo: boolean;
 };

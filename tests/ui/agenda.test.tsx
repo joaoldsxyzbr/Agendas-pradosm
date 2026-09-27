@@ -36,6 +36,7 @@ function appointment(
     nfe: ["123456"],
     orders: ["50001"],
     status,
+    hasExchanges: false,
     ativo: true,
   };
 }
@@ -117,6 +118,9 @@ describe("TodayPage", () => {
     expect(
       screen.getByRole("columnheader", { name: "Ações" }),
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "Trocas" }),
+    ).toBeInTheDocument();
 
     const desktopRows = screen.getAllByTestId("agenda-desktop-row");
     expect(within(desktopRows[0]).getByText("08:00 - 08:10")).toBeInTheDocument();
@@ -125,10 +129,11 @@ describe("TodayPage", () => {
     const firstRowCells = within(desktopRows[0]).getAllByRole("cell");
     expect(within(firstRowCells[4]).getByText("Aguardando")).toBeInTheDocument();
     expect(within(firstRowCells[4]).queryByRole("button")).not.toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Recebido" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).getByRole("button", { name: "Chegou" })).toBeInTheDocument();
     expect(within(firstRowCells[5]).getByRole("button", { name: "Não chegou" })).toBeInTheDocument();
-    expect(within(firstRowCells[5]).getByRole("button", { name: "Recusado" })).toBeInTheDocument();
+    expect(within(firstRowCells[5]).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
     expect(within(firstRowCells[5]).queryByRole("button", { name: "Ver detalhes" })).not.toBeInTheDocument();
+    expect(within(firstRowCells[6]).getByRole("checkbox", { name: "Trocas" })).not.toBeChecked();
 
     const mobileCard = screen.getAllByTestId("agenda-mobile-card")[0];
     expect(within(mobileCard).getByText("08:00 - 08:10")).toBeInTheDocument();
@@ -243,7 +248,7 @@ describe("TodayPage", () => {
       .mockImplementationOnce(() => pending)
       .mockImplementationOnce(() =>
         json(200, {
-          ...appointment("appt-status", "08:00", "recusado"),
+          ...appointment("appt-status", "08:00", "nao_chegou"),
         }),
       );
 
@@ -256,11 +261,11 @@ describe("TodayPage", () => {
       within(card).queryByRole("button", { name: "Aguardando" }),
     ).not.toBeInTheDocument();
 
-    expect(within(card).getByRole("button", { name: "Recebido" })).toHaveTextContent("✓");
-    expect(within(card).getByRole("button", { name: "Não chegou" })).toHaveTextContent("−");
-    expect(within(card).getByRole("button", { name: "Recusado" })).toHaveTextContent("✕");
+    expect(within(card).getByRole("button", { name: "Chegou" })).toHaveTextContent("✓");
+    expect(within(card).getByRole("button", { name: "Não chegou" })).toHaveTextContent("✕");
+    expect(within(card).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
+    fireEvent.click(within(card).getByRole("button", { name: "Chegou" }));
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
 
     resolveFirst(
@@ -274,12 +279,45 @@ describe("TodayPage", () => {
 
     expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Recusado" }));
-    expect(await within(card).findByText("Recusado", { selector: ".store-status" })).toBeInTheDocument();
+    fireEvent.click(within(card).getByRole("button", { name: "Não chegou" }));
+    expect(await within(card).findByText("Não chegou", { selector: ".store-status" })).toBeInTheDocument();
 
     const calls = fetchMock.mock.calls
       .filter((call) => String(call[0]).includes("/status"));
     expect(calls).toHaveLength(2);
+  });
+
+  it("marca trocas sem alterar o status de chegada", async () => {
+    const updated = {
+      ...appointment("appt-exchanges", "08:00"),
+      hasExchanges: true,
+    };
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        json(200, agendaBody([appointment("appt-exchanges", "08:00")])),
+      )
+      .mockImplementationOnce(() => json(200, updated));
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    const row = (await screen.findAllByTestId("agenda-desktop-row"))[0];
+    const checkbox = within(row).getByRole("checkbox", { name: "Trocas" });
+    expect(checkbox).not.toBeChecked();
+
+    fireEvent.click(checkbox);
+
+    await waitFor(() => expect(checkbox).toBeChecked());
+    expect(within(row).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/appointments/appt-exchanges/exchanges",
+      expect.objectContaining({
+        method: "PATCH",
+        credentials: "include",
+        body: JSON.stringify({ hasExchanges: true }),
+      }),
+    );
   });
 
   it("falha de status mantém valor anterior e mostra erro", async () => {

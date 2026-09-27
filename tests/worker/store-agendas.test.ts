@@ -396,6 +396,55 @@ describe("store agenda workflow", () => {
     expect(detail.status).toBe(200);
   });
 
+  it("marca e desmarca trocas sem alterar o status", async () => {
+    const cookie = await seedStoreUser({
+      storeId: "store-exchanges-a",
+      storeCode: "F84",
+      userId: "user-exchanges-a",
+    });
+    await seedAgenda({
+      agendaId: "agenda-exchanges-a",
+      storeId: "store-exchanges-a",
+      creatorId: "user-exchanges-a",
+      date: "2026-09-20",
+    });
+    await seedAppointment({
+      id: "appt-exchanges-a",
+      agendaId: "agenda-exchanges-a",
+      protocol: "93500001",
+      startTime: "08:00",
+    });
+
+    const marked = await request(
+      "/api/store/appointments/appt-exchanges-a/exchanges",
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } },
+    );
+    expect(marked.status).toBe(200);
+    expect(await marked.json()).toMatchObject({
+      status: "aguardando",
+      hasExchanges: true,
+    });
+
+    const unmarked = await request(
+      "/api/store/appointments/appt-exchanges-a/exchanges",
+      cookie,
+      { method: "PATCH", body: { hasExchanges: false } },
+    );
+    expect(unmarked.status).toBe(200);
+    expect(await unmarked.json()).toMatchObject({
+      status: "aguardando",
+      hasExchanges: false,
+    });
+
+    const row = await db
+      .prepare("SELECT status, trocas FROM agendamentos WHERE id = ?")
+      .bind("appt-exchanges-a")
+      .first<{ status: string; trocas: number }>();
+
+    expect(row).toMatchObject({ status: "aguardando", trocas: 0 });
+  });
+
   it("muda status, grava histórico e permite correção posterior", async () => {
     const userId = "user-status-a";
     const cookie = await seedStoreUser({

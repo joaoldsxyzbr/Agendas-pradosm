@@ -1,0 +1,2 @@
+ALTER TABLE agendamentos
+ADD COLUMN trocas INTEGER NOT NULL DEFAULT 0 CHECK (trocas IN (0, 1));

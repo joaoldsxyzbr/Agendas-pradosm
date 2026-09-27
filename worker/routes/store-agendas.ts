@@ -5,6 +5,7 @@ import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
 import { businessDate, businessTime } from "../lib/time";
 import {
+  changeAppointmentExchanges,
   changeAppointmentStatus,
   createManualAppointment,
   findAppointmentForStore,
@@ -22,6 +23,10 @@ export const storeAppointmentRoutes = new Hono<AppEnv>();
 
 const ChangeStatusInput = z.object({
   status: z.enum(["recebido", "nao_chegou", "recusado"]),
+});
+
+const ChangeExchangesInput = z.object({
+  hasExchanges: z.boolean(),
 });
 
 const DateParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
@@ -81,6 +86,7 @@ function appointmentJson(appointment: AppointmentRecord) {
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    hasExchanges: appointment.trocas === 1,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
   };
@@ -257,6 +263,55 @@ storeAppointmentRoutes.get("/:id", async (c) => {
       },
     })),
   });
+});
+
+storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+
+  const parsed = ChangeExchangesInput.safeParse(
+    await c.req.json().catch(() => null),
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Valor de trocas inválido." },
+      400,
+    );
+  }
+
+  const appointment = await findAppointmentForStore(
+    c.env.DB,
+    c.req.param("id"),
+    user.lojaId,
+  );
+
+  if (!appointment) {
+    return c.json(
+      {
+        error: "AGENDAMENTO_NAO_ENCONTRADO",
+        message: "Agendamento não encontrado.",
+      },
+      404,
+    );
+  }
+
+  try {
+    const updated = await changeAppointmentExchanges(
+      c.env.DB,
+      appointment,
+      parsed.data.hasExchanges,
+    );
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Appointment exchanges change failed", error);
+    return c.json(
+      {
+        error: "ALTERACAO_TROCAS_FALHOU",
+        message: "A marcação de trocas não foi alterada.",
+      },
+      500,
+    );
+  }
 });
 
 storeAppointmentRoutes.patch("/:id/status", async (c) => {

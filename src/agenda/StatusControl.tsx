@@ -7,9 +7,8 @@ const STATUS_OPTIONS: Array<{
   label: string;
   symbol: string;
 }> = [
-  { value: "recebido", label: "Recebido", symbol: "✓" },
-  { value: "nao_chegou", label: "Não chegou", symbol: "−" },
-  { value: "recusado", label: "Recusado", symbol: "✕" },
+  { value: "recebido", label: "Chegou", symbol: "✓" },
+  { value: "nao_chegou", label: "Não chegou", symbol: "✕" },
 ];
 
 export const STATUS_LABELS: Record<AppointmentStatus, string> = {
@@ -91,6 +90,63 @@ export function StatusActions({
         ))}
       </div>
 
+      {error ? (
+        <p className="inline-error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+export function ExchangeCheckbox({
+  appointmentId,
+  hasExchanges,
+  onChanged,
+}: {
+  appointmentId: string;
+  hasExchanges: boolean;
+  onChanged: (appointment: StoreAppointment) => void;
+}) {
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function changeExchanges(nextValue: boolean) {
+    if (saving || nextValue === hasExchanges) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const updated = await apiFetch<StoreAppointment>(
+        `/api/store/appointments/${appointmentId}/exchanges`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hasExchanges: nextValue }),
+        },
+      );
+      onChanged(updated);
+    } catch (caught) {
+      setError(
+        caught instanceof ApiError
+          ? caught.message
+          : "Não foi possível alterar a marcação de trocas.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="exchange-control">
+      <input
+        type="checkbox"
+        aria-label="Trocas"
+        checked={hasExchanges}
+        disabled={saving}
+        onChange={(event) => void changeExchanges(event.target.checked)}
+      />
       {error ? (
         <p className="inline-error" role="alert">
           {error}

@@ -48,6 +48,7 @@ export type AppointmentRecord = {
   nfe: string;
   pedidos: string;
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
+  trocas: number;
   origem: "importado" | "manual";
   ativo: number;
   criado_em: string;
@@ -68,7 +69,7 @@ const AGENDA_COLUMNS =
   "id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em";
 
 const APPOINTMENT_COLUMNS =
-  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em";
+  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, origem, ativo, criado_em, atualizado_em";
 
 export async function findStoreByCode(
   db: D1Database,
@@ -440,6 +441,30 @@ export async function findAppointmentForStore(
     )
     .bind(appointmentId, storeId)
     .first<AppointmentRecord>();
+}
+
+export async function changeAppointmentExchanges(
+  db: D1Database,
+  appointment: AppointmentRecord,
+  hasExchanges: boolean,
+): Promise<AppointmentRecord> {
+  const exchanges = hasExchanges ? 1 : 0;
+  if (appointment.trocas === exchanges) return appointment;
+
+  const now = new Date().toISOString();
+  await db
+    .prepare(
+      "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ?",
+    )
+    .bind(exchanges, now, appointment.id)
+    .run();
+
+  const updated = await findAppointmentById(db, appointment.id);
+  if (!updated) {
+    throw new Error("Agendamento atualizado não pôde ser relido.");
+  }
+
+  return updated;
 }
 
 export async function changeAppointmentStatus(
