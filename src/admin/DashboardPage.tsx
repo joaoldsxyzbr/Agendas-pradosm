@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
+import { ImportAgendaPage } from "./ImportAgendaPage";
 import type { AdminAgendaSummary, AdminStore } from "./types";
 
 type DashboardTotals = {
@@ -26,6 +26,7 @@ export function DashboardPage() {
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -71,6 +72,17 @@ export function DashboardPage() {
     (store) => !agendaByStore.has(store.codigo),
   ).length;
 
+  async function refreshAgendas() {
+    try {
+      const agendaData = await apiFetch<AdminAgendaSummary[]>(
+        "/api/admin/agendas/today",
+      );
+      setAgendas(agendaData);
+    } catch {
+      setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+    }
+  }
+
   return (
     <section className="admin-page">
       <header className="page-heading page-heading-actions">
@@ -79,13 +91,25 @@ export function DashboardPage() {
           <h1>Dashboard</h1>
           <p>Veja rapidamente como está o recebimento de hoje em todas as lojas.</p>
         </div>
-        <Link className="primary-button dashboard-import-action" to="/admin/import">
+        <button
+          className="primary-button dashboard-import-action"
+          type="button"
+          onClick={() => setImportOpen(true)}
+        >
           Importar agenda
-        </Link>
+        </button>
       </header>
 
       {loading ? <p className="muted-state">Carregando agendas...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
+
+      {importOpen ? (
+        <ImportAgendaPage
+          modal
+          onClose={() => setImportOpen(false)}
+          onImported={() => void refreshAgendas()}
+        />
+      ) : null}
 
       {!loading && !error ? (
         <>

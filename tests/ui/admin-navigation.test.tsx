@@ -44,7 +44,7 @@ describe("navegação administrativa", () => {
     expect(screen.getAllByRole("link")).toHaveLength(8);
   });
 
-  it("mostra Importar agenda no Dashboard apontando para o fluxo existente", () => {
+  it("abre Importar agenda em modal no Dashboard", () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -69,8 +69,16 @@ describe("navegação administrativa", () => {
       </MemoryRouter>,
     );
 
+    const button = screen.getByRole("button", { name: "Importar agenda" });
+    expect(button).toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Importar agenda" }),
-    ).toHaveAttribute("href", "/admin/import");
+      screen.queryByRole("dialog", { name: "Importar agenda" }),
+    ).not.toBeInTheDocument();
+
+    button.click();
+
+    expect(
+      screen.getByRole("dialog", { name: "Importar agenda" }),
+    ).toBeInTheDocument();
   });
 });

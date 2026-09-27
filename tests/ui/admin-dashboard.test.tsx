@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../../src/admin/DashboardPage";
@@ -100,6 +100,14 @@ describe("dashboard operacional", () => {
     const f03Card = screen.getByTestId("dashboard-store-F03");
     expect(within(f03Card).getByText("2 / 5")).toBeInTheDocument();
     expect(within(f03Card).getByText("1 sem agenda")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Importar agenda" }));
+    expect(screen.getByRole("dialog", { name: "Importar agenda" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Fechar" }));
+    expect(
+      screen.queryByRole("dialog", { name: "Importar agenda" }),
+    ).not.toBeInTheDocument();
   });
 
 });

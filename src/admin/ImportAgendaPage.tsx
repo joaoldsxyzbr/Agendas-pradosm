@@ -27,7 +27,17 @@ function errorLabel(error: string) {
   return labels[code] ? `${labels[code]} (${error})` : error;
 }
 
-export function ImportAgendaPage() {
+type ImportAgendaPageProps = {
+  modal?: boolean;
+  onClose?: () => void;
+  onImported?: () => void;
+};
+
+export function ImportAgendaPage({
+  modal = false,
+  onClose,
+  onImported,
+}: ImportAgendaPageProps = {}) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParseAgendaResult | null>(null);
   const [loading, setLoading] = useState(false);
@@ -94,6 +104,7 @@ export function ImportAgendaPage() {
       setReplacePending(false);
       setSuccess(true);
       setMessage(replace ? "Agenda substituída com sucesso." : "Agenda importada com sucesso.");
+      onImported?.();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setReplacePending(true);
@@ -121,14 +132,23 @@ export function ImportAgendaPage() {
       !submitting,
   );
 
-  return (
-    <section className="admin-page">
-      <header className="page-heading">
+  const content = (
+    <div className="admin-page import-agenda-content">
+      <header className={modal ? "modal-heading" : "page-heading"}>
         <div>
           <span className="eyebrow">Agenda diária</span>
-          <h1>Importar agenda</h1>
+          {modal ? (
+            <h2 id="import-agenda-title">Importar agenda</h2>
+          ) : (
+            <h1 id="import-agenda-title">Importar agenda</h1>
+          )}
           <p>Selecione o PDF, confira a prévia e só então confirme a importação.</p>
         </div>
+        {modal ? (
+          <button className="ghost-button" type="button" onClick={onClose}>
+            Fechar
+          </button>
+        ) : null}
       </header>
 
       <div className="upload-card">
@@ -260,6 +280,27 @@ export function ImportAgendaPage() {
           ) : null}
         </div>
       ) : null}
-    </section>
+    </div>
+  );
+
+  if (!modal) return <section className="admin-page">{content}</section>;
+
+  return (
+    <div
+      className="modal-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose?.();
+      }}
+    >
+      <section
+        className="modal-card import-agenda-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="import-agenda-title"
+      >
+        {content}
+      </section>
+    </div>
   );
 }
