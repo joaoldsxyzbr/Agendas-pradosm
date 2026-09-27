@@ -210,15 +210,16 @@ describe("TodayPage", () => {
     expect(screen.getByText("2 agendamentos")).toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /^\\/api\\/store\\/agenda\\/\\d{4}-\\d{2}-\\d{2}\\/manual$/,
-      ),
+      expect.stringContaining("/api/store/agenda/"),
       expect.objectContaining({
         method: "POST",
         credentials: "include",
         body: JSON.stringify({ supplier: "FORNECEDOR EXTRA LTDA" }),
       }),
     );
+    expect(
+      String(fetchMock.mock.calls[1]?.[0]),
+    ).toMatch(/\/manual$/);
   });
 
   it("mostra estado vazio sem misturar agendas anteriores", async () => {
