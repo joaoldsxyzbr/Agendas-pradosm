@@ -65,14 +65,10 @@ function StoreLayout() {
             />
             <div>
               <strong>Agenda Prado</strong>
-              <span>Recebimento</span>
+              <span className="store-topbar-meta">
+                Recebimento · <strong>{user.nome}</strong> · {storeLabel}
+              </span>
             </div>
-          </div>
-
-          <div className="store-topbar-user">
-            <span>Conferente</span>
-            <strong>{user.nome}</strong>
-            <small>{storeLabel}</small>
           </div>
         </div>
 

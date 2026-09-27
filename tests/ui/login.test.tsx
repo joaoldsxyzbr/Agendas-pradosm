@@ -257,13 +257,13 @@ describe("login e rotas protegidas", () => {
     expect(screen.getByText("Loja 03")).toBeInTheDocument();
     const topbar = screen.getByText("Agenda Prado").closest("header");
     expect(topbar).toHaveTextContent("Agenda Prado");
-    expect(topbar).toHaveTextContent("Conferente");
     expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
       "Agenda Prado",
     );
-    expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
-      "Loja 03",
+    expect(topbar?.querySelector(".store-topbar-meta")).toHaveTextContent(
+      "Recebimento · Conferente · Loja 03",
     );
+    expect(topbar?.querySelector(".store-topbar-user")).toBeNull();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 

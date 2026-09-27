@@ -359,3 +359,35 @@
     text-align: center;
   }
 }
+
+
+@media (min-width: 981px) {
+  .store-topbar {
+    min-height: 68px;
+    padding-block: 0.65rem;
+  }
+
+  .store-topbar-left {
+    gap: 0;
+  }
+
+  .store-topbar-brand {
+    gap: 0.7rem;
+  }
+
+  .store-topbar-brand > div {
+    gap: 0.14rem;
+  }
+
+  .store-topbar-brand .store-topbar-meta {
+    font-size: 0.78rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .store-topbar-brand .store-topbar-meta strong {
+    color: var(--color-text);
+    font-size: inherit;
+    font-weight: 800;
+  }
+}
