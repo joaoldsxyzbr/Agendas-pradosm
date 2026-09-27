@@ -48,6 +48,15 @@ function addDays(value: string, amount: number) {
   return date.toISOString().slice(0, 10);
 }
 
+function formatCompletion(value: string | null | undefined) {
+  if (!value) return null;
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(new Date(value));
+}
+
 export function TodayPage() {
   const [today] = useState(businessDate);
   const [selectedDate, setSelectedDate] = useState(today);
@@ -60,8 +69,12 @@ export function TodayPage() {
   const [manualSupplier, setManualSupplier] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
+  const [completeConfirmOpen, setCompleteConfirmOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
 
   const isToday = selectedDate === today;
+  const isEditable = agenda?.agenda?.dayStatus === "aberto";
 
   useEffect(() => {
     let active = true;
@@ -72,6 +85,8 @@ export function TodayPage() {
     setSearchQuery("");
     setSelectedAppointmentId(null);
     setManualOpen(false);
+    setCompleteConfirmOpen(false);
+    setCompleteError(null);
 
     const endpoint = isToday
       ? "/api/store/today"
@@ -136,17 +151,20 @@ export function TodayPage() {
     event.preventDefault();
 
     const supplier = manualSupplier.trim();
-    if (!supplier || manualSaving || !isToday) return;
+    if (!supplier || manualSaving || !isEditable) return;
 
     setManualSaving(true);
     setManualError(null);
 
     try {
-      const created = await apiFetch<StoreAppointment>("/api/store/today/manual", {
+      const created = await apiFetch<StoreAppointment>(
+        `/api/store/agenda/${selectedDate}/manual`,
+        {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ supplier }),
-      });
+        },
+      );
 
       setAgenda((current) => {
         if (!current) return current;
@@ -175,7 +193,7 @@ export function TodayPage() {
   }
 
   function statusChanged(updated: StoreAppointment) {
-    if (!isToday) return;
+    if (!isEditable) return;
 
     setAgenda((current) => {
       if (!current) return current;
@@ -186,6 +204,32 @@ export function TodayPage() {
         ),
       };
     });
+  }
+
+  async function completeDay() {
+    if (!agenda?.agenda || !isEditable || completing) return;
+
+    setCompleting(true);
+    setCompleteError(null);
+    try {
+      const updated = await apiFetch<NonNullable<StoreAgenda["agenda"]>>(
+        `/api/store/agenda/${selectedDate}/complete`,
+        { method: "POST" },
+      );
+
+      setAgenda((current) =>
+        current ? { ...current, agenda: updated } : current,
+      );
+      setCompleteConfirmOpen(false);
+    } catch (completeDayError) {
+      setCompleteError(
+        completeDayError instanceof ApiError
+          ? completeDayError.message
+          : "Não foi possível concluir o dia.",
+      );
+    } finally {
+      setCompleting(false);
+    }
   }
 
   const total = appointments.length;
@@ -247,10 +291,27 @@ export function TodayPage() {
 
         <div className="agenda-date-context">
           <div>
-            <span>{isToday ? "Hoje" : "Consulta"}</span>
+            <span>{isToday ? "Hoje" : "Agenda"}</span>
             <strong>{formatDate(selectedDate)}</strong>
-            <small>{isToday ? "Operação do dia" : "Somente leitura"}</small>
+            <small>
+              {agenda?.agenda
+                ? isEditable
+                  ? "Em aberto"
+                  : "Concluído"
+                : "Sem agenda"}
+            </small>
           </div>
+
+          {agenda?.agenda && isEditable ? (
+            <button
+              className="primary-button"
+              type="button"
+              onClick={() => setCompleteConfirmOpen(true)}
+            >
+              Concluir dia
+            </button>
+          ) : null}
+
           {!isToday ? (
             <button
               className="ghost-button"
@@ -283,6 +344,16 @@ export function TodayPage() {
 
       {!loading && !error && agenda?.agenda ? (
         <>
+          {!isEditable && agenda.agenda.completedAt ? (
+            <div className="agenda-completed-banner">
+              <strong>Dia concluído</strong>
+              <span>
+                {agenda.agenda.completedBy?.name ?? "Usuário"} em{" "}
+                {formatCompletion(agenda.agenda.completedAt)}
+              </span>
+            </div>
+          ) : null}
+
           <section className="store-summary" aria-label="Resumo da agenda">
             <div><strong>{total} {total === 1 ? "agendamento" : "agendamentos"}</strong><span>Total</span></div>
             <div><strong>{aguardando} aguardando</strong><span>Pendentes</span></div>
@@ -304,7 +375,7 @@ export function TodayPage() {
               />
             </label>
 
-            {isToday ? (
+            {isEditable ? (
               <button
                 className="primary-button agenda-manual-button"
                 type="button"
@@ -318,9 +389,9 @@ export function TodayPage() {
           {filteredAppointments.length > 0 ? (
             <AgendaList
               appointments={filteredAppointments}
-              onChanged={isToday ? statusChanged : undefined}
-              onOpen={!isToday ? setSelectedAppointmentId : undefined}
-              editable={isToday}
+              onChanged={isEditable ? statusChanged : undefined}
+              onOpen={!isEditable ? setSelectedAppointmentId : undefined}
+              editable={isEditable}
             />
           ) : (
             <div className="empty-panel agenda-search-empty">
@@ -328,7 +399,7 @@ export function TodayPage() {
             </div>
           )}
 
-          {!isToday ? (
+          {!isEditable ? (
             <AgendaDetails
               appointmentId={selectedAppointmentId}
               onClose={() => setSelectedAppointmentId(null)}
@@ -337,7 +408,48 @@ export function TodayPage() {
         </>
       ) : null}
 
-      {manualOpen && isToday && agenda?.agenda ? (
+      {completeConfirmOpen && agenda?.agenda ? (
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal-card manual-supplier-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="complete-day-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">Fechamento</span>
+                <h2 id="complete-day-title">Concluir dia</h2>
+              </div>
+            </div>
+            <p>
+              Depois de concluir, a agenda ficará somente para consulta até que
+              um administrador a reabra.
+            </p>
+            {completeError ? <p className="form-error">{completeError}</p> : null}
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={completing}
+                onClick={() => setCompleteConfirmOpen(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={completing}
+                onClick={() => void completeDay()}
+              >
+                {completing ? "Concluindo..." : "Concluir dia"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {manualOpen && isEditable && agenda?.agenda ? (
         <div className="modal-backdrop" role="presentation">
           <div
             className="modal-card manual-supplier-modal"

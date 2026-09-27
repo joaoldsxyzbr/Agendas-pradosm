@@ -61,3 +61,23 @@
     min-width: 210px;
   }
 }
+
+
+.agenda-completed-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+
+.agenda-completed-banner strong {
+  color: var(--color-accent-strong);
+}
+
+.agenda-completed-banner span {
+  color: var(--color-text-soft);
+  font-size: 0.82rem;
+}

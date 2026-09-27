@@ -53,6 +53,9 @@ function agendaBody(appointments = [
       storeName: "LOJA 03",
       date: "2026-09-24",
       originalFileName: "agenda.pdf",
+      dayStatus: "aberto",
+      completedAt: null,
+      completedBy: null,
     },
     appointments,
   };
@@ -207,7 +210,7 @@ describe("TodayPage", () => {
     expect(screen.getByText("2 agendamentos")).toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/today/manual",
+      "/api/store/agenda/2026-09-24/manual",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -362,7 +365,7 @@ describe("TodayPage", () => {
 });
 
 describe("seletor de data da agenda", () => {
-  it("abre um dia anterior na mesma tela e deixa a agenda somente para consulta", async () => {
+  it("abre um dia anterior na mesma tela e permite editar quando estiver aberto", async () => {
     const historical = {
       agenda: {
         id: "agenda-history-old",
@@ -370,6 +373,9 @@ describe("seletor de data da agenda", () => {
         storeName: "LOJA 03",
         date: "2026-09-24",
         originalFileName: "agenda.pdf",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
       },
       appointments: [
         {
@@ -405,16 +411,57 @@ describe("seletor de data da agenda", () => {
     expect(
       (await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length,
     ).toBeGreaterThan(0);
-    expect(screen.getByText("Somente leitura")).toBeInTheDocument();
+    expect(screen.getByText("Em aberto")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button", { name: "Recebido" }).length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.queryByRole("button", { name: "Ver detalhes" }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/history/2026-09-24",
+      expect.objectContaining({ credentials: "include" }),
+    );
+  });
+
+  it("conclui o dia e bloqueia a edição na tela", async () => {
+    const closedAgenda = {
+      ...agendaBody([appointment("appt-close", "08:00")]).agenda,
+      dayStatus: "concluido",
+      completedAt: "2026-09-27T20:00:00.000Z",
+      completedBy: { id: "user-1", name: "Gabriel" },
+    };
+
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() =>
+        json(200, agendaBody([appointment("appt-close", "08:00")])),
+      )
+      .mockImplementationOnce(() => json(200, closedAgenda));
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Concluir dia" }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Concluir dia" });
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Concluir dia" }),
+    );
+
+    expect(await screen.findByText("Dia concluído")).toBeInTheDocument();
+    expect(screen.getByText(/Gabriel em/)).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Recebido" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getAllByRole("button", { name: "Ver detalhes" }).length,
-    ).toBeGreaterThan(0);
+      screen.queryByRole("button", { name: /Fornecedor sem agenda/ }),
+    ).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/store/history/2026-09-24",
-      expect.objectContaining({ credentials: "include" }),
+      expect.stringContaining("/api/store/agenda/"),
+      expect.objectContaining({ method: "POST", credentials: "include" }),
     );
   });
 
