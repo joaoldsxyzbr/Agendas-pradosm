@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { AdminLayout } from "../../src/admin/AdminLayout";
@@ -44,7 +44,7 @@ describe("navegação administrativa", () => {
     expect(screen.getAllByRole("link")).toHaveLength(8);
   });
 
-  it("abre Importar agenda em modal no Dashboard", () => {
+  it("abre Importar agenda em modal no Dashboard", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -75,10 +75,10 @@ describe("navegação administrativa", () => {
       screen.queryByRole("dialog", { name: "Importar agenda" }),
     ).not.toBeInTheDocument();
 
-    button.click();
+    fireEvent.click(button);
 
     expect(
-      screen.getByRole("dialog", { name: "Importar agenda" }),
+      await screen.findByRole("dialog", { name: "Importar agenda" }),
     ).toBeInTheDocument();
   });
 });
