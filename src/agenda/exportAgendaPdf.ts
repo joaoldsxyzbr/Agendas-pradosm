@@ -3,14 +3,13 @@ import type { StoreAgenda, StoreAppointment } from "./types";
 type AgendaMeta = NonNullable<StoreAgenda["agenda"]>;
 
 type PdfRow = {
-  protocol: string[];
   agendaDate: string[];
   supplier: string[];
+  status: string[];
   type: string[];
   nfe: string[];
   orders: string[];
   exchanges: string[];
-  status: string;
   statusColor: string;
   height: number;
 };
@@ -39,13 +38,13 @@ const STATUS_COLORS: Record<StoreAppointment["status"], string> = {
 };
 
 const COLUMNS = [
-  { key: "protocol", label: "Protocolo", width: 58 },
   { key: "agendaDate", label: "Data agenda", width: 78 },
-  { key: "supplier", label: "Fornecedor", width: 198 },
+  { key: "supplier", label: "Fornecedor", width: 205 },
+  { key: "status", label: "Status", width: 64 },
   { key: "type", label: "Tipo", width: 52 },
   { key: "nfe", label: "N° NFe", width: 58 },
-  { key: "orders", label: "Pedidos", width: 49 },
-  { key: "exchanges", label: "Trocas", width: 50 },
+  { key: "orders", label: "Pedidos", width: 46 },
+  { key: "exchanges", label: "Trocas", width: 40 },
 ] as const;
 
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
@@ -130,14 +129,14 @@ function layoutRow(
   appointment: StoreAppointment,
   agendaDate: string,
 ): PdfRow {
-  const protocol = [appointment.protocol];
   const date = [
     agendaDate,
     appointment.origin === "manual"
       ? appointment.startTime
       : `${appointment.startTime} às ${appointment.endTime}`,
   ];
-  const supplier = wrapText(appointment.supplier, COLUMNS[2].width - 6);
+  const supplier = wrapText(appointment.supplier, COLUMNS[1].width - 6);
+  const status = [STATUS_LABELS[appointment.status]];
   const type = wrapText(appointment.type ?? "-", COLUMNS[3].width - 6);
   const nfe = wrapText(
     appointment.nfe.length ? appointment.nfe.join(", ") : "-",
@@ -150,9 +149,9 @@ function layoutRow(
   const exchanges = [appointment.hasExchanges ? "Sim" : "Não"];
 
   const lineCount = Math.max(
-    protocol.length,
     date.length,
-    supplier.length + 1,
+    supplier.length,
+    status.length,
     type.length,
     nfe.length,
     orders.length,
@@ -160,14 +159,13 @@ function layoutRow(
   );
 
   return {
-    protocol,
     agendaDate: date,
     supplier,
+    status,
     type,
     nfe,
     orders,
     exchanges,
-    status: STATUS_LABELS[appointment.status],
     statusColor: STATUS_COLORS[appointment.status],
     height: Math.max(19, lineCount * ROW_LINE_HEIGHT + 6),
   };
@@ -353,22 +351,11 @@ function tableRows(rows: PdfRow[]) {
           x + 3,
           rowTop - 9 - index * ROW_LINE_HEIGHT,
           cellLine,
-          ROW_FONT_SIZE,
-          "F1",
-          "0.12 0.12 0.14",
+          column.key === "status" ? 5.8 : ROW_FONT_SIZE,
+          column.key === "status" ? "F2" : "F1",
+          column.key === "status" ? row.statusColor : "0.12 0.12 0.14",
         );
       });
-
-      if (column.key === "supplier") {
-        content += textCommand(
-          x + 3,
-          rowTop - 9 - row.supplier.length * ROW_LINE_HEIGHT,
-          row.status,
-          5.8,
-          "F2",
-          row.statusColor,
-        );
-      }
 
       content += line(
         x,

@@ -102,9 +102,9 @@ describe("agenda PDF export", () => {
     expect(text).toContain("Total: 4");
 
     for (const header of [
-      "Protocolo",
       "Data agenda",
       "Fornecedor",
+      "Status",
       "Tipo",
       "N° NFe",
       "Pedidos",
@@ -114,11 +114,11 @@ describe("agenda PDF export", () => {
     }
 
     for (const removedHeader of [
+      "Protocolo",
       "Itens",
       "Vol.",
       "Paletes",
       "Carga batida",
-      "Status",
     ]) {
       expect(text).not.toContain(`(${removedHeader}) Tj`);
     }
@@ -140,7 +140,7 @@ describe("agenda PDF export", () => {
     expect(text).toContain("0.71 0.14 0.09 rg");
   });
 
-  it("posiciona o status abaixo do fornecedor sem sobrepor nomes longos", () => {
+  it("posiciona Status em coluna própria antes de Tipo", () => {
     const bytes = buildAgendaPdf(
       {
         id: "agenda-1",
@@ -161,29 +161,13 @@ describe("agenda PDF export", () => {
     );
 
     const text = new TextDecoder("windows-1252").decode(bytes);
-    const commands = [
-      ...text.matchAll(
-        /1 0 0 1 ([0-9.]+) ([0-9.]+) Tm \(([^)]*)\) Tj ET/g,
-      ),
-    ].map((match) => ({
-      x: Number(match[1]),
-      y: Number(match[2]),
-      value: match[3],
-    }));
+    const statusHeader = text.indexOf("(Status) Tj");
+    const typeHeader = text.indexOf("(Tipo) Tj");
 
-    const supplierCommands = commands.filter((command) =>
-      ["LACTALIS", "COMERCIO", "DISTRIBUICAO", "ALIMENTOS", "LTDA."].some(
-        (word) => command.value.includes(word),
-      ),
-    );
-    const statusCommand = commands.find((command) => command.value === "Recusado");
-
-    expect(supplierCommands.length).toBeGreaterThan(0);
-    expect(statusCommand).toBeDefined();
-    expect(statusCommand!.x).toBe(supplierCommands[0].x);
-    expect(statusCommand!.y).toBeLessThan(
-      Math.min(...supplierCommands.map((command) => command.y)),
-    );
+    expect(text).not.toContain("(Protocolo) Tj");
+    expect(statusHeader).toBeGreaterThan(-1);
+    expect(typeHeader).toBeGreaterThan(statusHeader);
+    expect(text).toContain("(Recusado) Tj");
   });
 
   it("inclui fornecedor manual no PDF com horário único", () => {
