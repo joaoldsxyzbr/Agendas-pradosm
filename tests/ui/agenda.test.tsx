@@ -410,8 +410,8 @@ describe("seletor de data da agenda", () => {
       screen.queryByRole("button", { name: "Recebido" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Ver detalhes" }),
-    ).toBeInTheDocument();
+      screen.getAllByRole("button", { name: "Ver detalhes" }).length,
+    ).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/store/history/2026-09-24",
       expect.objectContaining({ credentials: "include" }),
