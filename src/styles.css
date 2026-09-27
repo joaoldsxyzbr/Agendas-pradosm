@@ -425,6 +425,82 @@ button {
   padding: 2rem;
 }
 
+.store-shell {
+  min-height: 100vh;
+}
+
+.store-topbar {
+  min-height: 76px;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto minmax(240px, 1fr);
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.8rem 2rem;
+  border-bottom: 1px solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.store-topbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.store-topbar-brand > div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.store-topbar-brand strong {
+  color: var(--color-text);
+  font-size: 1rem;
+}
+
+.store-topbar-brand span {
+  color: var(--color-text-soft);
+  font-size: 0.76rem;
+}
+
+.store-topbar-user {
+  min-width: 220px;
+  display: grid;
+  justify-items: center;
+  gap: 0.08rem;
+  text-align: center;
+}
+
+.store-topbar-user > span {
+  color: var(--color-text-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.store-topbar-user strong {
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+
+.store-topbar-user small {
+  color: var(--color-accent-strong);
+  font-size: 0.76rem;
+  font-weight: 750;
+}
+
+.store-topbar-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.store-content {
+  width: min(100%, 1320px);
+  margin: 0 auto;
+  padding: 2rem;
+}
+
 .page-panel {
   min-height: 260px;
   padding: 2rem;

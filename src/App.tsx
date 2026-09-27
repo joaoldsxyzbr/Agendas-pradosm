@@ -1,7 +1,6 @@
 import {
   BrowserRouter,
   Navigate,
-  NavLink,
   Outlet,
   Route,
   Routes,
@@ -21,10 +20,6 @@ import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
-const STORE_NAV = [
-  { to: "/app", label: "Hoje", end: true },
-  { to: "/app/history", label: "Histórico" },
-];
 
 function PlaceholderPage({
   title,
@@ -59,80 +54,38 @@ function StoreLayout() {
   }
 
   return (
-    <div className="app-frame">
-      <aside className="sidebar">
-        <div className="sidebar-brand">
+    <div className="store-shell">
+      <header className="store-topbar">
+        <div className="store-topbar-brand">
           <img
             className="brand-icon small"
             src="/agenda-prado-icon.svg"
             alt=""
             aria-hidden="true"
           />
-          <div className="sidebar-brand-copy">
-            <strong>Agenda Prado</strong>
-            <span className="conferente-name">{user.nome}</span>
-            <small className="conferente-store">{storeLabel}</small>
-          </div>
-        </div>
-
-        <nav className="side-nav" aria-label="Navegação principal">
-          {STORE_NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? "nav-link active" : "nav-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="sidebar-footer-actions">
-            <ThemeToggle />
-            <button className="ghost-button" type="button" onClick={handleLogout}>
-              Sair
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      <div className="content-shell">
-        <header className="mobile-header">
           <div>
             <strong>Agenda Prado</strong>
-            <span>{user.nome} · {storeLabel}</span>
+            <span>Recebimento</span>
           </div>
-          <div className="mobile-header-actions">
-            <ThemeToggle />
-            <button className="ghost-button" type="button" onClick={handleLogout}>
-              Sair
-            </button>
-          </div>
-        </header>
+        </div>
 
-        <nav className="mobile-nav" aria-label="Navegação principal">
-          {STORE_NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? "nav-link active" : "nav-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+        <div className="store-topbar-user">
+          <span>Conferente</span>
+          <strong>{user.nome}</strong>
+          <small>{storeLabel}</small>
+        </div>
 
-        <main className="app-content">
-          <Outlet />
-        </main>
-      </div>
+        <div className="store-topbar-actions">
+          <ThemeToggle />
+          <button className="ghost-button" type="button" onClick={handleLogout}>
+            Sair
+          </button>
+        </div>
+      </header>
+
+      <main className="store-content">
+        <Outlet />
+      </main>
     </div>
   );
 }

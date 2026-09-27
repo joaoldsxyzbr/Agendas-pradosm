@@ -255,6 +255,9 @@ describe("login e rotas protegidas", () => {
       await screen.findByRole("heading", { name: "Agenda de hoje" }),
     ).toBeInTheDocument();
     expect(screen.getByText("Loja 03")).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveTextContent("Agenda Prado");
+    expect(screen.getByRole("banner")).toHaveTextContent("Conferente");
+    expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 
   it("redireciona perfil incorreto sem renderizar conteúdo protegido", async () => {
