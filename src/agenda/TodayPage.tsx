@@ -240,15 +240,9 @@ export function TodayPage() {
 
   return (
     <section className="store-page">
-      <header className="page-heading">
-        <div>
-          <span className="eyebrow">Recebimento</span>
-          <h1>Agenda de recebimento</h1>
-          <p>Selecione o dia e acompanhe os recebimentos da unidade.</p>
-        </div>
-      </header>
+      <h1 className="sr-only">Agenda de recebimento</h1>
 
-      <section className="agenda-date-bar" aria-label="Selecionar dia da agenda">
+      <section className="agenda-command-bar" aria-label="Selecionar dia da agenda">
         <div className="agenda-date-controls">
           <button
             className="ghost-button agenda-date-step"
@@ -260,7 +254,7 @@ export function TodayPage() {
           </button>
 
           <label className="agenda-date-field">
-            <span>Data da agenda</span>
+            <span className="sr-only">Data da agenda</span>
             <input
               type="date"
               aria-label="Data da agenda"
@@ -279,36 +273,40 @@ export function TodayPage() {
           </button>
         </div>
 
-        <div className="agenda-date-context">
-          <div>
-            <span>{isToday ? "Hoje" : "Agenda"}</span>
-            <strong>{formatDate(selectedDate)}</strong>
-            <small>
-              {agenda?.agenda
-                ? isEditable
-                  ? "Em aberto"
-                  : "Concluído"
-                : "Sem agenda"}
-            </small>
-          </div>
+        <div className="agenda-command-actions">
+          <span
+            className={`agenda-day-chip ${
+              !agenda?.agenda
+                ? "empty"
+                : isEditable
+                  ? "open"
+                  : "closed"
+            }`}
+          >
+            {!agenda?.agenda
+              ? "Sem agenda"
+              : isEditable
+                ? "Em aberto"
+                : "Concluído"}
+          </span>
+
+          {!isToday ? (
+            <button
+              className="ghost-button agenda-today-button"
+              type="button"
+              onClick={() => setSelectedDate(today)}
+            >
+              Hoje
+            </button>
+          ) : null}
 
           {agenda?.agenda && isEditable ? (
             <button
-              className="primary-button"
+              className="primary-button agenda-complete-button"
               type="button"
               onClick={() => setCompleteConfirmOpen(true)}
             >
               Concluir dia
-            </button>
-          ) : null}
-
-          {!isToday ? (
-            <button
-              className="ghost-button"
-              type="button"
-              onClick={() => setSelectedDate(today)}
-            >
-              Voltar para hoje
             </button>
           ) : null}
 
@@ -354,12 +352,12 @@ export function TodayPage() {
             </div>
           ) : null}
 
-          <section className="store-summary" aria-label="Resumo da agenda">
-            <div><strong>{total} {total === 1 ? "agendamento" : "agendamentos"}</strong><span>Total</span></div>
-            <div><strong>{aguardando} aguardando</strong><span>Pendentes</span></div>
-            <div><strong>{recebido} {recebido === 1 ? "recebido" : "recebidos"}</strong><span>Recebidos</span></div>
-            <div><strong>{naoChegou} {naoChegou === 1 ? "não recebido" : "não recebidos"}</strong><span>Não recebidos</span></div>
-            <div><strong>{trocas} {trocas === 1 ? "com troca" : "com trocas"}</strong><span>Trocas</span></div>
+          <section className="agenda-metrics" aria-label="Resumo da agenda">
+            <span><strong>{total}</strong> total</span>
+            <span><strong>{aguardando}</strong> aguardando</span>
+            <span><strong>{recebido}</strong> recebidos</span>
+            <span><strong>{naoChegou}</strong> não recebidos</span>
+            <span><strong>{trocas}</strong> trocas</span>
           </section>
 
           <div className="agenda-toolbar">

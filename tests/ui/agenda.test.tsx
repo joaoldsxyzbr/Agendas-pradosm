@@ -88,15 +88,19 @@ describe("TodayPage", () => {
 
     render(<TodayPage />);
 
-    expect(await screen.findByText("4 agendamentos")).toBeInTheDocument();
+    expect(await screen.findByText("4 total")).toBeInTheDocument();
     expect(screen.getByText("1 aguardando")).toBeInTheDocument();
-    expect(screen.getByText("1 recebido")).toBeInTheDocument();
-    expect(screen.getByText("1 não recebido")).toBeInTheDocument();
-    expect(screen.getByText("0 com trocas")).toBeInTheDocument();
+    expect(screen.getByText("1 recebidos")).toBeInTheDocument();
+    expect(screen.getByText("1 não recebidos")).toBeInTheDocument();
+    expect(screen.getByText("0 trocas")).toBeInTheDocument();
+
+    expect(
+      screen.getByRole("heading", { name: "Agenda de recebimento" }),
+    ).toHaveClass("sr-only");
 
     const exportButton = screen.getByRole("button", { name: "Exportar PDF" });
     expect(exportButton).toBeInTheDocument();
-    expect(exportButton.closest(".agenda-date-bar")).not.toBeNull();
+    expect(exportButton.closest(".agenda-command-bar")).not.toBeNull();
 
     const manualButton = screen.getByRole("button", {
       name: /Fornecedor sem agenda/,
@@ -207,7 +211,7 @@ describe("TodayPage", () => {
 
     expect((await screen.findAllByText("FORNECEDOR EXTRA LTDA")).length).toBeGreaterThan(0);
     expect(screen.getAllByText("Sem agenda").length).toBeGreaterThan(0);
-    expect(screen.getByText("2 agendamentos")).toBeInTheDocument();
+    expect(screen.getByText("2 total")).toBeInTheDocument();
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/store/agenda/"),
