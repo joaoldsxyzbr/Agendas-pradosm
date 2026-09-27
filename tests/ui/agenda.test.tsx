@@ -107,6 +107,7 @@ describe("TodayPage", () => {
       name: /Fornecedor sem agenda/,
     });
     expect(manualButton.closest(".agenda-toolbar")).not.toBeNull();
+    expect(manualButton).toHaveClass("ghost-button");
     expect(manualButton.closest("header")).toBeNull();
 
     expect(

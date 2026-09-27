@@ -375,7 +375,7 @@ export function TodayPage() {
 
             {isEditable ? (
               <button
-                className="primary-button agenda-manual-button"
+                className="ghost-button agenda-manual-button"
                 type="button"
                 onClick={openManualSupplier}
               >
