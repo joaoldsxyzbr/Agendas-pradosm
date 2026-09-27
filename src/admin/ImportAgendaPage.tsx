@@ -105,6 +105,7 @@ export function ImportAgendaPage({
       setSuccess(true);
       setMessage(replace ? "Agenda substituída com sucesso." : "Agenda importada com sucesso.");
       onImported?.();
+      if (modal) onClose?.();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setReplacePending(true);

@@ -117,6 +117,39 @@ describe("ImportAgendaPage", () => {
     expect(screen.getByText(/TOTAL_DIVERGENTE/)).toBeInTheDocument();
   });
 
+  it("fecha o modal após importação concluída com sucesso", async () => {
+    mockedExtract.mockResolvedValue("texto");
+    mockedParse.mockReturnValue(validResult());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ agenda: { id: "agenda-1" }, appointments: [] }), {
+          status: 201,
+          headers: { "Content-Type": "application/json" },
+        }),
+      ),
+    );
+    const onClose = vi.fn();
+    const onImported = vi.fn();
+
+    render(
+      <ImportAgendaPage modal onClose={onClose} onImported={onImported} />,
+    );
+
+    fireEvent.change(screen.getByLabelText("Arquivo PDF"), {
+      target: {
+        files: [new File(["pdf"], "agenda.pdf", { type: "application/pdf" })],
+      },
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Confirmar importação" }),
+    );
+
+    await waitFor(() => expect(onImported).toHaveBeenCalledTimes(1));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it("só envia replace=true após confirmação explícita de substituição", async () => {
     mockedExtract.mockResolvedValue("texto");
     mockedParse.mockReturnValue(validResult());
