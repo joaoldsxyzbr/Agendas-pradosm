@@ -627,3 +627,25 @@
   font-size: 0.75rem;
   font-weight: 800;
 }
+
+
+@media (min-width: 761px) {
+  .page-heading > .dashboard-header-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-left: auto;
+  }
+
+  .dashboard-date-controls {
+    flex: 0 0 auto;
+  }
+
+  .dashboard-import-action {
+    flex: 0 0 auto;
+    width: auto;
+  }
+}
