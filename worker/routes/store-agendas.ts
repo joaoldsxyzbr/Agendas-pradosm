@@ -9,6 +9,7 @@ import {
   changeAppointmentExchanges,
   changeAppointmentStatus,
   createManualAppointment,
+  findAgendaById,
   findAppointmentForStore,
   findStoreAgendaByDate,
   listAppointmentHistory,
@@ -149,10 +150,11 @@ storeAgendaRoutes.get("/today", async (c) => {
   return c.json(result);
 });
 
-storeAgendaRoutes.post("/today/manual", async (c) => {
-  const user = storeUser(c);
-  if (!user) return forbidden(c);
-
+async function createManualForDate(
+  c: Context<AppEnv>,
+  user: StoreAuthUser,
+  date: string,
+) {
   const parsed = ManualAppointmentInput.safeParse(
     await c.req.json().catch(() => null),
   );
@@ -166,18 +168,22 @@ storeAgendaRoutes.post("/today/manual", async (c) => {
     );
   }
 
-  const now = new Date();
-  const agenda = await findStoreAgendaByDate(
-    c.env.DB,
-    user.lojaId,
-    businessDate(now),
-  );
-
+  const agenda = await findStoreAgendaByDate(c.env.DB, user.lojaId, date);
   if (!agenda) {
     return c.json(
       {
         error: "AGENDA_NAO_DISPONIVEL",
-        message: "Não existe agenda importada para hoje.",
+        message: "Não existe agenda importada para esta data.",
+      },
+      409,
+    );
+  }
+
+  if (agenda.status_dia === "concluido") {
+    return c.json(
+      {
+        error: "DIA_CONCLUIDO",
+        message: "Este dia está concluído e não pode mais ser alterado.",
       },
       409,
     );
@@ -188,7 +194,7 @@ storeAgendaRoutes.post("/today/manual", async (c) => {
       c.env.DB,
       agenda.id,
       parsed.data.supplier,
-      businessTime(now),
+      businessTime(new Date()),
     );
 
     return c.json(appointmentJson(appointment), 201);
@@ -202,6 +208,27 @@ storeAgendaRoutes.post("/today/manual", async (c) => {
       500,
     );
   }
+}
+
+storeAgendaRoutes.post("/today/manual", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+  return createManualForDate(c, user, businessDate());
+});
+
+storeAgendaRoutes.post("/agenda/:date/manual", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+
+  const parsedDate = DateParam.safeParse(c.req.param("date"));
+  if (!parsedDate.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Data inválida." },
+      400,
+    );
+  }
+
+  return createManualForDate(c, user, parsedDate.data);
 });
 
 storeAgendaRoutes.post("/agenda/:date/complete", async (c) => {
@@ -275,6 +302,24 @@ storeAgendaRoutes.get("/history/:date", async (c) => {
   return c.json(result);
 });
 
+async function editableAgendaForAppointment(
+  db: D1Database,
+  appointment: AppointmentRecord,
+) {
+  const agenda = await findAgendaById(db, appointment.agenda_id);
+  return agenda?.status_dia === "aberto" ? agenda : null;
+}
+
+function concludedDay(c: Context<AppEnv>) {
+  return c.json(
+    {
+      error: "DIA_CONCLUIDO",
+      message: "Este dia está concluído e não pode mais ser alterado.",
+    },
+    409,
+  );
+}
+
 storeAppointmentRoutes.get("/:id", async (c) => {
   const user = storeUser(c);
   if (!user) return forbidden(c);
@@ -341,6 +386,10 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     );
   }
 
+  if (!(await editableAgendaForAppointment(c.env.DB, appointment))) {
+    return concludedDay(c);
+  }
+
   try {
     const updated = await changeAppointmentExchanges(
       c.env.DB,
@@ -388,6 +437,10 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
       },
       404,
     );
+  }
+
+  if (!(await editableAgendaForAppointment(c.env.DB, appointment))) {
+    return concludedDay(c);
   }
 
   try {

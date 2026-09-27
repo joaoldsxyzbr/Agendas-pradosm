@@ -435,6 +435,83 @@ describe("store agenda workflow", () => {
     ]);
   });
 
+  it("permite fornecedor sem agenda em dia anterior enquanto estiver aberto", async () => {
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-past",
+      storeCode: "F86",
+      userId: "user-manual-past",
+    });
+    await seedAgenda({
+      agendaId: "agenda-manual-past",
+      storeId: "store-manual-past",
+      creatorId: "user-manual-past",
+      date: "2026-09-18",
+    });
+
+    const response = await request(
+      "/api/store/agenda/2026-09-18/manual",
+      cookie,
+      { method: "POST", body: { supplier: "FORNECEDOR RETROATIVO" } },
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      supplier: "FORNECEDOR RETROATIVO",
+      status: "aguardando",
+    });
+  });
+
+  it("bloqueia alterações do conferente depois que o dia é concluído", async () => {
+    const userId = "user-closed-day";
+    const cookie = await seedStoreUser({
+      storeId: "store-closed-day",
+      storeCode: "F87",
+      userId,
+    });
+    await seedAgenda({
+      agendaId: "agenda-closed-day",
+      storeId: "store-closed-day",
+      creatorId: userId,
+      date: "2026-09-19",
+    });
+    await seedAppointment({
+      id: "appt-closed-day",
+      agendaId: "agenda-closed-day",
+      protocol: "97000001",
+      startTime: "08:00",
+    });
+
+    expect(
+      (
+        await request("/api/store/agenda/2026-09-19/complete", cookie, {
+          method: "POST",
+        })
+      ).status,
+    ).toBe(200);
+
+    const status = await request(
+      "/api/store/appointments/appt-closed-day/status",
+      cookie,
+      { method: "PATCH", body: { status: "recebido" } },
+    );
+    expect(status.status).toBe(409);
+    expect(await status.json()).toMatchObject({ error: "DIA_CONCLUIDO" });
+
+    const exchanges = await request(
+      "/api/store/appointments/appt-closed-day/exchanges",
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } },
+    );
+    expect(exchanges.status).toBe(409);
+
+    const manual = await request(
+      "/api/store/agenda/2026-09-19/manual",
+      cookie,
+      { method: "POST", body: { supplier: "BLOQUEADO" } },
+    );
+    expect(manual.status).toBe(409);
+  });
+
   it("marca e desmarca trocas sem alterar o status", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-exchanges-a",
