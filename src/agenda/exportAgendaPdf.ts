@@ -9,6 +9,7 @@ type PdfRow = {
   type: string[];
   nfe: string[];
   orders: string[];
+  exchanges: string[];
   status: string;
   statusColor: string;
   height: number;
@@ -26,7 +27,7 @@ const ROW_LINE_HEIGHT = 7.4;
 const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
   aguardando: "Aguardando",
   recebido: "Recebido",
-  nao_chegou: "Não chegou",
+  nao_chegou: "Não recebido",
   recusado: "Recusado",
 };
 
@@ -40,10 +41,11 @@ const STATUS_COLORS: Record<StoreAppointment["status"], string> = {
 const COLUMNS = [
   { key: "protocol", label: "Protocolo", width: 58 },
   { key: "agendaDate", label: "Data agenda", width: 78 },
-  { key: "supplier", label: "Fornecedor", width: 238 },
-  { key: "type", label: "Tipo", width: 55 },
-  { key: "nfe", label: "N° NFe", width: 64 },
-  { key: "orders", label: "Pedidos", width: 50 },
+  { key: "supplier", label: "Fornecedor", width: 198 },
+  { key: "type", label: "Tipo", width: 52 },
+  { key: "nfe", label: "N° NFe", width: 58 },
+  { key: "orders", label: "Pedidos", width: 49 },
+  { key: "exchanges", label: "Trocas", width: 50 },
 ] as const;
 
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
@@ -145,6 +147,7 @@ function layoutRow(
     appointment.orders.length ? appointment.orders.join(", ") : "-",
     COLUMNS[5].width - 6,
   );
+  const exchanges = [appointment.hasExchanges ? "Sim" : "Não"];
 
   const lineCount = Math.max(
     protocol.length,
@@ -153,6 +156,7 @@ function layoutRow(
     type.length,
     nfe.length,
     orders.length,
+    exchanges.length,
   );
 
   return {
@@ -162,6 +166,7 @@ function layoutRow(
     type,
     nfe,
     orders,
+    exchanges,
     status: STATUS_LABELS[appointment.status],
     statusColor: STATUS_COLORS[appointment.status],
     height: Math.max(19, lineCount * ROW_LINE_HEIGHT + 6),
@@ -257,7 +262,25 @@ function pageHeader(
     6.5,
     "F2",
   );
-  content += textCommand(190, 801, "Busca:", 6.5, "F1");
+  const dayStatus =
+    agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto";
+  content += textCommand(
+    190,
+    801,
+    `Status do dia: ${dayStatus}`,
+    6.5,
+    "F2",
+    agenda.dayStatus === "concluido" ? "0.09 0.48 0.31" : "0.55 0.38 0.00",
+  );
+  if (agenda.dayStatus === "concluido" && agenda.completedBy?.name) {
+    content += textCommand(
+      305,
+      801,
+      `Concluído por: ${agenda.completedBy.name}`,
+      6.2,
+      "F1",
+    );
+  }
   content += textCommand(503, 795, `Total: ${total}`, 10.5, "F2");
 
   content += line(MARGIN, 786, PAGE_WIDTH - MARGIN, 786, "0.16 0.16 0.18", 1.2);

@@ -17,6 +17,7 @@ const appointments: StoreAppointment[] = [
     nfe: [],
     orders: [],
     status: "recebido",
+    hasExchanges: true,
     ativo: true,
   },
   {
@@ -33,6 +34,7 @@ const appointments: StoreAppointment[] = [
     nfe: [],
     orders: [],
     status: "nao_chegou",
+    hasExchanges: false,
     ativo: true,
   },
   {
@@ -49,6 +51,7 @@ const appointments: StoreAppointment[] = [
     nfe: [],
     orders: [],
     status: "aguardando",
+    hasExchanges: false,
     ativo: true,
   },
   {
@@ -65,6 +68,7 @@ const appointments: StoreAppointment[] = [
     nfe: ["93469"],
     orders: ["17126"],
     status: "recusado",
+    hasExchanges: false,
     ativo: true,
   },
 ];
@@ -77,6 +81,9 @@ describe("agenda PDF export", () => {
         storeCode: "F08",
         storeName: "PORTO BELO",
         date: "2026-09-25",
+        dayStatus: "concluido",
+        completedAt: "2026-09-25T20:00:00.000Z",
+        completedBy: { id: "u1", name: "Conferente" },
       },
       appointments,
     );
@@ -90,7 +97,8 @@ describe("agenda PDF export", () => {
     expect(text).toContain(
       "Filtros: Dia: 25/09/2026 | Filiais: F08 - PORTO BELO | Doca: Todas",
     );
-    expect(text).toContain("Busca:");
+    expect(text).toContain("Status do dia: Concluído");
+    expect(text).toContain("Concluído por: Conferente");
     expect(text).toContain("Total: 4");
 
     for (const header of [
@@ -100,6 +108,7 @@ describe("agenda PDF export", () => {
       "Tipo",
       "N° NFe",
       "Pedidos",
+      "Trocas",
     ]) {
       expect(text).toContain(header);
     }
@@ -121,9 +130,11 @@ describe("agenda PDF export", () => {
     expect(text).toContain("93469");
     expect(text).toContain("17126");
     expect(text).toContain("Recebido");
-    expect(text).toContain("Não chegou");
+    expect(text).toContain("Não recebido");
     expect(text).toContain("Aguardando");
     expect(text).toContain("Recusado");
+    expect(text).toContain("Sim");
+    expect(text).toContain("Não");
     expect(text).toContain("0.09 0.48 0.31 rg");
     expect(text).toContain("0.55 0.38 0.00 rg");
     expect(text).toContain("0.71 0.14 0.09 rg");
@@ -136,6 +147,9 @@ describe("agenda PDF export", () => {
         storeCode: "F08",
         storeName: "PORTO BELO",
         date: "2026-09-25",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
       },
       [
         {
@@ -179,6 +193,9 @@ describe("agenda PDF export", () => {
         storeCode: "F08",
         storeName: "PORTO BELO",
         date: "2026-09-25",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
       },
       [
         {
@@ -209,6 +226,9 @@ describe("agenda PDF export", () => {
         storeCode: "F08",
         storeName: "PORTO BELO",
         date: "2026-09-25",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
       }),
     ).toBe("agenda-F08-25-09-2026.pdf");
   });
