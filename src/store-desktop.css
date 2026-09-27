@@ -1,0 +1,46 @@
+@media (min-width: 981px) {
+  .store-content {
+    width: 100%;
+    margin: 0;
+    padding: 2rem clamp(1.5rem, 3vw, 3.5rem) 2.5rem;
+  }
+
+  .store-page,
+  .store-summary,
+  .agenda-toolbar,
+  .agenda-desktop {
+    width: 100%;
+  }
+
+  .agenda-desktop table {
+    table-layout: auto;
+  }
+
+  .agenda-desktop th,
+  .agenda-desktop td {
+    padding: 0.58rem 0.72rem;
+  }
+
+  .agenda-desktop th:nth-child(1),
+  .agenda-desktop td:nth-child(1),
+  .agenda-desktop th:nth-child(3),
+  .agenda-desktop td:nth-child(3),
+  .agenda-desktop th:nth-child(4),
+  .agenda-desktop td:nth-child(4),
+  .agenda-desktop th:nth-child(5),
+  .agenda-desktop td:nth-child(5),
+  .agenda-desktop th:nth-child(7),
+  .agenda-desktop td:nth-child(7) {
+    white-space: nowrap;
+  }
+
+  .agenda-desktop th:nth-child(2),
+  .agenda-desktop td:nth-child(2) {
+    width: 34%;
+  }
+
+  .agenda-desktop th:nth-child(6),
+  .agenda-desktop td:nth-child(6) {
+    min-width: 210px;
+  }
+}
