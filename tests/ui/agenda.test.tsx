@@ -377,6 +377,33 @@ describe("TodayPage", () => {
 });
 
 describe("seletor de data da agenda", () => {
+
+  it("abre calendário próprio e permite navegar entre meses", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json(200, agendaBody([appointment("appt-today", "08:00")]))),
+    );
+
+    render(<TodayPage />);
+    await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Data da agenda" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Calendário da agenda" }),
+    ).toBeInTheDocument();
+
+    const currentMonth = screen.getByRole("dialog", {
+      name: "Calendário da agenda",
+    });
+    expect(currentMonth).toHaveTextContent("setembro de 2026");
+
+    fireEvent.click(screen.getByRole("button", { name: "Próximo mês" }));
+    expect(currentMonth).toHaveTextContent("outubro de 2026");
+  });
+
   it("abre um dia anterior na mesma tela e permite editar quando estiver aberto", async () => {
     const historical = {
       agenda: {
@@ -416,9 +443,10 @@ describe("seletor de data da agenda", () => {
       name: "Pesquisar fornecedor ou protocolo",
     });
 
-    fireEvent.change(screen.getByLabelText("Data da agenda"), {
-      target: { value: "2026-09-24" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Data da agenda" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "24 de setembro de 2026" }),
+    );
 
     expect(
       (await screen.findAllByText("FORNECEDOR ANTIGO LTDA")).length,
@@ -496,9 +524,10 @@ describe("seletor de data da agenda", () => {
       name: "Pesquisar fornecedor ou protocolo",
     });
 
-    fireEvent.change(screen.getByLabelText("Data da agenda"), {
-      target: { value: "2026-09-23" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Data da agenda" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "23 de setembro de 2026" }),
+    );
 
     expect(
       await screen.findByText("Nenhuma agenda em 23/09/2026."),

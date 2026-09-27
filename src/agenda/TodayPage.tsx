@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { ApiError, apiFetch } from "../lib/api";
+import { AgendaDatePicker } from "./AgendaDatePicker";
 import { AgendaDetails } from "./AgendaDetails";
 import { AgendaList } from "./AgendaList";
 import { downloadAgendaPdf } from "./exportAgendaPdf";
@@ -253,15 +254,11 @@ export function TodayPage() {
             ‹
           </button>
 
-          <label className="agenda-date-field">
-            <span className="sr-only">Data da agenda</span>
-            <input
-              type="date"
-              aria-label="Data da agenda"
-              value={selectedDate}
-              onChange={(event) => setSelectedDate(event.target.value)}
-            />
-          </label>
+          <AgendaDatePicker
+            value={selectedDate}
+            today={today}
+            onChange={setSelectedDate}
+          />
 
           <button
             className="ghost-button agenda-date-step"
