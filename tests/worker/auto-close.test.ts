@@ -1,5 +1,7 @@
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import worker from "../../worker/index";
+import type { WorkerEnv } from "../../worker/env";
 import { createSessionToken } from "../../worker/lib/session";
 import { businessDate } from "../../worker/lib/time";
 
@@ -37,6 +39,20 @@ async function seedAgenda(id: string, date: string) {
     .run();
 }
 
+async function agendaState(id: string) {
+  return db
+    .prepare(
+      "SELECT data_agenda, status_dia, concluido_em, concluido_por FROM agendas WHERE id = ?",
+    )
+    .bind(id)
+    .first<{
+      data_agenda: string;
+      status_dia: string;
+      concluido_em: string | null;
+      concluido_por: string | null;
+    }>();
+}
+
 describe("conclusão automática de agendas", () => {
   it("conclui agenda anterior ao dia atual e preserva a data original", async () => {
     const cookie = await seedStoreUser();
@@ -53,21 +69,8 @@ describe("conclusão automática de agendas", () => {
 
     expect(response.status).toBe(200);
 
-    const past = await db
-      .prepare(
-        "SELECT data_agenda, status_dia, concluido_em, concluido_por FROM agendas WHERE id = 'agenda-auto-close-past'",
-      )
-      .first<{
-        data_agenda: string;
-        status_dia: string;
-        concluido_em: string | null;
-        concluido_por: string | null;
-      }>();
-    const current = await db
-      .prepare(
-        "SELECT status_dia, concluido_em FROM agendas WHERE id = 'agenda-auto-close-today'",
-      )
-      .first<{ status_dia: string; concluido_em: string | null }>();
+    const past = await agendaState("agenda-auto-close-past");
+    const current = await agendaState("agenda-auto-close-today");
 
     expect(past).toMatchObject({
       data_agenda: "2026-01-01",
@@ -75,7 +78,10 @@ describe("conclusão automática de agendas", () => {
       concluido_por: null,
     });
     expect(past?.concluido_em).toBeTruthy();
-    expect(current).toEqual({ status_dia: "aberto", concluido_em: null });
+    expect(current).toMatchObject({
+      status_dia: "aberto",
+      concluido_em: null,
+    });
 
     const audit = await db
       .prepare(
@@ -86,5 +92,40 @@ describe("conclusão automática de agendas", () => {
     expect(audit.results).toEqual([
       { usuario_id: null, acao: "dia_concluido_automaticamente" },
     ]);
+  });
+
+  it("fecha agendas passadas pelo handler scheduled sem depender de acesso HTTP", async () => {
+    await seedStoreUser();
+    await seedAgenda("agenda-cron-past", "2026-09-28");
+    await seedAgenda("agenda-cron-current", "2026-09-29");
+
+    await worker.scheduled(
+      {
+        cron: "5 3 * * *",
+        scheduledTime: new Date("2026-09-29T03:05:00.000Z").getTime(),
+        noRetry() {},
+      } as ScheduledController,
+      env as unknown as WorkerEnv,
+      {} as ExecutionContext,
+    );
+
+    expect(await agendaState("agenda-cron-past")).toMatchObject({
+      data_agenda: "2026-09-28",
+      status_dia: "concluido",
+      concluido_por: null,
+    });
+    expect(await agendaState("agenda-cron-current")).toMatchObject({
+      data_agenda: "2026-09-29",
+      status_dia: "aberto",
+      concluido_em: null,
+    });
+
+    const audit = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM auditoria WHERE agenda_id = 'agenda-cron-past' AND acao = 'dia_concluido_automaticamente'",
+      )
+      .first<{ total: number }>();
+
+    expect(audit?.total).toBe(1);
   });
 });
