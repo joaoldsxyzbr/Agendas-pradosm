@@ -49,13 +49,14 @@ describe("visualizador do dashboard", () => {
     const login = `viewer-${crypto.randomUUID()}`;
 
     const created = await jsonRequest(
-      "/api/admin/viewers",
+      "/api/admin/users",
       "POST",
       adminCookie,
       {
         nome: "Equipe Operacional",
         login,
         senha: viewerPassword,
+        papel: "visualizador",
       },
     );
 
@@ -63,7 +64,8 @@ describe("visualizador do dashboard", () => {
     expect(await created.json()).toMatchObject({
       nome: "Equipe Operacional",
       login,
-      perfil: "visualizador",
+      papel: "visualizador",
+      lojaId: null,
       ativo: true,
     });
 
@@ -80,8 +82,7 @@ describe("visualizador do dashboard", () => {
 
     expect(loginResponse.status).toBe(200);
     expect(await loginResponse.clone().json()).toMatchObject({
-      perfil: "admin",
-      acesso: "dashboard",
+      papel: "visualizador",
     });
 
     const cookie = loginResponse.headers.get("Set-Cookie")?.split(";")[0];
@@ -93,8 +94,7 @@ describe("visualizador do dashboard", () => {
       }),
     );
     expect(await me.json()).toMatchObject({
-      perfil: "admin",
-      acesso: "dashboard",
+      papel: "visualizador",
     });
 
     const stores = await exports.default.fetch(
