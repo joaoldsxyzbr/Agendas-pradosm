@@ -15,15 +15,25 @@ function json(body: unknown) {
 
 afterEach(() => {
   cleanup();
-  vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
 describe("dashboard em tempo real", () => {
   it("atualiza os números automaticamente a cada 10 segundos", async () => {
-    vi.useFakeTimers();
     let agendaReads = 0;
+    let intervalCallback: (() => void) | undefined;
+
+    const setIntervalSpy = vi
+      .spyOn(window, "setInterval")
+      .mockImplementation((callback) => {
+        intervalCallback = callback as () => void;
+        return 1;
+      });
+    const clearIntervalSpy = vi
+      .spyOn(window, "clearInterval")
+      .mockImplementation(() => undefined);
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -57,26 +67,25 @@ describe("dashboard em tempo real", () => {
 
     vi.stubGlobal("fetch", fetchMock);
 
-    render(
+    const view = render(
       <MemoryRouter>
         <DashboardPage />
       </MemoryRouter>,
     );
 
-    await act(async () => {
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-
     const card = await screen.findByTestId("dashboard-store-F03");
     expect(within(card).getByText("1 / 2")).toBeInTheDocument();
+    expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
 
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(10_000);
+      intervalCallback?.();
       await Promise.resolve();
     });
 
     expect(within(card).getByText("2 / 2")).toBeInTheDocument();
     expect(agendaReads).toBeGreaterThanOrEqual(2);
+
+    view.unmount();
+    expect(clearIntervalSpy).toHaveBeenCalledWith(1);
   });
 });
