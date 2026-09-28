@@ -77,12 +77,11 @@ describe("dashboard em tempo real", () => {
     expect(within(card).getByText("1 / 2")).toBeInTheDocument();
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
 
-    await act(async () => {
+    act(() => {
       intervalCallback?.();
-      await Promise.resolve();
     });
 
-    expect(within(card).getByText("2 / 2")).toBeInTheDocument();
+    expect(await within(card).findByText("2 / 2")).toBeInTheDocument();
     expect(agendaReads).toBeGreaterThanOrEqual(2);
 
     view.unmount();
