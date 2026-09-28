@@ -8,18 +8,13 @@ export type UserRecord = {
   nome: string;
   login: string;
   senha_hash: string;
-  perfil: "admin" | "loja";
   papel: UserRole;
   ativo: number;
   excluido_em: string | null;
 };
 
 const USER_COLUMNS =
-  "id, loja_id, nome, login, senha_hash, perfil, papel, ativo, excluido_em";
-
-function legacyProfile(papel: UserRole): "admin" | "loja" {
-  return papel === "conferente" ? "loja" : "admin";
-}
+  "id, loja_id, nome, login, senha_hash, papel, ativo, excluido_em";
 
 async function assertCanRemoveActiveAdmin(
   db: D1Database,
@@ -90,7 +85,7 @@ export async function createInactiveFirstAdmin(
 
   const result = await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
     )
     .bind(id, input.nome, input.login, passwordHash, now, now)
     .run();
@@ -143,12 +138,10 @@ export async function createUser(
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.senha);
   const lojaId = input.papel === "conferente" ? input.lojaId! : null;
-  const perfil = legacyProfile(input.papel);
-
   const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)",
       )
       .bind(
         id,
@@ -156,7 +149,6 @@ export async function createUser(
         input.nome,
         input.login,
         passwordHash,
-        perfil,
         input.papel,
         now,
         now,
@@ -217,20 +209,18 @@ export async function updateUser(
   const passwordHash = input.senha
     ? await hashPassword(input.senha)
     : current.senha_hash;
-  const perfil = legacyProfile(papel);
   const now = new Date().toISOString();
 
   const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, perfil = ?, papel = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
+        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, papel = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
       )
       .bind(
         lojaId,
         nome,
         login,
         passwordHash,
-        perfil,
         papel,
         ativo,
         now,
