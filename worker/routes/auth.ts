@@ -13,6 +13,7 @@ import {
   findUserByLogin,
   hasAdmin,
 } from "../repositories/users";
+import { getUserAccess } from "../repositories/viewers";
 
 const COOKIE_NAME = "agenda_session";
 
@@ -96,12 +97,18 @@ authRoutes.post("/login", async (c) => {
   try {
     body = await c.req.json();
   } catch {
-    return c.json({ error: "REQUISICAO_INVALIDA", message: "Dados inválidos." }, 400);
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Dados inválidos." },
+      400,
+    );
   }
 
   const parsed = LoginInput.safeParse(body);
   if (!parsed.success) {
-    return c.json({ error: "REQUISICAO_INVALIDA", message: "Dados inválidos." }, 400);
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Dados inválidos." },
+      400,
+    );
   }
 
   const user = await findUserByLogin(c.env.DB, parsed.data.login);
@@ -127,6 +134,7 @@ authRoutes.post("/login", async (c) => {
     id: user.id,
     nome: user.nome,
     perfil: user.perfil,
+    acesso: await getUserAccess(c.env.DB, user),
     lojaId: user.loja_id,
     lojaCodigo: store?.codigo ?? null,
     lojaNome: store?.nome ?? null,
