@@ -9,8 +9,7 @@ const MUTATION_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 function isSensitiveApiPath(path: string) {
   return (
     path.startsWith("/api/auth/") ||
-    path.startsWith("/api/admin/agendas") ||
-    path.startsWith("/api/admin/appointments") ||
+    path.startsWith("/api/admin/") ||
     path.startsWith("/api/store/")
   );
 }
@@ -45,6 +44,16 @@ export const apiSecurityHeaders = createMiddleware<AppEnv>(async (c, next) => {
   await next();
 
   c.header("X-Content-Type-Options", "nosniff");
+  c.header("X-Frame-Options", "DENY");
+  c.header("Referrer-Policy", "no-referrer");
+  c.header(
+    "Permissions-Policy",
+    "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+  );
+
+  if (new URL(c.req.url).protocol === "https:") {
+    c.header("Strict-Transport-Security", "max-age=31536000");
+  }
 
   if (isSensitiveApiPath(c.req.path)) {
     c.header("Cache-Control", "no-store");

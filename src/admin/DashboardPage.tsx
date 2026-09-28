@@ -33,7 +33,11 @@ function formatDate(value: string) {
   return day && month && year ? `${day}/${month}/${year}` : value;
 }
 
-export function DashboardPage() {
+export function DashboardPage({
+  readOnly = false,
+}: {
+  readOnly?: boolean;
+} = {}) {
   const [today] = useState(businessDate);
   const [selectedDate, setSelectedDate] = useState(today);
   const [stores, setStores] = useState<AdminStore[]>([]);
@@ -72,18 +76,29 @@ export function DashboardPage() {
     };
   }, [selectedDate]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void refreshAgendas({ silent: true });
+    }, 10_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [selectedDate]);
+
   const agendaByStore = new Map(
     agendas.map((agenda) => [agenda.storeCode, agenda]),
   );
 
-  async function refreshAgendas() {
+  async function refreshAgendas(options: { silent?: boolean } = {}) {
     try {
       const agendaData = await apiFetch<AdminAgendaSummary[]>(
         `/api/admin/agendas?date=${selectedDate}`,
       );
       setAgendas(agendaData);
+      if (!options.silent) setError(null);
     } catch {
-      setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+      if (!options.silent) {
+        setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+      }
     }
   }
 
@@ -91,9 +106,13 @@ export function DashboardPage() {
     <section className="admin-page">
       <header className="page-heading page-heading-actions">
         <div>
-          <span className="eyebrow">Administração</span>
+          <span className="eyebrow">{readOnly ? "Acompanhamento" : "Administração"}</span>
           <h1>Dashboard</h1>
-          <p>Acompanhe as agendas por loja e importe novas agendas.</p>
+          <p>
+            {readOnly
+              ? "Acompanhe as agendas por loja em tempo real."
+              : "Acompanhe as agendas por loja e importe novas agendas."}
+          </p>
         </div>
         <div className="dashboard-header-actions">
           <div className="dashboard-date-controls">
@@ -126,20 +145,22 @@ export function DashboardPage() {
             </button>
           </div>
 
-          <button
-            className="primary-button dashboard-import-action"
-            type="button"
-            onClick={() => setImportOpen(true)}
-          >
-            Importar agenda
-          </button>
+          {!readOnly ? (
+            <button
+              className="primary-button dashboard-import-action"
+              type="button"
+              onClick={() => setImportOpen(true)}
+            >
+              Importar agenda
+            </button>
+          ) : null}
         </div>
       </header>
 
       {loading ? <p className="muted-state">Carregando agendas...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
 
-      {importOpen ? (
+      {!readOnly && importOpen ? (
         <ImportAgendaPage
           modal
           onClose={() => setImportOpen(false)}
