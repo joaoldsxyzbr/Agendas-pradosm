@@ -19,7 +19,6 @@ import {
 import { adminAuditRoutes } from "./routes/admin-audit";
 import { adminStoreRoutes } from "./routes/admin-stores";
 import { adminUserRoutes } from "./routes/admin-users";
-import { adminViewerRoutes } from "./routes/admin-viewers";
 import { authRoutes } from "./routes/auth";
 import {
   storeAgendaRoutes,
@@ -81,7 +80,6 @@ app.use("/api/admin/agendas", async (c, next) => {
 });
 app.route("/api/admin/stores", adminStoreRoutes);
 app.route("/api/admin/users", adminUserRoutes);
-app.route("/api/admin/viewers", adminViewerRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
 app.route("/api/admin/audit", adminAuditRoutes);
