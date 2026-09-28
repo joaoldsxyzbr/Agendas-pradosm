@@ -59,6 +59,15 @@ const ci = readFileSync(
 );
 assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
 assert.ok(
+  ci.includes("npm audit --omit=dev"),
+  "CI deve auditar dependências de produção",
+);
+assert.equal(
+  existsSync(new URL("../.github/dependabot.yml", import.meta.url)),
+  true,
+  "Dependabot deve manter dependências atualizadas",
+);
+assert.ok(
   !ci.includes("CLOUDFLARE_API_TOKEN"),
   "CI não deve depender de credenciais Cloudflare",
 );
