@@ -1,11 +1,16 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
+import {
+  CONTRACT_MIGRATION_BASELINE,
+  destructiveOperation,
+} from "./check-migration-safety.mjs";
 
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const deploy = packageJson.scripts?.deploy ?? "";
 const productionVerify = packageJson.scripts?.["verify:production"] ?? "";
+const migrationCheck = packageJson.scripts?.["check:migrations"] ?? "";
 const wranglerConfig = JSON.parse(
   readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
 );
@@ -17,12 +22,25 @@ assert.equal(
 );
 
 assert.equal(
+  migrationCheck,
+  "node scripts/check-migration-safety.mjs",
+  "deploy deve possuir gate explícito de migrations",
+);
+
+assert.equal(
   wranglerConfig.name,
   "agendas-pradosm",
   "wrangler deve apontar para o Worker de produção",
 );
 
-assert.ok(deploy.includes("npm run build"), "deploy deve buildar antes de publicar");
+assert.ok(
+  deploy.startsWith("npm run verify:production"),
+  "deploy deve verificar toda a aplicação antes de tocar no banco remoto",
+);
+assert.ok(
+  deploy.includes("npm run check:migrations"),
+  "deploy deve validar segurança das migrations",
+);
 assert.ok(
   deploy.includes("wrangler d1 migrations apply DB --remote"),
   "deploy nativo deve aplicar migrations D1 remotas",
@@ -32,19 +50,37 @@ assert.ok(
   "deploy nativo deve publicar o Worker com Wrangler",
 );
 
-const buildIndex = deploy.indexOf("npm run build");
+const verifyIndex = deploy.indexOf("npm run verify:production");
+const guardIndex = deploy.indexOf("npm run check:migrations");
 const migrationIndex = deploy.indexOf(
   "wrangler d1 migrations apply DB --remote",
 );
 const deployIndex = deploy.lastIndexOf("wrangler deploy");
 
 assert.ok(
-  buildIndex >= 0 && migrationIndex > buildIndex,
-  "migration D1 deve ocorrer depois do build",
+  verifyIndex === 0 && guardIndex > verifyIndex,
+  "gate de migrations deve ocorrer depois da verificação completa",
+);
+assert.ok(
+  migrationIndex > guardIndex,
+  "migration D1 só pode ocorrer depois do gate de segurança",
 );
 assert.ok(
   deployIndex > migrationIndex,
-  "Worker só pode ser publicado depois da migration D1",
+  "Worker deve ser publicado depois de migrations previamente classificadas como aditivas",
+);
+
+assert.equal(CONTRACT_MIGRATION_BASELINE, 12);
+assert.equal(destructiveOperation("CREATE TABLE exemplo (id TEXT);"), null);
+assert.equal(
+  destructiveOperation("-- DROP TABLE ignorado\nCREATE INDEX idx_x ON x(id);"),
+  null,
+);
+assert.equal(destructiveOperation("DROP TABLE usuarios;"), "DROP");
+assert.equal(destructiveOperation("DELETE FROM usuarios;"), "DELETE FROM");
+assert.equal(
+  destructiveOperation("ALTER TABLE usuarios RENAME TO usuarios_old;"),
+  "ALTER TABLE RENAME",
 );
 
 assert.equal(
