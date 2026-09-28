@@ -17,14 +17,12 @@ export function AgendaList({
   onChanged,
   editable = true,
   onEditManual,
-  onDeleteManual,
 }: {
   appointments: StoreAppointment[];
   onOpen?: (appointmentId: string) => void;
   onChanged?: (appointment: StoreAppointment) => void;
   editable?: boolean;
   onEditManual?: (appointment: StoreAppointment) => void;
-  onDeleteManual?: (appointment: StoreAppointment) => void;
 }) {
   const sorted = [...appointments].sort(
     (a, b) =>
@@ -32,7 +30,7 @@ export function AgendaList({
       a.protocol.localeCompare(b.protocol),
   );
   const hasActions = Boolean(
-    onOpen || (editable && (onChanged || onEditManual || onDeleteManual)),
+    onOpen || (editable && (onChanged || onEditManual)),
   );
 
   function exchangeControl(appointment: StoreAppointment) {
@@ -60,27 +58,24 @@ export function AgendaList({
 
         {editable && appointment.origin === "manual" && onEditManual ? (
           <button
-            className="ghost-button agenda-manual-row-action"
+            className="ghost-button agenda-manual-edit-action"
             type="button"
+            style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
             aria-label={`Editar fornecedor ${appointment.supplier}`}
             title="Editar fornecedor"
             onClick={() => onEditManual(appointment)}
           >
-            Editar
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              style={{ width: 15, height: 15, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}
+            >
+              <path d="M4 20h4l10.6-10.6a2.1 2.1 0 0 0-4-3L4 17v3Zm9.2-12.2 3 3" />
+            </svg>
           </button>
         ) : null}
 
-        {editable && appointment.origin === "manual" && onDeleteManual ? (
-          <button
-            className="ghost-button agenda-manual-row-action danger"
-            type="button"
-            aria-label={`Remover fornecedor ${appointment.supplier}`}
-            title="Remover fornecedor"
-            onClick={() => onDeleteManual(appointment)}
-          >
-            Remover
-          </button>
-        ) : null}
 
         {onOpen ? (
           <button
