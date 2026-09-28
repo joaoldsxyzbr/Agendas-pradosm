@@ -33,7 +33,11 @@ function formatDate(value: string) {
   return day && month && year ? `${day}/${month}/${year}` : value;
 }
 
-export function DashboardPage() {
+export function DashboardPage({
+  readOnly = false,
+}: {
+  readOnly?: boolean;
+} = {}) {
   const [today] = useState(businessDate);
   const [selectedDate, setSelectedDate] = useState(today);
   const [stores, setStores] = useState<AdminStore[]>([]);
@@ -102,9 +106,13 @@ export function DashboardPage() {
     <section className="admin-page">
       <header className="page-heading page-heading-actions">
         <div>
-          <span className="eyebrow">Administração</span>
+          <span className="eyebrow">{readOnly ? "Acompanhamento" : "Administração"}</span>
           <h1>Dashboard</h1>
-          <p>Acompanhe as agendas por loja e importe novas agendas.</p>
+          <p>
+            {readOnly
+              ? "Acompanhe as agendas por loja em tempo real."
+              : "Acompanhe as agendas por loja e importe novas agendas."}
+          </p>
         </div>
         <div className="dashboard-header-actions">
           <div className="dashboard-date-controls">
@@ -137,20 +145,22 @@ export function DashboardPage() {
             </button>
           </div>
 
-          <button
-            className="primary-button dashboard-import-action"
-            type="button"
-            onClick={() => setImportOpen(true)}
-          >
-            Importar agenda
-          </button>
+          {!readOnly ? (
+            <button
+              className="primary-button dashboard-import-action"
+              type="button"
+              onClick={() => setImportOpen(true)}
+            >
+              Importar agenda
+            </button>
+          ) : null}
         </div>
       </header>
 
       {loading ? <p className="muted-state">Carregando agendas...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
 
-      {importOpen ? (
+      {!readOnly && importOpen ? (
         <ImportAgendaPage
           modal
           onClose={() => setImportOpen(false)}
