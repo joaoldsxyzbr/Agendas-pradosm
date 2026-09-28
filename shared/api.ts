@@ -20,12 +20,25 @@ export const UpdateStoreInput = z
     { message: "Nenhuma alteração informada." },
   );
 
-export const CreateStoreUserInput = z.object({
-  nome: z.string().trim().min(1).max(120),
-  login: z.string().trim().min(3).max(100),
-  senha: z.string().min(8).max(200),
-  lojaId: z.string().uuid(),
-});
+export const UserRoleInput = z.enum(["admin", "conferente", "visualizador"]);
+
+export const CreateUserInput = z
+  .object({
+    nome: z.string().trim().min(1).max(120),
+    login: z.string().trim().min(3).max(100),
+    senha: z.string().min(8).max(200),
+    papel: UserRoleInput.default("conferente"),
+    lojaId: z.string().uuid().optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.papel === "conferente" && !value.lojaId) {
+      context.addIssue({
+        code: "custom",
+        path: ["lojaId"],
+        message: "Loja é obrigatória para conferente.",
+      });
+    }
+  });
 
 export const RegisterFirstAdminInput = z.object({
   nome: z.string().trim().min(1).max(120),
@@ -33,12 +46,13 @@ export const RegisterFirstAdminInput = z.object({
   senha: z.string().min(12).max(200),
 });
 
-export const UpdateStoreUserInput = z
+export const UpdateUserInput = z
   .object({
     id: z.string().uuid(),
     nome: z.string().trim().min(1).max(120).optional(),
     login: z.string().trim().min(3).max(100).optional(),
     senha: z.string().min(8).max(200).optional(),
+    papel: UserRoleInput.optional(),
     lojaId: z.string().uuid().optional(),
     ativo: z.boolean().optional(),
   })
@@ -47,7 +61,12 @@ export const UpdateStoreUserInput = z
       value.nome !== undefined ||
       value.login !== undefined ||
       value.senha !== undefined ||
+      value.papel !== undefined ||
       value.lojaId !== undefined ||
       value.ativo !== undefined,
     { message: "Nenhuma alteração informada." },
   );
+
+// Aliases temporários para consumidores antigos durante o rollout.
+export const CreateStoreUserInput = CreateUserInput;
+export const UpdateStoreUserInput = UpdateUserInput;

@@ -1,11 +1,9 @@
-export type UserProfile = "admin" | "loja";
-export type UserAccess = "admin" | "dashboard" | "loja";
+export type UserRole = "admin" | "conferente" | "visualizador";
 
 export type AuthUser = {
   id: string;
   nome: string;
-  perfil: UserProfile;
-  acesso?: UserAccess;
+  papel: UserRole;
   lojaId: string | null;
   lojaCodigo: string | null;
   lojaNome: string | null;
