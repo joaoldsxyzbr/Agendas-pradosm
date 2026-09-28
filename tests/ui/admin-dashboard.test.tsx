@@ -201,7 +201,7 @@ describe("dashboard operacional", () => {
       name: "Agenda F03 - Canasvieiras",
     });
     expect(within(dialog).getByText("Somente leitura")).toBeInTheDocument();
-    expect(within(dialog).getByText("Fornecedor Teste")).toBeInTheDocument();
+    expect(within(dialog).getByRole("cell", { name: "Fornecedor Teste" })).toBeInTheDocument();
     expect(
       within(dialog).queryByRole("button", { name: "Concluir dia" }),
     ).not.toBeInTheDocument();
