@@ -14,7 +14,6 @@ import {
   findUserByLogin,
   hasAdmin,
 } from "../repositories/users";
-import { getUserAccess } from "../repositories/viewers";
 
 const COOKIE_NAME = "agenda_session";
 
@@ -150,8 +149,7 @@ authRoutes.post("/login", async (c) => {
   return c.json({
     id: user.id,
     nome: user.nome,
-    perfil: user.perfil,
-    acesso: await getUserAccess(c.env.DB, user),
+    papel: user.papel,
     lojaId: user.loja_id,
     lojaCodigo: store?.codigo ?? null,
     lojaNome: store?.nome ?? null,

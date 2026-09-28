@@ -1,13 +1,17 @@
 import type { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
-import type { UserProfile } from "../../shared/auth";
+import type { UserRole } from "../../shared/auth";
 import { useAuth } from "./AuthProvider";
 
+function homeForRole(papel: UserRole) {
+  return papel === "conferente" ? "/app" : "/admin";
+}
+
 export function ProtectedRoute({
-  profile,
+  roles,
   children,
 }: {
-  profile: UserProfile;
+  roles: UserRole[];
   children: ReactNode;
 }) {
   const { user, loading } = useAuth();
@@ -24,10 +28,8 @@ export function ProtectedRoute({
     return <Navigate to="/login" replace />;
   }
 
-  if (user.perfil !== profile) {
-    return (
-      <Navigate to={user.perfil === "admin" ? "/admin" : "/app"} replace />
-    );
+  if (!roles.includes(user.papel)) {
+    return <Navigate to={homeForRole(user.papel)} replace />;
   }
 
   return children;

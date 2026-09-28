@@ -14,7 +14,7 @@ export function AdminLayout() {
 
   if (!user) return null;
 
-  const dashboardOnly = user.acesso === "dashboard";
+  const dashboardOnly = user.papel === "visualizador";
   const navItems = dashboardOnly ? NAV_ITEMS.slice(0, 1) : NAV_ITEMS;
 
   async function handleLogout() {

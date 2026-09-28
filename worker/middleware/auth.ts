@@ -5,7 +5,6 @@ import type { AppEnv } from "../env";
 import { verifySessionToken } from "../lib/session";
 import { findStoreById } from "../repositories/stores";
 import { findUserById } from "../repositories/users";
-import { getUserAccess } from "../repositories/viewers";
 
 const COOKIE_NAME = "agenda_session";
 
@@ -40,8 +39,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   const authUser: AuthUser = {
     id: user.id,
     nome: user.nome,
-    perfil: user.perfil,
-    acesso: await getUserAccess(c.env.DB, user),
+    papel: user.papel,
     lojaId: user.loja_id,
     lojaCodigo: store?.codigo ?? null,
     lojaNome: store?.nome ?? null,
@@ -54,7 +52,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
 export const requireAdmin = createMiddleware<AppEnv>(async (c, next) => {
   const user = c.get("authUser");
   if (!user) return c.json(unauthorized(), 401);
-  if (user.perfil !== "admin") {
+  if (user.papel !== "admin" && user.papel !== "visualizador") {
     return c.json(forbidden(), 403);
   }
   await next();
@@ -65,7 +63,7 @@ export const restrictDashboardViewer = createMiddleware<AppEnv>(
     const user = c.get("authUser");
     if (!user) return c.json(unauthorized(), 401);
 
-    if (user.acesso !== "dashboard") {
+    if (user.papel !== "visualizador") {
       await next();
       return;
     }

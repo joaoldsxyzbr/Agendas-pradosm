@@ -40,17 +40,17 @@ const ManualAppointmentInput = z.object({
 });
 
 type StoreAuthUser = AuthUser & {
-  perfil: "loja";
+  papel: "conferente";
   lojaId: string;
 };
 
 function storeUser(c: Context<AppEnv>): StoreAuthUser | null {
   const user = c.get("authUser");
-  if (user.perfil !== "loja" || !user.lojaId) return null;
+  if (user.papel !== "conferente" || !user.lojaId) return null;
 
   return {
     ...user,
-    perfil: "loja",
+    papel: "conferente",
     lojaId: user.lojaId,
   };
 }

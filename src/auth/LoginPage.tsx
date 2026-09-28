@@ -52,7 +52,7 @@ export function LoginPage() {
   }
 
   if (user) {
-    return <Navigate to={user.perfil === "admin" ? "/admin" : "/app"} replace />;
+    return <Navigate to={user.papel === "conferente" ? "/app" : "/admin"} replace />;
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -62,7 +62,7 @@ export function LoginPage() {
 
     try {
       const authenticated = await login(loginValue.trim(), senha);
-      navigate(authenticated.perfil === "admin" ? "/admin" : "/app", {
+      navigate(authenticated.papel === "conferente" ? "/app" : "/admin", {
         replace: true,
       });
     } catch (caught) {

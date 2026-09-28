@@ -1,3 +1,4 @@
+import type { UserRole } from "../../shared/auth";
 import { hashPassword } from "../lib/password";
 import { auditStatement, recordAudit } from "./audit";
 
@@ -8,12 +9,42 @@ export type UserRecord = {
   login: string;
   senha_hash: string;
   perfil: "admin" | "loja";
+  papel: UserRole;
   ativo: number;
   excluido_em: string | null;
 };
 
 const USER_COLUMNS =
-  "id, loja_id, nome, login, senha_hash, perfil, ativo, excluido_em";
+  "id, loja_id, nome, login, senha_hash, perfil, papel, ativo, excluido_em";
+
+function legacyProfile(papel: UserRole): "admin" | "loja" {
+  return papel === "conferente" ? "loja" : "admin";
+}
+
+async function assertCanRemoveActiveAdmin(
+  db: D1Database,
+  current: UserRecord,
+  nextPapel: UserRole,
+  nextAtivo: number,
+) {
+  if (
+    current.papel !== "admin" ||
+    current.ativo !== 1 ||
+    (nextPapel === "admin" && nextAtivo === 1)
+  ) {
+    return;
+  }
+
+  const row = await db
+    .prepare(
+      "SELECT COUNT(*) AS total FROM usuarios WHERE papel = 'admin' AND ativo = 1 AND excluido_em IS NULL",
+    )
+    .first<{ total: number }>();
+
+  if ((row?.total ?? 0) <= 1) {
+    throw new Error("ULTIMO_ADMIN_ATIVO");
+  }
+}
 
 export async function findUserByLogin(
   db: D1Database,
@@ -42,7 +73,7 @@ export async function findUserById(
 export async function hasAdmin(db: D1Database): Promise<boolean> {
   const result = await db
     .prepare(
-      "SELECT 1 AS presente FROM usuarios WHERE perfil = 'admin' AND excluido_em IS NULL LIMIT 1",
+      "SELECT 1 AS presente FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL LIMIT 1",
     )
     .first<{ presente: number }>();
 
@@ -59,7 +90,7 @@ export async function createInactiveFirstAdmin(
 
   const result = await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE perfil = 'admin' AND excluido_em IS NULL)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
     )
     .bind(id, input.nome, input.login, passwordHash, now, now)
     .run();
@@ -74,7 +105,7 @@ export async function createInactiveFirstAdmin(
     after: {
       nome: input.nome,
       login: input.login,
-      perfil: "admin",
+      papel: "admin",
       ativo: false,
     },
     details: "Primeiro administrador preparado.",
@@ -84,66 +115,96 @@ export async function createInactiveFirstAdmin(
   return findUserById(db, id);
 }
 
-export async function listStoreUsers(db: D1Database): Promise<UserRecord[]> {
+export async function listUsers(db: D1Database): Promise<UserRecord[]> {
   const result = await db
     .prepare(
-      `SELECT ${USER_COLUMNS} FROM usuarios WHERE perfil = 'loja' AND excluido_em IS NULL ORDER BY nome ASC`,
+      `SELECT ${USER_COLUMNS} FROM usuarios WHERE excluido_em IS NULL ORDER BY nome ASC`,
     )
     .all<UserRecord>();
   return result.results;
 }
 
-export async function createStoreUser(
+export async function createUser(
   db: D1Database,
-  input: { nome: string; login: string; senha: string; lojaId: string },
+  input: {
+    nome: string;
+    login: string;
+    senha: string;
+    papel: UserRole;
+    lojaId?: string;
+  },
   actorUserId: string,
 ): Promise<UserRecord> {
+  if (input.papel === "conferente" && !input.lojaId) {
+    throw new Error("LOJA_OBRIGATORIA");
+  }
+
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.senha);
+  const lojaId = input.papel === "conferente" ? input.lojaId! : null;
+  const perfil = legacyProfile(input.papel);
 
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'loja', 1, ?, ?)",
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)",
       )
       .bind(
         id,
-        input.lojaId,
+        lojaId,
         input.nome,
         input.login,
         passwordHash,
+        perfil,
+        input.papel,
         now,
         now,
       ),
+  ];
+
+  if (input.papel === "visualizador") {
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO usuario_permissoes (usuario_id, dashboard_somente_leitura, criado_em, atualizado_em) VALUES (?, 1, ?, ?)",
+        )
+        .bind(id, now, now),
+    );
+  }
+
+  statements.push(
     auditStatement(db, {
       userId: actorUserId,
       action: "usuario_criado",
       entity: "usuario",
       entityId: id,
-      storeId: input.lojaId,
+      storeId: lojaId,
       after: {
         nome: input.nome,
         login: input.login,
-        lojaId: input.lojaId,
+        lojaId,
+        papel: input.papel,
         ativo: true,
         senhaAlterada: true,
       },
-      details: "Usuário de loja criado.",
+      details: "Usuário criado.",
       createdAt: now,
     }),
-  ]);
+  );
 
+  await db.batch(statements);
   return (await findUserById(db, id))!;
 }
 
-export async function updateStoreUser(
+export async function updateUser(
   db: D1Database,
   current: UserRecord,
   input: {
     nome?: string;
     login?: string;
     senha?: string;
+    papel?: UserRole;
     lojaId?: string;
     ativo?: boolean;
   },
@@ -151,28 +212,56 @@ export async function updateStoreUser(
 ): Promise<UserRecord> {
   const nome = input.nome ?? current.nome;
   const login = input.login ?? current.login;
-  const lojaId = input.lojaId ?? current.loja_id;
+  const papel = input.papel ?? current.papel;
   const ativo =
     input.ativo === undefined ? current.ativo : input.ativo ? 1 : 0;
+  const lojaId =
+    papel === "conferente" ? (input.lojaId ?? current.loja_id) : null;
+
+  if (papel === "conferente" && !lojaId) {
+    throw new Error("LOJA_OBRIGATORIA");
+  }
+
+  await assertCanRemoveActiveAdmin(db, current, papel, ativo);
+
   const passwordHash = input.senha
     ? await hashPassword(input.senha)
     : current.senha_hash;
+  const perfil = legacyProfile(papel);
   const now = new Date().toISOString();
 
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
+        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, perfil = ?, papel = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
       )
       .bind(
         lojaId,
         nome,
         login,
         passwordHash,
+        perfil,
+        papel,
         ativo,
         now,
         current.id,
       ),
+    db
+      .prepare("DELETE FROM usuario_permissoes WHERE usuario_id = ?")
+      .bind(current.id),
+  ];
+
+  if (papel === "visualizador") {
+    statements.push(
+      db
+        .prepare(
+          "INSERT INTO usuario_permissoes (usuario_id, dashboard_somente_leitura, criado_em, atualizado_em) VALUES (?, 1, ?, ?)",
+        )
+        .bind(current.id, now, now),
+    );
+  }
+
+  statements.push(
     auditStatement(db, {
       userId: actorUserId,
       action: "usuario_atualizado",
@@ -183,35 +272,43 @@ export async function updateStoreUser(
         nome: current.nome,
         login: current.login,
         lojaId: current.loja_id,
+        papel: current.papel,
         ativo: current.ativo === 1,
       },
       after: {
         nome,
         login,
         lojaId,
+        papel,
         ativo: ativo === 1,
         senhaAlterada: Boolean(input.senha),
       },
-      details: "Usuário de loja atualizado.",
+      details: "Usuário atualizado.",
       createdAt: now,
     }),
-  ]);
+  );
 
+  await db.batch(statements);
   return (await findUserById(db, current.id))!;
 }
 
-export async function softDeleteStoreUser(
+export async function softDeleteUser(
   db: D1Database,
   current: UserRecord,
   actorUserId: string,
 ): Promise<boolean> {
+  await assertCanRemoveActiveAdmin(db, current, current.papel, 0);
+
   const now = new Date().toISOString();
   const [result] = await db.batch([
     db
       .prepare(
-        "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
+        "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
       )
       .bind(now, now, current.id),
+    db
+      .prepare("DELETE FROM usuario_permissoes WHERE usuario_id = ?")
+      .bind(current.id),
     auditStatement(db, {
       userId: actorUserId,
       action: "usuario_removido",
@@ -222,12 +319,14 @@ export async function softDeleteStoreUser(
         nome: current.nome,
         login: current.login,
         lojaId: current.loja_id,
+        papel: current.papel,
         ativo: current.ativo === 1,
       },
       after: {
         nome: current.nome,
         login: current.login,
         lojaId: current.loja_id,
+        papel: current.papel,
         ativo: false,
         removido: true,
       },
@@ -238,3 +337,9 @@ export async function softDeleteStoreUser(
 
   return result.meta.changes > 0;
 }
+
+// Compatibilidade interna temporária até a remoção do subsistema legado.
+export const listStoreUsers = listUsers;
+export const createStoreUser = createUser;
+export const updateStoreUser = updateUser;
+export const softDeleteStoreUser = softDeleteUser;

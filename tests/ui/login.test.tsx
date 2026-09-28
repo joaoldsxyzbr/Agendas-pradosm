@@ -9,7 +9,7 @@ import { ThemeProvider } from "../../src/theme/ThemeProvider";
 type User = {
   id: string;
   nome: string;
-  perfil: "admin" | "loja";
+  papel: "admin" | "conferente" | "visualizador";
   lojaId: string | null;
   lojaCodigo?: string | null;
   lojaNome?: string | null;
@@ -214,7 +214,7 @@ describe("login e rotas protegidas", () => {
     mockLogin({
       id: "admin-1",
       nome: "Administrador",
-      perfil: "admin",
+      papel: "admin",
       lojaId: null,
     });
     renderApp();
@@ -236,7 +236,7 @@ describe("login e rotas protegidas", () => {
     mockLogin({
       id: "loja-1",
       nome: "Conferente",
-      perfil: "loja",
+      papel: "conferente",
       lojaId: "store-1",
       lojaCodigo: "03",
       lojaNome: "Loja 03",
@@ -266,11 +266,11 @@ describe("login e rotas protegidas", () => {
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
   });
 
-  it("redireciona perfil incorreto sem renderizar conteúdo protegido", async () => {
+  it("redireciona papel incorreto sem renderizar conteúdo protegido", async () => {
     mockSession({
       id: "admin-2",
       nome: "Administrador",
-      perfil: "admin",
+      papel: "admin",
       lojaId: null,
     });
 

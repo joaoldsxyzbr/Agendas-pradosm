@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import type { UserRole } from "../../shared/auth";
 import { ApiError, apiFetch } from "../lib/api";
 import { AuditTrail } from "./AuditTrail";
 import type { AdminStore, AdminUser } from "./types";
@@ -20,7 +21,8 @@ export function UserEditDialog({
 }: UserEditDialogProps) {
   const [nome, setNome] = useState(user.nome);
   const [login, setLogin] = useState(user.login);
-  const [lojaId, setLojaId] = useState(user.lojaId);
+  const [papel, setPapel] = useState<UserRole>(user.papel);
+  const [lojaId, setLojaId] = useState(user.lojaId ?? "");
   const [ativo, setAtivo] = useState(user.ativo);
   const [senha, setSenha] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -41,7 +43,8 @@ export function UserEditDialog({
           id: user.id,
           nome: nome.trim(),
           login: login.trim(),
-          lojaId,
+          papel,
+          ...(papel === "conferente" ? { lojaId } : {}),
           ativo,
           ...(senha ? { senha } : {}),
         }),
@@ -119,20 +122,34 @@ export function UserEditDialog({
               />
             </label>
             <label>
-              <span>Loja</span>
+              <span>Papel</span>
               <select
-                value={lojaId}
-                onChange={(event) => setLojaId(event.target.value)}
-                required
+                value={papel}
+                onChange={(event) => setPapel(event.target.value as UserRole)}
               >
-                {stores.map((store) => (
-                  <option key={store.id} value={store.id}>
-                    {store.codigo} - {store.nome}
-                    {store.ativo ? "" : " (inativa)"}
-                  </option>
-                ))}
+                <option value="admin">Administrador</option>
+                <option value="conferente">Conferente</option>
+                <option value="visualizador">Visualizador</option>
               </select>
             </label>
+            {papel === "conferente" ? (
+              <label>
+                <span>Loja</span>
+                <select
+                  value={lojaId}
+                  onChange={(event) => setLojaId(event.target.value)}
+                  required
+                >
+                  <option value="">Selecione</option>
+                  {stores.map((store) => (
+                    <option key={store.id} value={store.id}>
+                      {store.codigo} - {store.nome}
+                      {store.ativo ? "" : " (inativa)"}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label>
               <span>Status</span>
               <select

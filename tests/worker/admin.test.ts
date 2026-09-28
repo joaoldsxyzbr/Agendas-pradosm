@@ -267,7 +267,7 @@ describe("admin store and user management", () => {
     expect(body).toMatchObject({
       nome: "Conferente Teste",
       login: "conferente-f92",
-      perfil: "loja",
+      papel: "conferente",
       lojaId: store.id,
       ativo: true,
     });
@@ -505,10 +505,17 @@ describe("admin store and user management", () => {
     expect(stored?.excluido_em).toBeTruthy();
   });
 
-  it("DELETE de administrador é rejeitado", async () => {
+  it("DELETE do último administrador ativo é rejeitado", async () => {
     const adminId = crypto.randomUUID();
     await seedAdmin(adminId, "admin-protected");
     const cookie = cookiePair(await login("admin-protected"));
+
+    await db
+      .prepare(
+        "UPDATE usuarios SET ativo = 0 WHERE papel = 'admin' AND id <> ? AND excluido_em IS NULL",
+      )
+      .bind(adminId)
+      .run();
 
     const response = await jsonRequest(
       `/api/admin/users/${adminId}`,
@@ -516,7 +523,8 @@ describe("admin store and user management", () => {
       cookie,
     );
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: "ULTIMO_ADMIN_ATIVO" });
     expect((await login("admin-protected")).status).toBe(200);
   });
 
@@ -639,5 +647,105 @@ describe("admin store and user management", () => {
     );
     expect(denied.status).toBe(403);
   });
+
+  it("lista admin, conferente e visualizador no CRUD único", async () => {
+    const cookie = await adminCookie("admin-unified-users", "admin-unified-users");
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "FU01",
+      nome: "Loja Usuários",
+    });
+    expect(storeResponse.status).toBe(201);
+    const store = (await storeResponse.json()) as { id: string };
+
+    const conferente = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Conferente Unificado",
+      login: "conferente-unificado",
+      senha: password,
+      papel: "conferente",
+      lojaId: store.id,
+    });
+    expect(conferente.status).toBe(201);
+
+    const visualizador = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Visualizador Unificado",
+      login: "visualizador-unificado",
+      senha: password,
+      papel: "visualizador",
+    });
+    expect(visualizador.status).toBe(201);
+
+    const response = await exports.default.fetch(
+      new Request("https://example.com/api/admin/users", {
+        headers: { Cookie: cookie },
+      }),
+    );
+    expect(response.status).toBe(200);
+
+    const users = (await response.json()) as Array<{
+      login: string;
+      papel: string;
+      lojaId: string | null;
+    }>;
+
+    expect(users).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          login: "admin-unified-users",
+          papel: "admin",
+          lojaId: null,
+        }),
+        expect.objectContaining({
+          login: "conferente-unificado",
+          papel: "conferente",
+          lojaId: store.id,
+        }),
+        expect.objectContaining({
+          login: "visualizador-unificado",
+          papel: "visualizador",
+          lojaId: null,
+        }),
+      ]),
+    );
+  });
+
+  it("exige loja para conferente e limpa loja ao mudar de papel", async () => {
+    const cookie = await adminCookie("admin-role-switch", "admin-role-switch");
+
+    const invalid = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Conferente Sem Loja",
+      login: "conferente-sem-loja-papel",
+      senha: password,
+      papel: "conferente",
+    });
+    expect(invalid.status).toBe(400);
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "FU02",
+      nome: "Loja Troca Papel",
+    });
+    const store = (await storeResponse.json()) as { id: string };
+
+    const created = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Troca Papel",
+      login: "troca-papel",
+      senha: password,
+      papel: "conferente",
+      lojaId: store.id,
+    });
+    expect(created.status).toBe(201);
+    const user = (await created.json()) as { id: string };
+
+    const updated = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: user.id,
+      papel: "visualizador",
+    });
+    expect(updated.status).toBe(200);
+    expect(await updated.json()).toMatchObject({
+      papel: "visualizador",
+      lojaId: null,
+    });
+  });
+
 
 });

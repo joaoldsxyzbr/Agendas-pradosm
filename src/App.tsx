@@ -88,13 +88,13 @@ function StoreLayout() {
 
 function AdminDashboardRoute() {
   const { user } = useAuth();
-  return <DashboardPage readOnly={user?.acesso === "dashboard"} />;
+  return <DashboardPage readOnly={user?.papel === "visualizador"} />;
 }
 
 function FullAdminRoute({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
 
-  if (user?.acesso === "dashboard") {
+  if (user?.papel === "visualizador") {
     return <Navigate to="/admin" replace />;
   }
 
@@ -113,7 +113,7 @@ function HomeRedirect() {
   }
 
   if (!user) return <Navigate to="/login" replace />;
-  return <Navigate to={user.perfil === "admin" ? "/admin" : "/app"} replace />;
+  return <Navigate to={user.papel === "conferente" ? "/app" : "/admin"} replace />;
 }
 
 export function AppRoutes() {
@@ -124,7 +124,7 @@ export function AppRoutes() {
       <Route
         path="/admin"
         element={
-          <ProtectedRoute profile="admin">
+          <ProtectedRoute roles={["admin", "visualizador"]}>
             <AdminLayout />
           </ProtectedRoute>
         }
@@ -167,7 +167,7 @@ export function AppRoutes() {
       <Route
         path="/app"
         element={
-          <ProtectedRoute profile="loja">
+          <ProtectedRoute roles={["conferente"]}>
             <StoreLayout />
           </ProtectedRoute>
         }
