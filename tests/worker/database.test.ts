@@ -91,7 +91,7 @@ describe("D1 schema", () => {
 
     await db
       .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)",
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 'admin', 1, ?, ?)",
       )
       .bind("admin-status", "Admin Teste", "admin-status", "hash", now, now)
       .run();
