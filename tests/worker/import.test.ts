@@ -529,6 +529,62 @@ describe("admin agenda import", () => {
     ]);
   });
 
+  it("admin edita e remove fornecedor manual mesmo em dia concluído", async () => {
+    const adminId = "admin-manual-edit";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-admin", "F93");
+
+    const imported = await importAgenda(cookie, payload("F93"));
+    const importedBody = (await imported.json()) as { agenda: { id: string } };
+
+    const manualId = "manual-admin-edit";
+    await db
+      .prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:00', '12:00', 'MANUAL ERRADO', 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+      )
+      .bind(manualId, importedBody.agenda.id, `manual:${manualId}`, now, now)
+      .run();
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    const edited = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "PATCH", body: { supplier: "MANUAL CORRETO" } },
+    );
+    expect(edited.status).toBe(200);
+    expect(await edited.json()).toMatchObject({ supplier: "MANUAL CORRETO" });
+
+    const removed = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "DELETE" },
+    );
+    expect(removed.status).toBe(204);
+
+    const stored = await db
+      .prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?")
+      .bind(manualId)
+      .first<{ fornecedor: string; ativo: number }>();
+    expect(stored).toEqual({ fornecedor: "MANUAL CORRETO", ativo: 0 });
+
+    const audit = await db
+      .prepare(
+        "SELECT acao FROM auditoria WHERE agendamento_id = ? ORDER BY criado_em ASC, rowid ASC",
+      )
+      .bind(manualId)
+      .all<{ acao: string }>();
+    expect(audit.results.map((item) => item.acao)).toEqual([
+      "fornecedor_manual_editado",
+      "fornecedor_manual_removido",
+    ]);
+  });
+
   it("admin consulta agenda histórica e histórico de status", async () => {
     const adminId = "admin-import-history";
     const cookie = await seedAdmin(adminId);

@@ -512,6 +512,108 @@ describe("store agenda workflow", () => {
     expect(manual.status).toBe(409);
   });
 
+  it("edita e remove fornecedor manual com soft delete e auditoria", async () => {
+    const userId = "user-manual-edit";
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-edit",
+      storeCode: "F91",
+      userId,
+    });
+    await seedAgenda({
+      agendaId: "agenda-manual-edit",
+      storeId: "store-manual-edit",
+      creatorId: userId,
+      date: "2026-09-20",
+    });
+
+    const createdResponse = await request(
+      "/api/store/agenda/2026-09-20/manual",
+      cookie,
+      { method: "POST", body: { supplier: "FORNECEDOR ERRADO" } },
+    );
+    const created = (await createdResponse.json()) as { id: string };
+
+    const editedResponse = await request(
+      `/api/store/appointments/${created.id}/manual`,
+      cookie,
+      { method: "PATCH", body: { supplier: "FORNECEDOR CORRETO" } },
+    );
+    expect(editedResponse.status).toBe(200);
+    expect(await editedResponse.json()).toMatchObject({
+      supplier: "FORNECEDOR CORRETO",
+      origin: "manual",
+    });
+
+    const deletedResponse = await request(
+      `/api/store/appointments/${created.id}/manual`,
+      cookie,
+      { method: "DELETE" },
+    );
+    expect(deletedResponse.status).toBe(204);
+
+    const stored = await db
+      .prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?")
+      .bind(created.id)
+      .first<{ fornecedor: string; ativo: number }>();
+    expect(stored).toEqual({ fornecedor: "FORNECEDOR CORRETO", ativo: 0 });
+
+    const audit = await db
+      .prepare(
+        "SELECT acao, antes, depois FROM auditoria WHERE agendamento_id = ? ORDER BY criado_em ASC, rowid ASC",
+      )
+      .bind(created.id)
+      .all<{ acao: string; antes: string | null; depois: string | null }>();
+
+    expect(audit.results.map((item) => item.acao)).toEqual([
+      "fornecedor_manual_criado",
+      "fornecedor_manual_editado",
+      "fornecedor_manual_removido",
+    ]);
+  });
+
+  it("bloqueia edição e remoção manual para conferente em dia concluído", async () => {
+    const userId = "user-manual-closed";
+    const cookie = await seedStoreUser({
+      storeId: "store-manual-closed",
+      storeCode: "F92",
+      userId,
+    });
+    await seedAgenda({
+      agendaId: "agenda-manual-closed",
+      storeId: "store-manual-closed",
+      creatorId: userId,
+      date: "2026-09-20",
+    });
+
+    const createdResponse = await request(
+      "/api/store/agenda/2026-09-20/manual",
+      cookie,
+      { method: "POST", body: { supplier: "FORNECEDOR FECHADO" } },
+    );
+    const created = (await createdResponse.json()) as { id: string };
+
+    await request("/api/store/agenda/2026-09-20/complete", cookie, {
+      method: "POST",
+    });
+
+    expect(
+      (
+        await request(`/api/store/appointments/${created.id}/manual`, cookie, {
+          method: "PATCH",
+          body: { supplier: "NOVO NOME" },
+        })
+      ).status,
+    ).toBe(409);
+
+    expect(
+      (
+        await request(`/api/store/appointments/${created.id}/manual`, cookie, {
+          method: "DELETE",
+        })
+      ).status,
+    ).toBe(409);
+  });
+
   it("marca e desmarca trocas sem alterar o status", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-exchanges-a",

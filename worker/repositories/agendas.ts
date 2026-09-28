@@ -2,6 +2,7 @@ import type {
   ImportAgendaPayload,
   ImportedAppointmentPayload,
 } from "../../shared/agenda";
+import { auditStatement } from "./audit";
 
 export type StoreLookup = {
   id: string;
@@ -356,35 +357,114 @@ export async function replaceAgendaImport(
 
 export async function createManualAppointment(
   db: D1Database,
-  agendaId: string,
+  agenda: AgendaRecord,
+  userId: string,
   supplier: string,
   businessHour: string,
 ): Promise<AppointmentRecord> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
 
-  await db
-    .prepare(
-      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
-    )
-    .bind(
-      id,
-      agendaId,
-      `manual:${id}`,
-      businessHour,
-      businessHour,
-      supplier,
-      now,
-      now,
-    )
-    .run();
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+      )
+      .bind(
+        id,
+        agenda.id,
+        `manual:${id}`,
+        businessHour,
+        businessHour,
+        supplier,
+        now,
+        now,
+      ),
+    auditStatement(db, {
+      userId,
+      action: "fornecedor_manual_criado",
+      entity: "agendamento",
+      entityId: id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      appointmentId: id,
+      after: { supplier, status: "aguardando", origin: "manual", ativo: true },
+      details: "Fornecedor sem agenda criado.",
+      createdAt: now,
+    }),
+  ]);
 
   const appointment = await findAppointmentById(db, id);
-  if (!appointment) {
-    throw new Error("Fornecedor manual não pôde ser relido.");
+  if (!appointment) throw new Error("Fornecedor manual não pôde ser relido.");
+  return appointment;
+}
+
+export async function updateManualAppointmentSupplier(
+  db: D1Database,
+  agenda: AgendaRecord,
+  appointment: AppointmentRecord,
+  userId: string,
+  supplier: string,
+): Promise<AppointmentRecord> {
+  if (appointment.origem !== "manual" || appointment.ativo !== 1) {
+    throw new Error("Agendamento manual inválido.");
+  }
+  if (appointment.fornecedor === supplier) return appointment;
+
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare(
+      "UPDATE agendamentos SET fornecedor = ?, atualizado_em = ? WHERE id = ? AND origem = 'manual' AND ativo = 1",
+    ).bind(supplier, now, appointment.id),
+    auditStatement(db, {
+      userId,
+      action: "fornecedor_manual_editado",
+      entity: "agendamento",
+      entityId: appointment.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      appointmentId: appointment.id,
+      before: { supplier: appointment.fornecedor },
+      after: { supplier },
+      details: "Nome do fornecedor sem agenda alterado.",
+      createdAt: now,
+    }),
+  ]);
+
+  const updated = await findAppointmentById(db, appointment.id);
+  if (!updated) throw new Error("Fornecedor manual atualizado não pôde ser relido.");
+  return updated;
+}
+
+export async function softDeleteManualAppointment(
+  db: D1Database,
+  agenda: AgendaRecord,
+  appointment: AppointmentRecord,
+  userId: string,
+): Promise<void> {
+  if (appointment.origem !== "manual" || appointment.ativo !== 1) {
+    throw new Error("Agendamento manual inválido.");
   }
 
-  return appointment;
+  const now = new Date().toISOString();
+  await db.batch([
+    db.prepare(
+      "UPDATE agendamentos SET ativo = 0, atualizado_em = ? WHERE id = ? AND origem = 'manual' AND ativo = 1",
+    ).bind(now, appointment.id),
+    auditStatement(db, {
+      userId,
+      action: "fornecedor_manual_removido",
+      entity: "agendamento",
+      entityId: appointment.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      appointmentId: appointment.id,
+      before: { supplier: appointment.fornecedor, ativo: true },
+      after: { supplier: appointment.fornecedor, ativo: false },
+      details: "Fornecedor sem agenda removido logicamente.",
+      createdAt: now,
+    }),
+  ]);
 }
 
 

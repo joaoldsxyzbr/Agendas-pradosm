@@ -17,6 +17,8 @@ import {
   listAppointmentsByAgenda,
   recordAgendaAdminAdjustment,
   replaceAgendaImport,
+  softDeleteManualAppointment,
+  updateManualAppointmentSupplier,
   type AgendaSummaryRecord,
   type AgendaWithStoreRecord,
   type AppointmentRecord,
@@ -342,6 +344,83 @@ async function recordClosedDayAdjustment(
     await recordAgendaAdminAdjustment(db, agenda.id, userId, details);
   }
 }
+
+
+adminAppointmentRoutes.patch("/:id/manual", async (c) => {
+  const parsed = z.object({
+    supplier: z.string().trim().min(1).max(160),
+  }).safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Informe o nome do fornecedor." },
+      400,
+    );
+  }
+
+  const appointment = await findAppointmentById(c.env.DB, c.req.param("id"));
+  if (!appointment || appointment.origem !== "manual" || appointment.ativo !== 1) {
+    return c.json(
+      { error: "FORNECEDOR_MANUAL_NAO_ENCONTRADO", message: "Fornecedor sem agenda não encontrado." },
+      404,
+    );
+  }
+
+  const agenda = await findAgendaById(c.env.DB, appointment.agenda_id);
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    const updated = await updateManualAppointmentSupplier(
+      c.env.DB,
+      agenda,
+      appointment,
+      user.id,
+      parsed.data.supplier,
+    );
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Admin manual supplier update failed", error);
+    return c.json(
+      { error: "FORNECEDOR_MANUAL_NAO_ATUALIZADO", message: "Não foi possível editar o fornecedor." },
+      500,
+    );
+  }
+});
+
+adminAppointmentRoutes.delete("/:id/manual", async (c) => {
+  const appointment = await findAppointmentById(c.env.DB, c.req.param("id"));
+  if (!appointment || appointment.origem !== "manual" || appointment.ativo !== 1) {
+    return c.json(
+      { error: "FORNECEDOR_MANUAL_NAO_ENCONTRADO", message: "Fornecedor sem agenda não encontrado." },
+      404,
+    );
+  }
+
+  const agenda = await findAgendaById(c.env.DB, appointment.agenda_id);
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    await softDeleteManualAppointment(c.env.DB, agenda, appointment, user.id);
+    return c.body(null, 204);
+  } catch (error) {
+    console.error("Admin manual supplier delete failed", error);
+    return c.json(
+      { error: "FORNECEDOR_MANUAL_NAO_REMOVIDO", message: "Não foi possível remover o fornecedor." },
+      500,
+    );
+  }
+});
 
 adminAppointmentRoutes.patch("/:id/status", async (c) => {
   const parsed = AdminAppointmentStatusInput.safeParse(

@@ -16,11 +16,15 @@ export function AgendaList({
   onOpen,
   onChanged,
   editable = true,
+  onEditManual,
+  onDeleteManual,
 }: {
   appointments: StoreAppointment[];
   onOpen?: (appointmentId: string) => void;
   onChanged?: (appointment: StoreAppointment) => void;
   editable?: boolean;
+  onEditManual?: (appointment: StoreAppointment) => void;
+  onDeleteManual?: (appointment: StoreAppointment) => void;
 }) {
   const sorted = [...appointments].sort(
     (a, b) =>
@@ -49,6 +53,30 @@ export function AgendaList({
             status={appointment.status}
             onChanged={onChanged}
           />
+        ) : null}
+
+        {editable && appointment.origin === "manual" && onEditManual ? (
+          <button
+            className="ghost-button agenda-manual-row-action"
+            type="button"
+            aria-label={`Editar fornecedor ${appointment.supplier}`}
+            title="Editar fornecedor"
+            onClick={() => onEditManual(appointment)}
+          >
+            Editar
+          </button>
+        ) : null}
+
+        {editable && appointment.origin === "manual" && onDeleteManual ? (
+          <button
+            className="ghost-button agenda-manual-row-action danger"
+            type="button"
+            aria-label={`Remover fornecedor ${appointment.supplier}`}
+            title="Remover fornecedor"
+            onClick={() => onDeleteManual(appointment)}
+          >
+            Remover
+          </button>
         ) : null}
 
         {onOpen ? (

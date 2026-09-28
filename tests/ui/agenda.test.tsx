@@ -228,6 +228,66 @@ describe("TodayPage", () => {
     ).toMatch(/\/manual$/);
   });
 
+  it("edita e remove fornecedor sem agenda pela tela", async () => {
+    const manual = {
+      ...appointment("appt-manual-edit", "13:31"),
+      protocol: "Sem agenda",
+      supplier: "FORNECEDOR ERRADO",
+      type: "Sem agenda",
+      origin: "manual" as const,
+      endTime: "13:31",
+    };
+    const edited = { ...manual, supplier: "FORNECEDOR CORRETO" };
+
+    const fetchMock = vi
+      .fn()
+      .mockImplementationOnce(() => json(200, agendaBody([manual])))
+      .mockImplementationOnce(() => json(200, edited))
+      .mockImplementationOnce(() => json(204));
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: "Editar fornecedor FORNECEDOR ERRADO",
+      }),
+    );
+
+    const editInput = screen.getByRole("textbox", { name: "Nome do fornecedor" });
+    fireEvent.change(editInput, { target: { value: "FORNECEDOR CORRETO" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+
+    expect(
+      (await screen.findAllByText("FORNECEDOR CORRETO")).length,
+    ).toBeGreaterThan(0);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Remover fornecedor FORNECEDOR CORRETO",
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "Remover fornecedor" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Remover" }));
+
+    await waitFor(() =>
+      expect(screen.queryByText("FORNECEDOR CORRETO")).not.toBeInTheDocument(),
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/appointments/appt-manual-edit/manual",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ supplier: "FORNECEDOR CORRETO" }),
+      }),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/store/appointments/appt-manual-edit/manual",
+      expect.objectContaining({ method: "DELETE" }),
+    );
+  });
+
   it("mostra estado vazio sem misturar agendas anteriores", async () => {
     vi.stubGlobal(
       "fetch",

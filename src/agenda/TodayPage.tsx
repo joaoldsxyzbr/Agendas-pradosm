@@ -67,6 +67,8 @@ export function TodayPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const [manualOpen, setManualOpen] = useState(false);
+  const [manualEditing, setManualEditing] = useState<StoreAppointment | null>(null);
+  const [manualDeleteTarget, setManualDeleteTarget] = useState<StoreAppointment | null>(null);
   const [manualSupplier, setManualSupplier] = useState("");
   const [manualSaving, setManualSaving] = useState(false);
   const [manualError, setManualError] = useState<string | null>(null);
@@ -86,6 +88,8 @@ export function TodayPage() {
     setSearchQuery("");
     setSelectedAppointmentId(null);
     setManualOpen(false);
+    setManualEditing(null);
+    setManualDeleteTarget(null);
     setCompleteConfirmOpen(false);
     setCompleteError(null);
 
@@ -136,7 +140,15 @@ export function TodayPage() {
   }, [appointments, searchQuery]);
 
   function openManualSupplier() {
+    setManualEditing(null);
     setManualSupplier("");
+    setManualError(null);
+    setManualOpen(true);
+  }
+
+  function editManualSupplier(appointment: StoreAppointment) {
+    setManualEditing(appointment);
+    setManualSupplier(appointment.supplier);
     setManualError(null);
     setManualOpen(true);
   }
@@ -144,6 +156,7 @@ export function TodayPage() {
   function closeManualSupplier() {
     if (manualSaving) return;
     setManualOpen(false);
+    setManualEditing(null);
     setManualSupplier("");
     setManualError(null);
   }
@@ -158,12 +171,14 @@ export function TodayPage() {
     setManualError(null);
 
     try {
-      const created = await apiFetch<StoreAppointment>(
-        `/api/store/agenda/${selectedDate}/manual`,
+      const saved = await apiFetch<StoreAppointment>(
+        manualEditing
+          ? `/api/store/appointments/${manualEditing.id}/manual`
+          : `/api/store/agenda/${selectedDate}/manual`,
         {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ supplier }),
+          method: manualEditing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ supplier }),
         },
       );
 
@@ -171,7 +186,11 @@ export function TodayPage() {
         if (!current) return current;
         return {
           ...current,
-          appointments: [...current.appointments, created],
+          appointments: manualEditing
+            ? current.appointments.map((appointment) =>
+                appointment.id === saved.id ? saved : appointment,
+              )
+            : [...current.appointments, saved],
         };
       });
       setSearchQuery("");
@@ -182,6 +201,38 @@ export function TodayPage() {
         saveError instanceof Error
           ? saveError.message
           : "Não foi possível adicionar o fornecedor.",
+      );
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
+  async function deleteManualSupplier() {
+    if (!manualDeleteTarget || !isEditable || manualSaving) return;
+
+    setManualSaving(true);
+    setManualError(null);
+    try {
+      await apiFetch<void>(
+        `/api/store/appointments/${manualDeleteTarget.id}/manual`,
+        { method: "DELETE" },
+      );
+      setAgenda((current) =>
+        current
+          ? {
+              ...current,
+              appointments: current.appointments.filter(
+                (appointment) => appointment.id !== manualDeleteTarget.id,
+              ),
+            }
+          : current,
+      );
+      setManualDeleteTarget(null);
+    } catch (caught) {
+      setManualError(
+        caught instanceof ApiError
+          ? caught.message
+          : "Não foi possível remover o fornecedor.",
       );
     } finally {
       setManualSaving(false);
@@ -387,6 +438,8 @@ export function TodayPage() {
               onChanged={isEditable ? statusChanged : undefined}
               onOpen={!isEditable ? setSelectedAppointmentId : undefined}
               editable={isEditable}
+              onEditManual={isEditable ? editManualSupplier : undefined}
+              onDeleteManual={isEditable ? setManualDeleteTarget : undefined}
             />
           ) : (
             <div className="empty-panel agenda-search-empty">
@@ -444,6 +497,47 @@ export function TodayPage() {
         </div>
       ) : null}
 
+      {manualDeleteTarget && isEditable ? (
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal-card manual-supplier-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-manual-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">Recebimento</span>
+                <h2 id="delete-manual-title">Remover fornecedor</h2>
+              </div>
+            </div>
+            <p>
+              Remover {manualDeleteTarget.supplier}? O registro ficará preservado
+              no histórico de auditoria.
+            </p>
+            {manualError ? <p className="form-error">{manualError}</p> : null}
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={manualSaving}
+                onClick={() => setManualDeleteTarget(null)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="danger-button"
+                type="button"
+                disabled={manualSaving}
+                onClick={() => void deleteManualSupplier()}
+              >
+                {manualSaving ? "Removendo..." : "Remover"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {manualOpen && isEditable && agenda?.agenda ? (
         <div className="modal-backdrop" role="presentation">
           <div
@@ -455,7 +549,9 @@ export function TodayPage() {
             <div className="modal-heading">
               <div>
                 <span className="eyebrow">Recebimento</span>
-                <h2 id="manual-supplier-title">Fornecedor sem agenda</h2>
+                <h2 id="manual-supplier-title">
+                  {manualEditing ? "Editar fornecedor" : "Fornecedor sem agenda"}
+                </h2>
               </div>
               <button
                 className="ghost-button"
@@ -495,7 +591,13 @@ export function TodayPage() {
                   type="submit"
                   disabled={manualSaving || !manualSupplier.trim()}
                 >
-                  {manualSaving ? "Adicionando..." : "Adicionar"}
+                  {manualSaving
+                    ? manualEditing
+                      ? "Salvando..."
+                      : "Adicionando..."
+                    : manualEditing
+                      ? "Salvar"
+                      : "Adicionar"}
                 </button>
               </div>
             </form>
