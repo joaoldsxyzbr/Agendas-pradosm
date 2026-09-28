@@ -50,13 +50,13 @@ Banco configurado no `wrangler.jsonc`:
 Aplicar migrations localmente:
 
 ```bash
-npx wrangler d1 migrations apply agendas-prado --local
+npx wrangler d1 migrations apply DB --local
 ```
 
 Aplicar migrations em produção:
 
 ```bash
-npx wrangler d1 migrations apply agendas-prado --remote
+npx wrangler d1 migrations apply DB --remote
 ```
 
 ## Segredo de sessão
@@ -147,7 +147,6 @@ O deploy executa o build antes de publicar o Worker.
 5. Concluir o dia ao finalizar o recebimento.
 6. Dias concluídos ficam somente para consulta do conferente; o administrador pode corrigi-los ou reabri-los.
 
-
 ## Auditoria e histórico
 
 Toda alteração relevante de dados deve deixar uma trilha de auditoria no D1.
@@ -174,7 +173,8 @@ A consulta administrativa é contextual: o histórico de lojas e usuários apare
 - mutações autenticadas validam `Origin` quando enviado pelo navegador;
 - o JSON de importação possui limite de 1 MB;
 - erros internos retornam resposta genérica sem stack trace ao cliente;
-- senhas nunca são armazenadas em texto puro;\n- o PBKDF2-SHA256 usa 100.000 iterações por compatibilidade com o limite do Web Crypto do Cloudflare Workers.
+- senhas nunca são armazenadas em texto puro;
+- o PBKDF2-SHA256 usa 100.000 iterações por compatibilidade com o limite do Web Crypto do Cloudflare Workers.
 
 ## PDFs reais
 

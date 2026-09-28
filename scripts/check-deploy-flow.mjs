@@ -5,10 +5,19 @@ const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const deploy = packageJson.scripts?.deploy ?? "";
+const wranglerConfig = JSON.parse(
+  readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
+);
+
+assert.equal(
+  wranglerConfig.name,
+  "agendas-pradosm",
+  "wrangler deve apontar para o Worker de produção",
+);
 
 assert.ok(deploy.includes("npm run build"), "deploy deve buildar antes de publicar");
 assert.ok(
-  deploy.includes("wrangler d1 migrations apply agendas-prado --remote"),
+  deploy.includes("wrangler d1 migrations apply DB --remote"),
   "deploy nativo deve aplicar migrations D1 remotas",
 );
 assert.ok(
@@ -18,7 +27,7 @@ assert.ok(
 
 const buildIndex = deploy.indexOf("npm run build");
 const migrationIndex = deploy.indexOf(
-  "wrangler d1 migrations apply agendas-prado --remote",
+  "wrangler d1 migrations apply DB --remote",
 );
 const deployIndex = deploy.lastIndexOf("wrangler deploy");
 
