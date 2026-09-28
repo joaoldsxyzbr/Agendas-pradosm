@@ -11,7 +11,7 @@ const now = "2026-09-24T12:00:00.000Z";
 async function seedUser(input: {
   id: string;
   login: string;
-  perfil: "admin" | "loja";
+  papel: "admin" | "conferente";
   ativo?: boolean;
   lojaId?: string;
 }) {
@@ -26,7 +26,7 @@ async function seedUser(input: {
 
   await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       input.id,
@@ -34,8 +34,7 @@ async function seedUser(input: {
       `Usuário ${input.id}`,
       input.login,
       passwordHash,
-      input.perfil,
-      input.perfil === "admin" ? "admin" : "conferente",
+      input.papel,
       input.ativo === false ? 0 : 1,
       now,
       now,
@@ -124,12 +123,12 @@ describe("auth", () => {
 
     const stored = await db
       .prepare(
-        "SELECT perfil, ativo, senha_hash FROM usuarios WHERE login = ? LIMIT 1",
+        "SELECT papel, ativo, senha_hash FROM usuarios WHERE login = ? LIMIT 1",
       )
       .bind("primeiro-admin")
-      .first<{ perfil: string; ativo: number; senha_hash: string }>();
+      .first<{ papel: string; ativo: number; senha_hash: string }>();
 
-    expect(stored).toMatchObject({ perfil: "admin", ativo: 0 });
+    expect(stored).toMatchObject({ papel: "admin", ativo: 0 });
     expect(stored?.senha_hash).toMatch(/^pbkdf2_sha256\$100000\$/);
 
     const deniedLogin = await login("primeiro-admin", senhaBootstrap);
@@ -148,7 +147,7 @@ describe("auth", () => {
   });
 
   it("faz login com senha correta e retorna a sessão atual", async () => {
-    await seedUser({ id: "admin-ok", login: "admin-ok", perfil: "admin" });
+    await seedUser({ id: "admin-ok", login: "admin-ok", papel: "admin" });
 
     const response = await login("admin-ok");
     expect(response.status).toBe(200);
@@ -173,7 +172,7 @@ describe("auth", () => {
     await seedUser({
       id: "store-session",
       login: "store-session",
-      perfil: "loja",
+      papel: "conferente",
       lojaId: "store-session-id",
     });
 
@@ -206,7 +205,7 @@ describe("auth", () => {
     await seedUser({
       id: "admin-case-insensitive",
       login: "Conferente08",
-      perfil: "admin",
+      papel: "admin",
     });
 
     const response = await login("conferente08");
@@ -215,7 +214,7 @@ describe("auth", () => {
   });
 
   it("rejeita senha incorreta com mensagem neutra", async () => {
-    await seedUser({ id: "admin-wrong", login: "admin-wrong", perfil: "admin" });
+    await seedUser({ id: "admin-wrong", login: "admin-wrong", papel: "admin" });
 
     const response = await login("admin-wrong", "senha-errada");
     expect(response.status).toBe(401);
@@ -226,7 +225,7 @@ describe("auth", () => {
   });
 
   it("rejeita cookie adulterado", async () => {
-    await seedUser({ id: "admin-tamper", login: "admin-tamper", perfil: "admin" });
+    await seedUser({ id: "admin-tamper", login: "admin-tamper", papel: "admin" });
     const response = await login("admin-tamper");
     const cookie = cookiePair(response);
     const [name, token] = cookie.split("=");
@@ -245,7 +244,7 @@ describe("auth", () => {
   });
 
   it("rejeita cookie expirado mesmo com assinatura válida", async () => {
-    await seedUser({ id: "admin-expired", login: "admin-expired", perfil: "admin" });
+    await seedUser({ id: "admin-expired", login: "admin-expired", papel: "admin" });
     const token = await signedSession("admin-expired", 1);
 
     const me = await exports.default.fetch(
@@ -261,7 +260,7 @@ describe("auth", () => {
     await seedUser({
       id: "admin-inactive",
       login: "admin-inactive",
-      perfil: "admin",
+      papel: "admin",
       ativo: false,
     });
 
@@ -273,7 +272,7 @@ describe("auth", () => {
     await seedUser({
       id: "store-user",
       login: "store-user",
-      perfil: "loja",
+      papel: "conferente",
       lojaId: "store-auth",
     });
 
@@ -288,7 +287,7 @@ describe("auth", () => {
   });
 
   it("logout invalida o cookie no navegador", async () => {
-    await seedUser({ id: "admin-logout", login: "admin-logout", perfil: "admin" });
+    await seedUser({ id: "admin-logout", login: "admin-logout", papel: "admin" });
     const response = await login("admin-logout");
 
     const logout = await exports.default.fetch(
