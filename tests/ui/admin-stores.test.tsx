@@ -88,6 +88,34 @@ describe("gerenciamento de lojas", () => {
     );
   });
 
+
+  it("consulta histórico de auditoria da loja sob demanda", async () => {
+    mockedApiFetch.mockResolvedValueOnce([
+      {
+        id: "audit-store-1",
+        action: "loja_atualizada",
+        entity: "loja",
+        entityId: store.id,
+        storeId: store.id,
+        agendaId: null,
+        appointmentId: null,
+        before: { nome: "Antiga" },
+        after: { nome: "Canasvieiras" },
+        details: "Loja atualizada.",
+        createdAt: "2026-09-27T20:00:00.000Z",
+        user: { id: "admin-1", name: "Administrador" },
+      },
+    ]);
+
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Ver histórico" }));
+
+    expect(await screen.findByText("Loja atualizada")).toBeInTheDocument();
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      `/api/admin/audit?entity=loja&entityId=${store.id}`,
+    );
+  });
+
   it("só exclui a loja após confirmação explícita", async () => {
     mockedApiFetch.mockResolvedValueOnce(undefined);
     const onDeleted = vi.fn();

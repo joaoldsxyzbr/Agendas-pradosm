@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../lib/api";
+import { AuditTrail } from "./AuditTrail";
 import type { AdminStore } from "./types";
 
 type StoreEditDialogProps = {
@@ -141,6 +142,8 @@ export function StoreEditDialog({
             </button>
           </div>
         </form>
+
+        <AuditTrail entity="loja" entityId={store.id} />
 
         <div className="modal-danger-zone">
           {!confirmDelete ? (

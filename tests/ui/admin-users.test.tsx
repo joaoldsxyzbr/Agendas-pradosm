@@ -100,6 +100,36 @@ describe("gerenciamento de usuários", () => {
     );
   });
 
+
+  it("consulta histórico de auditoria do usuário sob demanda", async () => {
+    mockedApiFetch.mockResolvedValueOnce([
+      {
+        id: "audit-user-1",
+        action: "usuario_atualizado",
+        entity: "usuario",
+        entityId: user.id,
+        storeId: user.lojaId,
+        agendaId: null,
+        appointmentId: null,
+        before: { nome: "Antigo" },
+        after: { nome: "Conferente" },
+        details: "Usuário de loja atualizado.",
+        createdAt: "2026-09-27T20:00:00.000Z",
+        user: { id: "admin-1", name: "Administrador" },
+      },
+    ]);
+
+    renderDialog();
+    fireEvent.click(screen.getByRole("button", { name: "Ver histórico" }));
+
+    expect(
+      await screen.findByText("Usuário atualizado"),
+    ).toBeInTheDocument();
+    expect(mockedApiFetch).toHaveBeenCalledWith(
+      `/api/admin/audit?entity=usuario&entityId=${user.id}`,
+    );
+  });
+
   it("só exclui após confirmação explícita", async () => {
     mockedApiFetch.mockResolvedValueOnce(undefined);
     const onDeleted = vi.fn();

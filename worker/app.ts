@@ -11,6 +11,7 @@ import {
   adminAgendaRoutes,
   adminAppointmentRoutes,
 } from "./routes/admin-agendas";
+import { adminAuditRoutes } from "./routes/admin-audit";
 import { adminStoreRoutes } from "./routes/admin-stores";
 import { adminUserRoutes } from "./routes/admin-users";
 import { authRoutes } from "./routes/auth";
@@ -38,6 +39,7 @@ app.route("/api/admin/stores", adminStoreRoutes);
 app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
+app.route("/api/admin/audit", adminAuditRoutes);
 
 app.use("/api/store/*", requireAuth, validateMutationOrigin);
 app.route("/api/store", storeAgendaRoutes);

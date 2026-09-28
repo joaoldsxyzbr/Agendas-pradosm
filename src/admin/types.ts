@@ -88,3 +88,22 @@ export type AgendaDayHistoryItem = {
     name: string;
   };
 };
+
+
+export type AdminAuditItem = {
+  id: string;
+  action: string;
+  entity: "agenda" | "agendamento" | "loja" | "usuario";
+  entityId: string;
+  storeId: string | null;
+  agendaId: string | null;
+  appointmentId: string | null;
+  before: unknown;
+  after: unknown;
+  details: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+  } | null;
+};
