@@ -23,17 +23,28 @@ afterEach(() => {
 describe("dashboard em tempo real", () => {
   it("atualiza os números automaticamente a cada 10 segundos", async () => {
     let agendaReads = 0;
-    let intervalCallback: (() => void) | undefined;
+    let dashboardIntervalCallback: (() => void) | undefined;
+    const dashboardIntervalId = 10_000;
+    const realSetInterval = window.setInterval.bind(window);
+    const realClearInterval = window.clearInterval.bind(window);
 
     const setIntervalSpy = vi
       .spyOn(window, "setInterval")
-      .mockImplementation((callback) => {
-        intervalCallback = callback as () => void;
-        return 1;
+      .mockImplementation((callback, delay, ...args) => {
+        if (delay === 10_000) {
+          dashboardIntervalCallback = callback as () => void;
+          return dashboardIntervalId;
+        }
+
+        return realSetInterval(callback, delay, ...args);
       });
+
     const clearIntervalSpy = vi
       .spyOn(window, "clearInterval")
-      .mockImplementation(() => undefined);
+      .mockImplementation((intervalId) => {
+        if (intervalId === dashboardIntervalId) return;
+        realClearInterval(intervalId);
+      });
 
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -78,13 +89,13 @@ describe("dashboard em tempo real", () => {
     expect(setIntervalSpy).toHaveBeenCalledWith(expect.any(Function), 10_000);
 
     act(() => {
-      intervalCallback?.();
+      dashboardIntervalCallback?.();
     });
 
     expect(await within(card).findByText("2 / 2")).toBeInTheDocument();
     expect(agendaReads).toBeGreaterThanOrEqual(2);
 
     view.unmount();
-    expect(clearIntervalSpy).toHaveBeenCalledWith(1);
+    expect(clearIntervalSpy).toHaveBeenCalledWith(dashboardIntervalId);
   });
 });
