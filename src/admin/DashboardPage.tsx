@@ -72,18 +72,29 @@ export function DashboardPage() {
     };
   }, [selectedDate]);
 
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      void refreshAgendas({ silent: true });
+    }, 10_000);
+
+    return () => window.clearInterval(intervalId);
+  }, [selectedDate]);
+
   const agendaByStore = new Map(
     agendas.map((agenda) => [agenda.storeCode, agenda]),
   );
 
-  async function refreshAgendas() {
+  async function refreshAgendas(options: { silent?: boolean } = {}) {
     try {
       const agendaData = await apiFetch<AdminAgendaSummary[]>(
         `/api/admin/agendas?date=${selectedDate}`,
       );
       setAgendas(agendaData);
+      if (!options.silent) setError(null);
     } catch {
-      setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+      if (!options.silent) {
+        setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+      }
     }
   }
 
