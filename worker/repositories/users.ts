@@ -1,6 +1,6 @@
 import type { UserRole } from "../../shared/auth";
 import { hashPassword } from "../lib/password";
-import { auditStatement, recordAudit } from "./audit";
+import { auditStatement } from "./audit";
 
 export type UserRecord = {
   id: string;
@@ -55,33 +55,43 @@ export async function createInactiveFirstAdmin(
   input: { nome: string; login: string; senha: string },
 ): Promise<UserRecord | null> {
   const id = crypto.randomUUID();
+  const auditId = crypto.randomUUID();
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.senha);
-
-  const result = await db
-    .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
-    )
-    .bind(id, input.nome, input.login, passwordHash, now, now)
-    .run();
-
-  if (result.meta.changes === 0) return null;
-
-  await recordAudit(db, {
-    userId: null,
-    action: "admin_bootstrap_preparado",
-    entity: "usuario",
-    entityId: id,
-    after: {
-      nome: input.nome,
-      login: input.login,
-      papel: "admin",
-      ativo: false,
-    },
-    details: "Primeiro administrador preparado.",
-    createdAt: now,
+  const auditAfter = JSON.stringify({
+    nome: input.nome,
+    login: input.login,
+    papel: "admin",
+    ativo: false,
   });
 
+  const [insertResult] = await db.batch([
+    db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
+      )
+      .bind(id, input.nome, input.login, passwordHash, now, now),
+    db
+      .prepare(
+        `INSERT INTO auditoria (
+          id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id,
+          agendamento_id, antes, depois, detalhes, criado_em
+        )
+        SELECT ?, NULL, 'admin_bootstrap_preparado', 'usuario', ?, NULL, NULL,
+               NULL, NULL, ?, 'Primeiro administrador preparado.', ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM usuarios
+          WHERE id = ?
+            AND papel = 'admin'
+            AND ativo = 0
+            AND excluido_em IS NULL
+        )`,
+      )
+      .bind(auditId, id, auditAfter, now, id),
+  ]);
+
+  if (insertResult.meta.changes === 0) return null;
   return findUserById(db, id);
 }
 

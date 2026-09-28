@@ -5,13 +5,13 @@ describe("login rate limit", () => {
   it("normaliza login e combina com o ator da requisição", async () => {
     const limit = vi.fn().mockResolvedValue({ success: true });
 
-    const allowed = await checkLoginRateLimit(
+    const decision = await checkLoginRateLimit(
       { limit },
       "  Joao.Prado  ",
       "203.0.113.10",
     );
 
-    expect(allowed).toBe(true);
+    expect(decision).toBe("allowed");
     expect(limit).toHaveBeenCalledWith({
       key: "joao.prado:203.0.113.10",
     });
@@ -22,14 +22,20 @@ describe("login rate limit", () => {
 
     await expect(
       checkLoginRateLimit({ limit }, "usuario", null),
-    ).resolves.toBe(false);
+    ).resolves.toBe("limited");
   });
 
-  it("falha aberto se o binding estiver indisponível", async () => {
+  it("falha fechado se o binding lançar erro", async () => {
     const limit = vi.fn().mockRejectedValue(new Error("rate limit indisponível"));
 
     await expect(
       checkLoginRateLimit({ limit }, "usuario", "203.0.113.20"),
-    ).resolves.toBe(true);
+    ).resolves.toBe("unavailable");
+  });
+
+  it("falha fechado se o binding não estiver disponível", async () => {
+    await expect(
+      checkLoginRateLimit(undefined, "usuario", "203.0.113.20"),
+    ).resolves.toBe("unavailable");
   });
 });

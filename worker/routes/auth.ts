@@ -111,12 +111,24 @@ authRoutes.post("/login", async (c) => {
     );
   }
 
-  const allowed = await checkLoginRateLimit(
+  const rateLimitDecision = await checkLoginRateLimit(
     c.env.LOGIN_RATE_LIMITER,
     parsed.data.login,
     c.req.header("CF-Connecting-IP"),
   );
-  if (!allowed) {
+
+  if (rateLimitDecision === "unavailable") {
+    c.header("Retry-After", "60");
+    return c.json(
+      {
+        error: "AUTENTICACAO_TEMPORARIAMENTE_INDISPONIVEL",
+        message: "Não foi possível validar o acesso agora. Tente novamente em instantes.",
+      },
+      503,
+    );
+  }
+
+  if (rateLimitDecision === "limited") {
     c.header("Retry-After", "60");
     return c.json(
       {
