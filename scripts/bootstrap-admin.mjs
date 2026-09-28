@@ -39,14 +39,14 @@ const now = new Date().toISOString();
 
 const sql = [
   "INSERT INTO usuarios",
-  "(id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em)",
+  "(id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em)",
   "VALUES",
   `(${sqlString(id)}, NULL, ${sqlString(name)}, ${sqlString(login)}, ${sqlString(encoded)}, 'admin', 1, ${sqlString(now)}, ${sqlString(now)})`,
   "ON CONFLICT(login) DO UPDATE SET",
   "loja_id = NULL,",
   "nome = excluded.nome,",
   "senha_hash = excluded.senha_hash,",
-  "perfil = 'admin',",
+  "papel = 'admin',",
   "ativo = 1,",
   "atualizado_em = excluded.atualizado_em;",
 ].join(" ");
