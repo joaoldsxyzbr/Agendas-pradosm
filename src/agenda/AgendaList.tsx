@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   ExchangeCheckbox,
   StatusActions,
@@ -9,6 +10,37 @@ function appointmentTime(appointment: StoreAppointment) {
   return appointment.origin === "manual"
     ? appointment.startTime
     : `${appointment.startTime} - ${appointment.endTime}`;
+}
+
+type SortKey = "time" | "supplier" | "protocol" | "type" | "status";
+type SortDirection = "asc" | "desc";
+type SortState = { key: SortKey; direction: SortDirection } | null;
+
+const collator = new Intl.Collator("pt-BR", {
+  numeric: true,
+  sensitivity: "base",
+});
+
+function defaultCompare(a: StoreAppointment, b: StoreAppointment) {
+  return (
+    a.startTime.localeCompare(b.startTime) ||
+    a.protocol.localeCompare(b.protocol)
+  );
+}
+
+function sortValue(appointment: StoreAppointment, key: SortKey) {
+  switch (key) {
+    case "time":
+      return appointment.startTime;
+    case "supplier":
+      return appointment.supplier;
+    case "protocol":
+      return appointment.protocol;
+    case "type":
+      return appointment.type ?? "";
+    case "status":
+      return appointment.status;
+  }
 }
 
 export function AgendaList({
@@ -24,14 +56,49 @@ export function AgendaList({
   editable?: boolean;
   onEditManual?: (appointment: StoreAppointment) => void;
 }) {
-  const sorted = [...appointments].sort(
-    (a, b) =>
-      a.startTime.localeCompare(b.startTime) ||
-      a.protocol.localeCompare(b.protocol),
-  );
+  const [sort, setSort] = useState<SortState>(null);
+
+  const sorted = [...appointments].sort((a, b) => {
+    if (!sort) return defaultCompare(a, b);
+
+    const comparison = collator.compare(sortValue(a, sort.key), sortValue(b, sort.key));
+    if (comparison !== 0) return sort.direction === "asc" ? comparison : -comparison;
+    return defaultCompare(a, b);
+  });
+
   const hasActions = Boolean(
     onOpen || (editable && (onChanged || onEditManual)),
   );
+
+  function cycleSort(key: SortKey) {
+    setSort((current) => {
+      if (!current || current.key !== key) return { key, direction: "desc" };
+      if (current.direction === "desc") return { key, direction: "asc" };
+      return null;
+    });
+  }
+
+  function sortableHeader(key: SortKey, label: string) {
+    const active = sort?.key === key ? sort.direction : null;
+    const ariaSort = active === "asc" ? "ascending" : active === "desc" ? "descending" : "none";
+
+    return (
+      <th aria-sort={ariaSort}>
+        <button
+          className="agenda-sort-button"
+          type="button"
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: 0, border: 0, background: "transparent", color: "inherit", font: "inherit", fontWeight: "inherit", letterSpacing: "inherit", textTransform: "inherit", cursor: "pointer" }}
+          title={`Ordenar por ${label}`}
+          onClick={() => cycleSort(key)}
+        >
+          <span>{label}</span>
+          <span className="agenda-sort-icon" aria-hidden="true" style={{ minWidth: "0.8rem", fontSize: "0.9rem", lineHeight: 1 }}>
+            {active === "desc" ? "↓" : active === "asc" ? "↑" : ""}
+          </span>
+        </button>
+      </th>
+    );
+  }
 
   function exchangeControl(appointment: StoreAppointment) {
     if (!editable || !onChanged) return null;
@@ -76,7 +143,6 @@ export function AgendaList({
           </button>
         ) : null}
 
-
         {onOpen ? (
           <button
             className="ghost-button agenda-detail-button"
@@ -97,11 +163,11 @@ export function AgendaList({
           <table>
             <thead>
               <tr>
-                <th>Horário</th>
-                <th>Fornecedor</th>
-                <th>Protocolo</th>
-                <th>Tipo</th>
-                <th>Status</th>
+                {sortableHeader("time", "Horário")}
+                {sortableHeader("supplier", "Fornecedor")}
+                {sortableHeader("protocol", "Protocolo")}
+                {sortableHeader("type", "Tipo")}
+                {sortableHeader("status", "Status")}
                 {hasActions ? <th>Ações</th> : null}
                 <th>Trocas</th>
               </tr>
