@@ -69,6 +69,13 @@ describe("visualizador do dashboard", () => {
       ativo: true,
     });
 
+    const legacyRoute = await exports.default.fetch(
+      new Request("https://example.com/api/admin/viewers", {
+        headers: { Cookie: adminCookie },
+      }),
+    );
+    expect(legacyRoute.status).toBe(404);
+
     const loginResponse = await exports.default.fetch(
       new Request("https://example.com/api/auth/login", {
         method: "POST",
