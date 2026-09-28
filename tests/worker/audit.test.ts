@@ -22,7 +22,7 @@ describe("auditoria", () => {
 
     await db
       .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES ('user-audit', 'store-audit', 'Conferente Auditoria', 'audit-user', 'hash', 'loja', 1, ?, ?)",
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES ('user-audit', 'store-audit', 'Conferente Auditoria', 'audit-user', 'hash', 'loja', 'conferente', 1, ?, ?)",
       )
       .bind(now, now)
       .run();
