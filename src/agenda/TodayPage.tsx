@@ -161,6 +161,19 @@ export function TodayPage() {
     setManualError(null);
   }
 
+  function openManualDeleteFromEdit() {
+    if (!manualEditing || manualSaving) return;
+    setManualDeleteTarget(manualEditing);
+    setManualOpen(false);
+    setManualError(null);
+  }
+
+  function cancelManualDelete() {
+    if (manualSaving) return;
+    setManualDeleteTarget(null);
+    if (manualEditing) setManualOpen(true);
+  }
+
   async function addManualSupplier(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -228,6 +241,9 @@ export function TodayPage() {
           : current,
       );
       setManualDeleteTarget(null);
+      setManualOpen(false);
+      setManualEditing(null);
+      setManualSupplier("");
     } catch (caught) {
       setManualError(
         caught instanceof ApiError
@@ -439,7 +455,6 @@ export function TodayPage() {
               onOpen={!isEditable ? setSelectedAppointmentId : undefined}
               editable={isEditable}
               onEditManual={isEditable ? editManualSupplier : undefined}
-              onDeleteManual={isEditable ? setManualDeleteTarget : undefined}
             />
           ) : (
             <div className="empty-panel agenda-search-empty">
@@ -521,7 +536,7 @@ export function TodayPage() {
                 className="ghost-button"
                 type="button"
                 disabled={manualSaving}
-                onClick={() => setManualDeleteTarget(null)}
+                onClick={cancelManualDelete}
               >
                 Cancelar
               </button>
@@ -577,28 +592,44 @@ export function TodayPage() {
 
               {manualError ? <p className="form-error">{manualError}</p> : null}
 
-              <div className="modal-actions">
-                <button
-                  className="ghost-button"
-                  type="button"
-                  onClick={closeManualSupplier}
-                  disabled={manualSaving}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="primary-button"
-                  type="submit"
-                  disabled={manualSaving || !manualSupplier.trim()}
-                >
-                  {manualSaving
-                    ? manualEditing
-                      ? "Salvando..."
-                      : "Adicionando..."
-                    : manualEditing
-                      ? "Salvar"
-                      : "Adicionar"}
-                </button>
+              <div
+                className="modal-actions"
+                style={manualEditing ? { justifyContent: "space-between", gap: "0.75rem" } : undefined}
+              >
+                {manualEditing ? (
+                  <button
+                    className="danger-button"
+                    style={{ marginRight: "auto" }}
+                    type="button"
+                    onClick={openManualDeleteFromEdit}
+                    disabled={manualSaving}
+                  >
+                    Remover
+                  </button>
+                ) : null}
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.5rem" }}>
+                  <button
+                    className="ghost-button"
+                    type="button"
+                    onClick={closeManualSupplier}
+                    disabled={manualSaving}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    className="primary-button"
+                    type="submit"
+                    disabled={manualSaving || !manualSupplier.trim()}
+                  >
+                    {manualSaving
+                      ? manualEditing
+                        ? "Salvando..."
+                        : "Adicionando..."
+                      : manualEditing
+                        ? "Salvar"
+                        : "Adicionar"}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
