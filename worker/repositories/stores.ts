@@ -115,7 +115,7 @@ export async function hasStoreUsers(
 ): Promise<boolean> {
   const result = await db
     .prepare(
-      "SELECT 1 AS presente FROM usuarios WHERE loja_id = ? AND perfil = 'loja' AND excluido_em IS NULL LIMIT 1",
+      "SELECT 1 AS presente FROM usuarios WHERE loja_id = ? AND papel = 'conferente' AND excluido_em IS NULL LIMIT 1",
     )
     .bind(storeId)
     .first<{ presente: number }>();
