@@ -16,31 +16,6 @@ export type UserRecord = {
 const USER_COLUMNS =
   "id, loja_id, nome, login, senha_hash, papel, ativo, excluido_em";
 
-async function assertCanRemoveActiveAdmin(
-  db: D1Database,
-  current: UserRecord,
-  nextPapel: UserRole,
-  nextAtivo: number,
-) {
-  if (
-    current.papel !== "admin" ||
-    current.ativo !== 1 ||
-    (nextPapel === "admin" && nextAtivo === 1)
-  ) {
-    return;
-  }
-
-  const row = await db
-    .prepare(
-      "SELECT COUNT(*) AS total FROM usuarios WHERE papel = 'admin' AND ativo = 1 AND excluido_em IS NULL",
-    )
-    .first<{ total: number }>();
-
-  if ((row?.total ?? 0) <= 1) {
-    throw new Error("ULTIMO_ADMIN_ATIVO");
-  }
-}
-
 export async function findUserByLogin(
   db: D1Database,
   login: string,
@@ -204,8 +179,6 @@ export async function updateUser(
     throw new Error("LOJA_OBRIGATORIA");
   }
 
-  await assertCanRemoveActiveAdmin(db, current, papel, ativo);
-
   const passwordHash = input.senha
     ? await hashPassword(input.senha)
     : current.senha_hash;
@@ -264,8 +237,6 @@ export async function softDeleteUser(
   current: UserRecord,
   actorUserId: string,
 ): Promise<boolean> {
-  await assertCanRemoveActiveAdmin(db, current, current.papel, 0);
-
   const now = new Date().toISOString();
   const [result] = await db.batch([
     db

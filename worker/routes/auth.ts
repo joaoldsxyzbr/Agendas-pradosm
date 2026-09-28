@@ -8,7 +8,7 @@ import { checkLoginRateLimit } from "../lib/login-rate-limit";
 import { verifyPassword } from "../lib/password";
 import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
-import { findStoreById } from "../repositories/stores";
+import { findActiveStoreById } from "../repositories/stores";
 import {
   createInactiveFirstAdmin,
   findUserByLogin,
@@ -133,9 +133,11 @@ authRoutes.post("/login", async (c) => {
   const passwordOk = await verifyPassword(parsed.data.senha, user.senha_hash);
   if (!passwordOk) return invalidCredentials(c);
 
-  const store = user.loja_id
-    ? await findStoreById(c.env.DB, user.loja_id)
-    : null;
+  const store =
+    user.papel === "conferente" && user.loja_id
+      ? await findActiveStoreById(c.env.DB, user.loja_id)
+      : null;
+  if (user.papel === "conferente" && !store) return invalidCredentials(c);
 
   const token = await createSessionToken(user.id, c.env.SESSION_SECRET);
   setCookie(c, COOKIE_NAME, token, {

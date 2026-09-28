@@ -268,6 +268,34 @@ describe("auth", () => {
     expect(response.status).toBe(401);
   });
 
+  it("bloqueia conferente de loja inativa e invalida sessão existente", async () => {
+    const storeId = "store-inactive-session";
+    await seedUser({
+      id: "user-inactive-store",
+      login: "user-inactive-store",
+      papel: "conferente",
+      lojaId: storeId,
+    });
+
+    const firstLogin = await login("user-inactive-store");
+    expect(firstLogin.status).toBe(200);
+    const cookie = cookiePair(firstLogin);
+
+    await db
+      .prepare("UPDATE lojas SET ativo = 0 WHERE id = ?")
+      .bind(storeId)
+      .run();
+
+    expect((await login("user-inactive-store")).status).toBe(401);
+
+    const me = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: cookie },
+      }),
+    );
+    expect(me.status).toBe(401);
+  });
+
   it("bloqueia usuário de loja nas rotas administrativas", async () => {
     await seedUser({
       id: "store-user",

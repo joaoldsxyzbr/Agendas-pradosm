@@ -82,6 +82,51 @@ describe("D1 schema", () => {
     ).rejects.toThrow();
   });
 
+  it("impede atomicamente remover o último administrador ativo", async () => {
+    const protectedId = "admin-atomic-protected";
+    await db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)",
+      )
+      .bind(
+        protectedId,
+        "Admin Atômico",
+        "admin-atomic-protected",
+        "hash",
+        now,
+        now,
+      )
+      .run();
+
+    await db
+      .prepare(
+        "UPDATE usuarios SET ativo = 0 WHERE papel = 'admin' AND id <> ? AND excluido_em IS NULL",
+      )
+      .bind(protectedId)
+      .run();
+
+    await expect(
+      db
+        .prepare("UPDATE usuarios SET ativo = 0 WHERE id = ?")
+        .bind(protectedId)
+        .run(),
+    ).rejects.toThrow(/ULTIMO_ADMIN_ATIVO/);
+
+    await db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES ('admin-atomic-second', NULL, 'Segundo Admin', 'admin-atomic-second', 'hash', 'admin', 1, ?, ?)",
+      )
+      .bind(now, now)
+      .run();
+
+    await expect(
+      db
+        .prepare("UPDATE usuarios SET ativo = 0 WHERE id = ?")
+        .bind(protectedId)
+        .run(),
+    ).resolves.toBeDefined();
+  });
+
   it("rejeita status fora do conjunto permitido", async () => {
     await db
       .prepare(
