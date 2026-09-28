@@ -9,6 +9,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
     "build": "vite build",
+    "verify:production": "npm test && npm run typecheck && npm run build",
     "deploy": "npm run build && wrangler d1 migrations apply DB --remote && wrangler deploy",
     "test:ui": "vitest run --config vitest.ui.config.ts",
     "test:worker": "vitest run",

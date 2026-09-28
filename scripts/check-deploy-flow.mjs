@@ -5,8 +5,15 @@ const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const deploy = packageJson.scripts?.deploy ?? "";
+const productionVerify = packageJson.scripts?.["verify:production"] ?? "";
 const wranglerConfig = JSON.parse(
   readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
+);
+
+assert.equal(
+  productionVerify,
+  "npm test && npm run typecheck && npm run build",
+  "gate de produção deve executar testes, typecheck e build",
 );
 
 assert.equal(
