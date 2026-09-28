@@ -19,6 +19,7 @@ const user = {
   nome: "Conferente",
   login: "conferente",
   perfil: "loja" as const,
+  papel: "conferente" as const,
   lojaId: "22222222-2222-4222-8222-222222222222",
   ativo: true,
 };
@@ -182,4 +183,54 @@ describe("gerenciamento de usuários", () => {
       expect(screen.queryByText("Conferente")).not.toBeInTheDocument(),
     );
   });
+  it("usa uma única lista com papel e loja condicional", async () => {
+    const admin = {
+      ...user,
+      id: "33333333-3333-4333-8333-333333333333",
+      nome: "Administrador",
+      login: "administrador",
+      papel: "admin" as const,
+      lojaId: null,
+    };
+    const viewer = {
+      ...user,
+      id: "44444444-4444-4444-8444-444444444444",
+      nome: "Visualizador",
+      login: "visualizador",
+      papel: "visualizador" as const,
+      lojaId: null,
+    };
+
+    mockedApiFetch.mockImplementation((url, init = {}) => {
+      if (url === "/api/admin/users" && !init.method) {
+        return Promise.resolve([admin, user, viewer]) as ReturnType<typeof apiFetch>;
+      }
+      if (url === "/api/admin/stores" && !init.method) {
+        return Promise.resolve(stores) as ReturnType<typeof apiFetch>;
+      }
+      return Promise.reject(new Error("chamada inesperada"));
+    });
+
+    render(<UsersPage />);
+
+    expect(await screen.findByText("Administrador")).toBeInTheDocument();
+    expect(screen.getByText("Visualizador")).toBeInTheDocument();
+    expect(screen.getByRole("columnheader", { name: "Papel" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Papel")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Visualizadores do dashboard" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Papel"), {
+      target: { value: "visualizador" },
+    });
+    expect(screen.queryByLabelText("Loja")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Papel"), {
+      target: { value: "conferente" },
+    });
+    expect(screen.getByLabelText("Loja")).toBeRequired();
+  });
+
+
 });
