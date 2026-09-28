@@ -172,7 +172,7 @@ describe("gerenciamento de usuários", () => {
 
     render(<UsersPage />);
 
-    expect(await screen.findByText("Conferente")).toBeInTheDocument();
+    expect(await screen.findByText(user.login)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
     fireEvent.click(screen.getByRole("button", { name: "Excluir usuário" }));
     fireEvent.click(
@@ -180,7 +180,7 @@ describe("gerenciamento de usuários", () => {
     );
 
     await waitFor(() =>
-      expect(screen.queryByText("Conferente")).not.toBeInTheDocument(),
+      expect(screen.queryByText(user.login)).not.toBeInTheDocument(),
     );
   });
   it("usa uma única lista com papel e loja condicional", async () => {
