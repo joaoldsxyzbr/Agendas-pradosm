@@ -19,7 +19,6 @@ import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
-
 function PlaceholderPage({
   title,
   description,
@@ -87,6 +86,21 @@ function StoreLayout() {
   );
 }
 
+function AdminDashboardRoute() {
+  const { user } = useAuth();
+  return <DashboardPage readOnly={user?.acesso === "dashboard"} />;
+}
+
+function FullAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (user?.acesso === "dashboard") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return children;
+}
+
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -115,11 +129,39 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
-        <Route path="history" element={<AdminAgendaHistoryPage />} />
-        <Route path="import" element={<ImportAgendaPage />} />
-        <Route path="stores" element={<StoresPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route index element={<AdminDashboardRoute />} />
+        <Route
+          path="history"
+          element={
+            <FullAdminRoute>
+              <AdminAgendaHistoryPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="import"
+          element={
+            <FullAdminRoute>
+              <ImportAgendaPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="stores"
+          element={
+            <FullAdminRoute>
+              <StoresPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <FullAdminRoute>
+              <UsersPage />
+            </FullAdminRoute>
+          }
+        />
       </Route>
 
       <Route
