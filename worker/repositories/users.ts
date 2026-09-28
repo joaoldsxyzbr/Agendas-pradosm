@@ -1,4 +1,5 @@
 import { hashPassword } from "../lib/password";
+import { auditStatement, recordAudit } from "./audit";
 
 export type UserRecord = {
   id: string;
@@ -64,6 +65,22 @@ export async function createInactiveFirstAdmin(
     .run();
 
   if (result.meta.changes === 0) return null;
+
+  await recordAudit(db, {
+    userId: null,
+    action: "admin_bootstrap_preparado",
+    entity: "usuario",
+    entityId: id,
+    after: {
+      nome: input.nome,
+      login: input.login,
+      perfil: "admin",
+      ativo: false,
+    },
+    details: "Primeiro administrador preparado.",
+    createdAt: now,
+  });
+
   return findUserById(db, id);
 }
 
@@ -79,25 +96,43 @@ export async function listStoreUsers(db: D1Database): Promise<UserRecord[]> {
 export async function createStoreUser(
   db: D1Database,
   input: { nome: string; login: string; senha: string; lojaId: string },
+  actorUserId: string,
 ): Promise<UserRecord> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.senha);
 
-  await db
-    .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'loja', 1, ?, ?)",
-    )
-    .bind(
-      id,
-      input.lojaId,
-      input.nome,
-      input.login,
-      passwordHash,
-      now,
-      now,
-    )
-    .run();
+  await db.batch([
+    db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'loja', 1, ?, ?)",
+      )
+      .bind(
+        id,
+        input.lojaId,
+        input.nome,
+        input.login,
+        passwordHash,
+        now,
+        now,
+      ),
+    auditStatement(db, {
+      userId: actorUserId,
+      action: "usuario_criado",
+      entity: "usuario",
+      entityId: id,
+      storeId: input.lojaId,
+      after: {
+        nome: input.nome,
+        login: input.login,
+        lojaId: input.lojaId,
+        ativo: true,
+        senhaAlterada: true,
+      },
+      details: "Usuário de loja criado.",
+      createdAt: now,
+    }),
+  ]);
 
   return (await findUserById(db, id))!;
 }
@@ -112,6 +147,7 @@ export async function updateStoreUser(
     lojaId?: string;
     ativo?: boolean;
   },
+  actorUserId: string,
 ): Promise<UserRecord> {
   const nome = input.nome ?? current.nome;
   const login = input.login ?? current.login;
@@ -123,35 +159,82 @@ export async function updateStoreUser(
     : current.senha_hash;
   const now = new Date().toISOString();
 
-  await db
-    .prepare(
-      "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
-    )
-    .bind(
-      lojaId,
-      nome,
-      login,
-      passwordHash,
-      ativo,
-      now,
-      current.id,
-    )
-    .run();
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
+      )
+      .bind(
+        lojaId,
+        nome,
+        login,
+        passwordHash,
+        ativo,
+        now,
+        current.id,
+      ),
+    auditStatement(db, {
+      userId: actorUserId,
+      action: "usuario_atualizado",
+      entity: "usuario",
+      entityId: current.id,
+      storeId: lojaId,
+      before: {
+        nome: current.nome,
+        login: current.login,
+        lojaId: current.loja_id,
+        ativo: current.ativo === 1,
+      },
+      after: {
+        nome,
+        login,
+        lojaId,
+        ativo: ativo === 1,
+        senhaAlterada: Boolean(input.senha),
+      },
+      details: "Usuário de loja atualizado.",
+      createdAt: now,
+    }),
+  ]);
 
   return (await findUserById(db, current.id))!;
 }
 
 export async function softDeleteStoreUser(
   db: D1Database,
-  id: string,
+  current: UserRecord,
+  actorUserId: string,
 ): Promise<boolean> {
   const now = new Date().toISOString();
-  const result = await db
-    .prepare(
-      "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
-    )
-    .bind(now, now, id)
-    .run();
+  const [result] = await db.batch([
+    db
+      .prepare(
+        "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND perfil = 'loja' AND excluido_em IS NULL",
+      )
+      .bind(now, now, current.id),
+    auditStatement(db, {
+      userId: actorUserId,
+      action: "usuario_removido",
+      entity: "usuario",
+      entityId: current.id,
+      storeId: current.loja_id,
+      before: {
+        nome: current.nome,
+        login: current.login,
+        lojaId: current.loja_id,
+        ativo: current.ativo === 1,
+      },
+      after: {
+        nome: current.nome,
+        login: current.login,
+        lojaId: current.loja_id,
+        ativo: false,
+        removido: true,
+      },
+      details: "Usuário removido logicamente.",
+      createdAt: now,
+    }),
+  ]);
 
   return result.meta.changes > 0;
 }

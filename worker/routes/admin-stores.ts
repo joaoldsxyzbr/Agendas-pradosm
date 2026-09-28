@@ -44,7 +44,8 @@ adminStoreRoutes.post("/", async (c) => {
   }
 
   try {
-    const store = await createStore(c.env.DB, parsed.data);
+    const actor = c.get("authUser");
+    const store = await createStore(c.env.DB, parsed.data, actor.id);
     return c.json(storeJson(store), 201);
   } catch (error) {
     if (isDuplicateCode(error)) {
@@ -69,7 +70,8 @@ adminStoreRoutes.patch("/", async (c) => {
   }
 
   try {
-    const store = await updateStore(c.env.DB, current, parsed.data);
+    const actor = c.get("authUser");
+    const store = await updateStore(c.env.DB, current, parsed.data, actor.id);
     return c.json(storeJson(store));
   } catch (error) {
     if (isDuplicateCode(error)) {
@@ -111,7 +113,8 @@ adminStoreRoutes.delete("/:id", async (c) => {
     );
   }
 
-  const deleted = await softDeleteStore(c.env.DB, current.id);
+  const actor = c.get("authUser");
+  const deleted = await softDeleteStore(c.env.DB, current, actor.id);
   if (!deleted) {
     return c.json(
       { error: "LOJA_NAO_ENCONTRADA", message: "Loja não encontrada." },

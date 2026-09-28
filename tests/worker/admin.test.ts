@@ -520,4 +520,79 @@ describe("admin store and user management", () => {
     expect((await login("admin-protected")).status).toBe(200);
   });
 
+
+  it("audita CRUD de lojas e usuários sem expor senha", async () => {
+    const adminId = "admin-audit-crud";
+    const cookie = await adminCookie(adminId, "admin-audit-crud");
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F120",
+      nome: "Loja Auditoria",
+    });
+    const store = (await storeResponse.json()) as { id: string };
+
+    const userResponse = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Conferente Auditoria",
+      login: "conferente-auditoria",
+      senha: "senha-super-secreta",
+      lojaId: store.id,
+    });
+    const user = (await userResponse.json()) as { id: string };
+
+    expect(
+      (
+        await jsonRequest("/api/admin/users", "PATCH", cookie, {
+          id: user.id,
+          nome: "Conferente Auditada",
+          senha: "senha-nova-super-secreta",
+        })
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await jsonRequest("/api/admin/stores", "PATCH", cookie, {
+          id: store.id,
+          nome: "Loja Auditoria Atualizada",
+        })
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await jsonRequest(`/api/admin/users/${user.id}`, "DELETE", cookie)
+      ).status,
+    ).toBe(204);
+
+    expect(
+      (
+        await jsonRequest(`/api/admin/stores/${store.id}`, "DELETE", cookie)
+      ).status,
+    ).toBe(204);
+
+    const rows = await db
+      .prepare(
+        "SELECT acao, antes, depois FROM auditoria WHERE usuario_id = ? AND (entidade_id = ? OR entidade_id = ?) ORDER BY criado_em ASC, rowid ASC",
+      )
+      .bind(adminId, store.id, user.id)
+      .all<{ acao: string; antes: string | null; depois: string | null }>();
+
+    expect(rows.results.map((item) => item.acao)).toEqual(
+      expect.arrayContaining([
+        "loja_criada",
+        "usuario_criado",
+        "usuario_atualizado",
+        "loja_atualizada",
+        "usuario_removido",
+        "loja_removida",
+      ]),
+    );
+
+    const serialized = JSON.stringify(rows.results);
+    expect(serialized).not.toContain("senha-super-secreta");
+    expect(serialized).not.toContain("senha-nova-super-secreta");
+    expect(serialized).not.toContain("senha_hash");
+    expect(serialized).not.toContain("pbkdf2");
+  });
+
 });
