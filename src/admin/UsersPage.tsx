@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, apiFetch } from "../lib/api";
+import { DashboardViewersPanel } from "./DashboardViewersPanel";
 import { UserEditDialog } from "./UserEditDialog";
 import type { AdminStore, AdminUser } from "./types";
 
@@ -161,6 +162,8 @@ export function UsersPage() {
           </table>
         </div>
       </div>
+
+      <DashboardViewersPanel />
 
       {selectedUser ? (
         <UserEditDialog

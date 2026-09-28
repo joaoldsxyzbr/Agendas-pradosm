@@ -14,6 +14,9 @@ export function AdminLayout() {
 
   if (!user) return null;
 
+  const dashboardOnly = user.acesso === "dashboard";
+  const navItems = dashboardOnly ? NAV_ITEMS.slice(0, 1) : NAV_ITEMS;
+
   async function handleLogout() {
     await logout();
     navigate("/login", { replace: true });
@@ -31,12 +34,12 @@ export function AdminLayout() {
           />
           <div>
             <strong>Agenda Prado</strong>
-            <span>Administração</span>
+            <span>{dashboardOnly ? "Visualização" : "Administração"}</span>
           </div>
         </div>
 
         <nav className="side-nav" aria-label="Navegação principal">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -53,7 +56,7 @@ export function AdminLayout() {
         <div className="sidebar-footer">
           <div className="user-summary">
             <span>{user.nome}</span>
-            <small>Administrador</small>
+            <small>{dashboardOnly ? "Visualizador" : "Administrador"}</small>
           </div>
           <ThemeToggle />
           <button className="ghost-button" type="button" onClick={handleLogout}>
@@ -77,7 +80,7 @@ export function AdminLayout() {
         </header>
 
         <nav className="mobile-nav" aria-label="Navegação principal">
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
