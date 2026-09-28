@@ -163,7 +163,7 @@ describe("auth", () => {
     expect(me.status).toBe(200);
     expect(await me.json()).toMatchObject({
       id: "admin-ok",
-      perfil: "admin",
+      papel: "admin",
       lojaId: null,
     });
   });
@@ -195,6 +195,7 @@ describe("auth", () => {
     );
 
     expect(await me.json()).toMatchObject({
+      papel: "conferente",
       lojaCodigo: "F-store-session",
       lojaNome: "Loja store-session",
     });
