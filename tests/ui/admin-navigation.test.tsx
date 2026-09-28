@@ -41,7 +41,7 @@ describe("navegação administrativa", () => {
     expect(
       screen.queryByRole("link", { name: "Importar" }),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(8);
+    expect(screen.getAllByRole("link")).toHaveLength(6);
   });
 
   it("abre Importar agenda em modal no Dashboard", async () => {
