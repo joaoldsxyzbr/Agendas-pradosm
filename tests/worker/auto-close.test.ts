@@ -19,7 +19,7 @@ async function seedStoreUser() {
 
   await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES ('user-auto-close', 'store-auto-close', 'Conferente Auto Close', 'auto-close', ?, 'loja', 'conferente', 1, ?, ?)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES ('user-auto-close', 'store-auto-close', 'Conferente Auto Close', 'auto-close', ?, 'conferente', 1, ?, ?)",
     )
     .bind(passwordHash, now, now)
     .run();
