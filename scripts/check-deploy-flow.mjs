@@ -5,10 +5,26 @@ const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const deploy = packageJson.scripts?.deploy ?? "";
+const productionVerify = packageJson.scripts?.["verify:production"] ?? "";
+const wranglerConfig = JSON.parse(
+  readFileSync(new URL("../wrangler.jsonc", import.meta.url), "utf8"),
+);
+
+assert.equal(
+  productionVerify,
+  "npm test && npm run typecheck && npm run build",
+  "gate de produção deve executar testes, typecheck e build",
+);
+
+assert.equal(
+  wranglerConfig.name,
+  "agendas-pradosm",
+  "wrangler deve apontar para o Worker de produção",
+);
 
 assert.ok(deploy.includes("npm run build"), "deploy deve buildar antes de publicar");
 assert.ok(
-  deploy.includes("wrangler d1 migrations apply agendas-prado --remote"),
+  deploy.includes("wrangler d1 migrations apply DB --remote"),
   "deploy nativo deve aplicar migrations D1 remotas",
 );
 assert.ok(
@@ -18,7 +34,7 @@ assert.ok(
 
 const buildIndex = deploy.indexOf("npm run build");
 const migrationIndex = deploy.indexOf(
-  "wrangler d1 migrations apply agendas-prado --remote",
+  "wrangler d1 migrations apply DB --remote",
 );
 const deployIndex = deploy.lastIndexOf("wrangler deploy");
 
@@ -42,6 +58,15 @@ const ci = readFileSync(
   "utf8",
 );
 assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
+assert.ok(
+  ci.includes("npm audit --omit=dev"),
+  "CI deve auditar dependências de produção",
+);
+assert.equal(
+  existsSync(new URL("../.github/dependabot.yml", import.meta.url)),
+  true,
+  "Dependabot deve manter dependências atualizadas",
+);
 assert.ok(
   !ci.includes("CLOUDFLARE_API_TOKEN"),
   "CI não deve depender de credenciais Cloudflare",
