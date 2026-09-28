@@ -248,11 +248,10 @@ describe("TodayPage", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<TodayPage />);
 
-    fireEvent.click(
-      await screen.findByRole("button", {
-        name: "Editar fornecedor FORNECEDOR ERRADO",
-      }),
-    );
+    const editButtons = await screen.findAllByRole("button", {
+      name: "Editar fornecedor FORNECEDOR ERRADO",
+    });
+    fireEvent.click(editButtons[0]);
 
     const editInput = screen.getByRole("textbox", { name: "Nome do fornecedor" });
     fireEvent.change(editInput, { target: { value: "FORNECEDOR CORRETO" } });
@@ -263,9 +262,9 @@ describe("TodayPage", () => {
     ).toBeGreaterThan(0);
 
     fireEvent.click(
-      screen.getByRole("button", {
+      screen.getAllByRole("button", {
         name: "Remover fornecedor FORNECEDOR CORRETO",
-      }),
+      })[0],
     );
 
     const dialog = screen.getByRole("dialog", { name: "Remover fornecedor" });
