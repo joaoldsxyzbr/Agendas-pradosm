@@ -267,7 +267,7 @@ describe("admin store and user management", () => {
     expect(body).toMatchObject({
       nome: "Conferente Teste",
       login: "conferente-f92",
-      perfil: "loja",
+      papel: "conferente",
       lojaId: store.id,
       ativo: true,
     });
@@ -505,10 +505,17 @@ describe("admin store and user management", () => {
     expect(stored?.excluido_em).toBeTruthy();
   });
 
-  it("DELETE de administrador é rejeitado", async () => {
+  it("DELETE do último administrador ativo é rejeitado", async () => {
     const adminId = crypto.randomUUID();
     await seedAdmin(adminId, "admin-protected");
     const cookie = cookiePair(await login("admin-protected"));
+
+    await db
+      .prepare(
+        "UPDATE usuarios SET ativo = 0 WHERE papel = 'admin' AND id <> ? AND excluido_em IS NULL",
+      )
+      .bind(adminId)
+      .run();
 
     const response = await jsonRequest(
       `/api/admin/users/${adminId}`,
@@ -516,7 +523,8 @@ describe("admin store and user management", () => {
       cookie,
     );
 
-    expect(response.status).toBe(404);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ error: "ULTIMO_ADMIN_ATIVO" });
     expect((await login("admin-protected")).status).toBe(200);
   });
 
