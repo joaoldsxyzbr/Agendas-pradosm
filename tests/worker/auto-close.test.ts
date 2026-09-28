@@ -11,31 +11,51 @@ const passwordHash =
   "pbkdf2_sha256$100000$AAECAwQFBgcICQoLDA0ODw==$AYxgQLgLfLPsbb0egTJrnCsUalhEK5g5ZPOz/f7bl64=";
 const now = "2026-09-24T12:00:00.000Z";
 
-async function seedStoreUser() {
+async function seedStoreUser(suffix: string) {
+  const storeId = `store-auto-close-${suffix}`;
+  const userId = `user-auto-close-${suffix}`;
+
   await db
     .prepare(
-      "INSERT INTO lojas (id, codigo, nome, ativo, criado_em, atualizado_em) VALUES ('store-auto-close', 'FAC', 'Loja Auto Close', 1, ?, ?)",
+      "INSERT INTO lojas (id, codigo, nome, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, 1, ?, ?)",
     )
-    .bind(now, now)
+    .bind(storeId, `FAC-${suffix}`, `Loja Auto Close ${suffix}`, now, now)
     .run();
 
   await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES ('user-auto-close', 'store-auto-close', 'Conferente Auto Close', 'auto-close', ?, 'conferente', 1, ?, ?)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'conferente', 1, ?, ?)",
     )
-    .bind(passwordHash, now, now)
+    .bind(
+      userId,
+      storeId,
+      `Conferente Auto Close ${suffix}`,
+      `auto-close-${suffix}`,
+      passwordHash,
+      now,
+      now,
+    )
     .run();
 
-  const token = await createSessionToken("user-auto-close", sessionSecret);
-  return `agenda_session=${token}`;
+  const token = await createSessionToken(userId, sessionSecret);
+  return {
+    cookie: `agenda_session=${token}`,
+    storeId,
+    userId,
+  };
 }
 
-async function seedAgenda(id: string, date: string) {
+async function seedAgenda(
+  id: string,
+  date: string,
+  storeId: string,
+  userId: string,
+) {
   await db
     .prepare(
-      "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, 'store-auto-close', ?, 'agenda.pdf', 'user-auto-close', ?, ?)",
+      "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, ?, ?, 'agenda.pdf', ?, ?, ?)",
     )
-    .bind(id, date, now, now)
+    .bind(id, storeId, date, userId, now, now)
     .run();
 }
 
@@ -55,15 +75,25 @@ async function agendaState(id: string) {
 
 describe("conclusão automática de agendas", () => {
   it("conclui agenda anterior ao dia atual e preserva a data original", async () => {
-    const cookie = await seedStoreUser();
+    const seeded = await seedStoreUser("http");
     const today = businessDate(new Date());
 
-    await seedAgenda("agenda-auto-close-past", "2026-01-01");
-    await seedAgenda("agenda-auto-close-today", today);
+    await seedAgenda(
+      "agenda-auto-close-past",
+      "2026-01-01",
+      seeded.storeId,
+      seeded.userId,
+    );
+    await seedAgenda(
+      "agenda-auto-close-today",
+      today,
+      seeded.storeId,
+      seeded.userId,
+    );
 
     const response = await exports.default.fetch(
       new Request("https://example.com/api/store/today", {
-        headers: { Cookie: cookie },
+        headers: { Cookie: seeded.cookie },
       }),
     );
 
@@ -95,9 +125,20 @@ describe("conclusão automática de agendas", () => {
   });
 
   it("fecha agendas passadas pelo handler scheduled sem depender de acesso HTTP", async () => {
-    await seedStoreUser();
-    await seedAgenda("agenda-cron-past", "2026-09-28");
-    await seedAgenda("agenda-cron-current", "2026-09-29");
+    const seeded = await seedStoreUser("cron");
+
+    await seedAgenda(
+      "agenda-cron-past",
+      "2026-09-28",
+      seeded.storeId,
+      seeded.userId,
+    );
+    await seedAgenda(
+      "agenda-cron-current",
+      "2026-09-29",
+      seeded.storeId,
+      seeded.userId,
+    );
 
     await worker.scheduled(
       {
