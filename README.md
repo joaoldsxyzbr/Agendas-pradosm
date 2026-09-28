@@ -131,22 +131,39 @@ O deploy executa o build antes de publicar o Worker.
 
 1. Entrar no painel administrativo.
 2. Manter lojas e usuários quando necessário.
-3. Abrir **Importar**.
-4. Selecionar o PDF diário da loja.
-5. Conferir loja, data, total e registros da prévia.
-6. Corrigir qualquer erro bloqueante antes de confirmar.
-7. Confirmar a importação.
-8. Se já existir agenda para a mesma loja/data, usar **Substituir agenda** somente após revisar a prévia.
-9. Usar Dashboard e Histórico para acompanhar os recebimentos e a trilha de status.
+3. Usar **Importar agenda** no Dashboard.
+4. Selecionar o PDF diário da loja e revisar a prévia.
+5. Confirmar a importação.
+6. Se já existir agenda para a mesma loja/data, usar **Substituir agenda** somente após revisar a prévia.
+7. Usar o seletor de data do Dashboard para acompanhar cada loja.
+8. Quando necessário, consultar o histórico diretamente nos cadastros de loja e usuário.
 
 ## Fluxo do conferente
 
 1. Entrar com o usuário da própria loja.
-2. A tela **Hoje** mostra somente a agenda da data atual.
-3. Marcar cada recebimento como **Recebido**, **Não chegou** ou **Recusado**.
-4. Corrigir o status posteriormente quando necessário.
-5. Abrir os detalhes para consultar NF-e, pedidos e histórico.
-6. Usar **Histórico** para consultar agendas anteriores da própria loja.
+2. Selecionar a data desejada na tela de recebimento.
+3. Enquanto o dia estiver **Em aberto**, marcar cada fornecedor como **Recebido** ou **Não recebido** e registrar **Trocas** quando houver.
+4. Adicionar fornecedor sem agenda quando necessário; esse registro pode ser editado ou removido antes da conclusão.
+5. Concluir o dia ao finalizar o recebimento.
+6. Dias concluídos ficam somente para consulta do conferente; o administrador pode corrigi-los ou reabri-los.
+
+
+## Auditoria e histórico
+
+Toda alteração relevante de dados deve deixar uma trilha de auditoria no D1.
+
+- registrar quem realizou a ação e quando;
+- registrar a entidade afetada e, quando aplicável, loja, agenda e agendamento relacionados;
+- registrar valores anteriores e posteriores para alterações;
+- registrar criação, edição e remoção lógica de fornecedores sem agenda;
+- registrar status de recebimento, trocas, conclusão e reabertura de dias;
+- registrar importação e substituição de agendas;
+- registrar criação, edição, ativação/desativação e remoção lógica de lojas e usuários;
+- nunca registrar senha, hash de senha, segredo de sessão ou outro segredo;
+- exclusões de registros operacionais e cadastros são lógicas quando houver necessidade de preservar histórico;
+- leituras, visualizações e cliques comuns não entram na auditoria para evitar ruído.
+
+A consulta administrativa é contextual: o histórico de lojas e usuários aparece dentro dos respectivos modais de edição. A API de auditoria é restrita ao perfil administrador.
 
 ## Segurança operacional
 

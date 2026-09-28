@@ -595,4 +595,49 @@ describe("admin store and user management", () => {
     expect(serialized).not.toContain("pbkdf2");
   });
 
+
+  it("admin consulta auditoria pela API e usuário de loja recebe 403", async () => {
+    const adminId = "admin-audit-api";
+    const cookie = await adminCookie(adminId, "admin-audit-api");
+
+    const storeResponse = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F121",
+      nome: "Loja Audit API",
+    });
+    expect(storeResponse.status).toBe(201);
+    const store = (await storeResponse.json()) as { id: string };
+
+    const auditResponse = await exports.default.fetch(
+      new Request(
+        `https://example.com/api/admin/audit?entity=loja&entityId=${store.id}`,
+        { headers: { Cookie: cookie } },
+      ),
+    );
+
+    expect(auditResponse.status).toBe(200);
+    expect(await auditResponse.json()).toEqual([
+      expect.objectContaining({
+        action: "loja_criada",
+        entity: "loja",
+        entityId: store.id,
+        user: expect.objectContaining({ id: adminId }),
+      }),
+    ]);
+
+    await seedStoreUser({
+      userId: "store-audit-api-denied",
+      login: "store-audit-api-denied",
+      storeId: "store-audit-api-denied",
+      storeCode: "F122",
+    });
+    const storeCookie = cookiePair(await login("store-audit-api-denied"));
+
+    const denied = await exports.default.fetch(
+      new Request("https://example.com/api/admin/audit", {
+        headers: { Cookie: storeCookie },
+      }),
+    );
+    expect(denied.status).toBe(403);
+  });
+
 });
