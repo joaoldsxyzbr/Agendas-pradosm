@@ -11,7 +11,7 @@ vi.mock("../../src/auth/AuthProvider", () => ({
     user: {
       id: "admin-test",
       nome: "Administrador",
-      perfil: "admin",
+      papel: "admin",
       lojaId: null,
     },
     logout: vi.fn(),
