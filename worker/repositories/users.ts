@@ -163,16 +163,6 @@ export async function createUser(
       ),
   ];
 
-  if (input.papel === "visualizador") {
-    statements.push(
-      db
-        .prepare(
-          "INSERT INTO usuario_permissoes (usuario_id, dashboard_somente_leitura, criado_em, atualizado_em) VALUES (?, 1, ?, ?)",
-        )
-        .bind(id, now, now),
-    );
-  }
-
   statements.push(
     auditStatement(db, {
       userId: actorUserId,
@@ -246,20 +236,7 @@ export async function updateUser(
         now,
         current.id,
       ),
-    db
-      .prepare("DELETE FROM usuario_permissoes WHERE usuario_id = ?")
-      .bind(current.id),
   ];
-
-  if (papel === "visualizador") {
-    statements.push(
-      db
-        .prepare(
-          "INSERT INTO usuario_permissoes (usuario_id, dashboard_somente_leitura, criado_em, atualizado_em) VALUES (?, 1, ?, ?)",
-        )
-        .bind(current.id, now, now),
-    );
-  }
 
   statements.push(
     auditStatement(db, {
@@ -306,9 +283,6 @@ export async function softDeleteUser(
         "UPDATE usuarios SET ativo = 0, excluido_em = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
       )
       .bind(now, now, current.id),
-    db
-      .prepare("DELETE FROM usuario_permissoes WHERE usuario_id = ?")
-      .bind(current.id),
     auditStatement(db, {
       userId: actorUserId,
       action: "usuario_removido",
@@ -338,8 +312,3 @@ export async function softDeleteUser(
   return result.meta.changes > 0;
 }
 
-// Compatibilidade interna temporária até a remoção do subsistema legado.
-export const listStoreUsers = listUsers;
-export const createStoreUser = createUser;
-export const updateStoreUser = updateUser;
-export const softDeleteStoreUser = softDeleteUser;
