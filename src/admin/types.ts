@@ -49,6 +49,7 @@ export type AdminAppointment = {
   orders: string[];
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
   hasExchanges: boolean;
+  origin?: "imported" | "manual";
   ativo: boolean;
 };
 

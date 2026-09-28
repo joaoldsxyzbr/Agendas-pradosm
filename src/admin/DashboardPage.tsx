@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
+import { AdminAgendaPreview } from "./AdminAgendaPreview";
 import { ImportAgendaPage } from "./ImportAgendaPage";
 import type { AdminAgendaSummary, AdminStore } from "./types";
 
@@ -40,6 +41,7 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
+  const [previewAgendaId, setPreviewAgendaId] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -145,6 +147,13 @@ export function DashboardPage() {
         />
       ) : null}
 
+      {previewAgendaId ? (
+        <AdminAgendaPreview
+          agendaId={previewAgendaId}
+          onClose={() => setPreviewAgendaId(null)}
+        />
+      ) : null}
+
       {!loading && !error ? (
         <>
           <section className="dashboard-section" aria-label="Situação por loja">
@@ -190,6 +199,13 @@ export function DashboardPage() {
                             <span>{agenda.semAgenda} sem agenda</span>
                           ) : null}
                         </div>
+                        <button
+                          className="ghost-button dashboard-store-details"
+                          type="button"
+                          onClick={() => setPreviewAgendaId(agenda.id)}
+                        >
+                          Ver detalhes
+                        </button>
                       </>
                     ) : (
                       <p className="empty-copy">

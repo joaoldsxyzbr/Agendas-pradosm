@@ -31,6 +31,9 @@ export function AgendaList({
       a.startTime.localeCompare(b.startTime) ||
       a.protocol.localeCompare(b.protocol),
   );
+  const hasActions = Boolean(
+    onOpen || (editable && (onChanged || onEditManual || onDeleteManual)),
+  );
 
   function exchangeControl(appointment: StoreAppointment) {
     if (!editable || !onChanged) return null;
@@ -104,7 +107,7 @@ export function AgendaList({
                 <th>Protocolo</th>
                 <th>Tipo</th>
                 <th>Status</th>
-                <th>Ações</th>
+                {hasActions ? <th>Ações</th> : null}
                 <th>Trocas</th>
               </tr>
             </thead>
@@ -116,7 +119,9 @@ export function AgendaList({
                   <td>{appointment.protocol}</td>
                   <td>{appointment.type ?? "-"}</td>
                   <td><StatusBadge status={appointment.status} /></td>
-                  <td className="table-action">{actions(appointment)}</td>
+                  {hasActions ? (
+                    <td className="table-action">{actions(appointment)}</td>
+                  ) : null}
                   <td className="exchange-cell">
                     {editable && onChanged ? (
                       exchangeControl(appointment)
@@ -130,7 +135,7 @@ export function AgendaList({
               ))}
               {sorted.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="empty-cell">
+                  <td colSpan={hasActions ? 7 : 6} className="empty-cell">
                     Nenhum agendamento nesta agenda.
                   </td>
                 </tr>
@@ -160,7 +165,7 @@ export function AgendaList({
             </div>
 
             <StatusBadge status={appointment.status} />
-            {actions(appointment)}
+            {hasActions ? actions(appointment) : null}
             <div className="agenda-card-exchanges">
               <span>Trocas</span>
               {editable && onChanged ? (
