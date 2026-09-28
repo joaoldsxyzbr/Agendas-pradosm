@@ -4,6 +4,7 @@ import { deleteCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import { RegisterFirstAdminInput } from "../../shared/api";
 import type { AppEnv } from "../env";
+import { checkLoginRateLimit } from "../lib/login-rate-limit";
 import { verifyPassword } from "../lib/password";
 import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
@@ -108,6 +109,22 @@ authRoutes.post("/login", async (c) => {
     return c.json(
       { error: "REQUISICAO_INVALIDA", message: "Dados inválidos." },
       400,
+    );
+  }
+
+  const allowed = await checkLoginRateLimit(
+    c.env.LOGIN_RATE_LIMITER,
+    parsed.data.login,
+    c.req.header("CF-Connecting-IP"),
+  );
+  if (!allowed) {
+    c.header("Retry-After", "60");
+    return c.json(
+      {
+        error: "MUITAS_TENTATIVAS",
+        message: "Muitas tentativas. Aguarde um minuto e tente novamente.",
+      },
+      429,
     );
   }
 

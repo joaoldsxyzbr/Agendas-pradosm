@@ -72,4 +72,46 @@ assert.ok(
   "CI não deve depender de credenciais Cloudflare",
 );
 
-console.log("Fluxo nativo Cloudflare validado.");
+const loginLimiter = wranglerConfig.ratelimits?.find(
+  (binding) => binding.name === "LOGIN_RATE_LIMITER",
+);
+assert.ok(loginLimiter, "produção deve ter rate limit dedicado ao login");
+assert.equal(loginLimiter.namespace_id, "2026092401");
+assert.deepEqual(loginLimiter.simple, { limit: 10, period: 60 });
+
+assert.equal(
+  wranglerConfig.observability?.enabled,
+  true,
+  "observabilidade do Worker deve estar habilitada",
+);
+assert.equal(wranglerConfig.observability?.logs?.enabled, true);
+assert.equal(wranglerConfig.observability?.logs?.invocation_logs, true);
+assert.equal(wranglerConfig.observability?.redact_query_string, true);
+assert.equal(wranglerConfig.observability?.traces?.enabled, true);
+assert.ok(
+  wranglerConfig.observability.traces.head_sampling_rate <= 0.05,
+  "traces devem usar amostragem controlada",
+);
+
+const headersPath = new URL("../public/_headers", import.meta.url);
+assert.equal(
+  existsSync(headersPath),
+  true,
+  "assets estáticos devem declarar headers defensivos",
+);
+const staticHeaders = readFileSync(headersPath, "utf8");
+for (const header of [
+  "Content-Security-Policy:",
+  "X-Frame-Options: DENY",
+  "X-Content-Type-Options: nosniff",
+  "Referrer-Policy: no-referrer",
+  "Permissions-Policy:",
+  "Strict-Transport-Security:",
+]) {
+  assert.ok(
+    staticHeaders.includes(header),
+    `header ausente em public/_headers: ${header}`,
+  );
+}
+
+console.log("Fluxo nativo Cloudflare e hardening de produção validados.");
