@@ -98,6 +98,18 @@ assert.ok(
   ci.includes("npm audit --omit=dev"),
   "CI deve auditar dependências de produção",
 );
+assert.ok(
+  ci.includes("Browser smoke and accessibility"),
+  "CI deve validar o app em navegador real",
+);
+assert.ok(
+  ci.includes("lighthouse@13.5.0"),
+  "CI deve executar auditoria de acessibilidade com versão fixada",
+);
+assert.ok(
+  ci.includes('name="login"') && ci.includes('name="senha"'),
+  "smoke browser deve validar os controles principais do login",
+);
 assert.equal(
   existsSync(new URL("../.github/dependabot.yml", import.meta.url)),
   true,
