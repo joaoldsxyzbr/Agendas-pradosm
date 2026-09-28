@@ -5,7 +5,7 @@ export type AuthUser = {
   id: string;
   nome: string;
   perfil: UserProfile;
-  acesso: UserAccess;
+  acesso?: UserAccess;
   lojaId: string | null;
   lojaCodigo: string | null;
   lojaNome: string | null;
