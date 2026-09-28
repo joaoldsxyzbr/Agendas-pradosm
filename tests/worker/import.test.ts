@@ -12,7 +12,7 @@ const now = "2026-09-24T12:00:00.000Z";
 async function seedAdmin(id: string) {
   await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 'admin', 1, ?, ?)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)",
     )
     .bind(id, `Admin ${id}`, `login-${id}`, passwordHash, now, now)
     .run();
