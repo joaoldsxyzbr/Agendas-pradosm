@@ -180,14 +180,28 @@ export function DashboardPage() {
                         <strong>{store.codigo}</strong>
                         <span>{store.nome}</span>
                       </div>
-                      <div className="store-card-header-actions" style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "0.4rem", flexWrap: "wrap" }}>
+                      <div
+                        className="store-card-header-actions"
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "flex-end",
+                          gap: "0.4rem",
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <span className={agenda ? "status-pill neutral" : "status-pill warning"}>
                           {agenda ? "Agenda importada" : "Sem agenda"}
                         </span>
                         {agenda ? (
                           <button
                             className="status-pill neutral dashboard-store-details"
-                            style={{ border: 0 }}
+                            style={{
+                              border: 0,
+                              minHeight: 0,
+                              padding: "0.32rem 0.55rem",
+                              fontSize: "0.72rem",
+                            }}
                             type="button"
                             onClick={() => setPreviewAgendaId(agenda.id)}
                           >
