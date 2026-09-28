@@ -263,9 +263,12 @@ describe("TodayPage", () => {
 
     fireEvent.click(
       screen.getAllByRole("button", {
-        name: "Remover fornecedor FORNECEDOR CORRETO",
+        name: "Editar fornecedor FORNECEDOR CORRETO",
       })[0],
     );
+
+    const editDialog = screen.getByRole("dialog", { name: "Editar fornecedor" });
+    fireEvent.click(within(editDialog).getByRole("button", { name: "Remover" }));
 
     const dialog = screen.getByRole("dialog", { name: "Remover fornecedor" });
     fireEvent.click(within(dialog).getByRole("button", { name: "Remover" }));
@@ -556,8 +559,8 @@ describe("seletor de data da agenda", () => {
       screen.queryByRole("button", { name: "Recebido" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /Fornecedor sem agenda/ }),
-    ).not.toBeInTheDocument();
+      screen.queryByRole("buttton", { name: /Fornecedor sem agenda/ }),
+   ).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("/api/store/agenda/"),
       expect.objectContaining({ method: "POST", credentials: "include" }),
