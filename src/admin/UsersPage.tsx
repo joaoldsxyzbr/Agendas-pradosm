@@ -1,8 +1,14 @@
 import { useEffect, useState, type FormEvent } from "react";
+import type { UserRole } from "../../shared/auth";
 import { ApiError, apiFetch } from "../lib/api";
-import { DashboardViewersPanel } from "./DashboardViewersPanel";
 import { UserEditDialog } from "./UserEditDialog";
 import type { AdminStore, AdminUser } from "./types";
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  admin: "Administrador",
+  conferente: "Conferente",
+  visualizador: "Visualizador",
+};
 
 export function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([]);
@@ -11,6 +17,7 @@ export function UsersPage() {
   const [nome, setNome] = useState("");
   const [login, setLogin] = useState("");
   const [senha, setSenha] = useState("");
+  const [papel, setPapel] = useState<UserRole>("conferente");
   const [lojaId, setLojaId] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -25,7 +32,9 @@ export function UsersPage() {
   }
 
   useEffect(() => {
-    void load().catch(() => setMessage("Não foi possível carregar os usuários."));
+    void load().catch(() =>
+      setMessage("Não foi possível carregar os usuários."),
+    );
   }, []);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -41,18 +50,22 @@ export function UsersPage() {
           nome: nome.trim(),
           login: login.trim(),
           senha,
-          lojaId,
+          papel,
+          ...(papel === "conferente" ? { lojaId } : {}),
         }),
       });
       setNome("");
       setLogin("");
       setSenha("");
+      setPapel("conferente");
       setLojaId("");
       setMessage("Usuário cadastrado com sucesso.");
       await load();
     } catch (error) {
       setMessage(
-        error instanceof ApiError ? error.message : "Não foi possível cadastrar o usuário.",
+        error instanceof ApiError
+          ? error.message
+          : "Não foi possível cadastrar o usuário.",
       );
     } finally {
       setSaving(false);
@@ -83,18 +96,26 @@ export function UsersPage() {
         <div>
           <span className="eyebrow">Cadastros</span>
           <h1>Usuários</h1>
-          <p>Crie e gerencie os acessos dos conferentes de cada loja.</p>
+          <p>Crie e gerencie administradores, conferentes e visualizadores.</p>
         </div>
       </header>
 
       <form className="form-card user-form" onSubmit={submit}>
         <label>
           <span>Nome</span>
-          <input value={nome} onChange={(event) => setNome(event.target.value)} required />
+          <input
+            value={nome}
+            onChange={(event) => setNome(event.target.value)}
+            required
+          />
         </label>
         <label>
           <span>Login</span>
-          <input value={login} onChange={(event) => setLogin(event.target.value)} required />
+          <input
+            value={login}
+            onChange={(event) => setLogin(event.target.value)}
+            required
+          />
         </label>
         <label>
           <span>Senha</span>
@@ -108,16 +129,35 @@ export function UsersPage() {
           />
         </label>
         <label>
-          <span>Loja</span>
-          <select value={lojaId} onChange={(event) => setLojaId(event.target.value)} required>
-            <option value="">Selecione</option>
-            {stores.filter((store) => store.ativo).map((store) => (
-              <option key={store.id} value={store.id}>
-                {store.codigo} - {store.nome}
-              </option>
-            ))}
+          <span>Papel</span>
+          <select
+            value={papel}
+            onChange={(event) => setPapel(event.target.value as UserRole)}
+          >
+            <option value="admin">Administrador</option>
+            <option value="conferente">Conferente</option>
+            <option value="visualizador">Visualizador</option>
           </select>
         </label>
+        {papel === "conferente" ? (
+          <label>
+            <span>Loja</span>
+            <select
+              value={lojaId}
+              onChange={(event) => setLojaId(event.target.value)}
+              required
+            >
+              <option value="">Selecione</option>
+              {stores
+                .filter((store) => store.ativo)
+                .map((store) => (
+                  <option key={store.id} value={store.id}>
+                    {store.codigo} - {store.nome}
+                  </option>
+                ))}
+            </select>
+          </label>
+        ) : null}
         <button className="primary-button" type="submit" disabled={saving}>
           {saving ? "Salvando..." : "Cadastrar usuário"}
         </button>
@@ -133,8 +173,11 @@ export function UsersPage() {
                 <th>Nome</th>
                 <th>Login</th>
                 <th>Loja</th>
+                <th>Papel</th>
                 <th>Situação</th>
-                <th><span className="sr-only">Ações</span></th>
+                <th>
+                  <span className="sr-only">Ações</span>
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -142,7 +185,12 @@ export function UsersPage() {
                 <tr key={user.id}>
                   <td>{user.nome}</td>
                   <td>{user.login}</td>
-                  <td>{storeName.get(user.lojaId) ?? "Loja não localizada"}</td>
+                  <td>
+                    {user.lojaId
+                      ? (storeName.get(user.lojaId) ?? "Loja não localizada")
+                      : "—"}
+                  </td>
+                  <td>{ROLE_LABELS[user.papel]}</td>
                   <td>{user.ativo ? "Ativo" : "Inativo"}</td>
                   <td className="table-action">
                     <button
@@ -156,14 +204,16 @@ export function UsersPage() {
                 </tr>
               ))}
               {users.length === 0 ? (
-                <tr><td colSpan={5} className="empty-cell">Nenhum usuário cadastrado.</td></tr>
+                <tr>
+                  <td colSpan={6} className="empty-cell">
+                    Nenhum usuário cadastrado.
+                  </td>
+                </tr>
               ) : null}
             </tbody>
           </table>
         </div>
       </div>
-
-      <DashboardViewersPanel />
 
       {selectedUser ? (
         <UserEditDialog

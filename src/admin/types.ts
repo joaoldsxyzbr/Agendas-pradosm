@@ -1,3 +1,5 @@
+import type { UserRole } from "../../shared/auth";
+
 export type AdminStore = {
   id: string;
   codigo: string;
@@ -11,8 +13,8 @@ export type AdminUser = {
   id: string;
   nome: string;
   login: string;
-  perfil: "loja";
-  lojaId: string;
+  papel: UserRole;
+  lojaId: string | null;
   ativo: boolean;
 };
 

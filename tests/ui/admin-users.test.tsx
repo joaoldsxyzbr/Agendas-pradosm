@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/re
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { UserEditDialog } from "../../src/admin/UserEditDialog";
 import { UsersPage } from "../../src/admin/UsersPage";
+import type { AdminUser } from "../../src/admin/types";
 import { ApiError, apiFetch } from "../../src/lib/api";
 
 vi.mock("../../src/lib/api", async () => {
@@ -14,19 +15,18 @@ vi.mock("../../src/lib/api", async () => {
 
 const mockedApiFetch = vi.mocked(apiFetch);
 
-const user = {
+const user: AdminUser = {
   id: "11111111-1111-4111-8111-111111111111",
   nome: "Conferente",
   login: "conferente",
-  perfil: "loja" as const,
-  papel: "conferente" as const,
+    papel: "conferente" as const,
   lojaId: "22222222-2222-4222-8222-222222222222",
   ativo: true,
 };
 
 const stores = [
   {
-    id: user.lojaId,
+    id: user.lojaId!,
     codigo: "F03",
     nome: "Canasvieiras",
     ativo: true,
@@ -187,7 +187,7 @@ describe("gerenciamento de usuários", () => {
     const admin = {
       ...user,
       id: "33333333-3333-4333-8333-333333333333",
-      nome: "Administrador",
+      nome: "Admin Principal",
       login: "administrador",
       papel: "admin" as const,
       lojaId: null,
@@ -195,7 +195,7 @@ describe("gerenciamento de usuários", () => {
     const viewer = {
       ...user,
       id: "44444444-4444-4444-8444-444444444444",
-      nome: "Visualizador",
+      nome: "Visualizador Operação",
       login: "visualizador",
       papel: "visualizador" as const,
       lojaId: null,
@@ -213,8 +213,8 @@ describe("gerenciamento de usuários", () => {
 
     render(<UsersPage />);
 
-    expect(await screen.findByText("Administrador")).toBeInTheDocument();
-    expect(screen.getByText("Visualizador")).toBeInTheDocument();
+    expect(await screen.findByText("Admin Principal")).toBeInTheDocument();
+    expect(screen.getByText("Visualizador Operação")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Papel" })).toBeInTheDocument();
     expect(screen.getByLabelText("Papel")).toBeInTheDocument();
     expect(
