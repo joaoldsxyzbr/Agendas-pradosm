@@ -34,7 +34,7 @@ function isDuplicateLogin(error: unknown) {
 }
 
 function isLastAdmin(error: unknown) {
-  return error instanceof Error && error.message === "ULTIMO_ADMIN_ATIVO";
+  return error instanceof Error && error.message.includes("ULTIMO_ADMIN_ATIVO");
 }
 
 async function validateStoreForRole(

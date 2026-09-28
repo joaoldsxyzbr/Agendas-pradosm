@@ -1,6 +1,6 @@
 import type { UserRole } from "../../shared/auth";
 import { hashPassword } from "../lib/password";
-import { auditStatement, recordAudit } from "./audit";
+import { auditStatement } from "./audit";
 
 export type UserRecord = {
   id: string;
@@ -15,31 +15,6 @@ export type UserRecord = {
 
 const USER_COLUMNS =
   "id, loja_id, nome, login, senha_hash, papel, ativo, excluido_em";
-
-async function assertCanRemoveActiveAdmin(
-  db: D1Database,
-  current: UserRecord,
-  nextPapel: UserRole,
-  nextAtivo: number,
-) {
-  if (
-    current.papel !== "admin" ||
-    current.ativo !== 1 ||
-    (nextPapel === "admin" && nextAtivo === 1)
-  ) {
-    return;
-  }
-
-  const row = await db
-    .prepare(
-      "SELECT COUNT(*) AS total FROM usuarios WHERE papel = 'admin' AND ativo = 1 AND excluido_em IS NULL",
-    )
-    .first<{ total: number }>();
-
-  if ((row?.total ?? 0) <= 1) {
-    throw new Error("ULTIMO_ADMIN_ATIVO");
-  }
-}
 
 export async function findUserByLogin(
   db: D1Database,
@@ -80,33 +55,43 @@ export async function createInactiveFirstAdmin(
   input: { nome: string; login: string; senha: string },
 ): Promise<UserRecord | null> {
   const id = crypto.randomUUID();
+  const auditId = crypto.randomUUID();
   const now = new Date().toISOString();
   const passwordHash = await hashPassword(input.senha);
-
-  const result = await db
-    .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
-    )
-    .bind(id, input.nome, input.login, passwordHash, now, now)
-    .run();
-
-  if (result.meta.changes === 0) return null;
-
-  await recordAudit(db, {
-    userId: null,
-    action: "admin_bootstrap_preparado",
-    entity: "usuario",
-    entityId: id,
-    after: {
-      nome: input.nome,
-      login: input.login,
-      papel: "admin",
-      ativo: false,
-    },
-    details: "Primeiro administrador preparado.",
-    createdAt: now,
+  const auditAfter = JSON.stringify({
+    nome: input.nome,
+    login: input.login,
+    papel: "admin",
+    ativo: false,
   });
 
+  const [insertResult] = await db.batch([
+    db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) SELECT ?, NULL, ?, ?, ?, 'admin', 0, ?, ? WHERE NOT EXISTS (SELECT 1 FROM usuarios WHERE papel = 'admin' AND excluido_em IS NULL)",
+      )
+      .bind(id, input.nome, input.login, passwordHash, now, now),
+    db
+      .prepare(
+        `INSERT INTO auditoria (
+          id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id,
+          agendamento_id, antes, depois, detalhes, criado_em
+        )
+        SELECT ?, NULL, 'admin_bootstrap_preparado', 'usuario', ?, NULL, NULL,
+               NULL, NULL, ?, 'Primeiro administrador preparado.', ?
+        WHERE EXISTS (
+          SELECT 1
+          FROM usuarios
+          WHERE id = ?
+            AND papel = 'admin'
+            AND ativo = 0
+            AND excluido_em IS NULL
+        )`,
+      )
+      .bind(auditId, id, auditAfter, now, id),
+  ]);
+
+  if (insertResult.meta.changes === 0) return null;
   return findUserById(db, id);
 }
 
@@ -204,8 +189,6 @@ export async function updateUser(
     throw new Error("LOJA_OBRIGATORIA");
   }
 
-  await assertCanRemoveActiveAdmin(db, current, papel, ativo);
-
   const passwordHash = input.senha
     ? await hashPassword(input.senha)
     : current.senha_hash;
@@ -264,8 +247,6 @@ export async function softDeleteUser(
   current: UserRecord,
   actorUserId: string,
 ): Promise<boolean> {
-  await assertCanRemoveActiveAdmin(db, current, current.papel, 0);
-
   const now = new Date().toISOString();
   const [result] = await db.batch([
     db

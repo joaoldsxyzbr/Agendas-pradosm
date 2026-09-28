@@ -8,7 +8,7 @@ import { checkLoginRateLimit } from "../lib/login-rate-limit";
 import { verifyPassword } from "../lib/password";
 import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
-import { findStoreById } from "../repositories/stores";
+import { findActiveStoreById } from "../repositories/stores";
 import {
   createInactiveFirstAdmin,
   findUserByLogin,
@@ -111,12 +111,24 @@ authRoutes.post("/login", async (c) => {
     );
   }
 
-  const allowed = await checkLoginRateLimit(
+  const rateLimitDecision = await checkLoginRateLimit(
     c.env.LOGIN_RATE_LIMITER,
     parsed.data.login,
     c.req.header("CF-Connecting-IP"),
   );
-  if (!allowed) {
+
+  if (rateLimitDecision === "unavailable") {
+    c.header("Retry-After", "60");
+    return c.json(
+      {
+        error: "AUTENTICACAO_TEMPORARIAMENTE_INDISPONIVEL",
+        message: "Não foi possível validar o acesso agora. Tente novamente em instantes.",
+      },
+      503,
+    );
+  }
+
+  if (rateLimitDecision === "limited") {
     c.header("Retry-After", "60");
     return c.json(
       {
@@ -133,9 +145,11 @@ authRoutes.post("/login", async (c) => {
   const passwordOk = await verifyPassword(parsed.data.senha, user.senha_hash);
   if (!passwordOk) return invalidCredentials(c);
 
-  const store = user.loja_id
-    ? await findStoreById(c.env.DB, user.loja_id)
-    : null;
+  const store =
+    user.papel === "conferente" && user.loja_id
+      ? await findActiveStoreById(c.env.DB, user.loja_id)
+      : null;
+  if (user.papel === "conferente" && !store) return invalidCredentials(c);
 
   const token = await createSessionToken(user.id, c.env.SESSION_SECRET);
   setCookie(c, COOKIE_NAME, token, {

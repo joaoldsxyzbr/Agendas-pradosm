@@ -102,6 +102,36 @@ async function signedSession(userId: string, exp: number) {
 }
 
 describe("auth", () => {
+  it("rollbacka o bootstrap se a auditoria falhar", async () => {
+    await db
+      .prepare(
+        `CREATE TRIGGER fail_bootstrap_audit
+         BEFORE INSERT ON auditoria
+         WHEN NEW.acao = 'admin_bootstrap_preparado'
+         BEGIN
+           SELECT RAISE(ABORT, 'forced_bootstrap_audit');
+         END`,
+      )
+      .run();
+
+    try {
+      const response = await registerFirstAdmin({
+        nome: "Admin rollback",
+        login: "admin-rollback",
+        senha: "senha-bootstrap-rollback",
+      });
+
+      expect(response.status).toBe(500);
+
+      const stored = await db
+        .prepare("SELECT id FROM usuarios WHERE login = 'admin-rollback' LIMIT 1")
+        .first<{ id: string }>();
+      expect(stored).toBeNull();
+    } finally {
+      await db.prepare("DROP TRIGGER IF EXISTS fail_bootstrap_audit").run();
+    }
+  });
+
   it("prepara o primeiro admin inativo e encerra o bootstrap", async () => {
     const before = await bootstrapStatus();
     expect(before.status).toBe(200);
@@ -123,13 +153,21 @@ describe("auth", () => {
 
     const stored = await db
       .prepare(
-        "SELECT papel, ativo, senha_hash FROM usuarios WHERE login = ? LIMIT 1",
+        "SELECT id, papel, ativo, senha_hash FROM usuarios WHERE login = ? LIMIT 1",
       )
       .bind("primeiro-admin")
-      .first<{ papel: string; ativo: number; senha_hash: string }>();
+      .first<{ id: string; papel: string; ativo: number; senha_hash: string }>();
 
     expect(stored).toMatchObject({ papel: "admin", ativo: 0 });
     expect(stored?.senha_hash).toMatch(/^pbkdf2_sha256\$100000\$/);
+
+    const audit = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM auditoria WHERE entidade = 'usuario' AND entidade_id = ? AND acao = 'admin_bootstrap_preparado'",
+      )
+      .bind(stored!.id)
+      .first<{ total: number }>();
+    expect(audit?.total).toBe(1);
 
     const deniedLogin = await login("primeiro-admin", senhaBootstrap);
     expect(deniedLogin.status).toBe(401);
@@ -266,6 +304,34 @@ describe("auth", () => {
 
     const response = await login("admin-inactive");
     expect(response.status).toBe(401);
+  });
+
+  it("bloqueia conferente de loja inativa e invalida sessão existente", async () => {
+    const storeId = "store-inactive-session";
+    await seedUser({
+      id: "user-inactive-store",
+      login: "user-inactive-store",
+      papel: "conferente",
+      lojaId: storeId,
+    });
+
+    const firstLogin = await login("user-inactive-store");
+    expect(firstLogin.status).toBe(200);
+    const cookie = cookiePair(firstLogin);
+
+    await db
+      .prepare("UPDATE lojas SET ativo = 0 WHERE id = ?")
+      .bind(storeId)
+      .run();
+
+    expect((await login("user-inactive-store")).status).toBe(401);
+
+    const me = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: cookie },
+      }),
+    );
+    expect(me.status).toBe(401);
   });
 
   it("bloqueia usuário de loja nas rotas administrativas", async () => {

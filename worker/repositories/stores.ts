@@ -33,6 +33,18 @@ export async function findStoreById(
     .first<StoreRecord>();
 }
 
+export async function findActiveStoreById(
+  db: D1Database,
+  id: string,
+): Promise<StoreRecord | null> {
+  return db
+    .prepare(
+      `SELECT ${STORE_COLUMNS} FROM lojas WHERE id = ? AND ativo = 1 AND excluido_em IS NULL LIMIT 1`,
+    )
+    .bind(id)
+    .first<StoreRecord>();
+}
+
 export async function createStore(
   db: D1Database,
   input: { codigo: string; nome: string },

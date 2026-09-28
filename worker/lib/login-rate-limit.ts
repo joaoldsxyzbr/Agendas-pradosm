@@ -1,11 +1,19 @@
 import type { LoginRateLimiter } from "../env";
 
+export type LoginRateLimitDecision =
+  | "allowed"
+  | "limited"
+  | "unavailable";
+
 export async function checkLoginRateLimit(
   limiter: LoginRateLimiter | undefined,
   login: string,
   actor: string | null | undefined,
-): Promise<boolean> {
-  if (!limiter) return true;
+): Promise<LoginRateLimitDecision> {
+  if (!limiter) {
+    console.warn("Login rate limiter unavailable; denying request.");
+    return "unavailable";
+  }
 
   const normalizedLogin = login.trim().toLowerCase();
   const normalizedActor = actor?.trim() || "unknown";
@@ -14,9 +22,9 @@ export async function checkLoginRateLimit(
     const result = await limiter.limit({
       key: `${normalizedLogin}:${normalizedActor}`,
     });
-    return result.success;
+    return result.success ? "allowed" : "limited";
   } catch {
-    console.warn("Login rate limiter unavailable; allowing request.");
-    return true;
+    console.warn("Login rate limiter unavailable; denying request.");
+    return "unavailable";
   }
 }
