@@ -3,7 +3,7 @@ import type { LoginRateLimiter } from "../env";
 export async function checkLoginRateLimit(
   limiter: LoginRateLimiter | undefined,
   login: string,
-  actor: string | null,
+  actor: string | null | undefined,
 ): Promise<boolean> {
   if (!limiter) return true;
 
