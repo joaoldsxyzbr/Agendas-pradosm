@@ -91,6 +91,16 @@ function AdminDashboardRoute() {
   return <DashboardPage readOnly={user?.acesso === "dashboard"} />;
 }
 
+function FullAdminRoute({ children }: { children: React.ReactNode }) {
+  const { user } = useAuth();
+
+  if (user?.acesso === "dashboard") {
+    return <Navigate to="/admin" replace />;
+  }
+
+  return children;
+}
+
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -120,10 +130,38 @@ export function AppRoutes() {
         }
       >
         <Route index element={<AdminDashboardRoute />} />
-        <Route path="history" element={<AdminAgendaHistoryPage />} />
-        <Route path="import" element={<ImportAgendaPage />} />
-        <Route path="stores" element={<StoresPage />} />
-        <Route path="users" element={<UsersPage />} />
+        <Route
+          path="history"
+          element={
+            <FullAdminRoute>
+              <AdminAgendaHistoryPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="import"
+          element={
+            <FullAdminRoute>
+              <ImportAgendaPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="stores"
+          element={
+            <FullAdminRoute>
+              <StoresPage />
+            </FullAdminRoute>
+          }
+        />
+        <Route
+          path="users"
+          element={
+            <FullAdminRoute>
+              <UsersPage />
+            </FullAdminRoute>
+          }
+        />
       </Route>
 
       <Route
