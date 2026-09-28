@@ -281,6 +281,24 @@ export async function createAgendaImport(
     statements.push(appointmentInsert(db, agendaId, appointment, now));
   }
 
+  statements.push(
+    auditStatement(db, {
+      userId: createdBy,
+      action: "agenda_importada",
+      entity: "agenda",
+      entityId: agendaId,
+      storeId,
+      agendaId,
+      after: {
+        date: input.date,
+        originalFileName: input.originalFileName,
+        appointmentCount: input.appointments.length,
+      },
+      details: "Agenda importada.",
+      createdAt: now,
+    }),
+  );
+
   await db.batch(statements);
   return agendaId;
 }
@@ -288,6 +306,7 @@ export async function createAgendaImport(
 export async function replaceAgendaImport(
   db: D1Database,
   agenda: AgendaRecord,
+  userId: string,
   input: ImportAgendaPayload,
 ): Promise<void> {
   const existing = await listAppointmentsByAgenda(db, agenda.id, false);
@@ -350,6 +369,27 @@ export async function replaceAgendaImport(
       );
     }
   }
+
+  statements.push(
+    auditStatement(db, {
+      userId,
+      action: "agenda_substituida",
+      entity: "agenda",
+      entityId: agenda.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      before: {
+        originalFileName: agenda.arquivo_original,
+        importedAppointmentCount: importedExisting.filter((item) => item.ativo === 1).length,
+      },
+      after: {
+        originalFileName: input.originalFileName,
+        importedAppointmentCount: input.appointments.length,
+      },
+      details: "Importação da agenda substituída.",
+      createdAt: now,
+    }),
+  );
 
   await db.batch(statements);
 }
@@ -544,18 +584,36 @@ export async function findAppointmentForStore(
 export async function changeAppointmentExchanges(
   db: D1Database,
   appointment: AppointmentRecord,
+  userId: string,
   hasExchanges: boolean,
 ): Promise<AppointmentRecord> {
   const exchanges = hasExchanges ? 1 : 0;
   if (appointment.trocas === exchanges) return appointment;
 
+  const agenda = await findAgendaById(db, appointment.agenda_id);
+  if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
+
   const now = new Date().toISOString();
-  await db
-    .prepare(
-      "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ?",
-    )
-    .bind(exchanges, now, appointment.id)
-    .run();
+  await db.batch([
+    db
+      .prepare(
+        "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ?",
+      )
+      .bind(exchanges, now, appointment.id),
+    auditStatement(db, {
+      userId,
+      action: "trocas_alteradas",
+      entity: "agendamento",
+      entityId: appointment.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      appointmentId: appointment.id,
+      before: { hasExchanges: appointment.trocas === 1 },
+      after: { hasExchanges },
+      details: "Marcação de trocas alterada.",
+      createdAt: now,
+    }),
+  ]);
 
   const updated = await findAppointmentById(db, appointment.id);
   if (!updated) {
@@ -572,6 +630,9 @@ export async function changeAppointmentStatus(
   status: AppointmentRecord["status"],
 ): Promise<AppointmentRecord> {
   if (appointment.status === status) return appointment;
+
+  const agenda = await findAgendaById(db, appointment.agenda_id);
+  if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
 
   const now = new Date().toISOString();
   const historyId = crypto.randomUUID();
@@ -594,6 +655,19 @@ export async function changeAppointmentStatus(
         status,
         now,
       ),
+    auditStatement(db, {
+      userId,
+      action: "status_alterado",
+      entity: "agendamento",
+      entityId: appointment.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      appointmentId: appointment.id,
+      before: { status: appointment.status },
+      after: { status },
+      details: "Status do recebimento alterado.",
+      createdAt: now,
+    }),
   ]);
 
   const updated = await findAppointmentById(db, appointment.id);
@@ -647,6 +721,21 @@ export async function changeAgendaDayStatus(
         "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, ?, NULL, ?)",
       )
       .bind(crypto.randomUUID(), agenda.id, userId, action, now),
+    auditStatement(db, {
+      userId,
+      action: status === "concluido" ? "dia_concluido" : "dia_reaberto",
+      entity: "agenda",
+      entityId: agenda.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      before: { dayStatus: agenda.status_dia },
+      after: { dayStatus: status },
+      details:
+        status === "concluido"
+          ? "Dia concluído pelo conferente ou administrador."
+          : "Dia reaberto para ajustes.",
+      createdAt: now,
+    }),
   ]);
 
   const updated = await findAgendaById(db, agenda.id);

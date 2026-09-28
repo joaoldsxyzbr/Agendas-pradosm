@@ -151,6 +151,7 @@ adminAgendaRoutes.post("/import", async (c) => {
     );
   }
 
+  const user = c.get("authUser");
   const existing = await findAgendaByStoreDate(
     c.env.DB,
     store.id,
@@ -172,10 +173,9 @@ adminAgendaRoutes.post("/import", async (c) => {
     let agendaId: string;
 
     if (existing) {
-      await replaceAgendaImport(c.env.DB, existing, parsed.data);
+      await replaceAgendaImport(c.env.DB, existing, user.id, parsed.data);
       agendaId = existing.id;
     } else {
-      const user = c.get("authUser");
       agendaId = await createAgendaImport(
         c.env.DB,
         store.id,
@@ -505,6 +505,7 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     const updated = await changeAppointmentExchanges(
       c.env.DB,
       appointment,
+      user.id,
       parsed.data.hasExchanges,
     );
 

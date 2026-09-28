@@ -488,6 +488,7 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     const updated = await changeAppointmentExchanges(
       c.env.DB,
       appointment,
+      user.id,
       parsed.data.hasExchanges,
     );
     return c.json(appointmentJson(updated));

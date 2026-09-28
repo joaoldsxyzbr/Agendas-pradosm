@@ -632,4 +632,89 @@ describe("admin agenda import", () => {
       }),
     ]);
   });
+
+  it("audita importação, substituição e mudanças operacionais", async () => {
+    const adminId = "admin-audit-flow";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-audit-flow", "F94");
+
+    const first = await importAgenda(cookie, payload("F94"));
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as {
+      agenda: { id: string };
+      appointments: Array<{ id: string }>;
+    };
+
+    const replaced = await importAgenda(
+      cookie,
+      payload("F94", [appointment("99000001", "FORNECEDOR AUDITADO")], {
+        replace: true,
+        originalFileName: "agenda-auditada.pdf",
+      }),
+    );
+    expect(replaced.status).toBe(200);
+    const replacedBody = (await replaced.json()) as {
+      appointments: Array<{ id: string }>;
+    };
+    const appointmentId = replacedBody.appointments[0].id;
+
+    expect(
+      (
+        await request(
+          `/api/admin/appointments/${appointmentId}/status`,
+          cookie,
+          { method: "PATCH", body: { status: "recebido" } },
+        )
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await request(
+          `/api/admin/appointments/${appointmentId}/exchanges`,
+          cookie,
+          { method: "PATCH", body: { hasExchanges: true } },
+        )
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await request(
+          `/api/admin/agendas/${firstBody.agenda.id}/status`,
+          cookie,
+          { method: "PATCH", body: { status: "concluido" } },
+        )
+      ).status,
+    ).toBe(200);
+
+    expect(
+      (
+        await request(
+          `/api/admin/agendas/${firstBody.agenda.id}/status`,
+          cookie,
+          { method: "PATCH", body: { status: "aberto" } },
+        )
+      ).status,
+    ).toBe(200);
+
+    const audit = await db
+      .prepare(
+        "SELECT acao FROM auditoria WHERE agenda_id = ? ORDER BY criado_em ASC, rowid ASC",
+      )
+      .bind(firstBody.agenda.id)
+      .all<{ acao: string }>();
+
+    expect(audit.results.map((item) => item.acao)).toEqual(
+      expect.arrayContaining([
+        "agenda_importada",
+        "agenda_substituida",
+        "status_alterado",
+        "trocas_alteradas",
+        "dia_concluido",
+        "dia_reaberto",
+      ]),
+    );
+  });
+
 });

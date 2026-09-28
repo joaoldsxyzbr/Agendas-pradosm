@@ -661,6 +661,14 @@ describe("store agenda workflow", () => {
       .first<{ status: string; trocas: number }>();
 
     expect(row).toMatchObject({ status: "aguardando", trocas: 0 });
+
+    const audit = await db
+      .prepare(
+        "SELECT acao FROM auditoria WHERE agendamento_id = ? AND acao = 'trocas_alteradas'",
+      )
+      .bind("appt-exchanges-a")
+      .all<{ acao: string }>();
+    expect(audit.results).toHaveLength(2);
   });
 
   it("muda status, grava histórico e permite correção posterior", async () => {
