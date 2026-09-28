@@ -19,7 +19,6 @@ import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
-
 function PlaceholderPage({
   title,
   description,
@@ -87,6 +86,11 @@ function StoreLayout() {
   );
 }
 
+function AdminDashboardRoute() {
+  const { user } = useAuth();
+  return <DashboardPage readOnly={user?.acesso === "dashboard"} />;
+}
+
 function HomeRedirect() {
   const { user, loading } = useAuth();
 
@@ -115,7 +119,7 @@ export function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<DashboardPage />} />
+        <Route index element={<AdminDashboardRoute />} />
         <Route path="history" element={<AdminAgendaHistoryPage />} />
         <Route path="import" element={<ImportAgendaPage />} />
         <Route path="stores" element={<StoresPage />} />
