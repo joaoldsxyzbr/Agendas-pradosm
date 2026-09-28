@@ -33,72 +33,38 @@ describe("D1 schema", () => {
     expect(origin?.dflt_value).toContain("importado");
   });
 
-  it("mantem papel unico compativel com escritas legadas", async () => {
+  it("mantem papel unico sem tabela ou gatilhos legados", async () => {
     const columns = await db
       .prepare("PRAGMA table_info(usuarios)")
       .all<{ name: string }>();
 
     expect(columns.results.some((column) => column.name === "papel")).toBe(true);
 
-    const adminId = "role-admin";
-    const viewerId = "role-viewer";
-    const storeId = "role-store";
-    const conferenteId = "role-conferente";
+    const permissionsTable = await db
+      .prepare(
+        "SELECT 1 AS presente FROM sqlite_master WHERE type = 'table' AND name = 'usuario_permissoes'",
+      )
+      .first<{ presente: number }>();
+    expect(permissionsTable).toBeNull();
 
+    const legacyTriggers = await db
+      .prepare(
+        "SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('trg_usuarios_legacy_papel', 'trg_usuario_permissoes_legacy_visualizador')",
+      )
+      .all<{ name: string }>();
+    expect(legacyTriggers.results).toEqual([]);
+
+    const adminId = "role-admin-final";
     await db
       .prepare(
-        "INSERT INTO lojas (id, codigo, nome, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, 1, ?, ?)",
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 'admin', 1, ?, ?)",
       )
-      .bind(storeId, "FR01", "Loja Papel", now, now)
-      .run();
-
-    await db
-      .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)",
-      )
-      .bind(adminId, "Admin Papel", "admin-papel", "hash-admin-original", now, now)
-      .run();
-
-    await db
-      .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'loja', 1, ?, ?)",
-      )
-      .bind(
-        conferenteId,
-        storeId,
-        "Conferente Papel",
-        "conferente-papel",
-        "hash-conferente-original",
-        now,
-        now,
-      )
-      .run();
-
-    await db
-      .prepare(
-        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)",
-      )
-      .bind(viewerId, "Viewer Papel", "viewer-papel", "hash-viewer-original", now, now)
-      .run();
-
-    await db
-      .prepare(
-        "INSERT INTO usuario_permissoes (usuario_id, dashboard_somente_leitura, criado_em, atualizado_em) VALUES (?, 1, ?, ?)",
-      )
-      .bind(viewerId, now, now)
+      .bind(adminId, "Admin Final", "admin-final", "hash-admin-original", now, now)
       .run();
 
     const admin = await db
       .prepare("SELECT id, senha_hash, papel FROM usuarios WHERE id = ?")
       .bind(adminId)
-      .first<{ id: string; senha_hash: string; papel: string }>();
-    const conferente = await db
-      .prepare("SELECT papel FROM usuarios WHERE id = ?")
-      .bind(conferenteId)
-      .first<{ papel: string }>();
-    const viewer = await db
-      .prepare("SELECT id, senha_hash, papel FROM usuarios WHERE id = ?")
-      .bind(viewerId)
       .first<{ id: string; senha_hash: string; papel: string }>();
 
     expect(admin).toMatchObject({
@@ -106,19 +72,6 @@ describe("D1 schema", () => {
       senha_hash: "hash-admin-original",
       papel: "admin",
     });
-    expect(conferente?.papel).toBe("conferente");
-    expect(viewer).toMatchObject({
-      id: viewerId,
-      senha_hash: "hash-viewer-original",
-      papel: "visualizador",
-    });
-
-    const permissionsTable = await db
-      .prepare(
-        "SELECT 1 AS presente FROM sqlite_master WHERE type = 'table' AND name = 'usuario_permissoes'",
-      )
-      .first<{ presente: number }>();
-    expect(permissionsTable?.presente).toBe(1);
 
     await expect(
       db
