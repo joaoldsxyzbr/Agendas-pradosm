@@ -3,3 +3,5 @@ dist/
 .wrangler/
 .tmp/
 *.tsbuildinfo
+.dev.vars*
+.env*
