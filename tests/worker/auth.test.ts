@@ -26,7 +26,7 @@ async function seedUser(input: {
 
   await db
     .prepare(
-      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, perfil, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
     )
     .bind(
       input.id,
@@ -35,6 +35,7 @@ async function seedUser(input: {
       input.login,
       passwordHash,
       input.perfil,
+      input.perfil === "admin" ? "admin" : "conferente",
       input.ativo === false ? 0 : 1,
       now,
       now,
