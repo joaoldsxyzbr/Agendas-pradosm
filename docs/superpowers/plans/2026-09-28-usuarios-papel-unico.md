@@ -4,7 +4,7 @@
 
 **Goal:** Consolidar admin, conferente e visualizador na tabela `usuarios`, usando `usuarios.papel` como fonte de autorização e removendo a tabela auxiliar `usuario_permissoes` com rollout seguro em produção.
 
-**Architecture:** Fazer uma migração expand/contract em três checkpoints de produção. Primeiro adicionar e preencher `usuarios.papel` sem remover nada; depois trocar backend + frontend para o novo campo mantendo o esquema antigo apenas como compatibilidade; por último remover o subsistema de visualizadores e a tabela auxiliar, quando o código já não depender dela. A coluna legada `perfil` permanece fisicamente nesta entrega para evitar reconstruir a tabela `usuarios` em produção, mas deixa de ser fonte de autorização.
+**Architecture:** Fazer uma migração expand/contract em três checkpoints de produção. Primeiro adicionar e preencher `usuarios.papel`, com gatilhos temporários que mantêm compatibilidade com a versão antiga durante o rollout; depois trocar backend + frontend para o novo campo mantendo o esquema antigo apenas como compatibilidade; por último remover os gatilhos, o subsistema de visualizadores e a tabela auxiliar, quando o código já não depender deles. A coluna legada `perfil` permanece fisicamente nesta entrega para evitar reconstruir a tabela `usuarios` em produção, mas deixa de ser fonte de autorização.
 
 **Tech Stack:** Cloudflare Workers, D1/SQLite migrations, Hono, React, TypeScript, Zod, Vitest.
 
@@ -20,16 +20,17 @@
 - `visualizador` continua restrito ao dashboard e somente leitura no backend.
 - `conferente` continua restrito à própria loja.
 - Não reconstruir a tabela `usuarios` nesta entrega; manter `perfil` apenas como coluna legada de compatibilidade, sincronizada nas escritas (`admin/visualizador -> admin`, `conferente -> loja`) e nunca usada para decidir autorização.
+- O deploy atual aplica migrations remotas antes de publicar o Worker; por isso nenhuma migration pode quebrar a versão que ainda está servindo tráfego.
 - Aplicar TDD: teste falhando antes de cada alteração de comportamento.
 - Cada tarefa termina com um único push coerente para `main` e uma única verificação do CI correspondente ao novo HEAD; se falhar, ler logs antes de corrigir e não fazer polling repetitivo.
 
 ## Review Focus
 
-1. **Último administrador ativo:** impedir que a edição/exclusão/demissão do último admin deixe o sistema sem administrador; cobrir em `tests/worker/admin.test.ts`.
+1. **Último administrador ativo:** impedir edição que desative/demita e exclusão do último admin ativo; cobrir em `tests/worker/admin.test.ts`.
 2. **Troca para conferente sem loja:** retornar 400 e não alterar o registro; cobrir em `tests/worker/admin.test.ts`.
 3. **Troca para admin/visualizador com loja anterior:** limpar `loja_id`; cobrir em `tests/worker/admin.test.ts`.
 4. **Visualizador tentando escrita ou cadastro administrativo:** retornar 403 mesmo com chamada direta à API; cobrir em `tests/worker/viewer-access.test.ts`.
-5. **Migração de dados existentes:** distinguir corretamente admin comum, conferente e visualizador sem alterar senha/ID; cobrir em `tests/worker/database.test.ts`.
+5. **Compatibilidade durante rollout:** inserts feitos pelo código antigo entre migration e publicação do Worker recebem o papel correto; cobrir em `tests/worker/database.test.ts`.
 
 ---
 
@@ -41,7 +42,7 @@
 
 **Interfaces:**
 - Consumes: schema atual com `usuarios.perfil` e `usuario_permissoes.dashboard_somente_leitura`.
-- Produces: coluna `usuarios.papel` preenchida para todos os usuários existentes; tabela auxiliar continua intacta neste checkpoint.
+- Produces: coluna `usuarios.papel` preenchida para todos os usuários existentes; tabela auxiliar continua intacta; gatilhos temporários mantêm o código antigo compatível até a Task 2.
 
 - [ ] **Step 1: Write the failing migration tests**
 
@@ -57,7 +58,13 @@ expect(visualizador.id).toBe(originalViewerId);
 expect(usuarioPermissoesTableExists).toBe(true);
 ```
 
-Também verificar que a coluna aceita somente `admin`, `conferente` e `visualizador`.
+Adicionar também um teste que simule os writes da versão antiga:
+
+- inserir usuário com `perfil = 'loja'` sem informar `papel` e esperar `papel = 'conferente'`;
+- inserir usuário com `perfil = 'admin'` sem informar `papel` e esperar `papel = 'admin'`;
+- inserir a permissão `dashboard_somente_leitura = 1` para esse admin e esperar `papel = 'visualizador'`.
+
+Verificar ainda que `papel` rejeita valores fora de `admin | conferente | visualizador`.
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
@@ -73,6 +80,8 @@ Implementar migração aditiva:
 - preencher `conferente` para linhas com `perfil = 'loja'`;
 - preencher `visualizador` para linhas `perfil = 'admin'` presentes em `usuario_permissoes` com `dashboard_somente_leitura = 1`;
 - preencher `admin` para os demais `perfil = 'admin'`;
+- criar gatilho temporário `trg_usuarios_legacy_papel` para inserts da versão antiga: `perfil = 'loja' -> conferente`, `perfil = 'admin' -> admin`;
+- criar gatilho temporário `trg_usuario_permissoes_legacy_visualizador` para converter para `visualizador` quando a versão antiga inserir `dashboard_somente_leitura = 1`;
 - não remover `usuario_permissoes`;
 - não alterar `senha_hash`, `id`, `loja_id`, `ativo`, `excluido_em` ou timestamps.
 
@@ -133,7 +142,7 @@ Inspect the CI run created by the Task 1 commit exactly once after it has had ti
   - `createUser(db, input, actorUserId): Promise<UserRecord>`;
   - `updateUser(db, current, input, actorUserId): Promise<UserRecord>`;
   - `softDeleteUser(db, current, actorUserId): Promise<boolean>`;
-  - `GET/POST/PATCH/DELETE /api/admin/users` como único CRUD administrativo de usuários.
+  - `GET/POST/PATCH/DELETE /api/admin/users` como único CRUD usado pela nova interface.
 
 - [ ] **Step 1: Write failing backend tests**
 
@@ -147,7 +156,7 @@ expect(list).toEqual(expect.arrayContaining([
 ]));
 ```
 
-Adicionar criação dos três papéis, troca de papel, exigência de loja para conferente, limpeza de loja para admin/visualizador e proteção do último admin.
+Adicionar criação dos três papéis, troca de papel, exigência de loja para conferente, limpeza de loja para admin/visualizador, proteção contra desativar/demitir/excluir o último admin ativo e preservação do hash quando a senha não é alterada.
 
 Em `tests/worker/auth.test.ts`, login/`/me` deve retornar `papel` diretamente, sem depender de `acesso`.
 
@@ -186,7 +195,9 @@ Em `worker/repositories/users.ts`:
 - exigir loja válida para conferente;
 - preservar hash quando senha não mudar;
 - registrar `papel` antes/depois na auditoria;
-- impedir exclusão ou mudança de papel do último admin ativo.
+- impedir exclusão, desativação ou troca de papel do último admin ativo;
+- enquanto `usuario_permissoes` existir, mantê-la sincronizada apenas para compatibilidade com a rota legada: inserir/garantir linha para `visualizador` e remover a linha ao sair de `visualizador`;
+- nunca ler `usuario_permissoes` para decidir autorização.
 
 - [ ] **Step 5: Implement unified admin route**
 
@@ -199,7 +210,7 @@ Em `worker/routes/admin-users.ts`:
 - DELETE usa exclusão lógica unificada;
 - resposta JSON usa `papel`, não `perfil`.
 
-Manter `/api/admin/viewers` existente e a tabela auxiliar neste checkpoint somente para compatibilidade durante o rollout; o código novo não deve consultá-los para autenticação/autorização.
+Manter `/api/admin/viewers` existente neste checkpoint apenas como compatibilidade temporária; a nova interface não o utiliza.
 
 - [ ] **Step 6: Switch authentication and middleware**
 
@@ -303,8 +314,8 @@ Inspect the CI run corresponding to Task 2 once. Só avançar para a Task 3 depo
 - Modify: `tests/ui/admin-users.test.tsx`
 
 **Interfaces:**
-- Consumes: Task 2 em produção, sem qualquer consulta/escrita funcional a `usuario_permissoes` ou `/api/admin/viewers`.
-- Produces: somente `usuarios.papel` representa papel/autorização; tabela e rotas auxiliares deixam de existir.
+- Consumes: Task 2 em produção, sem qualquer leitura de autorização em `usuario_permissoes`; a tabela e a rota legada existem apenas para compatibilidade.
+- Produces: somente `usuarios.papel` representa papel/autorização; tabela, gatilhos e rotas auxiliares deixam de existir.
 
 - [ ] **Step 1: Write failing cleanup tests**
 
@@ -312,6 +323,7 @@ Em `tests/worker/database.test.ts`, mudar a expectativa final para:
 
 ```ts
 expect(usuarioPermissoesTableExists).toBe(false);
+expect(legacyTriggersExist).toBe(false);
 ```
 
 Em `tests/worker/viewer-access.test.ts`, afirmar que `/api/admin/viewers` não é mais uma superfície funcional e que todo gerenciamento usa `/api/admin/users`.
@@ -322,11 +334,15 @@ Em `tests/ui/admin-users.test.tsx`, manter a asserção de ausência do painel s
 
 Run: `npm test -- tests/worker/database.test.ts tests/worker/viewer-access.test.ts && npm run test:ui -- tests/ui/admin-users.test.tsx`
 
-Expected: FAIL enquanto tabela/rota/arquivo legado existirem.
+Expected: FAIL enquanto tabela/rota/gatilhos/arquivo legado existirem.
 
 - [ ] **Step 3: Add contract migration**
 
-Criar `migrations/0011_drop_usuario_permissoes.sql` com remoção de `usuario_permissoes`.
+Criar `migrations/0011_drop_usuario_permissoes.sql`:
+
+- `DROP TRIGGER IF EXISTS trg_usuarios_legacy_papel`;
+- `DROP TRIGGER IF EXISTS trg_usuario_permissoes_legacy_visualizador`;
+- `DROP TABLE usuario_permissoes`.
 
 Não alterar `usuarios`, dados de agenda, lojas, auditoria ou históricos.
 
@@ -337,7 +353,8 @@ Não alterar `usuarios`, dados de agenda, lojas, auditoria ou históricos.
 - excluir `worker/repositories/viewers.ts`;
 - excluir `src/admin/DashboardViewersPanel.tsx`;
 - remover imports remanescentes;
-- confirmar por busca no repositório que não há referência funcional a `usuario_permissoes`, `adminViewerRoutes`, `DashboardViewersPanel` ou `getUserAccess`.
+- remover do repositório de usuários a sincronização temporária com `usuario_permissoes`;
+- confirmar por busca nativa no repositório que não há referência funcional a `usuario_permissoes`, `adminViewerRoutes`, `DashboardViewersPanel` ou `getUserAccess`.
 
 - [ ] **Step 5: Run cleanup tests and verify GREEN**
 
@@ -368,8 +385,9 @@ Inspect exactly one CI run for this HEAD. If green, mark Task 3 `[x]` and finish
 - [ ] `usuarios.papel` é a fonte de autorização.
 - [ ] Visualizador continua somente leitura no backend.
 - [ ] Conferente continua restrito à própria loja.
-- [ ] Último administrador não pode ser removido/demitido acidentalmente.
+- [ ] Último administrador não pode ser removido, desativado ou demitido acidentalmente.
 - [ ] IDs, hashes de senha e estado dos usuários existentes foram preservados.
-- [ ] `usuario_permissoes` foi removida somente depois da aplicação já estar usando `papel`.
+- [ ] `usuario_permissoes` e os gatilhos temporários foram removidos somente depois da aplicação já estar usando `papel`.
 - [ ] `/api/admin/viewers`, `worker/repositories/viewers.ts`, `worker/routes/admin-viewers.ts` e `DashboardViewersPanel.tsx` foram removidos.
+- [ ] A coluna legada `perfil` não participa de autorização e permanece apenas para evitar reconstrução arriscada da tabela nesta entrega.
 - [ ] CI final está verde.
