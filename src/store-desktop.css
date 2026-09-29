@@ -653,10 +653,21 @@
 
 /* Admin dashboard preview: keep the read-only table aligned without the actions column. */
 .agenda-preview-reopen {
-  min-height: 32px;
-  padding: 0.35rem 0.62rem;
-  font-size: 0.75rem;
+  min-height: 0;
+  padding: 0.32rem 0.55rem;
+  border: 0;
+  font-size: 0.72rem;
+  line-height: 1.2;
   white-space: nowrap;
+}
+
+.agenda-preview-reopen:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.agenda-preview-reopen:disabled {
+  cursor: wait;
+  opacity: 0.7;
 }
 
 @media (min-width: 981px) {
