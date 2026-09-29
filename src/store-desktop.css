@@ -649,3 +649,69 @@
     width: auto;
   }
 }
+
+
+/* Admin dashboard preview: keep the read-only table aligned without the actions column. */
+.agenda-preview-reopen {
+  min-height: 32px;
+  padding: 0.35rem 0.62rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+@media (min-width: 981px) {
+  .admin-agenda-preview .agenda-desktop table {
+    table-layout: fixed;
+  }
+
+  .admin-agenda-preview .agenda-desktop thead th {
+    background: var(--color-surface-muted);
+  }
+
+  .admin-agenda-preview .agenda-desktop th,
+  .admin-agenda-preview .agenda-desktop td {
+    white-space: nowrap;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(1),
+  .admin-agenda-preview .agenda-desktop td:nth-child(1) {
+    width: 128px;
+    min-width: 128px;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(2),
+  .admin-agenda-preview .agenda-desktop td:nth-child(2) {
+    width: auto;
+    min-width: 0;
+  }
+
+  .admin-agenda-preview .agenda-desktop td:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(3),
+  .admin-agenda-preview .agenda-desktop td:nth-child(3) {
+    width: 128px;
+    min-width: 128px;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(4),
+  .admin-agenda-preview .agenda-desktop td:nth-child(4) {
+    width: 110px;
+    min-width: 110px;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(5),
+  .admin-agenda-preview .agenda-desktop td:nth-child(5) {
+    width: 112px;
+    min-width: 112px;
+  }
+
+  .admin-agenda-preview .agenda-desktop th:nth-child(6),
+  .admin-agenda-preview .agenda-desktop td:nth-child(6) {
+    width: 72px;
+    min-width: 72px;
+    text-align: center;
+  }
+}
