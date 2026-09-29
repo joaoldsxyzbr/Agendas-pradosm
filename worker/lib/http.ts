@@ -92,7 +92,8 @@ export const limitAgendaImportBody = createMiddleware<AppEnv>(
   async (c, next) => {
     if (
       c.req.method.toUpperCase() !== "POST" ||
-      c.req.path !== "/api/admin/agendas/import"
+      c.req.path !== "/api/admin/agendas/import" &&
+      c.req.path !== "/api/admin/agendas/import/bulk"
     ) {
       await next();
       return;

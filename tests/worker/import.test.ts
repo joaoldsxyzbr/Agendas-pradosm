@@ -90,7 +90,242 @@ async function importAgenda(
   });
 }
 
+async function importAgendaBatch(
+  cookie: string,
+  agendas: unknown[],
+) {
+  return request("/api/admin/agendas/import/bulk", cookie, {
+    method: "POST",
+    body: { agendas },
+  });
+}
+
 describe("admin agenda import", () => {
+  it("importa 121 agendamentos de 9 lojas em uma única operação", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-121");
+    const codes = ["CD", "F01", "F02", "F03", "F04", "F05", "F07", "F08", "F09"];
+
+    for (const code of codes) {
+      await seedStore(`store-bulk-121-${code}`, code);
+    }
+
+    const grouped = new Map<string, ReturnType<typeof appointment>[]>();
+    for (const code of codes) grouped.set(code, []);
+
+    for (let index = 0; index < 121; index += 1) {
+      const code = codes[index % codes.length];
+      grouped.get(code)!.push(
+        appointment(
+          String(91000000 + index),
+          `FORNECEDOR SINTETICO ${index + 1}`,
+        ),
+      );
+    }
+
+    const response = await importAgendaBatch(
+      cookie,
+      codes.map((code) =>
+        payload(code, grouped.get(code), {
+          originalFileName: "agendas-todas.csv",
+        }),
+      ),
+    );
+
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      totalAgendas: 9,
+      totalAppointments: 121,
+      created: 9,
+      replaced: 0,
+    });
+
+    const agendas = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendas WHERE data_agenda = '2026-09-24'",
+      )
+      .first<{ total: number }>();
+    expect(Number(agendas?.total ?? 0)).toBe(9);
+
+    const appointments = await db
+      .prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE ativo = 1")
+      .first<{ total: number }>();
+    expect(Number(appointments?.total ?? 0)).toBe(121);
+  });
+
+  it("rejeita lote acima do orçamento seguro antes de consultar lojas", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-limit");
+    const many = (offset: number, total: number) =>
+      Array.from({ length: total }, (_, index) =>
+        appointment(String(offset + index), `FORNECEDOR ${offset + index}`),
+      );
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F79", many(96000000, 351), {
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F80", many(97000000, 350), {
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "REQUISICAO_INVALIDA",
+    });
+  });
+
+  it("bloqueia o lote inteiro quando uma das lojas não está cadastrada", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-missing");
+    await seedStore("store-import-bulk-known", "F71");
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F71", [appointment("92000001")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F72", [appointment("92000002")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: "LOJAS_NAO_ENCONTRADAS",
+      stores: ["F72"],
+    });
+
+    const agendas = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendas WHERE loja_id = 'store-import-bulk-known'",
+      )
+      .first<{ total: number }>();
+    expect(Number(agendas?.total ?? 0)).toBe(0);
+  });
+
+  it("não grava lojas novas quando existe conflito em outra loja do lote", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-conflict");
+    await seedStore("store-import-bulk-conflict-a", "F73");
+    await seedStore("store-import-bulk-conflict-b", "F74");
+
+    expect(
+      (
+        await importAgenda(
+          cookie,
+          payload("F73", [appointment("93000001")]),
+        )
+      ).status,
+    ).toBe(201);
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F73", [appointment("93000001", "ATUALIZADO")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F74", [appointment("93000002")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: "AGENDAS_JA_EXISTEM",
+    });
+
+    const newStoreAgenda = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendas WHERE loja_id = 'store-import-bulk-conflict-b'",
+      )
+      .first<{ total: number }>();
+    expect(Number(newStoreAgenda?.total ?? 0)).toBe(0);
+  });
+
+  it("substituição em lote preserva status existente e cria as demais lojas", async () => {
+    const adminId = "admin-import-bulk-replace";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-import-bulk-replace-a", "F75");
+    await seedStore("store-import-bulk-replace-b", "F76");
+
+    const first = await importAgenda(
+      cookie,
+      payload("F75", [appointment("94000001", "FORNECEDOR ORIGINAL")]),
+    );
+    expect(first.status).toBe(201);
+    const firstBody = (await first.json()) as {
+      appointments: Array<{ id: string; protocol: string }>;
+    };
+    const existing = firstBody.appointments[0];
+
+    await db
+      .prepare("UPDATE agendamentos SET status = 'recebido' WHERE id = ?")
+      .bind(existing.id)
+      .run();
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F75", [appointment("94000001", "FORNECEDOR ATUALIZADO")], {
+        replace: true,
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F76", [appointment("94000002", "FORNECEDOR NOVO")], {
+        replace: true,
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      totalAgendas: 2,
+      created: 1,
+      replaced: 1,
+    });
+
+    const kept = await db
+      .prepare(
+        "SELECT fornecedor, status, ativo FROM agendamentos WHERE id = ?",
+      )
+      .bind(existing.id)
+      .first<{ fornecedor: string; status: string; ativo: number }>();
+    expect(kept).toEqual({
+      fornecedor: "FORNECEDOR ATUALIZADO",
+      status: "recebido",
+      ativo: 1,
+    });
+  });
+
+  it("falha em qualquer loja faz rollback do lote completo", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-atomic");
+    await seedStore("store-import-bulk-atomic-a", "F77");
+    await seedStore("store-import-bulk-atomic-b", "F78");
+
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_bulk_import BEFORE INSERT ON agendamentos WHEN NEW.fornecedor = 'FORCAR_FALHA' BEGIN SELECT RAISE(ABORT, 'forced bulk failure'); END",
+      )
+      .run();
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F77", [appointment("95000001", "FORNECEDOR OK")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F78", [appointment("95000002", "FORCAR_FALHA")], {
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(500);
+
+    const agendas = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendas WHERE loja_id IN ('store-import-bulk-atomic-a', 'store-import-bulk-atomic-b')",
+      )
+      .first<{ total: number }>();
+    expect(Number(agendas?.total ?? 0)).toBe(0);
+
+    const appointments = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendamentos WHERE protocolo IN ('95000001', '95000002')",
+      )
+      .first<{ total: number }>();
+    expect(Number(appointments?.total ?? 0)).toBe(0);
+  });
+
   it("retorna 422 quando a loja não existe", async () => {
     const cookie = await seedAdmin("admin-import-missing-store");
 

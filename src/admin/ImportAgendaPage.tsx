@@ -1,7 +1,10 @@
 import { useState, type ChangeEvent } from "react";
-import type { ParseAgendaResult } from "../../shared/agenda";
 import { extractPdfText } from "../import/extractPdfText";
-import { parseAgendaText } from "../import/parseAgendaText";
+import {
+  parseAgendaCsv,
+  parseAgendaPdfText,
+  type ParseAgendaBatchResult,
+} from "../import/parseAgendaBatch";
 import { ApiError, apiFetch } from "../lib/api";
 
 function formatDate(value: string | null) {
@@ -14,17 +17,43 @@ function countLabel(total: number) {
   return total === 1 ? "1 agendamento" : `${total} agendamentos`;
 }
 
+function storeCountLabel(total: number) {
+  return total === 1 ? "1 loja" : `${total} lojas`;
+}
+
 function errorLabel(error: string) {
   const [code] = error.split(":");
   const labels: Record<string, string> = {
-    FILIAL_NAO_IDENTIFICADA: "Filial não identificada no PDF.",
-    DATA_NAO_IDENTIFICADA: "Data não identificada no PDF.",
+    FILIAL_NAO_IDENTIFICADA: "Filial não identificada no arquivo.",
+    DATA_NAO_IDENTIFICADA: "Data não identificada no arquivo.",
     SEM_AGENDAMENTOS_VALIDOS: "Nenhum agendamento válido foi encontrado.",
-    REGISTROS_NAO_INTERPRETADOS: "Há registros que não puderam ser interpretados.",
-    TOTAL_DIVERGENTE: "O total informado no PDF diverge dos registros encontrados.",
+    REGISTROS_NAO_INTERPRETADOS:
+      "Há registros que não puderam ser interpretados com segurança.",
+    TOTAL_DIVERGENTE:
+      "O total informado no arquivo diverge dos registros encontrados.",
     PROTOCOLO_DUPLICADO: "Há protocolo duplicado na agenda.",
+    DATAS_DIVERGENTES: "O arquivo contém mais de uma data de agenda.",
+    DATA_DIVERGENTE:
+      "A data dos registros diverge da data informada no filtro do arquivo.",
+    FORMATO_CSV_NAO_RECONHECIDO:
+      "O CSV não possui as colunas esperadas da agenda de recebimento.",
   };
   return labels[code] ? `${labels[code]} (${error})` : error;
+}
+
+function isPdf(file: File) {
+  return (
+    file.type === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf")
+  );
+}
+
+function isCsv(file: File) {
+  return (
+    file.type === "text/csv" ||
+    file.type === "application/csv" ||
+    file.name.toLowerCase().endsWith(".csv")
+  );
 }
 
 type ImportAgendaPageProps = {
@@ -33,13 +62,20 @@ type ImportAgendaPageProps = {
   onImported?: () => void;
 };
 
+type BatchImportResponse = {
+  totalAgendas: number;
+  totalAppointments: number;
+  created: number;
+  replaced: number;
+};
+
 export function ImportAgendaPage({
   modal = false,
   onClose,
   onImported,
 }: ImportAgendaPageProps = {}) {
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<ParseAgendaResult | null>(null);
+  const [preview, setPreview] = useState<ParseAgendaBatchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [replacePending, setReplacePending] = useState(false);
@@ -56,35 +92,54 @@ export function ImportAgendaPage({
 
     if (!selected) return;
 
-    if (
-      selected.type !== "application/pdf" &&
-      !selected.name.toLowerCase().endsWith(".pdf")
-    ) {
-      setMessage("Selecione um arquivo PDF.");
+    if (!isCsv(selected) && !isPdf(selected)) {
+      setMessage("Selecione um arquivo CSV ou PDF.");
       return;
     }
 
     setLoading(true);
     try {
-      const text = await extractPdfText(selected);
-      setPreview(parseAgendaText(text));
+      if (isCsv(selected)) {
+        setPreview(parseAgendaCsv(await selected.text()));
+      } else {
+        const text = await extractPdfText(selected);
+        setPreview(parseAgendaPdfText(text));
+      }
     } catch {
-      setMessage("Não foi possível ler o PDF selecionado.");
+      setMessage(
+        isCsv(selected)
+          ? "Não foi possível ler o CSV selecionado."
+          : "Não foi possível ler o PDF selecionado.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
   function importBody(replace = false) {
-    if (!file || !preview?.storeCode || !preview.date) return null;
+    if (!file || !preview) return null;
 
-    return {
-      storeCode: preview.storeCode,
-      date: preview.date,
-      originalFileName: file.name,
-      appointments: preview.appointments.map(({ status: _status, ...appointment }) => appointment),
-      ...(replace ? { replace: true } : {}),
-    };
+    const agendas = preview.agendas.flatMap((agenda) => {
+      if (!agenda.storeCode || !agenda.date) return [];
+
+      return [
+        {
+          storeCode: agenda.storeCode,
+          date: agenda.date,
+          originalFileName: file.name,
+          appointments: agenda.appointments.map(
+            ({ status: _status, ...appointment }) => appointment,
+          ),
+          ...(replace ? { replace: true } : {}),
+        },
+      ];
+    });
+
+    if (agendas.length !== preview.agendas.length || agendas.length === 0) {
+      return null;
+    }
+
+    return { agendas };
   }
 
   async function submit(replace = false) {
@@ -96,25 +151,30 @@ export function ImportAgendaPage({
     setSuccess(false);
 
     try {
-      await apiFetch("/api/admin/agendas/import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+      const result = await apiFetch<BatchImportResponse>(
+        "/api/admin/agendas/import/bulk",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        },
+      );
       setReplacePending(false);
       setSuccess(true);
-      setMessage(replace ? "Agenda substituída com sucesso." : "Agenda importada com sucesso.");
+      setMessage(
+        `Importação concluída: ${storeCountLabel(result.totalAgendas)} e ${countLabel(result.totalAppointments)}.`,
+      );
       onImported?.();
       if (modal) onClose?.();
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setReplacePending(true);
-        setMessage("Já existe uma agenda para esta loja e data.");
+        setMessage("Já existe agenda para uma ou mais lojas e datas deste arquivo.");
       } else {
         setMessage(
           error instanceof ApiError
             ? error.message
-            : "Não foi possível importar a agenda.",
+            : "Não foi possível importar as agendas.",
         );
       }
     } finally {
@@ -126,12 +186,20 @@ export function ImportAgendaPage({
   const canConfirm = Boolean(
     file &&
       preview &&
-      preview.storeCode &&
-      preview.date &&
-      preview.appointments.length > 0 &&
+      preview.agendas.length > 0 &&
+      preview.totalAppointments > 0 &&
+      preview.agendas.every((agenda) => agenda.storeCode && agenda.date) &&
       !blocked &&
       !submitting,
   );
+
+  const previewRows =
+    preview?.agendas.flatMap((agenda) =>
+      agenda.appointments.map((appointment) => ({
+        storeCode: agenda.storeCode ?? "—",
+        appointment,
+      })),
+    ) ?? [];
 
   const content = (
     <div className="admin-page import-agenda-content">
@@ -143,7 +211,10 @@ export function ImportAgendaPage({
           ) : (
             <h1 id="import-agenda-title">Importar agenda</h1>
           )}
-          <p>Selecione o PDF, confira a prévia e só então confirme a importação.</p>
+          <p>
+            Importe o CSV com todas as lojas de uma vez. O PDF continua
+            disponível como formato de reserva.
+          </p>
         </div>
         {modal ? (
           <button className="ghost-button" type="button" onClick={onClose}>
@@ -154,15 +225,20 @@ export function ImportAgendaPage({
 
       <div className="upload-card">
         <label className="file-field">
-          <span>Arquivo PDF</span>
-          <input type="file" accept=".pdf,application/pdf" onChange={selectFile} />
+          <span>Arquivo CSV ou PDF</span>
+          <input
+            type="file"
+            accept=".csv,text/csv,.pdf,application/pdf"
+            onChange={selectFile}
+          />
         </label>
         <p className="field-help">
-          O arquivo é interpretado no navegador antes da confirmação.
+          O arquivo é interpretado no navegador. Nenhuma agenda é gravada até
+          você conferir a prévia e confirmar.
         </p>
       </div>
 
-      {loading ? <p className="muted-state">Lendo PDF...</p> : null}
+      {loading ? <p className="muted-state">Lendo arquivo...</p> : null}
 
       {message ? (
         <p className={success ? "success-message" : "feedback-message"}>
@@ -174,14 +250,8 @@ export function ImportAgendaPage({
         <div className="preview-stack">
           <section className="preview-summary">
             <div>
-              <span>Loja</span>
-              <strong>
-                {preview.storeCode
-                  ? preview.storeName && preview.storeName !== preview.storeCode
-                    ? `${preview.storeCode} - ${preview.storeName}`
-                    : preview.storeCode
-                  : "Não identificada"}
-              </strong>
+              <span>Lojas</span>
+              <strong>{storeCountLabel(preview.agendas.length)}</strong>
             </div>
             <div>
               <span>Data</span>
@@ -189,12 +259,15 @@ export function ImportAgendaPage({
             </div>
             <div>
               <span>Total</span>
-              <strong>{countLabel(preview.appointments.length)}</strong>
+              <strong>{countLabel(preview.totalAppointments)}</strong>
             </div>
           </section>
 
           {preview.blockingErrors.length > 0 ? (
-            <section className="validation-panel error-panel" aria-label="Erros da importação">
+            <section
+              className="validation-panel error-panel"
+              aria-label="Erros da importação"
+            >
               <h2>Corrija antes de importar</h2>
               <ul>
                 {preview.blockingErrors.map((error) => (
@@ -205,7 +278,10 @@ export function ImportAgendaPage({
           ) : null}
 
           {preview.warnings.length > 0 ? (
-            <section className="validation-panel warning-panel" aria-label="Avisos da importação">
+            <section
+              className="validation-panel warning-panel"
+              aria-label="Avisos da importação"
+            >
               <h2>Avisos</h2>
               <ul>
                 {preview.warnings.map((warning) => (
@@ -220,6 +296,7 @@ export function ImportAgendaPage({
               <table>
                 <thead>
                   <tr>
+                    <th>Loja</th>
                     <th>Horário</th>
                     <th>Protocolo</th>
                     <th>Fornecedor</th>
@@ -229,9 +306,12 @@ export function ImportAgendaPage({
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.appointments.map((appointment) => (
-                    <tr key={appointment.protocol}>
-                      <td>{appointment.startTime} - {appointment.endTime}</td>
+                  {previewRows.map(({ storeCode, appointment }) => (
+                    <tr key={`${storeCode}:${appointment.protocol}`}>
+                      <td>{storeCode}</td>
+                      <td>
+                        {appointment.startTime} - {appointment.endTime}
+                      </td>
                       <td>{appointment.protocol}</td>
                       <td>{appointment.supplier}</td>
                       <td>{appointment.items ?? "-"}</td>
@@ -239,9 +319,9 @@ export function ImportAgendaPage({
                       <td>{appointment.type}</td>
                     </tr>
                   ))}
-                  {preview.appointments.length === 0 ? (
+                  {previewRows.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="empty-cell">
+                      <td colSpan={7} className="empty-cell">
                         Nenhum agendamento interpretado.
                       </td>
                     </tr>
@@ -265,10 +345,10 @@ export function ImportAgendaPage({
           {replacePending ? (
             <section className="replace-panel" role="alert">
               <div>
-                <strong>Agenda já existente</strong>
+                <strong>Há agendas já existentes</strong>
                 <p>
-                  Substituir atualiza os dados do PDF, preservando os status já
-                  registrados para protocolos existentes.
+                  A substituição atualiza somente os dados importados e preserva
+                  status, histórico e fornecedores adicionados manualmente.
                 </p>
               </div>
               <button
@@ -277,7 +357,7 @@ export function ImportAgendaPage({
                 disabled={submitting}
                 onClick={() => void submit(true)}
               >
-                Substituir agenda
+                Substituir agendas existentes
               </button>
             </section>
           ) : null}

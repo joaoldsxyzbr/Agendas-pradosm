@@ -72,6 +72,28 @@ describe("HTTP hardening", () => {
     expect(response.status).toBe(201);
   });
 
+  it("bloqueia JSON de importação em lote acima do limite", async () => {
+    const cookie = await adminCookie("admin-large-bulk-import");
+    const oversized = "x".repeat(MAX_IMPORT_JSON_BYTES + 1);
+
+    const response = await exports.default.fetch(
+      new Request("https://example.com/api/admin/agendas/import/bulk", {
+        method: "POST",
+        headers: {
+          Cookie: cookie,
+          Origin: "https://example.com",
+          "Content-Type": "application/json",
+        },
+        body: oversized,
+      }),
+    );
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toMatchObject({
+      error: "REQUISICAO_MUITO_GRANDE",
+    });
+  });
+
   it("bloqueia JSON de importação acima do limite", async () => {
     const cookie = await adminCookie("admin-large-import");
     const oversized = "x".repeat(MAX_IMPORT_JSON_BYTES + 1);

@@ -137,6 +137,37 @@ export const ImportAgendaInput = z
     });
   });
 
+export const ImportAgendaBatchInput = z
+  .object({
+    agendas: z.array(ImportAgendaInput).min(1).max(50),
+  })
+  .superRefine((value, ctx) => {
+    const agendaKeys = new Set<string>();
+    let totalAppointments = 0;
+
+    value.agendas.forEach((agenda, index) => {
+      const key = `${agenda.storeCode}|${agenda.date}`;
+      if (agendaKeys.has(key)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["agendas", index],
+          message: "Loja e data duplicadas no lote.",
+        });
+      }
+      agendaKeys.add(key);
+      totalAppointments += agenda.appointments.length;
+    });
+
+    if (totalAppointments > 700) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["agendas"],
+        message: "O lote excede o limite seguro de 700 agendamentos.",
+      });
+    }
+  });
+
 export type ImportAgendaPayload = z.infer<typeof ImportAgendaInput>;
+export type ImportAgendaBatchPayload = z.infer<typeof ImportAgendaBatchInput>;
 export type ImportedAppointmentPayload =
   ImportAgendaPayload["appointments"][number];

@@ -46,6 +46,7 @@ app.use(
   validateMutationOrigin,
 );
 app.use("/api/admin/agendas/import", limitAgendaImportBody);
+app.use("/api/admin/agendas/import/bulk", limitAgendaImportBody);
 app.use("/api/admin/agendas", async (c, next) => {
   await closePastOpenAgendas(c.env.DB);
   await next();
