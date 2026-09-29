@@ -13,7 +13,7 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev -- --host 127.0.0.1 --port 5173",
+    command: "npm run preview -- --host 127.0.0.1 --port 5173",
     url: `${baseURL}/login`,
     reuseExistingServer: false,
     timeout: 120_000,
