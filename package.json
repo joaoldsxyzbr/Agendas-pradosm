@@ -16,7 +16,9 @@
     "test:worker": "vitest run",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
     "test:design": "node scripts/check-design-system.mjs",
-    "test:deploy-flow": "node scripts/check-deploy-flow.mjs"
+    "test:deploy-flow": "node scripts/check-deploy-flow.mjs",
+    "test:e2e:prepare": "node scripts/prepare-e2e.mjs",
+    "test:e2e": "npm run test:e2e:prepare && playwright test"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
