@@ -40,6 +40,7 @@
 **Files:**
 - Create: `docs/operations/production-release.md`
 - Modify: `README.md`
+- Modify: `.github/workflows/ci.yml`
 - Modify: `scripts/check-deploy-flow.mjs`
 - Review external settings: Cloudflare Workers Builds e GitHub branch protection
 
@@ -66,10 +67,13 @@ Criar `docs/operations/production-release.md` com:
 
 - [ ] **Step 3: Reforçar o teste do contrato de deploy**
 
+Atualizar `.github/workflows/ci.yml` para executar em todo PR/push da `main`, inclusive alterações somente em `docs/**`; remover o `paths-ignore` que hoje pode impedir o check obrigatório `verify` de existir.
+
 Atualizar `scripts/check-deploy-flow.mjs` para validar que:
 - `package.json` continua expondo apenas o fluxo nativo existente;
 - a documentação de produção existe e contém `npm run deploy`;
 - `.github/workflows/ci.yml` não executa `wrangler deploy`;
+- o CI não ignora `docs/**`;
 - não existe `.github/workflows/deploy.yml`.
 
 - [ ] **Step 4: Rodar o guard local**
@@ -106,7 +110,7 @@ Abrir PR de documentação e confirmar que os checks obrigatórios aparecem ante
 - [ ] **Step 8: Commit**
 
 ```bash
-git add README.md docs/operations/production-release.md scripts/check-deploy-flow.mjs
+git add README.md docs/operations/production-release.md .github/workflows/ci.yml scripts/check-deploy-flow.mjs
 git commit -m "docs: formalize production release flow"
 ```
 
@@ -138,7 +142,7 @@ Adicionar caso em `tests/ui/dashboard-viewer.test.tsx` com agenda concluída:
 
 - [ ] **Step 2: Rodar o teste e confirmar falha**
 
-Run: `npm run test:ui -- --run tests/ui/dashboard-viewer.test.tsx`
+Run: `npm run test:ui -- tests/ui/dashboard-viewer.test.tsx`
 
 Expected: FAIL porque o botão de reabertura ainda aparece.
 
@@ -602,7 +606,7 @@ Adicionar cenários:
 
 - [ ] **Step 2: Rodar teste e confirmar falha**
 
-Run: `npm run test:ui -- --run tests/ui/admin-dashboard-live.test.tsx`
+Run: `npm run test:ui -- tests/ui/admin-dashboard-live.test.tsx`
 
 Expected: FAIL enquanto existir polling.
 
