@@ -151,7 +151,11 @@ authRoutes.post("/login", async (c) => {
       : null;
   if (user.papel === "conferente" && !store) return invalidCredentials(c);
 
-  const token = await createSessionToken(user.id, c.env.SESSION_SECRET);
+  const token = await createSessionToken(
+    user.id,
+    user.session_version,
+    c.env.SESSION_SECRET,
+  );
   setCookie(c, COOKIE_NAME, token, {
     httpOnly: true,
     secure: new URL(c.req.url).protocol === "https:",
