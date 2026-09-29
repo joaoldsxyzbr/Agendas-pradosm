@@ -41,14 +41,17 @@ function toStoreAppointment(appointment: AdminAppointment): StoreAppointment {
 export function AdminAgendaPreview({
   agendaId,
   onClose,
+  onAgendaChanged,
 }: {
   agendaId: string;
   onClose: () => void;
+  onAgendaChanged?: () => void;
 }) {
   const [detail, setDetail] = useState<AdminAgendaDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [reopening, setReopening] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -104,6 +107,31 @@ export function AdminAgendaPreview({
     (appointment) => appointment.hasExchanges,
   ).length;
 
+  async function reopenForStore() {
+    if (!detail || reopening || detail.agenda.dayStatus !== "concluido") return;
+
+    setReopening(true);
+    setError(null);
+
+    try {
+      const agenda = await apiFetch<AdminAgendaDetail["agenda"]>(
+        `/api/admin/agendas/${detail.agenda.id}/status`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: "aberto" }),
+        },
+      );
+
+      setDetail((current) => (current ? { ...current, agenda } : current));
+      onAgendaChanged?.();
+    } catch {
+      setError("Não foi possível reabrir o dia para o conferente.");
+    } finally {
+      setReopening(false);
+    }
+  }
+
   return (
     <div className="modal-backdrop" role="presentation">
       <div
@@ -137,6 +165,16 @@ export function AdminAgendaPreview({
                 <span>Visualização do conferente</span>
               </div>
               <div className="agenda-preview-status">
+                {detail.agenda.dayStatus === "concluido" ? (
+                  <button
+                    className="primary-button agenda-preview-reopen"
+                    type="button"
+                    disabled={reopening}
+                    onClick={() => void reopenForStore()}
+                  >
+                    {reopening ? "Reabrindo..." : "Reabrir para conferente"}
+                  </button>
+                ) : null}
                 <span className="status-pill neutral">
                   {detail.agenda.dayStatus === "concluido"
                     ? "Concluído"
