@@ -109,9 +109,8 @@ describe("admin agenda import", () => {
       await seedStore(`store-bulk-121-${code}`, code);
     }
 
-    const grouped = new Map<string, ReturnType<typeof appointment>[]>(
-      codes.map((code) => [code, []]),
-    );
+    const grouped = new Map<string, ReturnType<typeof appointment>[]>();
+    for (const code of codes) grouped.set(code, []);
 
     for (let index = 0; index < 121; index += 1) {
       const code = codes[index % codes.length];
