@@ -12,7 +12,7 @@ Permitir que o administrador importe, em uma única operação, a exportação d
 
 - CSV é o formato principal.
 - PDF permanece como formato de reserva.
-- Uma exportação consolidada é separada por `Filial` antes da persistência.
+- Uma exportação consolidada é separada por `Filial` antes da persistência. Para `CD`, quando a coluna `Doca` está presente, o agrupamento usa `Filial + Doca` (`CD DOCA 01`, `CD DOCA 02`, etc.).
 - Cada loja continua gerando sua própria agenda por `loja + data`.
 - Campos apresentados ao conferente permanecem os mesmos.
 - O protocolo continua sendo a chave de preservação operacional durante substituições.
@@ -43,7 +43,8 @@ Isso evita tanto gravação parcial quanto estouro previsível do orçamento de 
 
 ## Compatibilidade
 
-- CSVs exportados pelo Prado são aceitos com quebras de linha LF, CRLF ou CR isolado. A exportação real validada em 29/09/2026 usa CR isolado.
+- CSVs exportados pelo Prado são aceitos com quebras de linha LF, CRLF ou CR isolado. As exportações reais validadas em 29/09/2026 e 30/09/2026 usam CR isolado.
+- A coluna `Doca` é opcional para filiais comuns e, quando presente em linhas do `CD`, diferencia corretamente as unidades `CD DOCA NN`.
 - O endpoint antigo de importação individual permanece disponível.
 - PDFs individuais continuam usando o parser existente.
 - PDFs consolidados são reconhecidos quando a tabela contém a coluna `Filial`.
@@ -56,6 +57,7 @@ Foram adicionados testes sintéticos para:
 
 - 121 agendamentos em 9 unidades em um único CSV;
 - regressão com amostra sanitizada do CSV real do Prado usando CR isolado como quebra de linha;
+- regressão com coluna `Doca`, incluindo separação de `CD DOCA 01` e `CD DOCA 02`;
 - CSV com BOM e campo entre aspas contendo ponto e vírgula;
 - PDF consolidado com coluna `Filial`;
 - fallback para PDF individual;
