@@ -1,0 +1,54 @@
+import { expect, test, type Page } from "@playwright/test";
+
+const password = "senha-segura-123";
+
+async function login(page: Page, loginValue: string) {
+  await page.goto("/login");
+  await page.getByLabel("Login").fill(loginValue);
+  await page.getByLabel("Senha").fill(password);
+  await page.getByRole("button", { name: "Entrar" }).click();
+}
+
+test("admin pode reabrir uma agenda concluída", async ({ page }) => {
+  await login(page, "admin-e2e");
+  await expect(page).toHaveURL(/\/admin$/);
+
+  const card = page.getByTestId("dashboard-store-F05");
+  await expect(card).toContainText("Pagani E2E");
+  await card.getByRole("button", { name: "Ver detalhes" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Agenda F05 - Pagani E2E" });
+  await expect(
+    dialog.getByRole("button", { name: "Reabrir para conferente" }),
+  ).toBeVisible();
+});
+
+test("visualizador consulta a agenda sem receber ações mutáveis", async ({
+  page,
+}) => {
+  await login(page, "viewer-e2e");
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(
+    page.getByRole("button", { name: "Importar agenda" }),
+  ).toHaveCount(0);
+
+  const card = page.getByTestId("dashboard-store-F05");
+  await card.getByRole("button", { name: "Ver detalhes" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Agenda F05 - Pagani E2E" });
+  await expect(dialog.getByText("Somente leitura")).toBeVisible();
+  await expect(
+    dialog.getByRole("button", { name: "Reabrir para conferente" }),
+  ).toHaveCount(0);
+});
+
+test("conferente acessa apenas a própria loja", async ({ page }) => {
+  await login(page, "conferente-e2e");
+  await expect(page).toHaveURL(/\/app$/);
+
+  await expect(page.getByText("Pagani E2E")).toBeVisible();
+  await expect(page.getByRole("cell", { name: "Fornecedor E2E" })).toBeVisible();
+
+  await page.goto("/admin");
+  await expect(page).toHaveURL(/\/app$/);
+});

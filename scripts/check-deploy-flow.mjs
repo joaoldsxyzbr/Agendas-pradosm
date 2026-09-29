@@ -122,17 +122,38 @@ assert.ok(
   "CI deve auditar dependências de produção",
 );
 assert.ok(
-  ci.includes("Browser smoke and accessibility"),
-  "CI deve validar o app em navegador real",
+  ci.includes("Install Playwright Chromium"),
+  "CI deve instalar Chromium do Playwright",
 );
 assert.ok(
-  ci.includes("lighthouse@13.5.0"),
-  "CI deve executar auditoria de acessibilidade com versão fixada",
+  ci.includes("playwright install --with-deps chromium"),
+  "CI deve instalar navegador e dependências pelo Playwright",
 );
 assert.ok(
-  ci.includes('name="login"') && ci.includes('name="senha"'),
-  "smoke browser deve validar os controles principais do login",
+  ci.includes("npm run test:e2e"),
+  "CI deve executar a suíte E2E real",
 );
+assert.ok(
+  !ci.includes("lighthouse@"),
+  "CI não deve manter o smoke Lighthouse substituído pelo Playwright",
+);
+assert.equal(
+  packageJson.scripts?.["test:e2e"],
+  "npm run build && npm run test:e2e:prepare && playwright test",
+  "package.json deve expor a suíte E2E oficial",
+);
+for (const path of [
+  "../playwright.config.ts",
+  "../tests/e2e/login-accessibility.spec.ts",
+  "../tests/e2e/roles.spec.ts",
+  "../tests/e2e/seed.sql",
+]) {
+  assert.equal(
+    existsSync(new URL(path, import.meta.url)),
+    true,
+    `arquivo E2E obrigatório ausente: ${path}`,
+  );
+}
 assert.equal(
   existsSync(new URL("../.github/dependabot.yml", import.meta.url)),
   true,
@@ -164,6 +185,24 @@ assert.ok(
   "traces devem usar amostragem controlada",
 );
 
+const indexHtml = readFileSync(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
+assert.ok(
+  indexHtml.includes('<script src="/theme-bootstrap.js"></script>'),
+  "index.html deve carregar o bootstrap de tema como script same-origin",
+);
+assert.ok(
+  !indexHtml.includes('localStorage.getItem("theme")'),
+  "bootstrap de tema não pode permanecer inline no index.html",
+);
+assert.equal(
+  existsSync(new URL("../public/theme-bootstrap.js", import.meta.url)),
+  true,
+  "bootstrap de tema externo deve existir em public/theme-bootstrap.js",
+);
+
 const headersPath = new URL("../public/_headers", import.meta.url);
 assert.equal(
   existsSync(headersPath),
@@ -171,6 +210,10 @@ assert.equal(
   "assets estáticos devem declarar headers defensivos",
 );
 const staticHeaders = readFileSync(headersPath, "utf8");
+assert.ok(
+  !staticHeaders.includes("script-src 'self' 'unsafe-inline'"),
+  "CSP não deve liberar unsafe-inline para scripts",
+);
 for (const header of [
   "Content-Security-Policy:",
   "X-Frame-Options: DENY",

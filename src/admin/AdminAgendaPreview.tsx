@@ -40,10 +40,12 @@ function toStoreAppointment(appointment: AdminAppointment): StoreAppointment {
 
 export function AdminAgendaPreview({
   agendaId,
+  canReopen,
   onClose,
   onAgendaChanged,
 }: {
   agendaId: string;
+  canReopen: boolean;
   onClose: () => void;
   onAgendaChanged?: () => void;
 }) {
@@ -108,7 +110,14 @@ export function AdminAgendaPreview({
   ).length;
 
   async function reopenForStore() {
-    if (!detail || reopening || detail.agenda.dayStatus !== "concluido") return;
+    if (
+      !canReopen ||
+      !detail ||
+      reopening ||
+      detail.agenda.dayStatus !== "concluido"
+    ) {
+      return;
+    }
 
     setReopening(true);
     setError(null);
@@ -165,7 +174,7 @@ export function AdminAgendaPreview({
                 <span>Visualização do conferente</span>
               </div>
               <div className="agenda-preview-status">
-                {detail.agenda.dayStatus === "concluido" ? (
+                {canReopen && detail.agenda.dayStatus === "concluido" ? (
                   <button
                     className="status-pill neutral agenda-preview-reopen"
                     type="button"
