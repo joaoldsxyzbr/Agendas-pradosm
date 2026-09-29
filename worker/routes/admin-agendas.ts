@@ -8,6 +8,7 @@ import {
   changeAppointmentStatus,
   createAgendaImport,
   importAgendaBatchAtomic,
+  AgendaBatchQueryBudgetError,
   findAgendaById,
   findAgendaByStoreDate,
   findAppointmentById,
@@ -305,6 +306,17 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
       results.some((item) => item.replaced) ? 200 : 201,
     );
   } catch (error) {
+    if (error instanceof AgendaBatchQueryBudgetError) {
+      return c.json(
+        {
+          error: "LOTE_MUITO_GRANDE",
+          message:
+            "O lote exige operações demais para uma importação atômica segura. Reduza o arquivo antes de tentar novamente.",
+        },
+        413,
+      );
+    }
+
     if (isAgendaConflict(error)) {
       return c.json(
         {
