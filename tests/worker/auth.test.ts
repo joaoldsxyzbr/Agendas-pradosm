@@ -85,9 +85,15 @@ function base64Url(bytes: Uint8Array) {
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
 }
 
-async function signedSession(userId: string, exp: number) {
+async function signedSession(
+  userId: string,
+  exp: number,
+  sessionVersion = 1,
+) {
   const encoder = new TextEncoder();
-  const payload = base64Url(encoder.encode(JSON.stringify({ userId, exp })));
+  const payload = base64Url(
+    encoder.encode(JSON.stringify({ userId, sessionVersion, exp })),
+  );
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(sessionSecret),
