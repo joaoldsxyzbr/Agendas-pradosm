@@ -84,7 +84,7 @@ export async function findStoreByCode(
 ): Promise<StoreLookup | null> {
   return db
     .prepare(
-      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? AND ativo = 1 AND excluido_em IS NULL LIMIT 1",
+      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? COLLATE NOCASE AND ativo = 1 AND excluido_em IS NULL LIMIT 1",
     )
     .bind(code)
     .first<StoreLookup>();
@@ -136,7 +136,7 @@ export async function listAdminAgendas(
   }
 
   if (filters.storeCode) {
-    clauses.push("l.codigo = ?");
+    clauses.push("l.codigo = ? COLLATE NOCASE");
     values.push(filters.storeCode);
   }
 
