@@ -219,4 +219,111 @@ describe("dashboard operacional", () => {
     ).not.toBeInTheDocument();
   });
 
+
+  it("reabre uma agenda concluída pelo preview do dashboard", async () => {
+    const stores = [
+      { id: "s1", codigo: "F05", nome: "Pagani", ativo: true },
+    ];
+    const agendas = [
+      {
+        id: "a5",
+        storeCode: "F05",
+        storeName: "Pagani",
+        date: "2026-09-29",
+        total: 1,
+        aguardando: 0,
+        recebido: 1,
+        naoChegou: 0,
+        recusado: 0,
+        semAgenda: 0,
+        dayStatus: "concluido",
+        completedAt: "2026-09-29T18:00:00.000Z",
+        completedBy: { id: "u1", name: "Conferente" },
+      },
+    ];
+    const detail = {
+      agenda: agendas[0],
+      appointments: [
+        {
+          id: "ap5",
+          protocol: "11713967",
+          startTime: "08:00",
+          endTime: "08:10",
+          supplier: "Distribuidora Muller Com. e Repres. Ltda",
+          items: 1,
+          volumes: 1,
+          pallets: 0,
+          cargaBatida: null,
+          type: "Nota fiscal",
+          nfe: [],
+          orders: [],
+          status: "recebido",
+          hasExchanges: false,
+          origin: "imported",
+          ativo: true,
+        },
+      ],
+    };
+
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/admin/stores") return json(stores);
+        if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
+        if (url === "/api/admin/agendas/a5" && !init?.method) {
+          return json(detail);
+        }
+        if (
+          url === "/api/admin/agendas/a5/status" &&
+          init?.method === "PATCH"
+        ) {
+          return json({
+            ...detail.agenda,
+            dayStatus: "aberto",
+            completedAt: null,
+            completedBy: null,
+          });
+        }
+        return new Response(null, { status: 404 });
+      },
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    const card = await screen.findByTestId("dashboard-store-F05");
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Ver detalhes" }),
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Agenda F05 - Pagani",
+    });
+    fireEvent.click(
+      within(dialog).getByRole("button", {
+        name: "Reabrir para conferente",
+      }),
+    );
+
+    expect(await within(dialog).findByText("Em aberto")).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", {
+        name: "Reabrir para conferente",
+      }),
+    ).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/agendas/a5/status",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ status: "aberto" }),
+        credentials: "include",
+      }),
+    );
+  });
+
 });
