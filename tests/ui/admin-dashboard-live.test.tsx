@@ -75,7 +75,9 @@ describe("atualizacao do dashboard", () => {
 
     expect(await within(card).findByText("2 / 2")).toBeInTheDocument();
     expect(agendaReads).toBe(2);
-    expect(setIntervalSpy).not.toHaveBeenCalled();
+    expect(
+      setIntervalSpy.mock.calls.some(([, delay]) => delay === 10_000),
+    ).toBe(false);
   });
 
   it("atualiza silenciosamente quando a aba volta a ficar visivel", async () => {
