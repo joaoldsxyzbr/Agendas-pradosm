@@ -10,3 +10,7 @@
 - Hono
 - Zod
 - Vitest
+
+## Operação
+
+- [Release de produção](docs/operations/production-release.md)

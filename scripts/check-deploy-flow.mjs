@@ -93,7 +93,30 @@ const ci = readFileSync(
   new URL("../.github/workflows/ci.yml", import.meta.url),
   "utf8",
 );
+const productionReleasePath = new URL(
+  "../docs/operations/production-release.md",
+  import.meta.url,
+);
+assert.equal(
+  existsSync(productionReleasePath),
+  true,
+  "runbook de release de produção deve existir",
+);
+const productionRelease = readFileSync(productionReleasePath, "utf8");
+assert.ok(
+  productionRelease.includes("npm run deploy"),
+  "runbook deve registrar npm run deploy como comando de produção",
+);
+assert.ok(
+  productionRelease.includes("Workers Builds"),
+  "runbook deve documentar o vínculo com Workers Builds",
+);
+
 assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
+assert.ok(
+  !ci.includes("paths-ignore:"),
+  "CI deve rodar também em alterações somente de documentação",
+);
 assert.ok(
   ci.includes("npm audit --omit=dev"),
   "CI deve auditar dependências de produção",
