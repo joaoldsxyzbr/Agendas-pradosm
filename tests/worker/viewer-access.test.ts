@@ -20,7 +20,7 @@ async function seedAdmin() {
     .bind(id, login, senhaHash, now, now)
     .run();
 
-  const token = await createSessionToken(id, sessionSecret);
+  const token = await createSessionToken(id, 1, sessionSecret);
   return `agenda_session=${token}`;
 }
 
