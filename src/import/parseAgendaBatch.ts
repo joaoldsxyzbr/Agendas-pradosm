@@ -274,7 +274,13 @@ function parseTableRows(
     if (!first) continue;
     if (normalizeKey(first) === "protocolo") continue;
     if (!/^\d{6,20}$/.test(first)) {
-      invalidCount += 1;
+      const maxColumn = Math.max(...Object.values(header.map));
+      const looksLikeDataRow =
+        row.length > maxColumn &&
+        Boolean(cell(row, header.map.dateAgenda)) &&
+        Boolean(cell(row, header.map.supplier));
+
+      if (looksLikeDataRow) invalidCount += 1;
       continue;
     }
 
