@@ -139,7 +139,7 @@ assert.ok(
 );
 assert.equal(
   packageJson.scripts?.["test:e2e"],
-  "npm run test:e2e:prepare && playwright test",
+  "npm run build && npm run test:e2e:prepare && playwright test",
   "package.json deve expor a suíte E2E oficial",
 );
 for (const path of [
