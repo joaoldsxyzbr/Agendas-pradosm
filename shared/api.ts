@@ -1,14 +1,15 @@
+import { normalizeStoreCode } from "./store";
 import { z } from "zod";
 
 export const CreateStoreInput = z.object({
-  codigo: z.string().trim().min(1).max(20),
+  codigo: z.string().trim().min(1).max(20).transform(normalizeStoreCode),
   nome: z.string().trim().min(1).max(120),
 });
 
 export const UpdateStoreInput = z
   .object({
     id: z.string().uuid(),
-    codigo: z.string().trim().min(1).max(20).optional(),
+    codigo: z.string().trim().min(1).max(20).transform(normalizeStoreCode).optional(),
     nome: z.string().trim().min(1).max(120).optional(),
     ativo: z.boolean().optional(),
   })

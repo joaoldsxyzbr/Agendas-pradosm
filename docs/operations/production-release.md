@@ -75,3 +75,29 @@ Depois do merge:
 Como o projeto usa migrations aditivas, o rollback de aplicação consiste em republicar uma versão anterior compatível do Worker.
 
 Não executar rollback destrutivo de schema como resposta automática. Se uma estrutura antiga precisar ser removida ou restaurada, tratar isso como uma release específica e revisada.
+
+
+### Impacto da migration 0015
+
+A migration `0015_user_session_version.sql` adiciona versionamento de sessão. Cookies emitidos antes dessa release não possuem `sessionVersion` e serão rejeitados após o novo Worker entrar em produção. O efeito esperado é um único novo login por usuário após o deploy.
+
+## Bootstrap administrativo de emergência
+
+O comando `npm run bootstrap-admin` é um procedimento **break-glass**. Ele não substitui o cadastro normal de usuários nem deve ser usado para redefinir senha, promover papel ou reativar conta existente.
+
+Pré-condições:
+
+- não pode existir administrador ativo e não removido;
+- `ADMIN_LOGIN` não pode existir, inclusive com diferença apenas de maiúsculas/minúsculas;
+- `ADMIN_PASSWORD` deve ter pelo menos 12 caracteres.
+
+O script:
+
+1. executa um preflight remoto no D1;
+2. cria uma nova conta admin somente se as pré-condições continuarem válidas;
+3. registra `admin_provisionado_emergencia` na tabela `auditoria`;
+4. executa uma verificação remota e só termina com sucesso se usuário e auditoria existirem.
+
+A criação e a verificação usam `wrangler d1 execute --remote`. Não tratar o CLI como garantia de atomicidade entre comandos separados. Se o processo falhar após alguma escrita, revisar o D1 e a auditoria antes de repetir.
+
+Nunca usar esse script em testes automatizados contra o banco remoto.

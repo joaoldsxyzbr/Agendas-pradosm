@@ -84,7 +84,7 @@ export async function findStoreByCode(
 ): Promise<StoreLookup | null> {
   return db
     .prepare(
-      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? AND ativo = 1 AND excluido_em IS NULL LIMIT 1",
+      "SELECT id, codigo, nome FROM lojas WHERE codigo = ? COLLATE NOCASE AND ativo = 1 AND excluido_em IS NULL LIMIT 1",
     )
     .bind(code)
     .first<StoreLookup>();
@@ -136,7 +136,7 @@ export async function listAdminAgendas(
   }
 
   if (filters.storeCode) {
-    clauses.push("l.codigo = ?");
+    clauses.push("l.codigo = ? COLLATE NOCASE");
     values.push(filters.storeCode);
   }
 
@@ -445,6 +445,7 @@ export async function updateManualAppointmentSupplier(
   appointment: AppointmentRecord,
   userId: string,
   supplier: string,
+  adminAdjustmentDetails?: string,
 ): Promise<AppointmentRecord> {
   if (appointment.origem !== "manual" || appointment.ativo !== 1) {
     throw new Error("Agendamento manual inválido.");
@@ -452,7 +453,7 @@ export async function updateManualAppointmentSupplier(
   if (appointment.fornecedor === supplier) return appointment;
 
   const now = new Date().toISOString();
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db.prepare(
       "UPDATE agendamentos SET fornecedor = ?, atualizado_em = ? WHERE id = ? AND origem = 'manual' AND ativo = 1",
     ).bind(supplier, now, appointment.id),
@@ -469,7 +470,17 @@ export async function updateManualAppointmentSupplier(
       details: "Nome do fornecedor sem agenda alterado.",
       createdAt: now,
     }),
-  ]);
+  ];
+  const adjustment = agendaAdminAdjustmentStatement(
+    db,
+    agenda,
+    userId,
+    adminAdjustmentDetails,
+    now,
+  );
+  if (adjustment) statements.push(adjustment);
+
+  await db.batch(statements);
 
   const updated = await findAppointmentById(db, appointment.id);
   if (!updated) throw new Error("Fornecedor manual atualizado não pôde ser relido.");
@@ -481,13 +492,14 @@ export async function softDeleteManualAppointment(
   agenda: AgendaRecord,
   appointment: AppointmentRecord,
   userId: string,
+  adminAdjustmentDetails?: string,
 ): Promise<void> {
   if (appointment.origem !== "manual" || appointment.ativo !== 1) {
     throw new Error("Agendamento manual inválido.");
   }
 
   const now = new Date().toISOString();
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db.prepare(
       "UPDATE agendamentos SET ativo = 0, atualizado_em = ? WHERE id = ? AND origem = 'manual' AND ativo = 1",
     ).bind(now, appointment.id),
@@ -504,7 +516,17 @@ export async function softDeleteManualAppointment(
       details: "Fornecedor sem agenda removido logicamente.",
       createdAt: now,
     }),
-  ]);
+  ];
+  const adjustment = agendaAdminAdjustmentStatement(
+    db,
+    agenda,
+    userId,
+    adminAdjustmentDetails,
+    now,
+  );
+  if (adjustment) statements.push(adjustment);
+
+  await db.batch(statements);
 }
 
 
@@ -581,11 +603,28 @@ export async function findAppointmentForStore(
     .first<AppointmentRecord>();
 }
 
+function agendaAdminAdjustmentStatement(
+  db: D1Database,
+  agenda: AgendaRecord,
+  userId: string,
+  details: string | undefined,
+  changedAt: string,
+): D1PreparedStatement | null {
+  if (!details || agenda.status_dia !== "concluido") return null;
+
+  return db
+    .prepare(
+      "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, 'ajuste_admin', ?, ?)",
+    )
+    .bind(crypto.randomUUID(), agenda.id, userId, details, changedAt);
+}
+
 export async function changeAppointmentExchanges(
   db: D1Database,
   appointment: AppointmentRecord,
   userId: string,
   hasExchanges: boolean,
+  adminAdjustmentDetails?: string,
 ): Promise<AppointmentRecord> {
   const exchanges = hasExchanges ? 1 : 0;
   if (appointment.trocas === exchanges) return appointment;
@@ -594,7 +633,7 @@ export async function changeAppointmentExchanges(
   if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
 
   const now = new Date().toISOString();
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db
       .prepare(
         "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ?",
@@ -613,7 +652,17 @@ export async function changeAppointmentExchanges(
       details: "Marcação de trocas alterada.",
       createdAt: now,
     }),
-  ]);
+  ];
+  const adjustment = agendaAdminAdjustmentStatement(
+    db,
+    agenda,
+    userId,
+    adminAdjustmentDetails,
+    now,
+  );
+  if (adjustment) statements.push(adjustment);
+
+  await db.batch(statements);
 
   const updated = await findAppointmentById(db, appointment.id);
   if (!updated) {
@@ -628,6 +677,7 @@ export async function changeAppointmentStatus(
   appointment: AppointmentRecord,
   userId: string,
   status: AppointmentRecord["status"],
+  adminAdjustmentDetails?: string,
 ): Promise<AppointmentRecord> {
   if (appointment.status === status) return appointment;
 
@@ -637,7 +687,7 @@ export async function changeAppointmentStatus(
   const now = new Date().toISOString();
   const historyId = crypto.randomUUID();
 
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db
       .prepare(
         "UPDATE agendamentos SET status = ?, atualizado_em = ? WHERE id = ?",
@@ -668,7 +718,17 @@ export async function changeAppointmentStatus(
       details: "Status do recebimento alterado.",
       createdAt: now,
     }),
-  ]);
+  ];
+  const adjustment = agendaAdminAdjustmentStatement(
+    db,
+    agenda,
+    userId,
+    adminAdjustmentDetails,
+    now,
+  );
+  if (adjustment) statements.push(adjustment);
+
+  await db.batch(statements);
 
   const updated = await findAppointmentById(db, appointment.id);
   if (!updated) {
@@ -741,20 +801,6 @@ export async function changeAgendaDayStatus(
   const updated = await findAgendaById(db, agenda.id);
   if (!updated) throw new Error("Agenda atualizada não pôde ser relida.");
   return updated;
-}
-
-export async function recordAgendaAdminAdjustment(
-  db: D1Database,
-  agendaId: string,
-  userId: string,
-  details: string,
-): Promise<void> {
-  await db
-    .prepare(
-      "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, 'ajuste_admin', ?, ?)",
-    )
-    .bind(crypto.randomUUID(), agendaId, userId, details, new Date().toISOString())
-    .run();
 }
 
 export async function listAgendaHistory(

@@ -1,3 +1,4 @@
+import { normalizeStoreCode } from "./store";
 import { z } from "zod";
 
 export const AGENDA_STATUSES = [
@@ -103,7 +104,7 @@ export const ImportAgendaInput = z
       .trim()
       .min(1)
       .max(20)
-      .transform((value) => value.toUpperCase()),
+      .transform(normalizeStoreCode),
     date: IsoDate,
     originalFileName: z
       .string()

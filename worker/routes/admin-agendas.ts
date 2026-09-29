@@ -15,7 +15,6 @@ import {
   listAgendaHistory,
   listAppointmentHistory,
   listAppointmentsByAgenda,
-  recordAgendaAdminAdjustment,
   replaceAgendaImport,
   softDeleteManualAppointment,
   updateManualAppointmentSupplier,
@@ -333,19 +332,6 @@ const AdminAppointmentExchangesInput = z.object({
   hasExchanges: z.boolean(),
 });
 
-async function recordClosedDayAdjustment(
-  db: D1Database,
-  appointment: AppointmentRecord,
-  userId: string,
-  details: string,
-) {
-  const agenda = await findAgendaById(db, appointment.agenda_id);
-  if (agenda?.status_dia === "concluido") {
-    await recordAgendaAdminAdjustment(db, agenda.id, userId, details);
-  }
-}
-
-
 adminAppointmentRoutes.patch("/:id/manual", async (c) => {
   const parsed = z.object({
     supplier: z.string().trim().min(1).max(160),
@@ -381,6 +367,9 @@ adminAppointmentRoutes.patch("/:id/manual", async (c) => {
       appointment,
       user.id,
       parsed.data.supplier,
+      agenda.status_dia === "concluido"
+        ? `Fornecedor manual alterado de ${appointment.fornecedor} para ${parsed.data.supplier}.`
+        : undefined,
     );
     return c.json(appointmentJson(updated));
   } catch (error) {
@@ -411,7 +400,15 @@ adminAppointmentRoutes.delete("/:id/manual", async (c) => {
 
   try {
     const user = c.get("authUser");
-    await softDeleteManualAppointment(c.env.DB, agenda, appointment, user.id);
+    await softDeleteManualAppointment(
+      c.env.DB,
+      agenda,
+      appointment,
+      user.id,
+      agenda.status_dia === "concluido"
+        ? `Fornecedor manual ${appointment.fornecedor} removido.`
+        : undefined,
+    );
     return c.body(null, 204);
   } catch (error) {
     console.error("Admin manual supplier delete failed", error);
@@ -452,16 +449,10 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
       appointment,
       user.id,
       parsed.data.status,
+      changed
+        ? `Status alterado de ${appointment.status} para ${parsed.data.status}.`
+        : undefined,
     );
-
-    if (changed) {
-      await recordClosedDayAdjustment(
-        c.env.DB,
-        appointment,
-        user.id,
-        `Status alterado de ${appointment.status} para ${parsed.data.status}.`,
-      );
-    }
 
     return c.json(appointmentJson(updated));
   } catch (error) {
@@ -507,16 +498,10 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
       appointment,
       user.id,
       parsed.data.hasExchanges,
+      changed
+        ? `Trocas alteradas para ${parsed.data.hasExchanges ? "sim" : "não"}.`
+        : undefined,
     );
-
-    if (changed) {
-      await recordClosedDayAdjustment(
-        c.env.DB,
-        appointment,
-        user.id,
-        `Trocas alteradas para ${parsed.data.hasExchanges ? "sim" : "não"}.`,
-      );
-    }
 
     return c.json(appointmentJson(updated));
   } catch (error) {

@@ -85,9 +85,15 @@ function base64Url(bytes: Uint8Array) {
   return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(/=+$/g, "");
 }
 
-async function signedSession(userId: string, exp: number) {
+async function signedSession(
+  userId: string,
+  exp: number,
+  sessionVersion = 1,
+) {
   const encoder = new TextEncoder();
-  const payload = base64Url(encoder.encode(JSON.stringify({ userId, exp })));
+  const payload = base64Url(
+    encoder.encode(JSON.stringify({ userId, sessionVersion, exp })),
+  );
   const key = await crypto.subtle.importKey(
     "raw",
     encoder.encode(sessionSecret),
@@ -366,4 +372,55 @@ describe("auth", () => {
     expect(logout.status).toBe(204);
     expect(logout.headers.get("Set-Cookie")).toContain("Max-Age=0");
   });
+
+  it("revoga a sessao emitida antes da troca de senha", async () => {
+    await seedUser({
+      id: "admin-session-actor",
+      login: "admin-session-actor",
+      papel: "admin",
+    });
+    await seedUser({
+      id: "20000000-0000-4000-8000-000000000090",
+      login: "admin-session-target",
+      papel: "admin",
+    });
+
+    const actorCookie = cookiePair(await login("admin-session-actor"));
+    const oldTargetCookie = cookiePair(await login("admin-session-target"));
+    const newPassword = "nova-senha-segura-456";
+
+    const updated = await exports.default.fetch(
+      new Request("https://example.com/api/admin/users", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Cookie: actorCookie,
+          Origin: "https://example.com",
+        },
+        body: JSON.stringify({
+          id: "20000000-0000-4000-8000-000000000090",
+          senha: newPassword,
+        }),
+      }),
+    );
+    expect(updated.status).toBe(200);
+
+    const oldSession = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: oldTargetCookie },
+      }),
+    );
+    expect(oldSession.status).toBe(401);
+
+    const newLogin = await login("admin-session-target", newPassword);
+    expect(newLogin.status).toBe(200);
+
+    const newSession = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: cookiePair(newLogin) },
+      }),
+    );
+    expect(newSession.status).toBe(200);
+  });
+
 });

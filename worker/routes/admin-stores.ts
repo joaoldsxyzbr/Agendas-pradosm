@@ -28,7 +28,8 @@ function storeJson(store: StoreRecord) {
 function isDuplicateCode(error: unknown) {
   return (
     error instanceof Error &&
-    error.message.includes("UNIQUE constraint failed: lojas.codigo")
+    (error.message.includes("UNIQUE constraint failed: lojas.codigo") ||
+      error.message.includes("idx_lojas_codigo_nocase"))
   );
 }
 

@@ -30,7 +30,13 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
   if (!payload) return c.json(unauthorized(), 401);
 
   const user = await findUserById(c.env.DB, payload.userId);
-  if (!user || user.ativo !== 1) return c.json(unauthorized(), 401);
+  if (
+    !user ||
+    user.ativo !== 1 ||
+    user.session_version !== payload.sessionVersion
+  ) {
+    return c.json(unauthorized(), 401);
+  }
 
   const store =
     user.papel === "conferente" && user.loja_id

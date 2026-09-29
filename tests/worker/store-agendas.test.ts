@@ -42,7 +42,7 @@ async function seedStoreUser(input: {
     )
     .run();
 
-  const token = await createSessionToken(input.userId, sessionSecret);
+  const token = await createSessionToken(input.userId, 1, sessionSecret);
   return `agenda_session=${token}`;
 }
 

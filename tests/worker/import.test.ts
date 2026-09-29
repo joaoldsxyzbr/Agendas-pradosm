@@ -17,7 +17,7 @@ async function seedAdmin(id: string) {
     .bind(id, `Admin ${id}`, `login-${id}`, passwordHash, now, now)
     .run();
 
-  const token = await createSessionToken(id, sessionSecret);
+  const token = await createSessionToken(id, 1, sessionSecret);
   return `agenda_session=${token}`;
 }
 
@@ -583,6 +583,17 @@ describe("admin agenda import", () => {
       "fornecedor_manual_editado",
       "fornecedor_manual_removido",
     ]);
+
+    const agendaHistory = await db
+      .prepare(
+        "SELECT acao FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid",
+      )
+      .bind(importedBody.agenda.id)
+      .all<{ acao: string }>();
+    expect(agendaHistory.results.map((item) => item.acao)).toEqual([
+      "ajuste_admin",
+      "ajuste_admin",
+    ]);
   });
 
   it("admin consulta agenda histórica e histórico de status", async () => {
@@ -715,6 +726,121 @@ describe("admin agenda import", () => {
         "dia_reaberto",
       ]),
     );
+  });
+
+
+  it("rollbacka status e trocas se o ajuste administrativo do dia concluido falhar", async () => {
+    const adminId = "admin-closed-atomic";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-closed-atomic", "F96");
+
+    const imported = await importAgenda(cookie, payload("F96"));
+    const importedBody = (await imported.json()) as {
+      agenda: { id: string };
+      appointments: Array<{ id: string }>;
+    };
+    const appointmentId = importedBody.appointments[0].id;
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_admin_adjustment BEFORE INSERT ON historico_agenda WHEN NEW.acao = 'ajuste_admin' BEGIN SELECT RAISE(ABORT, 'forced admin adjustment failure'); END",
+      )
+      .run();
+
+    const status = await request(
+      `/api/admin/appointments/${appointmentId}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "recebido" } },
+    );
+    expect(status.status).toBe(500);
+
+    const afterStatus = await db
+      .prepare("SELECT status FROM agendamentos WHERE id = ?")
+      .bind(appointmentId)
+      .first<{ status: string }>();
+    expect(afterStatus?.status).toBe("aguardando");
+
+    const statusHistory = await db
+      .prepare("SELECT COUNT(*) AS total FROM historico_status WHERE agendamento_id = ?")
+      .bind(appointmentId)
+      .first<{ total: number }>();
+    expect(Number(statusHistory?.total ?? 0)).toBe(0);
+
+    const exchanges = await request(
+      `/api/admin/appointments/${appointmentId}/exchanges`,
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } },
+    );
+    expect(exchanges.status).toBe(500);
+
+    const afterExchanges = await db
+      .prepare("SELECT trocas FROM agendamentos WHERE id = ?")
+      .bind(appointmentId)
+      .first<{ trocas: number }>();
+    expect(afterExchanges?.trocas).toBe(0);
+  });
+
+  it("rollbacka edicao e remocao manual se o ajuste administrativo falhar", async () => {
+    const adminId = "admin-manual-atomic";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-atomic", "F97");
+
+    const imported = await importAgenda(cookie, payload("F97"));
+    const importedBody = (await imported.json()) as { agenda: { id: string } };
+    const manualId = "manual-admin-atomic";
+
+    await db
+      .prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:00', '12:00', 'MANUAL ORIGINAL', 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
+      )
+      .bind(manualId, importedBody.agenda.id, `manual:${manualId}`, now, now)
+      .run();
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    await db
+      .prepare(
+        "CREATE TRIGGER fail_manual_admin_adjustment BEFORE INSERT ON historico_agenda WHEN NEW.acao = 'ajuste_admin' BEGIN SELECT RAISE(ABORT, 'forced manual admin adjustment failure'); END",
+      )
+      .run();
+
+    const edited = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "PATCH", body: { supplier: "MANUAL ALTERADO" } },
+    );
+    expect(edited.status).toBe(500);
+
+    const afterEdit = await db
+      .prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?")
+      .bind(manualId)
+      .first<{ fornecedor: string; ativo: number }>();
+    expect(afterEdit).toEqual({ fornecedor: "MANUAL ORIGINAL", ativo: 1 });
+
+    const removed = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "DELETE" },
+    );
+    expect(removed.status).toBe(500);
+
+    const afterDelete = await db
+      .prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?")
+      .bind(manualId)
+      .first<{ fornecedor: string; ativo: number }>();
+    expect(afterDelete).toEqual({ fornecedor: "MANUAL ORIGINAL", ativo: 1 });
   });
 
 });
