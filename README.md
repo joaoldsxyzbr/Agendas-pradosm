@@ -98,7 +98,7 @@ Esse fluxo cria a conta inicialmente inativa e registra auditoria. A própria in
 
 O script `npm run bootstrap-admin` é um caminho separado de emergência. Ele é **create-only**, exige que não exista administrador ativo e rejeita um login já existente. Portanto, não deve ser usado para promover, reativar, trocar senha nem ativar uma conta previamente preparada pela interface.
 
-Para o procedimento break-glass, consulte [Release de produção](docs/operations/production-release.md#bootstrap-administrativo-de-emergência).
+Para o procedimento break-glass, consulte [Release de produção](docs/operations/production-release.md).
 
 ## Dashboard
 
