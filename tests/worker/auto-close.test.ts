@@ -37,7 +37,7 @@ async function seedStoreUser(suffix: string) {
     )
     .run();
 
-  const token = await createSessionToken(userId, sessionSecret);
+  const token = await createSessionToken(userId, 1, sessionSecret);
   return {
     cookie: `agenda_session=${token}`,
     storeId,
