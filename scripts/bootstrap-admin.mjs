@@ -18,10 +18,10 @@ function sqlString(value) {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-function executeRemote(sql) {
+function executeRemote(sql, captureOutput = false) {
   const npx = process.platform === "win32" ? "npx.cmd" : "npx";
 
-  execFileSync(
+  return execFileSync(
     npx,
     [
       "wrangler",
@@ -33,10 +33,19 @@ function executeRemote(sql) {
       sql,
     ],
     {
-      stdio: "inherit",
+      encoding: captureOutput ? "utf8" : undefined,
+      stdio: captureOutput ? ["inherit", "pipe", "inherit"] : "inherit",
       env: process.env,
     },
   );
+}
+
+function requireRemoteMarker(sql, failureMessage) {
+  const marker = "BOOTSTRAP_OK";
+  const output = executeRemote(sql, true);
+  if (typeof output !== "string" || !output.includes(marker)) {
+    throw new Error(failureMessage);
+  }
 }
 
 const name = required("ADMIN_NAME");
@@ -50,21 +59,20 @@ if (password.length < 12) {
 const escapedLogin = sqlString(login);
 
 const preflightSql = [
-  "CREATE TEMP TABLE bootstrap_preflight (ok INTEGER NOT NULL CHECK (ok = 1));",
-  "INSERT INTO bootstrap_preflight (ok)",
-  "SELECT CASE WHEN",
-  "NOT EXISTS (",
+  "SELECT 'BOOTSTRAP_OK' AS resultado",
+  "WHERE NOT EXISTS (",
   "SELECT 1 FROM usuarios",
   "WHERE papel = 'admin' AND ativo = 1 AND excluido_em IS NULL",
   ")",
   "AND NOT EXISTS (",
   `SELECT 1 FROM usuarios WHERE login = ${escapedLogin} COLLATE NOCASE`,
-  ")",
-  "THEN 1 ELSE 0 END;",
-  "DROP TABLE bootstrap_preflight;",
+  ");",
 ].join(" ");
 
-executeRemote(preflightSql);
+requireRemoteMarker(
+  preflightSql,
+  "Bootstrap bloqueado: já existe administrador ativo ou o login informado já existe.",
+);
 
 const salt = randomBytes(SALT_BYTES);
 const hash = pbkdf2Sync(password, salt, ITERATIONS, HASH_BYTES, "sha256");
@@ -109,20 +117,19 @@ const createSql = [
 executeRemote(createSql);
 
 const verifySql = [
-  "CREATE TEMP TABLE bootstrap_verificacao (ok INTEGER NOT NULL CHECK (ok = 1));",
-  "INSERT INTO bootstrap_verificacao (ok)",
-  "SELECT CASE WHEN",
-  "EXISTS (",
+  "SELECT 'BOOTSTRAP_OK' AS resultado",
+  "WHERE EXISTS (",
   `SELECT 1 FROM usuarios WHERE id = ${sqlString(id)} AND papel = 'admin' AND ativo = 1 AND excluido_em IS NULL`,
   ")",
   "AND EXISTS (",
   `SELECT 1 FROM auditoria WHERE id = ${sqlString(auditId)} AND acao = 'admin_provisionado_emergencia' AND entidade = 'usuario' AND entidade_id = ${sqlString(id)}`,
-  ")",
-  "THEN 1 ELSE 0 END;",
-  "DROP TABLE bootstrap_verificacao;",
+  ");",
 ].join(" ");
 
-executeRemote(verifySql);
+requireRemoteMarker(
+  verifySql,
+  "Bootstrap incompleto: usuário ou auditoria não foram confirmados. Revise o D1 antes de repetir.",
+);
 
 console.log(
   `Administrador de emergencia provisionado e auditado para o login "${login}".`,
