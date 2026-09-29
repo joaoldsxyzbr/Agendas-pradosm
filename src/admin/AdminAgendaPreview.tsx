@@ -167,7 +167,7 @@ export function AdminAgendaPreview({
               <div className="agenda-preview-status">
                 {detail.agenda.dayStatus === "concluido" ? (
                   <button
-                    className="primary-button agenda-preview-reopen"
+                    className="status-pill neutral agenda-preview-reopen"
                     type="button"
                     disabled={reopening}
                     onClick={() => void reopenForStore()}
