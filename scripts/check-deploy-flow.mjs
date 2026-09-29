@@ -164,6 +164,24 @@ assert.ok(
   "traces devem usar amostragem controlada",
 );
 
+const indexHtml = readFileSync(
+  new URL("../index.html", import.meta.url),
+  "utf8",
+);
+assert.ok(
+  indexHtml.includes('<script src="/theme-bootstrap.js"></script>'),
+  "index.html deve carregar o bootstrap de tema como script same-origin",
+);
+assert.ok(
+  !indexHtml.includes('localStorage.getItem("theme")'),
+  "bootstrap de tema não pode permanecer inline no index.html",
+);
+assert.equal(
+  existsSync(new URL("../public/theme-bootstrap.js", import.meta.url)),
+  true,
+  "bootstrap de tema externo deve existir em public/theme-bootstrap.js",
+);
+
 const headersPath = new URL("../public/_headers", import.meta.url);
 assert.equal(
   existsSync(headersPath),
@@ -171,6 +189,10 @@ assert.equal(
   "assets estáticos devem declarar headers defensivos",
 );
 const staticHeaders = readFileSync(headersPath, "utf8");
+assert.ok(
+  !staticHeaders.includes("script-src 'self' 'unsafe-inline'"),
+  "CSP não deve liberar unsafe-inline para scripts",
+);
 for (const header of [
   "Content-Security-Policy:",
   "X-Frame-Options: DENY",
