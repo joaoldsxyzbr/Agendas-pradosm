@@ -128,6 +128,9 @@ describe("ImportAgendaPage", () => {
 
     render(<ImportAgendaPage />);
     const file = new File(["csv"], "agendas.csv", { type: "text/csv" });
+    Object.defineProperty(file, "text", {
+      value: vi.fn().mockResolvedValue("csv"),
+    });
     fireEvent.change(screen.getByLabelText("Arquivo CSV ou PDF"), {
       target: { files: [file] },
     });
