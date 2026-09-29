@@ -158,11 +158,11 @@ export const ImportAgendaBatchInput = z
       totalAppointments += agenda.appointments.length;
     });
 
-    if (totalAppointments > 2000) {
+    if (totalAppointments > 700) {
       ctx.addIssue({
         code: "custom",
         path: ["agendas"],
-        message: "O lote excede o limite de 2000 agendamentos.",
+        message: "O lote excede o limite seguro de 700 agendamentos.",
       });
     }
   });
