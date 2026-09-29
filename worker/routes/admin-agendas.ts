@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { ImportAgendaInput } from "../../shared/agenda";
+import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda";
 import type { AppEnv } from "../env";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
   changeAppointmentStatus,
   createAgendaImport,
+  importAgendaBatchAtomic,
   findAgendaById,
   findAgendaByStoreDate,
   findAppointmentById,
@@ -205,6 +206,121 @@ adminAgendaRoutes.post("/import", async (c) => {
       {
         error: "IMPORTACAO_FALHOU",
         message: "A agenda não foi importada. Nenhuma alteração parcial foi mantida.",
+      },
+      500,
+    );
+  }
+});
+
+
+adminAgendaRoutes.post("/import/bulk", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const parsed = ImportAgendaBatchInput.safeParse(body);
+
+  if (!parsed.success) {
+    return c.json(
+      {
+        error: "REQUISICAO_INVALIDA",
+        message: "Dados do lote de agendas inválidos.",
+      },
+      400,
+    );
+  }
+
+  const entries: Array<{
+    storeId: string;
+    existing: Awaited<ReturnType<typeof findAgendaByStoreDate>>;
+    input: (typeof parsed.data.agendas)[number];
+  }> = [];
+  const missingStores: string[] = [];
+
+  for (const input of parsed.data.agendas) {
+    const store = await findStoreByCode(c.env.DB, input.storeCode);
+    if (!store) {
+      if (!missingStores.includes(input.storeCode)) {
+        missingStores.push(input.storeCode);
+      }
+      continue;
+    }
+
+    const existing = await findAgendaByStoreDate(
+      c.env.DB,
+      store.id,
+      input.date,
+    );
+
+    entries.push({
+      storeId: store.id,
+      existing,
+      input,
+    });
+  }
+
+  if (missingStores.length > 0) {
+    return c.json(
+      {
+        error: "LOJAS_NAO_ENCONTRADAS",
+        message:
+          "Uma ou mais lojas do arquivo não estão cadastradas ou estão inativas.",
+        stores: missingStores,
+      },
+      422,
+    );
+  }
+
+  const conflicts = entries
+    .filter((entry) => entry.existing && !entry.input.replace)
+    .map((entry) => ({
+      storeCode: entry.input.storeCode,
+      date: entry.input.date,
+      agendaId: entry.existing?.id,
+    }));
+
+  if (conflicts.length > 0) {
+    return c.json(
+      {
+        error: "AGENDAS_JA_EXISTEM",
+        message: "Já existem agendas para uma ou mais lojas e datas do arquivo.",
+        conflicts,
+      },
+      409,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    const results = await importAgendaBatchAtomic(c.env.DB, user.id, entries);
+
+    return c.json(
+      {
+        agendas: results,
+        totalAgendas: results.length,
+        totalAppointments: results.reduce(
+          (total, item) => total + item.appointmentCount,
+          0,
+        ),
+        created: results.filter((item) => !item.replaced).length,
+        replaced: results.filter((item) => item.replaced).length,
+      },
+      results.some((item) => item.replaced) ? 200 : 201,
+    );
+  } catch (error) {
+    if (isAgendaConflict(error)) {
+      return c.json(
+        {
+          error: "AGENDAS_JA_EXISTEM",
+          message: "Já existem agendas para uma ou mais lojas e datas do arquivo.",
+        },
+        409,
+      );
+    }
+
+    console.error("Agenda batch import failed", error);
+    return c.json(
+      {
+        error: "IMPORTACAO_FALHOU",
+        message:
+          "O lote não foi importado. Nenhuma alteração parcial foi mantida.",
       },
       500,
     );
