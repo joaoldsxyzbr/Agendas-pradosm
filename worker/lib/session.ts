@@ -1,5 +1,6 @@
 export type SessionPayload = {
   userId: string;
+  sessionVersion: number;
   exp: number;
 };
 
@@ -30,7 +31,9 @@ async function hmac(secret: string, payload: string): Promise<Uint8Array> {
     false,
     ["sign"],
   );
-  return new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(payload)));
+  return new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, encoder.encode(payload)),
+  );
 }
 
 function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -44,11 +47,13 @@ function constantTimeEqual(a: Uint8Array, b: Uint8Array): boolean {
 
 export async function createSessionToken(
   userId: string,
+  sessionVersion: number,
   secret: string,
   nowMs = Date.now(),
 ): Promise<string> {
   const payload: SessionPayload = {
     userId,
+    sessionVersion,
     exp: Math.floor(nowMs / 1000) + SESSION_SECONDS,
   };
   const encodedPayload = toBase64Url(
@@ -77,13 +82,20 @@ export async function verifySessionToken(
 
     if (
       typeof payload.userId !== "string" ||
+      typeof payload.sessionVersion !== "number" ||
+      !Number.isInteger(payload.sessionVersion) ||
+      payload.sessionVersion < 1 ||
       typeof payload.exp !== "number" ||
       payload.exp <= Math.floor(nowMs / 1000)
     ) {
       return null;
     }
 
-    return { userId: payload.userId, exp: payload.exp };
+    return {
+      userId: payload.userId,
+      sessionVersion: payload.sessionVersion,
+      exp: payload.exp,
+    };
   } catch {
     return null;
   }
