@@ -374,7 +374,7 @@ describe("auth", () => {
       papel: "admin",
     });
     await seedUser({
-      id: "admin-session-target",
+      id: "20000000-0000-4000-8000-000000000090",
       login: "admin-session-target",
       papel: "admin",
     });
@@ -392,7 +392,7 @@ describe("auth", () => {
           Origin: "https://example.com",
         },
         body: JSON.stringify({
-          id: "admin-session-target",
+          id: "20000000-0000-4000-8000-000000000090",
           senha: newPassword,
         }),
       }),
@@ -406,7 +406,7 @@ describe("auth", () => {
     );
     expect(oldSession.status).toBe(401);
 
-    const newLogin = await login("admin-session-target", newPassword);
+    const newLogin = await login("20000000-0000-4000-8000-000000000090", newPassword);
     expect(newLogin.status).toBe(200);
 
     const newSession = await exports.default.fetch(
