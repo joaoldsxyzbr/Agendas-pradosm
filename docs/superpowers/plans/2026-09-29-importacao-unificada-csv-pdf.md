@@ -37,7 +37,9 @@ O Worker faz a validação de todas as lojas e conflitos antes da primeira escri
 
 A persistência de todas as agendas e agendamentos do arquivo é enviada em um único `D1Database.batch()`. Segundo o contrato do D1, o batch é transacional: se uma instrução falhar, a sequência inteira é abortada/rollbackada.
 
-Isso evita o cenário em que algumas lojas entram e outras ficam de fora silenciosamente.
+O payload consolidado aceita até 700 agendamentos. Antes de executar o batch, o Worker também calcula as operações reais necessárias, inclusive desativações em substituições, e bloqueia lotes que excedam 800 instruções de escrita. A margem restante cobre as consultas de validação da própria requisição.
+
+Isso evita tanto gravação parcial quanto estouro previsível do orçamento de consultas do D1.
 
 ## Compatibilidade
 
