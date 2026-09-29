@@ -152,6 +152,28 @@ describe("admin agenda import", () => {
     expect(Number(appointments?.total ?? 0)).toBe(121);
   });
 
+  it("rejeita lote acima do orçamento seguro antes de consultar lojas", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-limit");
+    const many = (offset: number, total: number) =>
+      Array.from({ length: total }, (_, index) =>
+        appointment(String(offset + index), `FORNECEDOR ${offset + index}`),
+      );
+
+    const response = await importAgendaBatch(cookie, [
+      payload("F79", many(96000000, 351), {
+        originalFileName: "agendas-todas.csv",
+      }),
+      payload("F80", many(97000000, 350), {
+        originalFileName: "agendas-todas.csv",
+      }),
+    ]);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "REQUISICAO_INVALIDA",
+    });
+  });
+
   it("bloqueia o lote inteiro quando uma das lojas não está cadastrada", async () => {
     const cookie = await seedAdmin("admin-import-bulk-missing");
     await seedStore("store-import-bulk-known", "F71");
