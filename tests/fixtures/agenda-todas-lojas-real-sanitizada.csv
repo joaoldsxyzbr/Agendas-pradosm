@@ -1,0 +1,8 @@
+Filtros;
+Dia: 29/09/2026 ; Filial: Todas ; Doca: Todas ; Busca:  ; ;
+
+Protocolo;Data agenda;Fornecedor;Filial;Itens;Vol.;Paletes;Carga batida;Tipo;N° NFe;Pedidos;
+90000001;29/09/2026 07:00 às 07:30;FORNECEDOR ALFA LTDA;CD;5;50;1;-;Nota fiscal;45427;47121;
+90000002;29/09/2026 08:00 às 08:10;FORNECEDOR BETA LTDA;F01 - BIGUAÇU;18;32;1;-;Nota fiscal;4631257, 4631258;80053;
+90000003;29/09/2026 08:10 às 08:20;FORNECEDOR GAMA LTDA;F08 - PORTO BELO;1;1;0;Sim;CNPJ;-;-;
+90000004;29/09/2026 08:20 às 08:30;FORNECEDOR DELTA LTDA;F01 - BIGUAÇU;2;4;0;-;Pedido;-;80054;
