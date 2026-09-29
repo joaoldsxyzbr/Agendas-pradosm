@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import singleStoreFixture from "../fixtures/agenda-sintetica.txt?raw";
+import sanitizedRealCsvFixture from "../fixtures/agenda-todas-lojas-real-sanitizada.csv?raw";
 import {
   parseAgendaCsv,
   parseAgendaPdfText,
@@ -84,6 +85,39 @@ describe("parseAgendaBatch", () => {
       nfe: ["700000"],
       orders: ["50000"],
     });
+  });
+
+  it("interpreta o CSV real exportado com CR isolado como quebra de linha", () => {
+    const csv = sanitizedRealCsvFixture
+      .replace(/\r\n/g, "\n")
+      .replace(/\n/g, "\r");
+
+    const result = parseAgendaCsv(csv);
+
+    expect(result.source).toBe("csv");
+    expect(result.date).toBe("2026-09-29");
+    expect(result.blockingErrors).toEqual([]);
+    expect(result.totalAppointments).toBe(4);
+    expect(result.agendas.map((agenda) => agenda.storeCode)).toEqual([
+      "CD",
+      "F01",
+      "F08",
+    ]);
+    expect(result.agendas.find((agenda) => agenda.storeCode === "F01"))
+      .toMatchObject({
+        appointments: [
+          {
+            protocol: "90000002",
+            nfe: ["4631257", "4631258"],
+            orders: ["80053"],
+          },
+          {
+            protocol: "90000004",
+            type: "Pedido",
+            orders: ["80054"],
+          },
+        ],
+      });
   });
 
   it("bloqueia o lote inteiro quando uma linha não é interpretável", () => {
