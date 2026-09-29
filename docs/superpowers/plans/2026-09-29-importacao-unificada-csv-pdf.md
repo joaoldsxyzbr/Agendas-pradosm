@@ -1,7 +1,7 @@
 # Importação unificada CSV/PDF
 
 **Data:** 29/09/2026  
-**Status:** implementação em validação  
+**Status:** concluída e validada no CI  
 **Repositório:** `joaoldsxyzbr/Agendas-pradosm`
 
 ## Objetivo
