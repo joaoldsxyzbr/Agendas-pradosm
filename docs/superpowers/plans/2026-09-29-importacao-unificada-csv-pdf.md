@@ -43,6 +43,7 @@ Isso evita tanto gravação parcial quanto estouro previsível do orçamento de 
 
 ## Compatibilidade
 
+- CSVs exportados pelo Prado são aceitos com quebras de linha LF, CRLF ou CR isolado. A exportação real validada em 29/09/2026 usa CR isolado.
 - O endpoint antigo de importação individual permanece disponível.
 - PDFs individuais continuam usando o parser existente.
 - PDFs consolidados são reconhecidos quando a tabela contém a coluna `Filial`.
@@ -54,6 +55,7 @@ Isso evita tanto gravação parcial quanto estouro previsível do orçamento de 
 Foram adicionados testes sintéticos para:
 
 - 121 agendamentos em 9 unidades em um único CSV;
+- regressão com amostra sanitizada do CSV real do Prado usando CR isolado como quebra de linha;
 - CSV com BOM e campo entre aspas contendo ponto e vírgula;
 - PDF consolidado com coluna `Filial`;
 - fallback para PDF individual;
