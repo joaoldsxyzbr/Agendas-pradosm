@@ -169,7 +169,11 @@ function csvRows(text: string) {
       continue;
     }
 
-    if (char === "\n") {
+    if (char === "\r" || char === "\n") {
+      if (char === "\r" && source[index + 1] === "\n") {
+        index += 1;
+      }
+
       row.push(field.trim());
       if (row.some((cell) => cell.length > 0)) rows.push(row);
       row = [];
@@ -177,7 +181,7 @@ function csvRows(text: string) {
       continue;
     }
 
-    if (char !== "\r") field += char;
+    field += char;
   }
 
   row.push(field.trim());
