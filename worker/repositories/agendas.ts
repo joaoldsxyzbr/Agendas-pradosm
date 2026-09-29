@@ -395,6 +395,196 @@ export async function replaceAgendaImport(
 }
 
 
+
+export type AgendaBatchImportEntry = {
+  storeId: string;
+  existing: AgendaRecord | null;
+  input: ImportAgendaPayload;
+};
+
+export type AgendaBatchImportResult = {
+  agendaId: string;
+  storeCode: string;
+  date: string;
+  replaced: boolean;
+  appointmentCount: number;
+};
+
+export async function importAgendaBatchAtomic(
+  db: D1Database,
+  userId: string,
+  entries: AgendaBatchImportEntry[],
+): Promise<AgendaBatchImportResult[]> {
+  const now = new Date().toISOString();
+  const statements: D1PreparedStatement[] = [];
+  const results: AgendaBatchImportResult[] = [];
+
+  for (const entry of entries) {
+    const { existing, input, storeId } = entry;
+
+    if (!existing) {
+      const agendaId = crypto.randomUUID();
+
+      statements.push(
+        db
+          .prepare(
+            "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          )
+          .bind(
+            agendaId,
+            storeId,
+            input.date,
+            input.originalFileName,
+            userId,
+            now,
+            now,
+          ),
+      );
+
+      for (const appointment of input.appointments) {
+        statements.push(appointmentInsert(db, agendaId, appointment, now));
+      }
+
+      statements.push(
+        auditStatement(db, {
+          userId,
+          action: "agenda_importada",
+          entity: "agenda",
+          entityId: agendaId,
+          storeId,
+          agendaId,
+          after: {
+            date: input.date,
+            originalFileName: input.originalFileName,
+            appointmentCount: input.appointments.length,
+            batchImport: true,
+          },
+          details: "Agenda importada em lote.",
+          createdAt: now,
+        }),
+      );
+
+      results.push({
+        agendaId,
+        storeCode: input.storeCode,
+        date: input.date,
+        replaced: false,
+        appointmentCount: input.appointments.length,
+      });
+      continue;
+    }
+
+    const existingAppointments = await listAppointmentsByAgenda(
+      db,
+      existing.id,
+      false,
+    );
+    const importedExisting = existingAppointments.filter(
+      (appointment) => appointment.origem !== "manual",
+    );
+    const byProtocol = new Map(
+      importedExisting.map((appointment) => [
+        appointment.protocolo,
+        appointment,
+      ]),
+    );
+    const incomingProtocols = new Set(
+      input.appointments.map((appointment) => appointment.protocol),
+    );
+
+    statements.push(
+      db
+        .prepare(
+          "UPDATE agendas SET arquivo_original = ?, atualizado_em = ? WHERE id = ?",
+        )
+        .bind(input.originalFileName, now, existing.id),
+    );
+
+    for (const appointment of input.appointments) {
+      const current = byProtocol.get(appointment.protocol);
+
+      if (current) {
+        statements.push(
+          db
+            .prepare(
+              "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, ativo = 1, atualizado_em = ? WHERE id = ?",
+            )
+            .bind(
+              appointment.startTime,
+              appointment.endTime,
+              appointment.supplier,
+              appointment.items,
+              appointment.volumes,
+              appointment.pallets,
+              appointment.cargaBatida,
+              appointment.type,
+              JSON.stringify(appointment.nfe),
+              JSON.stringify(appointment.orders),
+              now,
+              current.id,
+            ),
+        );
+      } else {
+        statements.push(appointmentInsert(db, existing.id, appointment, now));
+      }
+    }
+
+    for (const appointment of importedExisting) {
+      if (
+        !incomingProtocols.has(appointment.protocolo) &&
+        appointment.ativo === 1
+      ) {
+        statements.push(
+          db
+            .prepare(
+              "UPDATE agendamentos SET ativo = 0, atualizado_em = ? WHERE id = ?",
+            )
+            .bind(now, appointment.id),
+        );
+      }
+    }
+
+    statements.push(
+      auditStatement(db, {
+        userId,
+        action: "agenda_substituida",
+        entity: "agenda",
+        entityId: existing.id,
+        storeId,
+        agendaId: existing.id,
+        before: {
+          originalFileName: existing.arquivo_original,
+          importedAppointmentCount: importedExisting.filter(
+            (item) => item.ativo === 1,
+          ).length,
+        },
+        after: {
+          originalFileName: input.originalFileName,
+          importedAppointmentCount: input.appointments.length,
+          batchImport: true,
+        },
+        details: "Importação da agenda substituída em lote.",
+        createdAt: now,
+      }),
+    );
+
+    results.push({
+      agendaId: existing.id,
+      storeCode: input.storeCode,
+      date: input.date,
+      replaced: true,
+      appointmentCount: input.appointments.length,
+    });
+  }
+
+  if (statements.length === 0) {
+    throw new Error("Lote de importação sem operações.");
+  }
+
+  await db.batch(statements);
+  return results;
+}
+
 export async function createManualAppointment(
   db: D1Database,
   agenda: AgendaRecord,
