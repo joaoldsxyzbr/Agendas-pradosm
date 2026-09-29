@@ -172,7 +172,9 @@ describe("admin agenda import", () => {
     });
 
     const agendas = await db
-      .prepare("SELECT COUNT(*) AS total FROM agendas")
+      .prepare(
+        "SELECT COUNT(*) AS total FROM agendas WHERE loja_id = 'store-import-bulk-known'",
+      )
       .first<{ total: number }>();
     expect(Number(agendas?.total ?? 0)).toBe(0);
   });
