@@ -44,6 +44,7 @@ export function DashboardPage({
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [previewAgendaId, setPreviewAgendaId] = useState<string | null>(null);
 
@@ -77,11 +78,15 @@ export function DashboardPage({
   }, [selectedDate]);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      void refreshAgendas({ silent: true });
-    }, 10_000);
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        void refreshAgendas({ silent: true });
+      }
+    };
 
-    return () => window.clearInterval(intervalId);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () =>
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
   }, [selectedDate]);
 
   const agendaByStore = new Map(
@@ -89,6 +94,8 @@ export function DashboardPage({
   );
 
   async function refreshAgendas(options: { silent?: boolean } = {}) {
+    if (!options.silent) setRefreshing(true);
+
     try {
       const agendaData = await apiFetch<AdminAgendaSummary[]>(
         `/api/admin/agendas?date=${selectedDate}`,
@@ -97,8 +104,10 @@ export function DashboardPage({
       if (!options.silent) setError(null);
     } catch {
       if (!options.silent) {
-        setError("A agenda foi importada, mas o dashboard não pôde ser atualizado.");
+        setError("Não foi possível atualizar o dashboard.");
       }
+    } finally {
+      if (!options.silent) setRefreshing(false);
     }
   }
 
@@ -110,7 +119,7 @@ export function DashboardPage({
           <h1>Dashboard</h1>
           <p>
             {readOnly
-              ? "Acompanhe as agendas por loja em tempo real."
+              ? "Acompanhe as agendas por loja e atualize quando necessário."
               : "Acompanhe as agendas por loja e importe novas agendas."}
           </p>
         </div>
@@ -144,6 +153,15 @@ export function DashboardPage({
               ›
             </button>
           </div>
+
+          <button
+            className="ghost-button"
+            type="button"
+            disabled={refreshing}
+            onClick={() => void refreshAgendas()}
+          >
+            {refreshing ? "Atualizando..." : "Atualizar"}
+          </button>
 
           {!readOnly ? (
             <button
