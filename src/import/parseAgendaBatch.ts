@@ -108,11 +108,20 @@ function canonicalType(value: string): AgendaDocumentType | null {
   return KNOWN_TYPES[normalizeKey(value)] ?? null;
 }
 
-function parseStore(value: string) {
+function parseStore(value: string, dockValue?: string) {
   const normalized = value.replace(/\s+/g, " ").trim();
   if (!normalized) return null;
 
   if (/^CD$/i.test(normalized)) {
+    const dock = dockValue?.replace(/\s+/g, " ").trim().toUpperCase() ?? "";
+    const dockMatch = dock.match(/^DOCA\s+(\d{1,3})$/i);
+
+    if (dockMatch) {
+      const dockNumber = dockMatch[1].padStart(2, "0");
+      const code = `CD DOCA ${dockNumber}`;
+      return { storeCode: code, storeName: code };
+    }
+
     return { storeCode: "CD", storeName: "CD" };
   }
 
@@ -202,6 +211,7 @@ type HeaderMap = {
   dateAgenda: number;
   supplier: number;
   store: number;
+  dock: number;
   items: number;
   volumes: number;
   pallets: number;
@@ -222,6 +232,7 @@ function findHeader(rows: string[][]): { index: number; map: HeaderMap } | null 
       dateAgenda: locate("data agenda"),
       supplier: locate("fornecedor"),
       store: locate("filial"),
+      dock: locate("doca"),
       items: locate("itens"),
       volumes: locate("vol", "volumes"),
       pallets: locate("paletes"),
@@ -231,7 +242,11 @@ function findHeader(rows: string[][]): { index: number; map: HeaderMap } | null 
       orders: locate("pedidos"),
     };
 
-    if (Object.values(map).every((position) => position >= 0)) {
+    const requiredPositions = Object.entries(map)
+      .filter(([key]) => key !== "dock")
+      .map(([, position]) => position);
+
+    if (requiredPositions.every((position) => position >= 0)) {
       return { index, map };
     }
   }
@@ -281,7 +296,9 @@ function parseTableRows(
   for (let index = header.index + 1; index < rows.length; index += 1) {
     const row = rows[index];
     const first = cell(row, header.map.protocol);
-    const maxColumn = Math.max(...Object.values(header.map));
+    const maxColumn = Math.max(
+      ...Object.values(header.map).filter((position) => position >= 0),
+    );
     const looksLikeDataRow =
       row.length > maxColumn &&
       Boolean(cell(row, header.map.dateAgenda)) &&
@@ -299,7 +316,10 @@ function parseTableRows(
     }
 
     const dateTime = parseDateTimeRange(cell(row, header.map.dateAgenda));
-    const store = parseStore(cell(row, header.map.store));
+    const store = parseStore(
+      cell(row, header.map.store),
+      header.map.dock >= 0 ? cell(row, header.map.dock) : undefined,
+    );
     const supplier = cell(row, header.map.supplier)
       .replace(/\s+/g, " ")
       .trim();
