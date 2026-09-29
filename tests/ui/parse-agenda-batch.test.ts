@@ -103,6 +103,39 @@ describe("parseAgendaBatch", () => {
     );
   });
 
+  it("bloqueia linha de dados com protocolo vazio", () => {
+    const csv = [
+      "Filtros;",
+      "Dia: 29/09/2026 ; Filial: Todas ; Doca: Todas ;",
+      "Protocolo;Data agenda;Fornecedor;Filial;Itens;Vol.;Paletes;Carga batida;Tipo;N° NFe;Pedidos;",
+      "90000001;29/09/2026 08:00 às 08:10;FORNECEDOR UM;F01 - BIGUAÇU;1;2;0;-;Pedido;-;50001;",
+      ";29/09/2026 08:10 às 08:20;FORNECEDOR SEM PROTOCOLO;F02 - AREIAS DE CIMA;1;2;0;-;Pedido;-;50002;",
+    ].join("\r\n");
+
+    const result = parseAgendaCsv(csv);
+
+    expect(result.totalAppointments).toBe(1);
+    expect(result.blockingErrors).toContain(
+      "REGISTROS_NAO_INTERPRETADOS:1",
+    );
+  });
+
+  it("bloqueia exportação consolidada quando o total declarado diverge", () => {
+    const text = [
+      "Prado Supermercados",
+      "Agendas de recebimento Total: 3",
+      "Filtros: Dia: 29/09/2026 | Filial: Todas | Doca: Todas",
+      "Protocolo\tData agenda\tFornecedor\tFilial\tItens\tVol.\tPaletes\tCarga batida\tTipo\tN° NFe\tPedidos",
+      "90000001\t29/09/2026 08:00 às 08:10\tFORNECEDOR UM\tF01 - BIGUAÇU\t1\t2\t0\t-\tPedido\t-\t50001",
+      "90000002\t29/09/2026 08:10 às 08:20\tFORNECEDOR DOIS\tF02 - AREIAS DE CIMA\t3\t4\t1\tNão\tNota fiscal\t70002\t50002",
+    ].join("\n");
+
+    const result = parseAgendaPdfText(text);
+
+    expect(result.totalAppointments).toBe(2);
+    expect(result.blockingErrors).toContain("TOTAL_DIVERGENTE:3:2");
+  });
+
   it("interpreta PDF de todas as lojas quando a tabela possui coluna Filial", () => {
     const text = [
       "Prado Supermercados Filtros: Dia: 29/09/2026 | Filial: Todas | Doca: Todas",
