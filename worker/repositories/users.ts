@@ -10,11 +10,12 @@ export type UserRecord = {
   senha_hash: string;
   papel: UserRole;
   ativo: number;
+  session_version: number;
   excluido_em: string | null;
 };
 
 const USER_COLUMNS =
-  "id, loja_id, nome, login, senha_hash, papel, ativo, excluido_em";
+  "id, loja_id, nome, login, senha_hash, papel, ativo, session_version, excluido_em";
 
 export async function findUserByLogin(
   db: D1Database,
@@ -193,11 +194,13 @@ export async function updateUser(
     ? await hashPassword(input.senha)
     : current.senha_hash;
   const now = new Date().toISOString();
+  const sessionVersion =
+    current.session_version + (input.senha ? 1 : 0);
 
   const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, papel = ?, ativo = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
+        "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, papel = ?, ativo = ?, session_version = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
       )
       .bind(
         lojaId,
@@ -206,6 +209,7 @@ export async function updateUser(
         passwordHash,
         papel,
         ativo,
+        sessionVersion,
         now,
         current.id,
       ),
