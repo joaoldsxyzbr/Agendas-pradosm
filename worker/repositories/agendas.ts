@@ -396,6 +396,17 @@ export async function replaceAgendaImport(
 
 
 
+export class AgendaBatchQueryBudgetError extends Error {
+  constructor(statementCount: number) {
+    super(
+      `O lote exige ${statementCount} operações de banco e excede o limite seguro.`,
+    );
+    this.name = "AgendaBatchQueryBudgetError";
+  }
+}
+
+const MAX_BATCH_WRITE_STATEMENTS = 800;
+
 export type AgendaBatchImportEntry = {
   storeId: string;
   existing: AgendaRecord | null;
@@ -579,6 +590,10 @@ export async function importAgendaBatchAtomic(
 
   if (statements.length === 0) {
     throw new Error("Lote de importação sem operações.");
+  }
+
+  if (statements.length > MAX_BATCH_WRITE_STATEMENTS) {
+    throw new AgendaBatchQueryBudgetError(statements.length);
   }
 
   await db.batch(statements);
