@@ -240,6 +240,13 @@ function metadataDate(text: string) {
   return match ? parseIsoDate(match[1]) : null;
 }
 
+function metadataTotal(text: string) {
+  const match = text.match(
+    /Agendas\s+de\s+recebimento\s+Total:\s*(\d+)/i,
+  );
+  return match ? Number(match[1]) : null;
+}
+
 function cell(row: string[], index: number) {
   return row[index]?.trim() ?? "";
 }
@@ -270,16 +277,19 @@ function parseTableRows(
   for (let index = header.index + 1; index < rows.length; index += 1) {
     const row = rows[index];
     const first = cell(row, header.map.protocol);
+    const maxColumn = Math.max(...Object.values(header.map));
+    const looksLikeDataRow =
+      row.length > maxColumn &&
+      Boolean(cell(row, header.map.dateAgenda)) &&
+      Boolean(cell(row, header.map.supplier)) &&
+      Boolean(cell(row, header.map.store));
 
-    if (!first) continue;
+    if (!first) {
+      if (looksLikeDataRow) invalidCount += 1;
+      continue;
+    }
     if (normalizeKey(first) === "protocolo") continue;
     if (!/^\d{6,20}$/.test(first)) {
-      const maxColumn = Math.max(...Object.values(header.map));
-      const looksLikeDataRow =
-        row.length > maxColumn &&
-        Boolean(cell(row, header.map.dateAgenda)) &&
-        Boolean(cell(row, header.map.supplier));
-
       if (looksLikeDataRow) invalidCount += 1;
       continue;
     }
@@ -361,6 +371,11 @@ function parseTableRows(
   const declaredDate = metadataDate(sourceText);
   if (declaredDate && dates.length === 1 && dates[0] !== declaredDate) {
     blockingErrors.push(`DATA_DIVERGENTE:${declaredDate}:${dates[0]}`);
+  }
+
+  const declaredTotal = metadataTotal(sourceText);
+  if (declaredTotal !== null && declaredTotal !== validRows) {
+    blockingErrors.push(`TOTAL_DIVERGENTE:${declaredTotal}:${validRows}`);
   }
 
   const agendas: ParseAgendaResult[] = [...appointmentsByAgenda.values()]
