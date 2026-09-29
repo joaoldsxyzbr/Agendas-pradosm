@@ -37,43 +37,10 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Browser smoke and accessibility
-        shell: bash
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: End-to-end and accessibility
         env:
-          SESSION_SECRET: agenda-prado-ci-browser-secret
-        run: |
-          set -euo pipefail
-
-          npm run dev -- --host 127.0.0.1 --port 5173 > /tmp/agenda-vite.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-
-          for attempt in {1..30}; do
-            if curl --fail --silent http://127.0.0.1:5173/login > /dev/null; then
-              break
-            fi
-
-            if [ "$attempt" -eq 30 ]; then
-              cat /tmp/agenda-vite.log
-              exit 1
-            fi
-
-            sleep 1
-          done
-
-          CHROME_BIN="$(command -v google-chrome || command -v google-chrome-stable || command -v chromium || command -v chromium-browser || true)"
-          if [ -z "$CHROME_BIN" ]; then
-            echo "Chrome/Chromium não encontrado no runner."
-            exit 1
-          fi
-
-          "$CHROME_BIN"             --headless             --no-sandbox             --disable-gpu             --virtual-time-budget=5000             --dump-dom             http://127.0.0.1:5173/login > /tmp/login-dom.html
-
-          grep -q 'Agenda Prado' /tmp/login-dom.html
-          grep -q 'name="login"' /tmp/login-dom.html
-          grep -q 'name="senha"' /tmp/login-dom.html
-          grep -q '>Entrar<' /tmp/login-dom.html
-
-          CHROME_PATH="$CHROME_BIN" npx --yes lighthouse@13.5.0             http://127.0.0.1:5173/login             --only-categories=accessibility             --output=json             --output-path=/tmp/lighthouse.json             --chrome-flags="--headless --no-sandbox --disable-gpu"             --quiet
-
-          node scripts/check-lighthouse-report.mjs /tmp/lighthouse.json
+          SESSION_SECRET: agenda-prado-ci-e2e-secret
+        run: npm run test:e2e
