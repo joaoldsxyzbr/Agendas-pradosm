@@ -583,6 +583,17 @@ describe("admin agenda import", () => {
       "fornecedor_manual_editado",
       "fornecedor_manual_removido",
     ]);
+
+    const agendaHistory = await db
+      .prepare(
+        "SELECT acao FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid",
+      )
+      .bind(importedBody.agenda.id)
+      .all<{ acao: string }>();
+    expect(agendaHistory.results.map((item) => item.acao)).toEqual([
+      "ajuste_admin",
+      "ajuste_admin",
+    ]);
   });
 
   it("admin consulta agenda histórica e histórico de status", async () => {
