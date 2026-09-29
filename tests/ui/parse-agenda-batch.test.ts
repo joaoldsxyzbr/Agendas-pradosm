@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import singleStoreFixture from "../fixtures/agenda-sintetica.txt?raw";
 import sanitizedRealCsvFixture from "../fixtures/agenda-todas-lojas-real-sanitizada.csv?raw";
+import sanitizedDockCsvFixture from "../fixtures/agenda-todas-lojas-com-doca-sanitizada.csv?raw";
 import {
   parseAgendaCsv,
   parseAgendaPdfText,
@@ -118,6 +119,38 @@ describe("parseAgendaBatch", () => {
           },
         ],
       });
+  });
+
+  it("separa o CD por doca quando a exportação consolidada traz a coluna Doca", () => {
+    const result = parseAgendaCsv(sanitizedDockCsvFixture);
+
+    expect(result.source).toBe("csv");
+    expect(result.date).toBe("2026-09-30");
+    expect(result.blockingErrors).toEqual([]);
+    expect(result.totalAppointments).toBe(4);
+    expect(result.agendas.map((agenda) => agenda.storeCode)).toEqual([
+      "CD DOCA 01",
+      "CD DOCA 02",
+      "F01",
+      "F08",
+    ]);
+
+    expect(
+      result.agendas.find((agenda) => agenda.storeCode === "CD DOCA 01")
+        ?.appointments[0],
+    ).toMatchObject({
+      protocol: "91000001",
+      type: "Pedido",
+      orders: ["47338"],
+    });
+
+    expect(
+      result.agendas.find((agenda) => agenda.storeCode === "CD DOCA 02")
+        ?.appointments[0],
+    ).toMatchObject({
+      protocol: "91000002",
+      type: "Agenda fixa",
+    });
   });
 
   it("bloqueia o lote inteiro quando uma linha não é interpretável", () => {
