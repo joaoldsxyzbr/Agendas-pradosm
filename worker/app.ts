@@ -34,7 +34,19 @@ app.onError((error, c) => {
   return internalServerError(c);
 });
 
-app.get("/api/health", (c) => c.json({ ok: true }));
+app.get("/api/health", async (c) => {
+  try {
+    const database = await c.env.DB.prepare("SELECT 1 AS ok").first<{ ok: number }>();
+    if (database?.ok !== 1) {
+      throw new Error("D1 readiness query returned an unexpected result.");
+    }
+
+    return c.json({ ok: true, database: "ok" });
+  } catch (error) {
+    console.error("Health check failed", error);
+    return c.json({ ok: false, database: "unavailable" }, 503);
+  }
+});
 app.use("/api/auth/bootstrap-register", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
 
