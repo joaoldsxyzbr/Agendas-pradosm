@@ -39,7 +39,10 @@ export function StatusActions({
   const [error, setError] = useState<string | null>(null);
 
   async function changeStatus(nextStatus: AppointmentStatus) {
-    if (saving || nextStatus === status) return;
+    if (saving) return;
+
+    const requestedStatus =
+      nextStatus === status ? "aguardando" : nextStatus;
 
     setSaving(nextStatus);
     setError(null);
@@ -50,7 +53,7 @@ export function StatusActions({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: nextStatus }),
+          body: JSON.stringify({ status: requestedStatus }),
         },
       );
       onChanged(updated);
