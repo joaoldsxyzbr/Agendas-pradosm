@@ -49,6 +49,20 @@ test("conferente acessa apenas a própria loja", async ({ page }) => {
   await expect(page.getByText("Pagani E2E")).toBeVisible();
   await expect(page.getByRole("cell", { name: "Fornecedor E2E" })).toBeVisible();
 
+  const tableScroll = page.locator(".agenda-desktop .table-scroll");
+  await expect(tableScroll).toBeVisible();
+  const tableSize = await tableScroll.evaluate((element) => ({
+    clientWidth: element.clientWidth,
+    scrollWidth: element.scrollWidth,
+  }));
+  expect(tableSize.scrollWidth).toBeLessThanOrEqual(tableSize.clientWidth + 1);
+
+  const headerBackground = await page
+    .locator(".agenda-desktop thead th")
+    .first()
+    .evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(headerBackground).not.toBe("rgba(0, 0, 0, 0)");
+
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/app$/);
 });
