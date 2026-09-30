@@ -176,7 +176,7 @@ export function AgendaList({
               {sorted.map((appointment) => (
                 <tr key={appointment.id} data-testid="agenda-desktop-row">
                   <td>{appointmentTime(appointment)}</td>
-                  <td>{appointment.supplier}</td>
+                  <td title={appointment.supplier}>{appointment.supplier}</td>
                   <td>{appointment.protocol}</td>
                   <td>{appointment.type ?? "-"}</td>
                   <td><StatusBadge status={appointment.status} /></td>
