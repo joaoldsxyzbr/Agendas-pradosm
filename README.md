@@ -135,6 +135,21 @@ A tela do conferente envia um heartbeat leve a cada 2 minutos. Eventos de mouse,
 
 Se houver mais de um conferente vinculado à mesma loja/doca, o dashboard mostra o estado mais ativo entre eles.
 
+### Infraestrutura realtime
+
+A migração para atualização em tempo real está sendo feita em fases para não colocar a produção em risco.
+
+A primeira fase adiciona apenas a infraestrutura:
+- Durable Object `RealtimeHub` com WebSocket Hibernation;
+- binding `REALTIME_HUB` no Worker;
+- endpoint autenticado `/api/realtime`;
+- validação de origem e identidade resolvida pelo servidor;
+- protocolo realtime versionado.
+
+**Nenhuma tela consome esse WebSocket nesta fase.** O dashboard e a presença continuam usando exatamente os fluxos HTTP/D1 descritos acima. O D1 permanece a fonte da verdade.
+
+O plano completo e os checkpoints de rollout estão registrados na issue #59.
+
 ## Fechamento automático
 
 O Worker possui Cron Trigger:

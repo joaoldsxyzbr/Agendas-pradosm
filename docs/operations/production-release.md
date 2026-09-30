@@ -54,6 +54,24 @@ O workflow de CI roda inclusive para alterações somente em documentação. Iss
 
 O GitHub Actions de CI **não publica produção**. Não deve existir um segundo `wrangler deploy` em workflow GitHub.
 
+## RealtimeHub
+
+A infraestrutura realtime é introduzida de forma escura antes de qualquer tela depender dela.
+
+A primeira release:
+- exporta o Durable Object `RealtimeHub` com storage SQLite declarativo;
+- adiciona o binding `REALTIME_HUB`;
+- expõe `/api/realtime` apenas para sessões autenticadas e mesma origem;
+- não altera a fonte da verdade dos dados;
+- não altera o polling/fallback de presença;
+- não exige migration D1.
+
+O Durable Object usa WebSocket Hibernation. A UI só passará a abrir conexões em uma release posterior, em shadow mode.
+
+Rollback desta fase: republicar a versão anterior do Worker. Não executar limpeza do namespace Durable Object durante incidente e não alterar dados do D1.
+
+O rollout completo está documentado na issue #59.
+
 ## Checklist de release
 
 Antes do merge:

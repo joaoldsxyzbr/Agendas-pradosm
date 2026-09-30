@@ -1,3 +1,4 @@
+export { RealtimeHub } from "./realtime/RealtimeHub";
 import { app } from "./app";
 import type { WorkerEnv } from "./env";
 import { closePastOpenAgendas } from "./services/agenda-maintenance";
