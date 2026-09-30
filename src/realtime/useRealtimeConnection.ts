@@ -79,7 +79,10 @@ function isRealtimeServerEvent(value: unknown): value is RealtimeServerEvent {
   const candidate = value as {
     version?: unknown;
     type?: unknown;
+    agendaId?: unknown;
     storeId?: unknown;
+    date?: unknown;
+    reason?: unknown;
     status?: unknown;
     stores?: unknown;
   };
@@ -106,6 +109,22 @@ function isRealtimeServerEvent(value: unknown): value is RealtimeServerEvent {
           isPresenceStatus(entry.status)
         );
       })
+    );
+  }
+
+  if (candidate.type === "agenda.changed") {
+    return (
+      typeof candidate.agendaId === "string" &&
+      typeof candidate.storeId === "string" &&
+      typeof candidate.date === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(candidate.date) &&
+      (
+        candidate.reason === "status" ||
+        candidate.reason === "exchanges" ||
+        candidate.reason === "manual" ||
+        candidate.reason === "day-status" ||
+        candidate.reason === "import"
+      )
     );
   }
 
