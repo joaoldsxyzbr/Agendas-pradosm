@@ -87,6 +87,13 @@ O restore de dados não deve ser confundido com rollback de aplicação. Antes d
 
 A migration `0015_user_session_version.sql` adiciona versionamento de sessão. Cookies emitidos antes dessa release não possuem `sessionVersion` e serão rejeitados após o novo Worker entrar em produção. O efeito esperado é um único novo login por usuário após o deploy.
 
+
+### Impacto da migration 0016
+
+A migration `0016_conferente_presence.sql` é aditiva e cria somente a tabela/índice usados para presença dos conferentes. Ela não altera agendas, agendamentos, lojas nem usuários existentes.
+
+Após o deploy, lojas e docas aparecem inicialmente como **Offline** até que o conferente abra a tela e envie o primeiro sinal. O fluxo oficial `npm run deploy` aplica a migration remota antes de publicar o Worker que depende dela.
+
 ## Bootstrap administrativo de emergência
 
 O comando `npm run bootstrap-admin` é um procedimento **break-glass**. Ele não substitui o cadastro normal de usuários nem deve ser usado para redefinir senha, promover papel ou reativar conta existente.
