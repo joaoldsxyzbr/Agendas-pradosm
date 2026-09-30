@@ -5,8 +5,6 @@ export type AdminPresenceStatus = "online" | "away" | "offline";
 export type AdminStorePresence = {
   storeId: string;
   status: AdminPresenceStatus;
-  lastInteractionAt: string | null;
-  lastSeenAt: string;
 };
 
 export type AdminStore = {
