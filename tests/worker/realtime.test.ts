@@ -360,6 +360,7 @@ describe("infraestrutura realtime", () => {
       reason: "status",
     };
 
+    const eventReceived = nextMessage(socket);
     const published = await hub.fetch(
       new Request("https://realtime.internal/internal/publish", {
         method: "POST",
@@ -369,7 +370,7 @@ describe("infraestrutura realtime", () => {
     );
 
     expect(published.status).toBe(204);
-    expect(JSON.parse(await nextMessage(socket))).toEqual(event);
+    expect(JSON.parse(await eventReceived)).toEqual(event);
 
     const invalid = await hub.fetch(
       new Request("https://realtime.internal/internal/publish", {
