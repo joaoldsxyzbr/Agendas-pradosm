@@ -37,4 +37,32 @@ runWrangler([
   "--yes",
 ]);
 
-console.log("Estado E2E local preparado.");
+function businessDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const values = Object.fromEntries(
+    parts
+      .filter((part) => part.type !== "literal")
+      .map((part) => [part.type, part.value]),
+  );
+
+  return `${values.year}-${values.month}-${values.day}`;
+}
+
+const e2eDate = businessDate();
+runWrangler([
+  "d1",
+  "execute",
+  "DB",
+  "--local",
+  "--command",
+  `UPDATE agendas SET data_agenda = '${e2eDate}' WHERE id = '30000000-0000-4000-8000-000000000001';`,
+  "--yes",
+]);
+
+console.log(`Estado E2E local preparado para ${e2eDate}.`);
