@@ -99,6 +99,9 @@ describe("visualizador do dashboard", () => {
     );
 
     const card = await screen.findByTestId("dashboard-store-F05");
+    expect(card).toHaveClass("is-completed");
+    expect(within(card).getByText("✓ Concluído")).toHaveClass("success");
+
     fireEvent.click(
       within(card).getByRole("button", { name: "Ver detalhes" }),
     );
@@ -106,12 +109,82 @@ describe("visualizador do dashboard", () => {
     const dialog = await screen.findByRole("dialog", {
       name: "Agenda F05 - Pagani",
     });
-    expect(within(dialog).getByText("Somente leitura")).toBeInTheDocument();
+    expect(within(dialog).getByText("✓ Concluído")).toHaveClass("success");
+    expect(within(dialog).getByText("Somente leitura")).toHaveClass("muted");
+    expect(dialog.querySelector(".agenda-metric-success")).toHaveTextContent(
+      "recebidos",
+    );
+    expect(dialog.querySelector(".agenda-metric-danger")).toHaveTextContent(
+      "não recebidos",
+    );
+    expect(dialog.querySelector(".agenda-metric-exchange")).toHaveTextContent(
+      "trocas",
+    );
     expect(
       within(dialog).queryByRole("button", {
         name: "Reabrir para conferente",
       }),
     ).not.toBeInTheDocument();
+  });
+
+  it("destaca a reabertura como ação de atenção para o ADM", async () => {
+    const stores = [
+      { id: "s1", codigo: "F05", nome: "Pagani", ativo: true },
+    ];
+    const agendas = [
+      {
+        id: "a5",
+        storeCode: "F05",
+        storeName: "Pagani",
+        date: "2026-09-29",
+        total: 1,
+        aguardando: 0,
+        recebido: 1,
+        naoChegou: 0,
+        recusado: 0,
+        semAgenda: 0,
+        dayStatus: "concluido",
+        completedAt: "2026-09-29T18:00:00.000Z",
+        completedBy: { id: "u1", name: "Conferente" },
+      },
+    ];
+    const detail = {
+      agenda: agendas[0],
+      appointments: [],
+    };
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url === "/api/admin/stores") return json(stores);
+        if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
+        if (url === "/api/admin/agendas/a5") return json(detail);
+
+        return new Response(null, { status: 404 });
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    const card = await screen.findByTestId("dashboard-store-F05");
+    fireEvent.click(
+      within(card).getByRole("button", { name: "Ver detalhes" }),
+    );
+
+    const dialog = await screen.findByRole("dialog", {
+      name: "Agenda F05 - Pagani",
+    });
+    expect(
+      within(dialog).getByRole("button", {
+        name: "Reabrir para conferente",
+      }),
+    ).toHaveClass("warning");
   });
 
 });

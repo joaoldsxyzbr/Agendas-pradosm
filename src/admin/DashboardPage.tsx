@@ -212,7 +212,13 @@ export function DashboardPage({
 
                 return (
                   <article
-                    className="store-card dashboard-store-card"
+                    className={`store-card dashboard-store-card ${
+                      agenda?.dayStatus === "concluido"
+                        ? "is-completed"
+                        : agenda
+                          ? "is-open"
+                          : "is-empty"
+                    }`}
                     key={store.id}
                     data-testid={`dashboard-store-${store.codigo}`}
                   >
@@ -234,6 +240,19 @@ export function DashboardPage({
                         <span className={agenda ? "status-pill neutral" : "status-pill warning"}>
                           {agenda ? "Agenda importada" : "Sem agenda"}
                         </span>
+                        {agenda ? (
+                          <span
+                            className={`status-pill ${
+                              agenda.dayStatus === "concluido"
+                                ? "success"
+                                : "warning"
+                            }`}
+                          >
+                            {agenda.dayStatus === "concluido"
+                              ? "✓ Concluído"
+                              : "Em andamento"}
+                          </span>
+                        ) : null}
                         {agenda ? (
                           <button
                             className="status-pill neutral dashboard-store-details"

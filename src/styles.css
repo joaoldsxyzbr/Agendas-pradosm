@@ -810,6 +810,19 @@ textarea {
 .dashboard-store-card {
   gap: 0.75rem;
   padding: 0.9rem;
+  border-left-width: 3px;
+}
+
+.dashboard-store-card.is-completed {
+  border-left-color: var(--color-success);
+}
+
+.dashboard-store-card.is-open {
+  border-left-color: var(--color-warning);
+}
+
+.dashboard-store-card.is-empty {
+  border-left-color: var(--color-border-strong);
 }
 
 .store-progress {
@@ -894,6 +907,16 @@ textarea {
 .status-pill.warning {
   background: var(--color-warning-soft);
   color: var(--color-warning);
+}
+
+.status-pill.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.status-pill.muted {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-muted);
 }
 
 .metric-grid {
@@ -2366,4 +2389,47 @@ td {
   align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
+}
+
+.agenda-preview-day-status {
+  gap: 0.28rem;
+}
+
+.admin-agenda-preview.is-completed .agenda-preview-context {
+  padding-bottom: 0.72rem;
+  border-bottom: 1px solid var(--color-success-border);
+}
+
+.admin-agenda-preview.is-open .agenda-preview-context {
+  padding-bottom: 0.72rem;
+  border-bottom: 1px solid var(--color-warning-border);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric-total {
+  background: var(--color-surface-strong);
+  color: var(--color-text-muted);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric-pending {
+  background: var(--color-neutral-soft);
+  color: var(--color-text-muted);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric-success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric-danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric-exchange {
+  background: var(--color-primary-soft);
+  color: var(--color-primary-strong);
+}
+
+.admin-agenda-preview .agenda-metrics > .agenda-metric strong {
+  color: inherit;
 }
