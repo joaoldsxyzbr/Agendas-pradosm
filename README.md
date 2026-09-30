@@ -116,16 +116,24 @@ Os arquivos reais exportados não devem ser versionados. Testes usam dados sint�
 
 ## Dashboard
 
-O dashboard não usa polling periódico.
-
-Ele atualiza:
+Os dados de agenda do dashboard não usam polling periódico. Eles atualizam:
 
 - na carga e troca da data selecionada;
 - após ações internas como importação ou reabertura;
 - quando o usuário clica em **Atualizar**;
 - silenciosamente quando a aba volta a ficar visível.
 
-Isso evita consultas repetitivas ao D1 quando não há interação.
+A única atualização periódica é a **presença do conferente**, consultada por um endpoint pequeno e isolado a cada 60 segundos, sem recarregar agendas completas.
+
+Todas as lojas e docas ativas exibem uma bolinha de presença:
+
+- **verde / Online**: houve interação nos últimos 3 minutos;
+- **amarelo / Ausente**: passaram mais de 3 minutos sem interação, mas existe sinal da aba nos últimos 7 minutos;
+- **vermelho / Offline**: passaram mais de 7 minutos sem sinal, ou ainda não existe presença registrada.
+
+A tela do conferente envia um heartbeat leve a cada 2 minutos. Eventos de mouse, teclado, foco e rolagem são agrupados localmente e não geram uma escrita no D1 por evento. Ao sair pelo botão **Sair**, a presença é encerrada imediatamente; queda de internet, travamento ou fechamento abrupto são tratados pela expiração de 7 minutos.
+
+Se houver mais de um conferente vinculado à mesma loja/doca, o dashboard mostra o estado mais ativo entre eles.
 
 ## Fechamento automático
 
