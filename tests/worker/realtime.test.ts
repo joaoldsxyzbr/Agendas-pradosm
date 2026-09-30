@@ -332,6 +332,61 @@ describe("infraestrutura realtime", () => {
     adminSocket.close(1000, "teste concluído");
   });
 
+  it("publica mudança de agenda somente para o canal administrativo", async () => {
+    const admin = await seedUser({ role: "admin" });
+
+    const response = await exports.default.fetch(
+      websocketRequest(admin.cookie),
+    );
+    const socket = (
+      response as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    socket.accept();
+
+    await nextMessage(socket);
+    await nextMessage(socket);
+
+    const namespace = (
+      env as unknown as { REALTIME_HUB: DurableObjectNamespace }
+    ).REALTIME_HUB;
+    const hub = namespace.get(namespace.idFromName("agenda-prado"));
+
+    const event = {
+      version: 1,
+      type: "agenda.changed",
+      agendaId: "agenda-realtime-1",
+      storeId: "store-realtime-1",
+      date: "2026-09-30",
+      reason: "status",
+    };
+
+    const eventReceived = nextMessage(socket);
+    const published = await hub.fetch(
+      new Request("https://realtime.internal/internal/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(event),
+      }),
+    );
+
+    expect(published.status).toBe(204);
+    expect(JSON.parse(await eventReceived)).toEqual(event);
+
+    const invalid = await hub.fetch(
+      new Request("https://realtime.internal/internal/publish", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...event,
+          date: "30/09/2026",
+        }),
+      }),
+    );
+    expect(invalid.status).toBe(400);
+
+    socket.close(1000, "teste concluído");
+  });
+
   it("hub rejeita identidade incompleta quando chamado sem o proxy autenticado", async () => {
     const namespace = (
       env as unknown as { REALTIME_HUB: DurableObjectNamespace }

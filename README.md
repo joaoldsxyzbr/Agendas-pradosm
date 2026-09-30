@@ -158,6 +158,27 @@ Após a validação do **shadow mode**, a presença passa a usar `REALTIME_MODE=
 
 O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`. A presença D1 anterior permanece como fallback e não é removida nesta fase.
 
+### Dashboard em tempo real
+
+Depois da presença, o mesmo canal realtime passa a sinalizar mudanças operacionais do dashboard:
+
+- status Recebido/Não recebido/Aguardando;
+- Trocas;
+- fornecedor sem agenda criado, editado ou removido;
+- concluir e reabrir dia;
+- ajustes administrativos;
+- importação individual, substituição e importação em lote.
+
+A regra é sempre **D1 primeiro, evento depois**. O Durable Object não replica agenda nem agendamento. Ele transmite apenas um evento `agenda.changed` com identificadores, data e motivo da invalidação.
+
+O ADM/visualizador:
+- recarrega somente quando a data do evento é a data atualmente selecionada;
+- agrupa rajadas curtas de eventos para evitar várias consultas durante importação em lote;
+- atualiza também o modal **Ver detalhes** quando a agenda aberta recebe mudança;
+- mantém reconciliação ao voltar para a aba e o botão **Atualizar** como fallback.
+
+Falha ao publicar um evento realtime é registrada, mas **não desfaz nem invalida a mutação que já foi confirmada no D1**.
+
 O plano completo e os checkpoints de rollout estão registrados na issue #59.
 
 ## Fechamento automático

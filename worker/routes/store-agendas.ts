@@ -4,6 +4,7 @@ import { z } from "zod";
 import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
 import { businessDate, businessTime } from "../lib/time";
+import { publishAgendaChanged } from "../services/realtime";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
@@ -200,6 +201,13 @@ async function createManualForDate(
       businessTime(new Date()),
     );
 
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
     return c.json(appointmentJson(appointment), 201);
   } catch (error) {
     console.error("Manual supplier creation failed", error);
@@ -261,6 +269,14 @@ storeAgendaRoutes.post("/agenda/:date/complete", async (c) => {
       user.id,
       "concluido",
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "day-status",
+    });
+
     return c.json(agendaJson(updated));
   } catch (error) {
     console.error("Agenda completion failed", error);
@@ -403,6 +419,14 @@ storeAppointmentRoutes.patch("/:id/manual", async (c) => {
       user.id,
       parsed.data.supplier,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
     return c.json(appointmentJson(updated));
   } catch (error) {
     console.error("Manual supplier update failed", error);
@@ -440,6 +464,14 @@ storeAppointmentRoutes.delete("/:id/manual", async (c) => {
 
   try {
     await softDeleteManualAppointment(c.env.DB, agenda, appointment, user.id);
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
     return c.body(null, 204);
   } catch (error) {
     console.error("Manual supplier delete failed", error);
@@ -480,7 +512,8 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     );
   }
 
-  if (!(await editableAgendaForAppointment(c.env.DB, appointment))) {
+  const agenda = await editableAgendaForAppointment(c.env.DB, appointment);
+  if (!agenda) {
     return concludedDay(c);
   }
 
@@ -491,6 +524,14 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
       user.id,
       parsed.data.hasExchanges,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "exchanges",
+    });
+
     return c.json(appointmentJson(updated));
   } catch (error) {
     console.error("Appointment exchanges change failed", error);
@@ -534,7 +575,8 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
     );
   }
 
-  if (!(await editableAgendaForAppointment(c.env.DB, appointment))) {
+  const agenda = await editableAgendaForAppointment(c.env.DB, appointment);
+  if (!agenda) {
     return concludedDay(c);
   }
 
@@ -545,6 +587,14 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
       user.id,
       parsed.data.status,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "status",
+    });
+
     return c.json(appointmentJson(updated));
   } catch (error) {
     console.error("Appointment status change failed", error);

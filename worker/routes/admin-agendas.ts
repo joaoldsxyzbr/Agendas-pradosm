@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda";
 import type { AppEnv } from "../env";
+import { publishAgendaChanged } from "../services/realtime";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
@@ -190,6 +191,13 @@ adminAgendaRoutes.post("/import", async (c) => {
       throw new Error("Agenda gravada não pôde ser relida.");
     }
 
+    await publishAgendaChanged(c.env, {
+      agendaId,
+      storeId: store.id,
+      date: parsed.data.date,
+      reason: "import",
+    });
+
     return c.json(result, existing ? 200 : 201);
   } catch (error) {
     if (isAgendaConflict(error)) {
@@ -291,6 +299,22 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
   try {
     const user = c.get("authUser");
     const results = await importAgendaBatchAtomic(c.env.DB, user.id, entries);
+
+    for (const result of results) {
+      const entry = entries.find(
+        (item) =>
+          item.input.storeCode === result.storeCode &&
+          item.input.date === result.date,
+      );
+      if (!entry) continue;
+
+      await publishAgendaChanged(c.env, {
+        agendaId: result.agendaId,
+        storeId: entry.storeId,
+        date: result.date,
+        reason: "import",
+      });
+    }
 
     return c.json(
       {
@@ -405,6 +429,14 @@ adminAgendaRoutes.patch("/:id/status", async (c) => {
       user.id,
       parsed.data.status,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "day-status",
+    });
+
     return c.json(agendaJson(updated));
   } catch (error) {
     console.error("Agenda day status change failed", error);
@@ -501,6 +533,14 @@ adminAppointmentRoutes.patch("/:id/manual", async (c) => {
         ? `Fornecedor manual alterado de ${appointment.fornecedor} para ${parsed.data.supplier}.`
         : undefined,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
     return c.json(appointmentJson(updated));
   } catch (error) {
     console.error("Admin manual supplier update failed", error);
@@ -539,6 +579,14 @@ adminAppointmentRoutes.delete("/:id/manual", async (c) => {
         ? `Fornecedor manual ${appointment.fornecedor} removido.`
         : undefined,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
     return c.body(null, 204);
   } catch (error) {
     console.error("Admin manual supplier delete failed", error);
@@ -571,6 +619,14 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
     );
   }
 
+  const agenda = await findAgendaById(c.env.DB, appointment.agenda_id);
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
   try {
     const user = c.get("authUser");
     const changed = appointment.status !== parsed.data.status;
@@ -583,6 +639,13 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
         ? `Status alterado de ${appointment.status} para ${parsed.data.status}.`
         : undefined,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "status",
+    });
 
     return c.json(appointmentJson(updated));
   } catch (error) {
@@ -619,6 +682,14 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     );
   }
 
+  const agenda = await findAgendaById(c.env.DB, appointment.agenda_id);
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
   try {
     const user = c.get("authUser");
     const nextValue = parsed.data.hasExchanges ? 1 : 0;
@@ -632,6 +703,13 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
         ? `Trocas alteradas para ${parsed.data.hasExchanges ? "sim" : "não"}.`
         : undefined,
     );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "exchanges",
+    });
 
     return c.json(appointmentJson(updated));
   } catch (error) {

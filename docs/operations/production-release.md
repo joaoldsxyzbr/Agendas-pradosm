@@ -92,6 +92,28 @@ O Durable Object continua sem armazenar agendas ou mutações de negócio. Nesta
 
 Rollback da Fase 3: definir `REALTIME_MODE=off` e publicar. O dashboard volta ao fallback HTTP/D1 sem reversão de dados. Não remover a tabela `conferente_presenca` nem o namespace do Durable Object durante incidente.
 
+A quarta release ativa **eventos realtime do dashboard**:
+- mutações continuam sendo concluídas no D1 antes de qualquer publicação;
+- após sucesso, o Worker envia `agenda.changed` ao `RealtimeHub`;
+- o evento contém somente `agendaId`, `storeId`, `date` e `reason`;
+- ADM e visualizador recebem a invalidação pelo WebSocket;
+- o dashboard recarrega somente a data atualmente visível;
+- eventos em rajada são coalescidos no frontend;
+- o modal de detalhes recarrega somente quando o `agendaId` aberto é afetado;
+- falha de publicação é best-effort, registrada em log e nunca reverte a escrita D1;
+- reconexão, retorno de foco e atualização manual continuam como reconciliação.
+
+Mutações cobertas:
+- status de agendamento;
+- trocas;
+- fornecedor manual criado/editado/removido;
+- conclusão/reabertura;
+- ajustes administrativos;
+- importação individual/substituição;
+- importação em lote.
+
+Rollback da Fase 4: definir `REALTIME_MODE=off` e publicar, ou republicar a versão anterior. Os dados permanecem corretos no D1; apenas a atualização instantânea é desativada.
+
 O rollout completo está documentado na issue #59.
 
 ## Checklist de release

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
 import {
@@ -65,6 +65,15 @@ export function DashboardPage({
   const [refreshing, setRefreshing] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [previewAgendaId, setPreviewAgendaId] = useState<string | null>(null);
+  const realtimeAgendaRefreshTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (realtimeAgendaRefreshTimer.current !== null) {
+        window.clearTimeout(realtimeAgendaRefreshTimer.current);
+      }
+    };
+  }, []);
 
   useRealtimeEvent((event) => {
     if (event.type === "presence.snapshot") {
@@ -83,8 +92,18 @@ export function DashboardPage({
         });
         return [...next.values()];
       });
+      return;
     }
-  }, []);
+
+    if (event.type === "agenda.changed" && event.date === selectedDate) {
+      if (realtimeAgendaRefreshTimer.current !== null) return;
+
+      realtimeAgendaRefreshTimer.current = window.setTimeout(() => {
+        realtimeAgendaRefreshTimer.current = null;
+        void refreshAgendas({ silent: true });
+      }, 75);
+    }
+  }, [selectedDate]);
 
   useEffect(() => {
     let active = true;

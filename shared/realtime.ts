@@ -37,10 +37,27 @@ export type RealtimePresenceSnapshotEvent = {
   }>;
 };
 
+export type RealtimeAgendaChangedReason =
+  | "status"
+  | "exchanges"
+  | "manual"
+  | "day-status"
+  | "import";
+
+export type RealtimeAgendaChangedEvent = {
+  version: typeof REALTIME_PROTOCOL_VERSION;
+  type: "agenda.changed";
+  agendaId: string;
+  storeId: string;
+  date: string;
+  reason: RealtimeAgendaChangedReason;
+};
+
 export type RealtimeServerEvent =
   | RealtimeReadyEvent
   | RealtimePresenceChangedEvent
-  | RealtimePresenceSnapshotEvent;
+  | RealtimePresenceSnapshotEvent
+  | RealtimeAgendaChangedEvent;
 
 export type RealtimePresenceSetMessage = {
   version: typeof REALTIME_PROTOCOL_VERSION;
