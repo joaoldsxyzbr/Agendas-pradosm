@@ -97,6 +97,10 @@ const productionReleasePath = new URL(
   "../docs/operations/production-release.md",
   import.meta.url,
 );
+const dataRecoveryPath = new URL(
+  "../docs/operations/data-recovery.md",
+  import.meta.url,
+);
 assert.equal(
   existsSync(productionReleasePath),
   true,
@@ -110,6 +114,24 @@ assert.ok(
 assert.ok(
   productionRelease.includes("Workers Builds"),
   "runbook deve documentar o vínculo com Workers Builds",
+);
+assert.equal(
+  existsSync(dataRecoveryPath),
+  true,
+  "runbook de recuperação de dados D1 deve existir",
+);
+const dataRecovery = readFileSync(dataRecoveryPath, "utf8");
+assert.ok(
+  dataRecovery.includes("d1 time-travel info"),
+  "runbook de recuperação deve registrar a captura do bookmark atual",
+);
+assert.ok(
+  dataRecovery.includes("d1 time-travel restore"),
+  "runbook de recuperação deve registrar o procedimento de restore",
+);
+assert.ok(
+  productionRelease.includes("data-recovery.md"),
+  "runbook de release deve apontar para recuperação de dados",
 );
 
 assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
