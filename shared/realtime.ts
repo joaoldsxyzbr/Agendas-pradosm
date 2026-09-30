@@ -2,6 +2,13 @@ import type { UserRole } from "./auth";
 
 export const REALTIME_PROTOCOL_VERSION = 1 as const;
 
+export type RealtimeMode = "off" | "shadow" | "on";
+
+export type RealtimeConfig = {
+  mode: RealtimeMode;
+  protocolVersion: typeof REALTIME_PROTOCOL_VERSION;
+};
+
 export type RealtimeConnectionIdentity = {
   userId: string;
   role: UserRole;
