@@ -9,6 +9,7 @@ export type WorkerEnv = {
   SESSION_SECRET: string;
   LOGIN_RATE_LIMITER?: LoginRateLimiter;
   REALTIME_HUB: DurableObjectNamespace;
+  REALTIME_MODE?: string;
 };
 
 export type AppEnv = {

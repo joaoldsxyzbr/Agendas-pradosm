@@ -66,9 +66,17 @@ A primeira release:
 - não altera o polling/fallback de presença;
 - não exige migration D1.
 
-O Durable Object usa WebSocket Hibernation. A UI só passará a abrir conexões em uma release posterior, em shadow mode.
+A segunda release usa **shadow mode**:
+- `REALTIME_MODE=shadow`;
+- o frontend consulta `/api/realtime/config` após autenticação;
+- abre um único WebSocket por sessão/aba;
+- usa ping/pong leve e reconexão com backoff;
+- não dirige presença nem dashboard;
+- falha de config/WebSocket é ignorada pelo fluxo funcional atual.
 
-Rollback desta fase: republicar a versão anterior do Worker. Não executar limpeza do namespace Durable Object durante incidente e não alterar dados do D1.
+Valor ausente ou inválido de `REALTIME_MODE` deve resultar em `off`.
+
+Rollback do shadow mode: definir `REALTIME_MODE=off` e publicar a configuração, ou republicar a versão anterior. Não executar limpeza do namespace Durable Object durante incidente e não alterar dados do D1.
 
 O rollout completo está documentado na issue #59.
 

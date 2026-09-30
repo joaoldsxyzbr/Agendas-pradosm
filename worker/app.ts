@@ -53,6 +53,7 @@ app.use("/api/auth/bootstrap-register", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
 
 app.use("/api/realtime", requireAuth);
+app.use("/api/realtime/*", requireAuth);
 app.route("/api/realtime", realtimeRoutes);
 
 app.use(

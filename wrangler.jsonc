@@ -65,5 +65,8 @@
       "type": "durable-object",
       "storage": "sqlite"
     }
+  },
+  "vars": {
+    "REALTIME_MODE": "shadow"
   }
 }

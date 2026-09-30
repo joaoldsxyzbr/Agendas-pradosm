@@ -1,8 +1,26 @@
 import { Hono } from "hono";
+import {
+  REALTIME_PROTOCOL_VERSION,
+  type RealtimeConfig,
+  type RealtimeMode,
+} from "../../shared/realtime";
 import type { AppEnv } from "../env";
 import { originMatchesRequest } from "../lib/http";
 
 export const realtimeRoutes = new Hono<AppEnv>();
+
+function realtimeMode(value: string | undefined): RealtimeMode {
+  return value === "shadow" || value === "on" ? value : "off";
+}
+
+realtimeRoutes.get("/config", (c) => {
+  const config: RealtimeConfig = {
+    mode: realtimeMode(c.env.REALTIME_MODE),
+    protocolVersion: REALTIME_PROTOCOL_VERSION,
+  };
+
+  return c.json(config);
+});
 
 realtimeRoutes.get("/", async (c) => {
   if (c.req.header("Upgrade")?.toLowerCase() !== "websocket") {
