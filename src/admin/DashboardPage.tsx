@@ -3,7 +3,7 @@ import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
 import { AdminAgendaPreview } from "./AdminAgendaPreview";
 import { ImportAgendaPage } from "./ImportAgendaPage";
-import type { AdminAgendaSummary, AdminStore } from "./types";
+import type { AdminAgendaSummary, AdminStore, AdminStorePresence } from "./types";
 
 function businessDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -33,6 +33,17 @@ function formatDate(value: string) {
   return day && month && year ? `${day}/${month}/${year}` : value;
 }
 
+function presenceLabel(status: AdminStorePresence["status"]) {
+  switch (status) {
+    case "online":
+      return "Online";
+    case "away":
+      return "Ausente";
+    case "offline":
+      return "Offline";
+  }
+}
+
 export function DashboardPage({
   readOnly = false,
 }: {
@@ -42,6 +53,7 @@ export function DashboardPage({
   const [selectedDate, setSelectedDate] = useState(today);
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
+  const [presences, setPresences] = useState<AdminStorePresence[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -81,6 +93,7 @@ export function DashboardPage({
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") {
         void refreshAgendas({ silent: true });
+        void refreshPresence();
       }
     };
 
@@ -89,9 +102,33 @@ export function DashboardPage({
       document.removeEventListener("visibilitychange", refreshWhenVisible);
   }, [selectedDate]);
 
+  useEffect(() => {
+    void refreshPresence();
+
+    const presenceRefresh = window.setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void refreshPresence();
+      }
+    }, 60_000);
+
+    return () => window.clearInterval(presenceRefresh);
+  }, []);
+
   const agendaByStore = new Map(
     agendas.map((agenda) => [agenda.storeCode, agenda]),
   );
+  const presenceByStore = new Map(
+    presences.map((presence) => [presence.storeId, presence]),
+  );
+
+  async function refreshPresence() {
+    try {
+      const data = await apiFetch<AdminStorePresence[]>("/api/admin/presence");
+      setPresences(data);
+    } catch {
+      // Presença é complementar: uma falha não deve derrubar o dashboard.
+    }
+  }
 
   async function refreshAgendas(options: { silent?: boolean } = {}) {
     if (!options.silent) setRefreshing(true);
@@ -158,7 +195,10 @@ export function DashboardPage({
             className="ghost-button"
             type="button"
             disabled={refreshing}
-            onClick={() => void refreshAgendas()}
+            onClick={() => {
+              void refreshAgendas();
+              void refreshPresence();
+            }}
           >
             {refreshing ? "Atualizando..." : "Atualizar"}
           </button>
@@ -209,6 +249,9 @@ export function DashboardPage({
             <div className="dashboard-grid">
               {stores.map((store) => {
                 const agenda = agendaByStore.get(store.codigo);
+                const presence = presenceByStore.get(store.id);
+                const presenceStatus = presence?.status ?? "offline";
+                const presenceText = presenceLabel(presenceStatus);
 
                 return (
                   <article
@@ -223,9 +266,17 @@ export function DashboardPage({
                     data-testid={`dashboard-store-${store.codigo}`}
                   >
                     <div className="store-card-header">
-                      <div>
-                        <strong>{store.codigo}</strong>
-                        <span>{store.nome}</span>
+                      <div className="store-card-identity">
+                        <span
+                          className={`presence-dot ${presenceStatus}`}
+                          role="img"
+                          aria-label={`Conferente ${presenceText.toLowerCase()}`}
+                          title={presenceText}
+                        />
+                        <div className="store-card-title">
+                          <strong>{store.codigo}</strong>
+                          <span>{store.nome}</span>
+                        </div>
                       </div>
                       <div
                         className="store-card-header-actions"
