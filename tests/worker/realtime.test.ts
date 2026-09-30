@@ -89,6 +89,26 @@ async function nextMessage(socket: WebSocket) {
 }
 
 describe("infraestrutura realtime", () => {
+  it("mantém a configuração realtime protegida por sessão", async () => {
+    const anonymous = await exports.default.fetch(
+      "https://example.com/api/realtime/config",
+    );
+    expect(anonymous.status).toBe(401);
+
+    const admin = await seedUser({ role: "admin" });
+    const authenticated = await exports.default.fetch(
+      new Request("https://example.com/api/realtime/config", {
+        headers: { Cookie: admin.cookie },
+      }),
+    );
+
+    expect(authenticated.status).toBe(200);
+    expect(await authenticated.json()).toEqual({
+      mode: "shadow",
+      protocolVersion: 1,
+    });
+  });
+
   it("rejeita conexão anônima", async () => {
     const response = await exports.default.fetch(websocketRequest());
     expect(response.status).toBe(401);
