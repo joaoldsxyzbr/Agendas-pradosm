@@ -18,6 +18,7 @@ import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { useStorePresence } from "./presence/useStorePresence";
+import { useRealtimeShadowConnection } from "./realtime/useRealtimeShadowConnection";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
 function PlaceholderPage({
@@ -120,6 +121,9 @@ function HomeRedirect() {
 }
 
 export function AppRoutes() {
+  const { user } = useAuth();
+  useRealtimeShadowConnection(user?.id ?? null);
+
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
