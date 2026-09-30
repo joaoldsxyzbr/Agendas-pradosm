@@ -17,6 +17,7 @@ import { LoginPage } from "./auth/LoginPage";
 import { ProtectedRoute } from "./auth/ProtectedRoute";
 import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
+import { useStorePresence } from "./presence/useStorePresence";
 import { ThemeToggle } from "./theme/ThemeToggle";
 
 function PlaceholderPage({
@@ -40,6 +41,7 @@ function PlaceholderPage({
 function StoreLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { disconnect } = useStorePresence(user?.papel === "conferente");
 
   if (!user) return null;
 
@@ -47,6 +49,7 @@ function StoreLayout() {
     user.lojaNome ?? (user.lojaCodigo ? `Loja ${user.lojaCodigo}` : "Loja");
 
   async function handleLogout() {
+    await disconnect();
     await logout();
     navigate("/login", { replace: true });
   }
