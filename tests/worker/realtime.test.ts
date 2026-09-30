@@ -172,6 +172,12 @@ describe("infraestrutura realtime", () => {
       type: "realtime.ready",
     });
 
+    expect(JSON.parse(await nextMessage(socket!))).toEqual({
+      version: 1,
+      type: "presence.snapshot",
+      stores: [],
+    });
+
     socket!.send("ping");
     expect(await nextMessage(socket!)).toBe("pong");
 
