@@ -138,6 +138,10 @@ describe("agenda PDF export", () => {
     expect(text).toContain("0.09 0.48 0.31 rg");
     expect(text).toContain("0.55 0.38 0.00 rg");
     expect(text).toContain("0.71 0.14 0.09 rg");
+    expect(text).toContain("/F1 7 Tf");
+    expect(text).toContain("/F2 6.5 Tf");
+    expect(text).toContain("0.975 0.98 0.99 rg");
+    expect(text).toContain("Gerado em:");
   });
 
   it("posiciona Status em coluna própria antes de Tipo", () => {
@@ -168,6 +172,66 @@ describe("agenda PDF export", () => {
     expect(statusHeader).toBeGreaterThan(-1);
     expect(typeHeader).toBeGreaterThan(statusHeader);
     expect(text).toContain("(Recusado) Tj");
+  });
+
+  it("quebra fornecedor longo sem perder texto nem invadir a próxima coluna", () => {
+    const supplier =
+      "SUPERMERCADODISTRIBUIDORADEALIMENTOSULTRALONGASEMESPACOSPARATESTEDOQUEBRAAUTOMATICA";
+    const bytes = buildAgendaPdf(
+      {
+        id: "agenda-1",
+        storeCode: "F08",
+        storeName: "PORTO BELO",
+        date: "2026-09-25",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
+      },
+      [
+        {
+          ...appointments[0],
+          supplier,
+        },
+      ],
+    );
+
+    const text = new TextDecoder("windows-1252").decode(bytes);
+    const supplierLines = [
+      ...text.matchAll(/1 0 0 1 105 [0-9.]+ Tm \(([^)]*)\) Tj ET/g),
+    ]
+      .map((match) => match[1])
+      .filter((value) => value !== "Fornecedor");
+
+    expect(supplierLines.length).toBeGreaterThan(1);
+    expect(supplierLines.join("")).toBe(supplier);
+    expect(supplierLines.every((line) => line.length < supplier.length)).toBe(true);
+  });
+
+  it("repete o cabeçalho e mantém linhas inteiras em PDFs com várias páginas", () => {
+    const manyAppointments = Array.from({ length: 40 }, (_, index) => ({
+      ...appointments[index % appointments.length],
+      id: `appt-many-${index}`,
+      protocol: String(20000000 + index),
+    }));
+
+    const bytes = buildAgendaPdf(
+      {
+        id: "agenda-1",
+        storeCode: "F08",
+        storeName: "PORTO BELO",
+        date: "2026-09-25",
+        dayStatus: "aberto",
+        completedAt: null,
+        completedBy: null,
+      },
+      manyAppointments,
+    );
+
+    const text = new TextDecoder("windows-1252").decode(bytes);
+    const headerCount = text.match(/\(Fornecedor\) Tj/g)?.length ?? 0;
+
+    expect(headerCount).toBeGreaterThan(1);
+    expect(text).toContain("Página 2 de 2");
   });
 
   it("inclui fornecedor manual no PDF com horário único", () => {
