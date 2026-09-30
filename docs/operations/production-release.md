@@ -76,7 +76,21 @@ A segunda release usa **shadow mode**:
 
 Valor ausente ou inválido de `REALTIME_MODE` deve resultar em `off`.
 
-Rollback do shadow mode: definir `REALTIME_MODE=off` e publicar a configuração, ou republicar a versão anterior. Não executar limpeza do namespace Durable Object durante incidente e não alterar dados do D1.
+A terceira release ativa **presença realtime com fallback**:
+- `REALTIME_MODE=on`;
+- conferente envia `presence.set` somente em transições Online/Ausente;
+- heartbeat realtime a cada 20 segundos;
+- inatividade visível de aproximadamente 30 segundos => Ausente;
+- aba oculta => Ausente imediato;
+- conexão sem heartbeat por aproximadamente 45 segundos => expirada pelo `RealtimeHub`;
+- ADM/visualizador recebem `presence.snapshot` e `presence.changed`;
+- múltiplas abas/conferentes da mesma loja são agregados pelo estado mais ativo;
+- o polling de presença de 60 segundos fica suspenso enquanto o WebSocket está conectado;
+- a tabela/endpoints D1 de presença e o heartbeat de 2 minutos permanecem ativos como fallback.
+
+O Durable Object continua sem armazenar agendas ou mutações de negócio. Nesta fase, apenas presença visual usa o canal realtime.
+
+Rollback da Fase 3: definir `REALTIME_MODE=off` e publicar. O dashboard volta ao fallback HTTP/D1 sem reversão de dados. Não remover a tabela `conferente_presenca` nem o namespace do Durable Object durante incidente.
 
 O rollout completo está documentado na issue #59.
 

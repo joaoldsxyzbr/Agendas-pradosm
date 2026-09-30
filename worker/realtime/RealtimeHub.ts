@@ -1,17 +1,69 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   REALTIME_PROTOCOL_VERSION,
+  type RealtimeClientMessage,
   type RealtimeConnectionIdentity,
+  type RealtimePresenceStatus,
+  type RealtimePresenceSnapshotEvent,
   type RealtimeReadyEvent,
 } from "../../shared/realtime";
 import type { WorkerEnv } from "../env";
 
+const PRESENCE_STALE_MS = 45_000;
+const MAX_CLIENT_MESSAGE_BYTES = 2_048;
+
+type LivePresenceStatus = Exclude<RealtimePresenceStatus, "offline">;
+
 type ConnectionAttachment = RealtimeConnectionIdentity & {
   connectedAt: string;
+  presenceStatus: LivePresenceStatus | null;
+  lastPresenceAt: number | null;
 };
 
 function connectionTag(prefix: string, value: string) {
   return `${prefix}:${value}`;
+}
+
+function isLivePresenceStatus(value: unknown): value is LivePresenceStatus {
+  return value === "online" || value === "away";
+}
+
+function parseClientMessage(message: string): RealtimeClientMessage | null {
+  if (new TextEncoder().encode(message).byteLength > MAX_CLIENT_MESSAGE_BYTES) {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(message) as {
+      version?: unknown;
+      type?: unknown;
+      status?: unknown;
+    };
+
+    if (parsed.version !== REALTIME_PROTOCOL_VERSION) return null;
+
+    if (parsed.type === "presence.heartbeat") {
+      return {
+        version: REALTIME_PROTOCOL_VERSION,
+        type: "presence.heartbeat",
+      };
+    }
+
+    if (
+      parsed.type === "presence.set" &&
+      isLivePresenceStatus(parsed.status)
+    ) {
+      return {
+        version: REALTIME_PROTOCOL_VERSION,
+        type: "presence.set",
+        status: parsed.status,
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 export class RealtimeHub extends DurableObject<WorkerEnv> {
@@ -45,11 +97,14 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
+    const now = Date.now();
     const attachment: ConnectionAttachment = {
       userId,
       role,
       storeId,
-      connectedAt: new Date().toISOString(),
+      connectedAt: new Date(now).toISOString(),
+      presenceStatus: null,
+      lastPresenceAt: role === "conferente" ? now : null,
     };
 
     server.serializeAttachment(attachment);
@@ -67,6 +122,17 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       type: "realtime.ready",
     };
     server.send(JSON.stringify(ready));
+
+    if (role === "admin" || role === "visualizador") {
+      const snapshot: RealtimePresenceSnapshotEvent = {
+        version: REALTIME_PROTOCOL_VERSION,
+        type: "presence.snapshot",
+        stores: this.presenceSnapshot(),
+      };
+      server.send(JSON.stringify(snapshot));
+    } else {
+      await this.ensurePresenceAlarm();
+    }
 
     console.log(
       JSON.stringify({
@@ -88,22 +154,49 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       return;
     }
 
-    console.warn(
-      JSON.stringify({
-        event: "invalid_realtime_message",
-        protocolVersion: REALTIME_PROTOCOL_VERSION,
-      }),
-    );
-    ws.close(1008, "Mensagem realtime não suportada.");
+    const attachment = this.attachment(ws);
+    if (!attachment || attachment.role !== "conferente" || !attachment.storeId) {
+      this.rejectMessage(ws);
+      return;
+    }
+
+    if (typeof message !== "string") {
+      this.rejectMessage(ws);
+      return;
+    }
+
+    const parsed = parseClientMessage(message);
+    if (!parsed) {
+      this.rejectMessage(ws);
+      return;
+    }
+
+    const now = Date.now();
+    attachment.lastPresenceAt = now;
+
+    if (parsed.type === "presence.set") {
+      attachment.presenceStatus = parsed.status;
+    }
+
+    ws.serializeAttachment(attachment);
+    await this.ensurePresenceAlarm();
+
+    if (parsed.type === "presence.set") {
+      this.broadcastPresence(attachment.storeId);
+    }
   }
 
   async webSocketClose(
     ws: WebSocket,
     code: number,
-    reason: string,
+    _reason: string,
   ): Promise<void> {
-    const attachment =
-      ws.deserializeAttachment() as ConnectionAttachment | null;
+    const attachment = this.attachment(ws);
+
+    if (attachment?.role === "conferente" && attachment.storeId) {
+      this.broadcastPresence(attachment.storeId, new Set([ws]));
+      await this.ensurePresenceAlarm(new Set([ws]));
+    }
 
     console.log(
       JSON.stringify({
@@ -113,13 +206,15 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
         code,
       }),
     );
-
-    ws.close(code, reason);
   }
 
   async webSocketError(ws: WebSocket): Promise<void> {
-    const attachment =
-      ws.deserializeAttachment() as ConnectionAttachment | null;
+    const attachment = this.attachment(ws);
+
+    if (attachment?.role === "conferente" && attachment.storeId) {
+      this.broadcastPresence(attachment.storeId, new Set([ws]));
+      await this.ensurePresenceAlarm(new Set([ws]));
+    }
 
     console.error(
       JSON.stringify({
@@ -130,5 +225,149 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     );
 
     ws.close(1011, "Erro na conexão realtime.");
+  }
+
+  async alarm(): Promise<void> {
+    const now = Date.now();
+    const stale = new Set<WebSocket>();
+    const affectedStores = new Set<string>();
+
+    for (const ws of this.ctx.getWebSockets()) {
+      const attachment = this.attachment(ws);
+      if (attachment?.role !== "conferente" || !attachment.storeId) continue;
+
+      const lastSeen =
+        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      if (!Number.isFinite(lastSeen) || now - lastSeen >= PRESENCE_STALE_MS) {
+        stale.add(ws);
+        affectedStores.add(attachment.storeId);
+      }
+    }
+
+    for (const ws of stale) {
+      ws.close(4001, "Presença realtime expirada.");
+    }
+
+    for (const storeId of affectedStores) {
+      this.broadcastPresence(storeId, stale);
+    }
+
+    await this.ensurePresenceAlarm(stale);
+  }
+
+  private attachment(ws: WebSocket) {
+    return ws.deserializeAttachment() as ConnectionAttachment | null;
+  }
+
+  private rejectMessage(ws: WebSocket) {
+    console.warn(
+      JSON.stringify({
+        event: "invalid_realtime_message",
+        protocolVersion: REALTIME_PROTOCOL_VERSION,
+      }),
+    );
+    ws.close(1008, "Mensagem realtime não suportada.");
+  }
+
+  private storePresence(
+    storeId: string,
+    excluded: ReadonlySet<WebSocket> = new Set(),
+  ): RealtimePresenceStatus {
+    const now = Date.now();
+    let status: RealtimePresenceStatus = "offline";
+
+    for (const ws of this.ctx.getWebSockets(connectionTag("store", storeId))) {
+      if (excluded.has(ws)) continue;
+
+      const attachment = this.attachment(ws);
+      if (
+        attachment?.role !== "conferente" ||
+        attachment.storeId !== storeId ||
+        !attachment.presenceStatus
+      ) {
+        continue;
+      }
+
+      const lastSeen =
+        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      if (!Number.isFinite(lastSeen) || now - lastSeen >= PRESENCE_STALE_MS) {
+        continue;
+      }
+
+      if (attachment.presenceStatus === "online") {
+        return "online";
+      }
+
+      status = "away";
+    }
+
+    return status;
+  }
+
+  private presenceSnapshot() {
+    const stores = new Set<string>();
+
+    for (const ws of this.ctx.getWebSockets(connectionTag("role", "conferente"))) {
+      const attachment = this.attachment(ws);
+      if (attachment?.storeId) stores.add(attachment.storeId);
+    }
+
+    return [...stores].map((storeId) => ({
+      storeId,
+      status: this.storePresence(storeId),
+    }));
+  }
+
+  private broadcastPresence(
+    storeId: string,
+    excluded: ReadonlySet<WebSocket> = new Set(),
+  ) {
+    const event = JSON.stringify({
+      version: REALTIME_PROTOCOL_VERSION,
+      type: "presence.changed",
+      storeId,
+      status: this.storePresence(storeId, excluded),
+    });
+
+    for (const role of ["admin", "visualizador"] as const) {
+      for (const ws of this.ctx.getWebSockets(connectionTag("role", role))) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(event);
+        }
+      }
+    }
+  }
+
+  private async ensurePresenceAlarm(
+    excluded: ReadonlySet<WebSocket> = new Set(),
+  ) {
+    let nextAlarm: number | null = null;
+
+    for (const ws of this.ctx.getWebSockets(connectionTag("role", "conferente"))) {
+      if (excluded.has(ws)) continue;
+
+      const attachment = this.attachment(ws);
+      if (!attachment) continue;
+
+      const lastSeen =
+        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      if (!Number.isFinite(lastSeen)) continue;
+
+      const due = lastSeen + PRESENCE_STALE_MS;
+      nextAlarm = nextAlarm === null ? due : Math.min(nextAlarm, due);
+    }
+
+    const currentAlarm = await this.ctx.storage.getAlarm();
+
+    if (nextAlarm === null) {
+      if (currentAlarm !== null) {
+        await this.ctx.storage.deleteAlarm();
+      }
+      return;
+    }
+
+    if (currentAlarm === null || nextAlarm < currentAlarm) {
+      await this.ctx.storage.setAlarm(nextAlarm);
+    }
   }
 }

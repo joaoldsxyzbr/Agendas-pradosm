@@ -11,11 +11,12 @@ const now = "2026-09-30T18:00:00.000Z";
 async function seedUser(input: {
   role: "admin" | "visualizador" | "conferente";
   store?: boolean;
+  storeId?: string;
 }) {
   const userId = crypto.randomUUID();
-  const storeId = input.store ? crypto.randomUUID() : null;
+  const storeId = input.storeId ?? (input.store ? crypto.randomUUID() : null);
 
-  if (storeId) {
+  if (storeId && !input.storeId) {
     await db
       .prepare(
         "INSERT INTO lojas (id, codigo, nome, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, 1, ?, ?)",
@@ -104,7 +105,7 @@ describe("infraestrutura realtime", () => {
 
     expect(authenticated.status).toBe(200);
     expect(await authenticated.json()).toEqual({
-      mode: "shadow",
+      mode: "on",
       protocolVersion: 1,
     });
   });
@@ -171,6 +172,12 @@ describe("infraestrutura realtime", () => {
       type: "realtime.ready",
     });
 
+    expect(JSON.parse(await nextMessage(socket!))).toEqual({
+      version: 1,
+      type: "presence.snapshot",
+      stores: [],
+    });
+
     socket!.send("ping");
     expect(await nextMessage(socket!)).toBe("pong");
 
@@ -213,6 +220,116 @@ describe("infraestrutura realtime", () => {
     ).webSocket;
     socket?.accept();
     socket?.close(1000, "teste concluído");
+  });
+
+  it("agrega presença realtime por loja e publica transições ao ADM", async () => {
+    const admin = await seedUser({ role: "admin" });
+    const first = await seedUser({
+      role: "conferente",
+      store: true,
+    });
+    const second = await seedUser({
+      role: "conferente",
+      storeId: first.storeId!,
+    });
+
+    const adminResponse = await exports.default.fetch(
+      websocketRequest(admin.cookie),
+    );
+    const adminSocket = (
+      adminResponse as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    adminSocket.accept();
+
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "realtime.ready",
+    });
+    expect(JSON.parse(await nextMessage(adminSocket))).toMatchObject({
+      version: 1,
+      type: "presence.snapshot",
+    });
+
+    const firstResponse = await exports.default.fetch(
+      websocketRequest(first.cookie),
+    );
+    const firstSocket = (
+      firstResponse as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    firstSocket.accept();
+    await nextMessage(firstSocket);
+
+    firstSocket.send(
+      JSON.stringify({
+        version: 1,
+        type: "presence.set",
+        status: "online",
+      }),
+    );
+
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "presence.changed",
+      storeId: first.storeId,
+      status: "online",
+    });
+
+    const secondResponse = await exports.default.fetch(
+      websocketRequest(second.cookie),
+    );
+    const secondSocket = (
+      secondResponse as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    secondSocket.accept();
+    await nextMessage(secondSocket);
+
+    secondSocket.send(
+      JSON.stringify({
+        version: 1,
+        type: "presence.set",
+        status: "away",
+      }),
+    );
+
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "presence.changed",
+      storeId: first.storeId,
+      status: "online",
+    });
+
+    firstSocket.send(
+      JSON.stringify({
+        version: 1,
+        type: "presence.set",
+        status: "away",
+      }),
+    );
+
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "presence.changed",
+      storeId: first.storeId,
+      status: "away",
+    });
+
+    firstSocket.close(1000, "primeira aba fechada");
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "presence.changed",
+      storeId: first.storeId,
+      status: "away",
+    });
+
+    secondSocket.close(1000, "última aba fechada");
+    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+      version: 1,
+      type: "presence.changed",
+      storeId: first.storeId,
+      status: "offline",
+    });
+
+    adminSocket.close(1000, "teste concluído");
   });
 
   it("hub rejeita identidade incompleta quando chamado sem o proxy autenticado", async () => {

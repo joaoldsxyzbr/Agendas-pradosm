@@ -123,17 +123,24 @@ Os dados de agenda do dashboard não usam polling periódico. Eles atualizam:
 - quando o usuário clica em **Atualizar**;
 - silenciosamente quando a aba volta a ficar visível.
 
-A única atualização periódica é a **presença do conferente**, consultada por um endpoint pequeno e isolado a cada 60 segundos, sem recarregar agendas completas.
+A presença possui dois caminhos complementares:
 
-Todas as lojas e docas ativas exibem uma bolinha de presença:
+- **realtime**, quando o WebSocket está conectado;
+- **fallback HTTP/D1**, usado na carga inicial e quando a conexão realtime não está disponível.
 
-- **verde / Online**: houve interação nos últimos 3 minutos;
-- **amarelo / Ausente**: passaram mais de 3 minutos sem interação, mas existe sinal da aba nos últimos 7 minutos;
-- **vermelho / Offline**: passaram mais de 7 minutos sem sinal, ou ainda não existe presença registrada.
+No caminho realtime:
 
-A tela do conferente envia um heartbeat leve a cada 2 minutos. Eventos de mouse, teclado, foco e rolagem são agrupados localmente e não geram uma escrita no D1 por evento. Ao sair pelo botão **Sair**, a presença é encerrada imediatamente; queda de internet, travamento ou fechamento abrupto são tratados pela expiração de 7 minutos.
+- **verde / Online**: existe conexão viva, a aba está visível e houve interação nos últimos 30 segundos;
+- **amarelo / Ausente**: a conexão continua viva, mas a aba está oculta ou passou cerca de 30 segundos sem interação;
+- **vermelho / Offline**: não existe conexão viva de conferente para a loja/doca.
 
-Se houver mais de um conferente vinculado à mesma loja/doca, o dashboard mostra o estado mais ativo entre eles.
+O conferente envia um heartbeat realtime a cada 20 segundos. Se uma conexão deixa de enviar presença, o hub a considera expirada em aproximadamente 45 segundos. Eventos de mouse, teclado, foco e rolagem mudam somente o estado realtime quando necessário; não geram escrita D1 por evento.
+
+Enquanto o realtime está saudável, o ADM recebe snapshot e transições de presença pelo WebSocket e suspende o polling periódico. Se a conexão cair, o dashboard volta automaticamente ao endpoint HTTP/D1 atual.
+
+O fallback D1 continua intacto nesta fase: heartbeat a cada 2 minutos e regra histórica de Online até 3 minutos, Ausente entre 3 e 7 minutos e Offline depois de 7 minutos. Ele permanece disponível para rollback e indisponibilidade do realtime.
+
+Se houver mais de um conferente ou mais de uma aba vinculada à mesma loja/doca, o dashboard mostra o estado mais ativo entre as conexões válidas.
 
 ### Infraestrutura realtime
 
@@ -147,9 +154,9 @@ A infraestrutura realtime usa:
 - protocolo realtime versionado;
 - configuração `REALTIME_MODE` com fallback seguro para `off`.
 
-Na fase de **shadow mode**, usuários autenticados abrem uma conexão WebSocket, com ping/pong e reconexão progressiva, mas **nenhuma informação exibida na interface depende dela**. Dashboard e presença continuam usando exatamente os fluxos HTTP/D1 atuais. O D1 permanece a fonte da verdade.
+Após a validação do **shadow mode**, a presença passa a usar `REALTIME_MODE=on`. O Durable Object mantém somente estado efêmero de conexão/presença; o D1 continua sendo a fonte da verdade dos dados de negócio.
 
-O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`.
+O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`. A presença D1 anterior permanece como fallback e não é removida nesta fase.
 
 O plano completo e os checkpoints de rollout estão registrados na issue #59.
 

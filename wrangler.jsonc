@@ -67,6 +67,6 @@
     }
   },
   "vars": {
-    "REALTIME_MODE": "shadow"
+    "REALTIME_MODE": "on"
   }
 }

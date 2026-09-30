@@ -1,12 +1,26 @@
 import { useCallback, useEffect, useRef } from "react";
+import { REALTIME_PROTOCOL_VERSION } from "../../shared/realtime";
 import { apiFetch } from "../lib/api";
+import {
+  sendRealtimeMessage,
+  useRealtimeState,
+} from "../realtime/useRealtimeConnection";
 
 const HEARTBEAT_MS = 2 * 60 * 1000;
 const ONLINE_WINDOW_MS = 3 * 60 * 1000;
 
+const REALTIME_IDLE_MS = 30_000;
+const REALTIME_IDLE_CHECK_MS = 5_000;
+const REALTIME_HEARTBEAT_MS = 20_000;
+
+type LivePresenceStatus = "online" | "away";
+
 export function useStorePresence(enabled: boolean) {
+  const realtime = useRealtimeState();
   const lastInteractionSentAt = useRef(0);
   const interactedSinceSignal = useRef(true);
+  const realtimePresence = useRef<LivePresenceStatus | null>(null);
+  const lastRealtimeInteractionAt = useRef(0);
 
   const sendPresence = useCallback(
     async (interacted: boolean) => {
@@ -35,13 +49,33 @@ export function useStorePresence(enabled: boolean) {
     [enabled],
   );
 
+  const sendRealtimePresence = useCallback((status: LivePresenceStatus) => {
+    if (realtimePresence.current === status) return;
+
+    const sent = sendRealtimeMessage({
+      version: REALTIME_PROTOCOL_VERSION,
+      type: "presence.set",
+      status,
+    });
+
+    if (sent) {
+      realtimePresence.current = status;
+    }
+  }, []);
+
   const disconnect = useCallback(async () => {
     if (!enabled) return;
+
+    sendRealtimeMessage({
+      version: REALTIME_PROTOCOL_VERSION,
+      type: "presence.set",
+      status: "away",
+    });
 
     try {
       await apiFetch<void>("/api/store/presence", { method: "DELETE" });
     } catch {
-      // A expiração de 7 minutos cobre quedas ou encerramentos abruptos.
+      // O fallback D1 expira sozinho; o WebSocket encerra ao invalidar a sessão.
     }
   }, [enabled]);
 
@@ -98,6 +132,93 @@ export function useStorePresence(enabled: boolean) {
       }
     };
   }, [enabled, sendPresence]);
+
+  useEffect(() => {
+    if (
+      !enabled ||
+      realtime.mode !== "on" ||
+      realtime.status !== "connected"
+    ) {
+      realtimePresence.current = null;
+      return;
+    }
+
+    lastRealtimeInteractionAt.current = Date.now();
+
+    const markRealtimeInteraction = () => {
+      lastRealtimeInteractionAt.current = Date.now();
+
+      if (document.visibilityState === "visible") {
+        sendRealtimePresence("online");
+      }
+    };
+
+    const handleRealtimeVisibility = () => {
+      if (document.visibilityState === "visible") {
+        markRealtimeInteraction();
+      } else {
+        sendRealtimePresence("away");
+      }
+    };
+
+    const interactionEvents: Array<keyof WindowEventMap> = [
+      "pointermove",
+      "pointerdown",
+      "keydown",
+      "scroll",
+      "focus",
+    ];
+
+    for (const eventName of interactionEvents) {
+      window.addEventListener(eventName, markRealtimeInteraction, {
+        passive: true,
+      });
+    }
+    document.addEventListener(
+      "visibilitychange",
+      handleRealtimeVisibility,
+    );
+
+    if (document.visibilityState === "visible") {
+      sendRealtimePresence("online");
+    } else {
+      sendRealtimePresence("away");
+    }
+
+    const idleCheck = window.setInterval(() => {
+      if (
+        document.visibilityState === "visible" &&
+        Date.now() - lastRealtimeInteractionAt.current >= REALTIME_IDLE_MS
+      ) {
+        sendRealtimePresence("away");
+      }
+    }, REALTIME_IDLE_CHECK_MS);
+
+    const heartbeat = window.setInterval(() => {
+      sendRealtimeMessage({
+        version: REALTIME_PROTOCOL_VERSION,
+        type: "presence.heartbeat",
+      });
+    }, REALTIME_HEARTBEAT_MS);
+
+    return () => {
+      window.clearInterval(idleCheck);
+      window.clearInterval(heartbeat);
+      document.removeEventListener(
+        "visibilitychange",
+        handleRealtimeVisibility,
+      );
+      for (const eventName of interactionEvents) {
+        window.removeEventListener(eventName, markRealtimeInteraction);
+      }
+      realtimePresence.current = null;
+    };
+  }, [
+    enabled,
+    realtime.mode,
+    realtime.status,
+    sendRealtimePresence,
+  ]);
 
   return { disconnect };
 }
