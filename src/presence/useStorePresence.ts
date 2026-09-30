@@ -48,7 +48,7 @@ export function useStorePresence(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return;
 
-    lastInteractionSentAt.current = 0;
+    lastInteractionSentAt.current = Date.now();
     interactedSinceSignal.current = true;
     void sendPresence(true);
 
