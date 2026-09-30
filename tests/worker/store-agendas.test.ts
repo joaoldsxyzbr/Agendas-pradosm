@@ -779,7 +779,7 @@ describe("store agenda workflow", () => {
   });
 
 
-  it("não permite que a loja volte o status para aguardando", async () => {
+  it("permite que a loja volte o status para aguardando", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-status-awaiting",
       storeCode: "F80",
@@ -805,12 +805,14 @@ describe("store agenda workflow", () => {
       { method: "PATCH", body: { status: "aguardando" } },
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "aguardando" });
+
     const row = await db
       .prepare("SELECT status FROM agendamentos WHERE id = ?")
       .bind("appt-status-awaiting")
       .first<{ status: string }>();
-    expect(row?.status).toBe("recebido");
+    expect(row?.status).toBe("aguardando");
   });
 
   it("rollbacka a mudança se a gravação do histórico falhar", async () => {
