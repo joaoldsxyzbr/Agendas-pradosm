@@ -167,7 +167,13 @@ export function AdminAgendaPreview({
         {error ? <p className="form-error">{error}</p> : null}
 
         {!loading && !error && detail ? (
-          <section className="store-page admin-agenda-preview">
+          <section
+            className={`store-page admin-agenda-preview ${
+              detail.agenda.dayStatus === "concluido"
+                ? "is-completed"
+                : "is-open"
+            }`}
+          >
             <div className="agenda-preview-context">
               <div>
                 <strong>{formatDate(detail.agenda.date)}</strong>
@@ -176,7 +182,7 @@ export function AdminAgendaPreview({
               <div className="agenda-preview-status">
                 {canReopen && detail.agenda.dayStatus === "concluido" ? (
                   <button
-                    className="status-pill neutral agenda-preview-reopen"
+                    className="status-pill warning agenda-preview-reopen"
                     type="button"
                     disabled={reopening}
                     onClick={() => void reopenForStore()}
@@ -184,21 +190,37 @@ export function AdminAgendaPreview({
                     {reopening ? "Reabrindo..." : "Reabrir para conferente"}
                   </button>
                 ) : null}
-                <span className="status-pill neutral">
+                <span
+                  className={`status-pill agenda-preview-day-status ${
+                    detail.agenda.dayStatus === "concluido"
+                      ? "success"
+                      : "warning"
+                  }`}
+                >
                   {detail.agenda.dayStatus === "concluido"
-                    ? "Concluído"
-                    : "Em aberto"}
+                    ? "✓ Concluído"
+                    : "Em andamento"}
                 </span>
-                <span className="status-pill neutral">Somente leitura</span>
+                <span className="status-pill muted">Somente leitura</span>
               </div>
             </div>
 
             <section className="agenda-metrics" aria-label="Resumo da agenda">
-              <span><strong>{total}</strong> total</span>
-              <span><strong>{aguardando}</strong> aguardando</span>
-              <span><strong>{recebido}</strong> recebidos</span>
-              <span><strong>{naoChegou}</strong> não recebidos</span>
-              <span><strong>{trocas}</strong> trocas</span>
+              <span className="agenda-metric agenda-metric-total">
+                <strong>{total}</strong> total
+              </span>
+              <span className="agenda-metric agenda-metric-pending">
+                <strong>{aguardando}</strong> aguardando
+              </span>
+              <span className="agenda-metric agenda-metric-success">
+                <strong>{recebido}</strong> recebidos
+              </span>
+              <span className="agenda-metric agenda-metric-danger">
+                <strong>{naoChegou}</strong> não recebidos
+              </span>
+              <span className="agenda-metric agenda-metric-exchange">
+                <strong>{trocas}</strong> trocas
+              </span>
             </section>
 
             <div className="agenda-toolbar">
