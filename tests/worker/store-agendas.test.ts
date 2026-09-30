@@ -671,7 +671,7 @@ describe("store agenda workflow", () => {
     expect(audit.results).toHaveLength(2);
   });
 
-  it("muda status, grava histórico e permite correção posterior", async () => {
+  it("muda status, volta para aguardando e grava todo o histórico", async () => {
     const userId = "user-status-a";
     const cookie = await seedStoreUser({
       storeId: "store-status-a",
@@ -691,21 +691,29 @@ describe("store agenda workflow", () => {
       startTime: "08:00",
     });
 
-    const first = await request(
+    const received = await request(
       "/api/store/appointments/appt-status-a/status",
       cookie,
       { method: "PATCH", body: { status: "recebido" } },
     );
-    expect(first.status).toBe(200);
-    expect(await first.json()).toMatchObject({ status: "recebido" });
+    expect(received.status).toBe(200);
+    expect(await received.json()).toMatchObject({ status: "recebido" });
 
-    const corrected = await request(
+    const reset = await request(
       "/api/store/appointments/appt-status-a/status",
       cookie,
-      { method: "PATCH", body: { status: "recusado" } },
+      { method: "PATCH", body: { status: "aguardando" } },
     );
-    expect(corrected.status).toBe(200);
-    expect(await corrected.json()).toMatchObject({ status: "recusado" });
+    expect(reset.status).toBe(200);
+    expect(await reset.json()).toMatchObject({ status: "aguardando" });
+
+    const missed = await request(
+      "/api/store/appointments/appt-status-a/status",
+      cookie,
+      { method: "PATCH", body: { status: "nao_chegou" } },
+    );
+    expect(missed.status).toBe(200);
+    expect(await missed.json()).toMatchObject({ status: "nao_chegou" });
 
     const history = await db
       .prepare(
@@ -727,7 +735,12 @@ describe("store agenda workflow", () => {
       {
         usuario_id: userId,
         status_anterior: "recebido",
-        status_novo: "recusado",
+        status_novo: "aguardando",
+      },
+      {
+        usuario_id: userId,
+        status_anterior: "aguardando",
+        status_novo: "nao_chegou",
       },
     ]);
   });
@@ -766,7 +779,7 @@ describe("store agenda workflow", () => {
   });
 
 
-  it("não permite que a loja volte o status para aguardando", async () => {
+  it("permite que a loja volte o status para aguardando", async () => {
     const cookie = await seedStoreUser({
       storeId: "store-status-awaiting",
       storeCode: "F80",
@@ -792,12 +805,14 @@ describe("store agenda workflow", () => {
       { method: "PATCH", body: { status: "aguardando" } },
     );
 
-    expect(response.status).toBe(400);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "aguardando" });
+
     const row = await db
       .prepare("SELECT status FROM agendamentos WHERE id = ?")
       .bind("appt-status-awaiting")
       .first<{ status: string }>();
-    expect(row?.status).toBe("recebido");
+    expect(row?.status).toBe("aguardando");
   });
 
   it("rollbacka a mudança se a gravação do histórico falhar", async () => {

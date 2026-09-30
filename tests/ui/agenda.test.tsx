@@ -307,38 +307,49 @@ describe("TodayPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("só atualiza status após resposta 2xx e permite correção posterior", async () => {
+  it("faz toggle dos botões de status e só atualiza após resposta 2xx", async () => {
     let resolveFirst!: (response: Response) => void;
     const pending = new Promise<Response>((resolve) => {
       resolveFirst = resolve;
     });
+
+    const statusResponses: AppointmentStatus[] = [
+      "aguardando",
+      "nao_chegou",
+      "aguardando",
+      "recebido",
+      "nao_chegou",
+    ];
 
     const fetchMock = vi
       .fn()
       .mockImplementationOnce(() =>
         json(200, agendaBody([appointment("appt-status", "08:00")])),
       )
-      .mockImplementationOnce(() => pending)
-      .mockImplementationOnce(() =>
+      .mockImplementationOnce(() => pending);
+
+    for (const status of statusResponses) {
+      fetchMock.mockImplementationOnce(() =>
         json(200, {
-          ...appointment("appt-status", "08:00", "nao_chegou"),
+          ...appointment("appt-status", "08:00", status),
         }),
       );
+    }
 
     vi.stubGlobal("fetch", fetchMock);
     render(<TodayPage />);
 
     const card = await screen.findByTestId("agenda-mobile-card");
-    expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
-    expect(
-      within(card).queryByRole("button", { name: "Aguardando" }),
-    ).not.toBeInTheDocument();
+    const recebidoButton = within(card).getByRole("button", { name: "Recebido" });
+    const naoRecebidoButton = within(card).getByRole("button", { name: "Não recebido" });
 
-    expect(within(card).getByRole("button", { name: "Recebido" })).toHaveTextContent("✓");
-    expect(within(card).getByRole("button", { name: "Não recebido" })).toHaveTextContent("✕");
+    expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+    expect(recebidoButton).toHaveTextContent("✓");
+    expect(naoRecebidoButton).toHaveTextContent("✕");
+    expect(within(card).queryByRole("button", { name: "Aguardando" })).not.toBeInTheDocument();
     expect(within(card).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Recebido" }));
+    fireEvent.click(recebidoButton);
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
 
     resolveFirst(
@@ -349,15 +360,37 @@ describe("TodayPage", () => {
         { status: 200, headers: { "Content-Type": "application/json" } },
       ),
     );
-
     expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
 
-    fireEvent.click(within(card).getByRole("button", { name: "Não recebido" }));
+    fireEvent.click(recebidoButton);
+    expect(await within(card).findByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+
+    fireEvent.click(naoRecebidoButton);
     expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
 
-    const calls = fetchMock.mock.calls
-      .filter((call) => String(call[0]).includes("/status"));
-    expect(calls).toHaveLength(2);
+    fireEvent.click(naoRecebidoButton);
+    expect(await within(card).findByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+
+    fireEvent.click(recebidoButton);
+    expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
+
+    fireEvent.click(naoRecebidoButton);
+    expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
+
+    const calls = fetchMock.mock.calls.filter((call) =>
+      String(call[0]).includes("/status"),
+    );
+    expect(calls).toHaveLength(6);
+    expect(
+      calls.map((call) => JSON.parse(String(call[1]?.body)).status),
+    ).toEqual([
+      "recebido",
+      "aguardando",
+      "nao_chegou",
+      "aguardando",
+      "recebido",
+      "nao_chegou",
+    ]);
   });
 
   it("marca trocas sem alterar o status de chegada", async () => {
