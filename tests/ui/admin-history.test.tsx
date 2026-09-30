@@ -81,7 +81,15 @@ describe("AdminAgendaHistoryPage", () => {
       }
 
       if (url === "/api/admin/agendas/agenda-1/history") {
-        return json([]);
+        return json([
+          {
+            id: "auto-close-1",
+            action: "concluido_automaticamente",
+            details: "Dia concluído automaticamente após a virada da data operacional.",
+            changedAt: "2026-09-25T03:05:00.000Z",
+            user: null,
+          },
+        ]);
       }
 
       if (url === "/api/admin/appointments/appt-1/history") {
@@ -113,6 +121,11 @@ describe("AdminAgendaHistoryPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Abrir agenda" }));
 
     expect(await screen.findByText("FORNECEDOR TESTE")).toBeInTheDocument();
+    expect(
+      screen.getByText("Dia concluído automaticamente"),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Sistema · Dia concluído automaticamente/)).toBeInTheDocument();
+
     fireEvent.click(screen.getByRole("button", { name: "Ver histórico" }));
 
     expect(await screen.findByText("aguardando → recebido")).toBeInTheDocument();
