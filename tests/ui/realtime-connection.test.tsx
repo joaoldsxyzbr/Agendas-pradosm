@@ -39,6 +39,10 @@ class MockWebSocket {
     this.onmessage?.({ data } as MessageEvent);
   }
 
+  error() {
+    this.onerror?.();
+  }
+
   send(data: string) {
     this.sent.push(data);
   }
@@ -181,6 +185,35 @@ describe("cliente realtime", () => {
         type: "presence.heartbeat",
       }),
     );
+  });
+
+  it("fecha erro do navegador com código de aplicação válido", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json({ mode: "on", protocolVersion: 1 })),
+    );
+    vi.stubGlobal("WebSocket", MockWebSocket);
+
+    render(<Harness sessionKey="user-error" />);
+    await flushPromises();
+
+    const socket = MockWebSocket.instances[0];
+    act(() => socket.open());
+    act(() =>
+      socket.message(
+        JSON.stringify({
+          version: 1,
+          type: "realtime.ready",
+        }),
+      ),
+    );
+
+    act(() => socket.error());
+
+    expect(socket.closeCalls.at(-1)).toEqual({
+      code: 4002,
+      reason: "Falha na conexão realtime.",
+    });
   });
 
   it("reconecta com atraso progressivo quando a conexão cai", async () => {
