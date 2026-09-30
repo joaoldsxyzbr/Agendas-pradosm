@@ -76,6 +76,12 @@ Como o projeto usa migrations aditivas, o rollback de aplicação consiste em re
 
 Não executar rollback destrutivo de schema como resposta automática. Se uma estrutura antiga precisar ser removida ou restaurada, tratar isso como uma release específica e revisada.
 
+Incidentes de perda, corrupção ou alteração indevida de dados do D1 seguem o runbook específico:
+
+- [Recuperação de dados do D1](data-recovery.md)
+
+O restore de dados não deve ser confundido com rollback de aplicação. Antes de qualquer Time Travel, registre o bookmark atual e valide o ponto de recuperação.
+
 
 ### Impacto da migration 0015
 
