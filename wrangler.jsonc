@@ -5,10 +5,14 @@
   "main": "./worker/index.ts",
   "assets": {
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*"
+    ]
   },
   "triggers": {
-    "crons": ["5 3 * * *"]
+    "crons": [
+      "5 3 * * *"
+    ]
   },
   "d1_databases": [
     {
@@ -44,6 +48,22 @@
     "redact_query_string": true
   },
   "secrets": {
-    "required": ["SESSION_SECRET"]
+    "required": [
+      "SESSION_SECRET"
+    ]
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "REALTIME_HUB",
+        "class_name": "RealtimeHub"
+      }
+    ]
+  },
+  "exports": {
+    "RealtimeHub": {
+      "type": "durable-object",
+      "storage": "sqlite"
+    }
   }
 }
