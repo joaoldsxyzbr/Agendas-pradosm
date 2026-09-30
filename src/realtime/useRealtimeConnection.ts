@@ -264,7 +264,7 @@ export function useRealtimeConnection(sessionKey: string | null) {
 
       current.onerror = () => {
         if (current.readyState === WebSocket.OPEN) {
-          current.close(1011, "Falha na conexão realtime.");
+          current.close(4002, "Falha na conexão realtime.");
         }
       };
 

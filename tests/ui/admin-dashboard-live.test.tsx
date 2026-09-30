@@ -76,7 +76,9 @@ describe("atualizacao do dashboard", () => {
     expect(await within(card).findByText("2 / 2")).toBeInTheDocument();
     expect(agendaReads).toBe(2);
     expect(
-      setIntervalSpy.mock.calls.some(([, delay]) => delay === 10_000),
+      setIntervalSpy.mock.calls.some(
+        ([, delay]) => delay === 10_000 || delay === 60_000,
+      ),
     ).toBe(false);
   });
 

@@ -11,7 +11,7 @@ import {
 } from "../../shared/realtime";
 import type { WorkerEnv } from "../env";
 
-const PRESENCE_STALE_MS = 45_000;
+const PRESENCE_STALE_MS = 120_000;
 const MAX_CLIENT_MESSAGE_BYTES = 2_048;
 
 type LivePresenceStatus = Exclude<RealtimePresenceStatus, "offline">;
@@ -311,8 +311,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       const attachment = this.attachment(ws);
       if (attachment?.role !== "conferente" || !attachment.storeId) continue;
 
-      const lastSeen =
-        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      const lastSeen = this.connectionLastSeen(ws, attachment);
       if (!Number.isFinite(lastSeen) || now - lastSeen >= PRESENCE_STALE_MS) {
         stale.add(ws);
         affectedStores.add(attachment.storeId);
@@ -344,6 +343,20 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     ws.close(1008, "Mensagem realtime não suportada.");
   }
 
+  private connectionLastSeen(
+    ws: WebSocket,
+    attachment: ConnectionAttachment,
+  ) {
+    const presenceSeen =
+      attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+    const autoResponseSeen =
+      this.ctx.getWebSocketAutoResponseTimestamp(ws)?.getTime() ?? Number.NaN;
+
+    if (!Number.isFinite(presenceSeen)) return autoResponseSeen;
+    if (!Number.isFinite(autoResponseSeen)) return presenceSeen;
+    return Math.max(presenceSeen, autoResponseSeen);
+  }
+
   private storePresence(
     storeId: string,
     excluded: ReadonlySet<WebSocket> = new Set(),
@@ -363,8 +376,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
         continue;
       }
 
-      const lastSeen =
-        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      const lastSeen = this.connectionLastSeen(ws, attachment);
       if (!Number.isFinite(lastSeen) || now - lastSeen >= PRESENCE_STALE_MS) {
         continue;
       }
@@ -436,8 +448,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       const attachment = this.attachment(ws);
       if (!attachment) continue;
 
-      const lastSeen =
-        attachment.lastPresenceAt ?? Date.parse(attachment.connectedAt);
+      const lastSeen = this.connectionLastSeen(ws, attachment);
       if (!Number.isFinite(lastSeen)) continue;
 
       const due = lastSeen + PRESENCE_STALE_MS;

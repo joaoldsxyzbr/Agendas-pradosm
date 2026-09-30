@@ -134,9 +134,9 @@ No caminho realtime:
 - **amarelo / Ausente**: a conexão continua viva, mas a aba está oculta ou passou cerca de 30 segundos sem interação;
 - **vermelho / Offline**: não existe conexão viva de conferente para a loja/doca.
 
-O conferente envia um heartbeat realtime a cada 20 segundos. Se uma conexão deixa de enviar presença, o hub a considera expirada em aproximadamente 45 segundos. Eventos de mouse, teclado, foco e rolagem mudam somente o estado realtime quando necessário; não geram escrita D1 por evento.
+O conferente envia um heartbeat realtime a cada 20 segundos e o cliente mantém ping/pong hibernável no WebSocket. O hub considera tanto o heartbeat funcional quanto o último auto-response do ping para avaliar liveness. Uma conexão sem qualquer sinal válido por aproximadamente 2 minutos é expirada; fechamento normal e logout continuam refletindo Offline sem esperar esse limite. Eventos de mouse, teclado, foco e rolagem mudam somente o estado realtime quando necessário; não geram escrita D1 por evento.
 
-Enquanto o realtime está saudável, o ADM recebe snapshot e transições de presença pelo WebSocket e suspende o polling periódico. Se a conexão cair, o dashboard volta automaticamente ao endpoint HTTP/D1 atual.
+O ADM recebe snapshot e transições de presença pelo WebSocket. O polling periódico de presença foi removido após a estabilização do realtime. O endpoint HTTP/D1 permanece como fallback de reconciliação na carga, mudança de estado da conexão, retorno de foco e botão **Atualizar**.
 
 O fallback D1 continua intacto nesta fase: heartbeat a cada 2 minutos e regra histórica de Online até 3 minutos, Ausente entre 3 e 7 minutos e Offline depois de 7 minutos. Ele permanece disponível para rollback e indisponibilidade do realtime.
 
@@ -156,7 +156,7 @@ A infraestrutura realtime usa:
 
 Após a validação do **shadow mode**, a presença passa a usar `REALTIME_MODE=on`. O Durable Object mantém somente estado efêmero de conexão/presença; o D1 continua sendo a fonte da verdade dos dados de negócio.
 
-O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`. A presença D1 anterior permanece como fallback e não é removida nesta fase.
+O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`. A presença D1 anterior permanece como fallback de segurança; sua tabela e endpoints continuam preservados para rollback e reconciliação, sem polling periódico no ADM.
 
 ### Dashboard em tempo real
 

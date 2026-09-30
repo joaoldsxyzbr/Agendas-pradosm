@@ -80,12 +80,13 @@ A terceira release ativa **presença realtime com fallback**:
 - `REALTIME_MODE=on`;
 - conferente envia `presence.set` somente em transições Online/Ausente;
 - heartbeat realtime a cada 20 segundos;
+- ping/pong hibernável do WebSocket também conta como sinal de liveness;
 - inatividade visível de aproximadamente 30 segundos => Ausente;
 - aba oculta => Ausente imediato;
-- conexão sem heartbeat por aproximadamente 45 segundos => expirada pelo `RealtimeHub`;
+- conexão sem heartbeat nem ping válido por aproximadamente 2 minutos => expirada pelo `RealtimeHub`;
+- fechamento normal/logout continuam refletindo Offline sem aguardar a expiração;
 - ADM/visualizador recebem `presence.snapshot` e `presence.changed`;
 - múltiplas abas/conferentes da mesma loja são agregados pelo estado mais ativo;
-- o polling de presença de 60 segundos fica suspenso enquanto o WebSocket está conectado;
 - a tabela/endpoints D1 de presença e o heartbeat de 2 minutos permanecem ativos como fallback.
 
 O Durable Object continua sem armazenar agendas ou mutações de negócio. Nesta fase, apenas presença visual usa o canal realtime.
@@ -113,6 +114,16 @@ Mutações cobertas:
 - importação em lote.
 
 Rollback da Fase 4: definir `REALTIME_MODE=off` e publicar, ou republicar a versão anterior. Os dados permanecem corretos no D1; apenas a atualização instantânea é desativada.
+
+A quinta release encerra a migração principal:
+- remove o polling periódico de presença de 60 segundos do ADM;
+- mantém leitura HTTP/D1 na carga, transição da conexão realtime, retorno de foco e atualização manual;
+- preserva o heartbeat D1 de 2 minutos no conferente como fallback de rollback;
+- usa `getWebSocketAutoResponseTimestamp()` do Hibernation API para considerar o ping/pong automático na liveness;
+- amplia a expiração de segurança para aproximadamente 2 minutos, evitando reconexões falsas em abas em segundo plano;
+- usa código de fechamento de aplicação `4002` no cliente em vez de código reservado de servidor.
+
+A limpeza destrutiva da tabela/endpoints D1 de presença **não faz parte do encerramento**. Eles permanecem deliberadamente disponíveis como fallback operacional e podem ser removidos apenas em uma release futura explicitamente revisada.
 
 O rollout completo está documentado na issue #59.
 
