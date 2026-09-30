@@ -56,7 +56,9 @@ function updateRuntimeState(next: RealtimeRuntimeState) {
 
 function subscribeState(listener: () => void) {
   stateListeners.add(listener);
-  return () => stateListeners.delete(listener);
+  return () => {
+    stateListeners.delete(listener);
+  };
 }
 
 function currentState() {
@@ -120,7 +122,9 @@ export function useRealtimeEvent(
 ) {
   useEffect(() => {
     eventListeners.add(handler);
-    return () => eventListeners.delete(handler);
+    return () => {
+      eventListeners.delete(handler);
+    };
   }, dependencies);
 }
 
