@@ -19,6 +19,7 @@ import { adminAuditRoutes } from "./routes/admin-audit";
 import { adminStoreRoutes } from "./routes/admin-stores";
 import { adminUserRoutes } from "./routes/admin-users";
 import { authRoutes } from "./routes/auth";
+import { realtimeRoutes } from "./routes/realtime";
 import { adminPresenceRoutes, storePresenceRoutes } from "./routes/presence";
 import {
   storeAgendaRoutes,
@@ -50,6 +51,9 @@ app.get("/api/health", async (c) => {
 });
 app.use("/api/auth/bootstrap-register", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
+
+app.use("/api/realtime", requireAuth);
+app.route("/api/realtime", realtimeRoutes);
 
 app.use(
   "/api/admin/*",
