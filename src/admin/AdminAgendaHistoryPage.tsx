@@ -388,10 +388,12 @@ export function AdminAgendaHistoryPage() {
                         ? "Dia concluído"
                         : item.action === "reaberto"
                           ? "Dia reaberto"
-                          : "Ajuste administrativo"}
+                          : item.action === "concluido_automaticamente"
+                            ? "Dia concluído automaticamente"
+                            : "Ajuste administrativo"}
                     </strong>
                     <span>
-                      {item.user.name}
+                      {item.user?.name ?? "Sistema"}
                       {item.details ? ` · ${item.details}` : ""}
                     </span>
                   </li>
