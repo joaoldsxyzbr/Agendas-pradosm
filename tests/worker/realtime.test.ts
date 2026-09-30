@@ -89,6 +89,23 @@ async function nextMessage(socket: WebSocket) {
   });
 }
 
+function mutate(
+  url: string,
+  cookie: string,
+  body: unknown,
+) {
+  return exports.default.fetch(
+    new Request(`https://example.com${url}`, {
+      method: "PATCH",
+      headers: {
+        Cookie: cookie,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }),
+  );
+}
+
 describe("infraestrutura realtime", () => {
   it("mantém a configuração realtime protegida por sessão", async () => {
     const anonymous = await exports.default.fetch(
@@ -385,6 +402,95 @@ describe("infraestrutura realtime", () => {
     expect(invalid.status).toBe(400);
 
     socket.close(1000, "teste concluído");
+  });
+
+  it("publica mudanças do conferente somente depois da mutação D1", async () => {
+    const conferente = await seedUser({
+      role: "conferente",
+      store: true,
+    });
+    const admin = await seedUser({ role: "admin" });
+
+    const agendaId = crypto.randomUUID();
+    const appointmentId = crypto.randomUUID();
+
+    await db
+      .prepare(
+        "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, ?, '2026-09-30', 'agenda.pdf', ?, ?, ?)",
+      )
+      .bind(
+        agendaId,
+        conferente.storeId,
+        admin.userId,
+        now,
+        now,
+      )
+      .run();
+
+    await db
+      .prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '08:00', '09:00', 'Fornecedor Realtime', 1, 1, 0, NULL, 'Pedido', '[]', '[]', 'aguardando', 0, 1, ?, ?)",
+      )
+      .bind(
+        appointmentId,
+        agendaId,
+        `RT-${appointmentId.slice(0, 8)}`,
+        now,
+        now,
+      )
+      .run();
+
+    const adminResponse = await exports.default.fetch(
+      websocketRequest(admin.cookie),
+    );
+    const adminSocket = (
+      adminResponse as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    adminSocket.accept();
+
+    await nextMessage(adminSocket);
+    await nextMessage(adminSocket);
+
+    const statusEvent = nextMessage(adminSocket);
+    const status = await mutate(
+      `/api/store/appointments/${appointmentId}/status`,
+      conferente.cookie,
+      { status: "recebido" },
+    );
+    expect(status.status).toBe(200);
+    expect(JSON.parse(await statusEvent)).toEqual({
+      version: 1,
+      type: "agenda.changed",
+      agendaId,
+      storeId: conferente.storeId,
+      date: "2026-09-30",
+      reason: "status",
+    });
+
+    const invalid = await mutate(
+      `/api/store/appointments/${appointmentId}/status`,
+      conferente.cookie,
+      { status: "invalido" },
+    );
+    expect(invalid.status).toBe(400);
+
+    const exchangesEvent = nextMessage(adminSocket);
+    const exchanges = await mutate(
+      `/api/store/appointments/${appointmentId}/exchanges`,
+      conferente.cookie,
+      { hasExchanges: true },
+    );
+    expect(exchanges.status).toBe(200);
+    expect(JSON.parse(await exchangesEvent)).toEqual({
+      version: 1,
+      type: "agenda.changed",
+      agendaId,
+      storeId: conferente.storeId,
+      date: "2026-09-30",
+      reason: "exchanges",
+    });
+
+    adminSocket.close(1000, "teste concluído");
   });
 
   it("hub rejeita identidade incompleta quando chamado sem o proxy autenticado", async () => {
