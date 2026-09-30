@@ -26,6 +26,9 @@ jobs:
       - name: Refresh vulnerable Cloudflare dev dependencies
         run: npm install --save-dev @cloudflare/vite-plugin@1.62.2 @cloudflare/vitest-plugin@1.3.3
 
+      - name: Apply compatible transitive security fixes
+        run: npm audit fix
+
       - name: Audit all dependencies
         run: npm audit
 
