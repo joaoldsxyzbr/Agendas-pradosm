@@ -118,6 +118,13 @@ describe("visualizador do dashboard", () => {
     );
     expect(agendas.status).toBe(200);
 
+    const presence = await exports.default.fetch(
+      new Request("https://example.com/api/admin/presence", {
+        headers: { Cookie: cookie! },
+      }),
+    );
+    expect(presence.status).toBe(200);
+
     const users = await exports.default.fetch(
       new Request("https://example.com/api/admin/users", {
         headers: { Cookie: cookie! },
