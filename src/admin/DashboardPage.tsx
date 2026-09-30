@@ -155,21 +155,6 @@ export function DashboardPage({
 
   useEffect(() => {
     void refreshPresence();
-
-    if (
-      realtime.mode === "on" &&
-      realtime.status === "connected"
-    ) {
-      return;
-    }
-
-    const presenceRefresh = window.setInterval(() => {
-      if (document.visibilityState === "visible") {
-        void refreshPresence();
-      }
-    }, 60_000);
-
-    return () => window.clearInterval(presenceRefresh);
   }, [realtime.mode, realtime.status]);
 
   const agendaByStore = new Map(
