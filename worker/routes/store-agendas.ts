@@ -26,7 +26,7 @@ export const storeAgendaRoutes = new Hono<AppEnv>();
 export const storeAppointmentRoutes = new Hono<AppEnv>();
 
 const ChangeStatusInput = z.object({
-  status: z.enum(["recebido", "nao_chegou", "recusado"]),
+  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
 });
 
 const ChangeExchangesInput = z.object({
