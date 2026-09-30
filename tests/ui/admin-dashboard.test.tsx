@@ -310,7 +310,7 @@ describe("dashboard operacional", () => {
       }),
     );
 
-    expect(await within(dialog).findByText("Em aberto")).toBeInTheDocument();
+    expect(await within(dialog).findByText("Em andamento")).toBeInTheDocument();
     expect(
       within(dialog).queryByRole("button", {
         name: "Reabrir para conferente",
