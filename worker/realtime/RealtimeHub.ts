@@ -1,6 +1,8 @@
 import { DurableObject } from "cloudflare:workers";
 import {
   REALTIME_PROTOCOL_VERSION,
+  type RealtimeAgendaChangedEvent,
+  type RealtimeAgendaChangedReason,
   type RealtimeClientMessage,
   type RealtimeConnectionIdentity,
   type RealtimePresenceStatus,
@@ -26,6 +28,54 @@ function connectionTag(prefix: string, value: string) {
 
 function isLivePresenceStatus(value: unknown): value is LivePresenceStatus {
   return value === "online" || value === "away";
+}
+
+function isAgendaChangedReason(
+  value: unknown,
+): value is RealtimeAgendaChangedReason {
+  return (
+    value === "status" ||
+    value === "exchanges" ||
+    value === "manual" ||
+    value === "day-status" ||
+    value === "import"
+  );
+}
+
+function parseAgendaChangedEvent(
+  value: unknown,
+): RealtimeAgendaChangedEvent | null {
+  if (!value || typeof value !== "object") return null;
+
+  const event = value as {
+    version?: unknown;
+    type?: unknown;
+    agendaId?: unknown;
+    storeId?: unknown;
+    date?: unknown;
+    reason?: unknown;
+  };
+
+  if (
+    event.version !== REALTIME_PROTOCOL_VERSION ||
+    event.type !== "agenda.changed" ||
+    typeof event.agendaId !== "string" ||
+    typeof event.storeId !== "string" ||
+    typeof event.date !== "string" ||
+    !/^\d{4}-\d{2}-\d{2}$/.test(event.date) ||
+    !isAgendaChangedReason(event.reason)
+  ) {
+    return null;
+  }
+
+  return {
+    version: REALTIME_PROTOCOL_VERSION,
+    type: "agenda.changed",
+    agendaId: event.agendaId,
+    storeId: event.storeId,
+    date: event.date,
+    reason: event.reason,
+  };
 }
 
 function parseClientMessage(message: string): RealtimeClientMessage | null {
@@ -75,6 +125,31 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
   }
 
   async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method === "POST" && url.pathname === "/internal/publish") {
+      const event = parseAgendaChangedEvent(
+        await request.json().catch(() => null),
+      );
+
+      if (!event) {
+        return new Response("Invalid realtime event.", { status: 400 });
+      }
+
+      this.broadcastDashboardEvent(event);
+
+      console.log(
+        JSON.stringify({
+          event: "dashboard_event_published",
+          protocolVersion: REALTIME_PROTOCOL_VERSION,
+          type: event.type,
+          reason: event.reason,
+        }),
+      );
+
+      return new Response(null, { status: 204 });
+    }
+
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("WebSocket upgrade required.", { status: 426 });
     }
@@ -333,6 +408,18 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       for (const ws of this.ctx.getWebSockets(connectionTag("role", role))) {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(event);
+        }
+      }
+    }
+  }
+
+  private broadcastDashboardEvent(event: RealtimeAgendaChangedEvent) {
+    const payload = JSON.stringify(event);
+
+    for (const role of ["admin", "visualizador"] as const) {
+      for (const ws of this.ctx.getWebSockets(connectionTag("role", role))) {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(payload);
         }
       }
     }
