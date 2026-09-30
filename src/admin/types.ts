@@ -83,13 +83,17 @@ export type AppointmentHistoryItem = {
 
 export type AgendaDayHistoryItem = {
   id: string;
-  action: "concluido" | "reaberto" | "ajuste_admin";
+  action:
+    | "concluido"
+    | "reaberto"
+    | "ajuste_admin"
+    | "concluido_automaticamente";
   details: string | null;
   changedAt: string;
   user: {
     id: string;
     name: string;
-  };
+  } | null;
 };
 
 
