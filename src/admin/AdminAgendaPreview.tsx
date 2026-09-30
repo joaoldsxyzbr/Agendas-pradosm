@@ -241,6 +241,7 @@ export function AdminAgendaPreview({
               <AgendaList
                 appointments={filteredAppointments}
                 editable={false}
+                highlightPositiveExchanges
               />
             ) : (
               <div className="empty-panel agenda-search-empty">

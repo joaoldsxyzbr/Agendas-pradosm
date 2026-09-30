@@ -49,12 +49,14 @@ export function AgendaList({
   onChanged,
   editable = true,
   onEditManual,
+  highlightPositiveExchanges = false,
 }: {
   appointments: StoreAppointment[];
   onOpen?: (appointmentId: string) => void;
   onChanged?: (appointment: StoreAppointment) => void;
   editable?: boolean;
   onEditManual?: (appointment: StoreAppointment) => void;
+  highlightPositiveExchanges?: boolean;
 }) {
   const [sort, setSort] = useState<SortState>(null);
 
@@ -187,7 +189,13 @@ export function AgendaList({
                     {editable && onChanged ? (
                       exchangeControl(appointment)
                     ) : (
-                      <span className="exchange-readonly">
+                      <span
+                        className={`exchange-readonly ${
+                          highlightPositiveExchanges && appointment.hasExchanges
+                            ? "positive"
+                            : ""
+                        }`}
+                      >
                         {appointment.hasExchanges ? "Sim" : "Não"}
                       </span>
                     )}
@@ -232,7 +240,15 @@ export function AgendaList({
               {editable && onChanged ? (
                 exchangeControl(appointment)
               ) : (
-                <strong>{appointment.hasExchanges ? "Sim" : "Não"}</strong>
+                <strong
+                  className={`exchange-readonly ${
+                    highlightPositiveExchanges && appointment.hasExchanges
+                      ? "positive"
+                      : ""
+                  }`}
+                >
+                  {appointment.hasExchanges ? "Sim" : "Não"}
+                </strong>
               )}
             </div>
           </article>

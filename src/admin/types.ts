@@ -1,5 +1,12 @@
 import type { UserRole } from "../../shared/auth";
 
+export type AdminPresenceStatus = "online" | "away" | "offline";
+
+export type AdminStorePresence = {
+  storeId: string;
+  status: AdminPresenceStatus;
+};
+
 export type AdminStore = {
   id: string;
   codigo: string;

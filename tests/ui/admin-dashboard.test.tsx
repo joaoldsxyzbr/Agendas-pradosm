@@ -26,6 +26,21 @@ describe("dashboard operacional", () => {
       { id: "s2", codigo: "F04", nome: "Centro", ativo: true },
       { id: "s3", codigo: "F05", nome: "Porto Belo", ativo: true },
     ];
+    const presences = [
+      {
+        storeId: "s1",
+        status: "online",
+        lastInteractionAt: "2026-09-30T12:00:00.000Z",
+        lastSeenAt: "2026-09-30T12:00:00.000Z",
+      },
+      {
+        storeId: "s2",
+        status: "away",
+        lastInteractionAt: "2026-09-30T11:55:00.000Z",
+        lastSeenAt: "2026-09-30T12:00:00.000Z",
+      },
+    ];
+
     const agendas = [
       {
         id: "a1",
@@ -56,6 +71,7 @@ describe("dashboard operacional", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/admin/stores") return json(stores);
+      if (url === "/api/admin/presence") return json(presences);
       if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
       return new Response(null, { status: 404 });
     });
@@ -77,8 +93,20 @@ describe("dashboard operacional", () => {
     ).not.toBeInTheDocument();
 
     const f03Card = await screen.findByTestId("dashboard-store-F03");
+    const f04Card = screen.getByTestId("dashboard-store-F04");
+    const f05Card = screen.getByTestId("dashboard-store-F05");
+
     expect(within(f03Card).getByText("2 / 5")).toBeInTheDocument();
     expect(within(f03Card).getByText("1 sem agenda")).toBeInTheDocument();
+    expect(
+      within(f03Card).getByLabelText("Conferente online"),
+    ).toHaveClass("online");
+    expect(
+      within(f04Card).getByLabelText("Conferente ausente"),
+    ).toHaveClass("away");
+    expect(
+      within(f05Card).getByLabelText("Conferente offline"),
+    ).toHaveClass("offline");
 
     expect(
       screen.getByRole("button", { name: "Data da agenda" }),
@@ -179,6 +207,7 @@ describe("dashboard operacional", () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url === "/api/admin/stores") return json(stores);
+      if (url === "/api/admin/presence") return json([]);
       if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
       if (url === "/api/admin/agendas/a1") return json(detail);
       return new Response(null, { status: 404 });
@@ -202,6 +231,11 @@ describe("dashboard operacional", () => {
     });
     expect(within(dialog).getByText("Somente leitura")).toBeInTheDocument();
     expect(within(dialog).getByRole("cell", { name: "Fornecedor Teste" })).toBeInTheDocument();
+
+    const desktopRows = within(dialog).getAllByTestId("agenda-desktop-row");
+    expect(within(desktopRows[0]).getByText("Não")).not.toHaveClass("positive");
+    expect(within(desktopRows[1]).getByText("Sim")).toHaveClass("positive");
+
     expect(
       within(dialog).queryByRole("button", { name: "Concluir dia" }),
     ).not.toBeInTheDocument();
@@ -269,6 +303,7 @@ describe("dashboard operacional", () => {
       async (input: RequestInfo | URL, init?: RequestInit) => {
         const url = String(input);
         if (url === "/api/admin/stores") return json(stores);
+        if (url === "/api/admin/presence") return json([]);
         if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
         if (url === "/api/admin/agendas/a5" && !init?.method) {
           return json(detail);

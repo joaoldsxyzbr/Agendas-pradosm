@@ -19,6 +19,7 @@ import { adminAuditRoutes } from "./routes/admin-audit";
 import { adminStoreRoutes } from "./routes/admin-stores";
 import { adminUserRoutes } from "./routes/admin-users";
 import { authRoutes } from "./routes/auth";
+import { adminPresenceRoutes, storePresenceRoutes } from "./routes/presence";
 import {
   storeAgendaRoutes,
   storeAppointmentRoutes,
@@ -68,6 +69,7 @@ app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
 app.route("/api/admin/audit", adminAuditRoutes);
+app.route("/api/admin/presence", adminPresenceRoutes);
 
 app.use("/api/store/*", requireAuth, validateMutationOrigin);
 app.use("/api/store/today", async (c, next) => {
@@ -75,4 +77,5 @@ app.use("/api/store/today", async (c, next) => {
   await next();
 });
 app.route("/api/store", storeAgendaRoutes);
+app.route("/api/store/presence", storePresenceRoutes);
 app.route("/api/store/appointments", storeAppointmentRoutes);
