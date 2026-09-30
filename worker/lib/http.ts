@@ -22,7 +22,7 @@ function isMutationOriginProtectedPath(path: string) {
   );
 }
 
-function originMatchesRequest(requestUrl: string, origin: string) {
+export function originMatchesRequest(requestUrl: string, origin: string) {
   try {
     return new URL(origin).origin === new URL(requestUrl).origin;
   } catch {
