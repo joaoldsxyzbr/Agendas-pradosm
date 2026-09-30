@@ -141,9 +141,10 @@ Ele executa às 03:05 UTC, equivalente a 00:05 em `America/Sao_Paulo`, para fech
 
 A produção usa Cloudflare Workers Builds conectado à branch `main`.
 
-O contrato versionado do release, migrations, rollback e bootstrap de emergência está em:
+O contrato versionado de operação está em:
 
 - [Release de produção](docs/operations/production-release.md)
+- [Recuperação de dados do D1](docs/operations/data-recovery.md)
 
 Os planos e especificações técnicas ficam em `docs/superpowers/`.
 
