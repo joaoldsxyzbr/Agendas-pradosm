@@ -108,5 +108,10 @@ adminPresenceRoutes.get("/", async (c) => {
     }
   }
 
-  return c.json([...byStore.values()]);
+  return c.json(
+    [...byStore.values()].map(({ storeId, status }) => ({
+      storeId,
+      status,
+    })),
+  );
 });
