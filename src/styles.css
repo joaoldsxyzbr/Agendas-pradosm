@@ -11,6 +11,7 @@
   --color-surface: #ffffff;
   --color-surface-glass: rgba(255, 255, 255, 0.96);
   --color-surface-muted: #eef3f8;
+  --color-surface-strong: #eef3f8;
   --color-neutral-soft: #eef2f6;
   --color-text: #172033;
   --color-text-strong: #111827;
@@ -51,6 +52,7 @@ html[data-theme="dark"] {
   --color-surface: #142033;
   --color-surface-glass: rgba(20, 32, 51, 0.96);
   --color-surface-muted: #1a2940;
+  --color-surface-strong: #1a2940;
   --color-neutral-soft: #202e43;
   --color-text: #f3f6fa;
   --color-text-strong: #ffffff;
