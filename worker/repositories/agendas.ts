@@ -947,9 +947,13 @@ export async function changeAppointmentStatus(
 export type AgendaEventRecord = {
   id: string;
   agenda_id: string;
-  usuario_id: string;
-  usuario_nome: string;
-  acao: "concluido" | "reaberto" | "ajuste_admin";
+  usuario_id: string | null;
+  usuario_nome: string | null;
+  acao:
+    | "concluido"
+    | "reaberto"
+    | "ajuste_admin"
+    | "concluido_automaticamente";
   detalhes: string | null;
   alterado_em: string;
 };
@@ -1014,14 +1018,39 @@ export async function listAgendaHistory(
 ): Promise<AgendaEventRecord[]> {
   const result = await db
     .prepare(
-      `SELECT h.id, h.agenda_id, h.usuario_id, u.nome AS usuario_nome,
-              h.acao, h.detalhes, h.alterado_em
-       FROM historico_agenda h
-       JOIN usuarios u ON u.id = h.usuario_id
-       WHERE h.agenda_id = ?
-       ORDER BY h.alterado_em ASC, h.id ASC`,
+      `SELECT id, agenda_id, usuario_id, usuario_nome, acao, detalhes, alterado_em
+       FROM (
+         SELECT
+           h.id,
+           h.agenda_id,
+           h.usuario_id,
+           u.nome AS usuario_nome,
+           h.acao,
+           h.detalhes,
+           h.alterado_em
+         FROM historico_agenda h
+         LEFT JOIN usuarios u ON u.id = h.usuario_id
+         WHERE h.agenda_id = ?
+
+         UNION ALL
+
+         SELECT
+           a.id,
+           a.agenda_id,
+           a.usuario_id,
+           u.nome AS usuario_nome,
+           'concluido_automaticamente' AS acao,
+           a.detalhes,
+           a.criado_em AS alterado_em
+         FROM auditoria a
+         LEFT JOIN usuarios u ON u.id = a.usuario_id
+         WHERE a.agenda_id = ?
+           AND a.entidade = 'agenda'
+           AND a.acao = 'dia_concluido_automaticamente'
+       )
+       ORDER BY alterado_em ASC, id ASC`,
     )
-    .bind(agendaId)
+    .bind(agendaId, agendaId)
     .all<AgendaEventRecord>();
 
   return result.results;
