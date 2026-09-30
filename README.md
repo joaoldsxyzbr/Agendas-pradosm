@@ -139,14 +139,17 @@ Se houver mais de um conferente vinculado à mesma loja/doca, o dashboard mostra
 
 A migração para atualização em tempo real está sendo feita em fases para não colocar a produção em risco.
 
-A primeira fase adiciona apenas a infraestrutura:
+A infraestrutura realtime usa:
 - Durable Object `RealtimeHub` com WebSocket Hibernation;
 - binding `REALTIME_HUB` no Worker;
 - endpoint autenticado `/api/realtime`;
 - validação de origem e identidade resolvida pelo servidor;
-- protocolo realtime versionado.
+- protocolo realtime versionado;
+- configuração `REALTIME_MODE` com fallback seguro para `off`.
 
-**Nenhuma tela consome esse WebSocket nesta fase.** O dashboard e a presença continuam usando exatamente os fluxos HTTP/D1 descritos acima. O D1 permanece a fonte da verdade.
+Na fase de **shadow mode**, usuários autenticados abrem uma conexão WebSocket, com ping/pong e reconexão progressiva, mas **nenhuma informação exibida na interface depende dela**. Dashboard e presença continuam usando exatamente os fluxos HTTP/D1 atuais. O D1 permanece a fonte da verdade.
+
+O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`.
 
 O plano completo e os checkpoints de rollout estão registrados na issue #59.
 
