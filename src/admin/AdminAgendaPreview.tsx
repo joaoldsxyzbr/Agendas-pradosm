@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AgendaList } from "../agenda/AgendaList";
 import type { StoreAppointment } from "../agenda/types";
 import { apiFetch } from "../lib/api";
+import { useRealtimeEvent } from "../realtime/useRealtimeConnection";
 import type { AdminAgendaDetail, AdminAppointment } from "./types";
 
 function normalizeSearch(value: string) {
@@ -54,6 +55,16 @@ export function AdminAgendaPreview({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [reopening, setReopening] = useState(false);
+
+  useRealtimeEvent((event) => {
+    if (event.type !== "agenda.changed" || event.agendaId !== agendaId) return;
+
+    void apiFetch<AdminAgendaDetail>(`/api/admin/agendas/${agendaId}`)
+      .then((data) => setDetail(data))
+      .catch(() => {
+        // O detalhe atual permanece disponível; o botão Atualizar continua como fallback.
+      });
+  }, [agendaId]);
 
   useEffect(() => {
     let active = true;
