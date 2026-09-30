@@ -25,6 +25,9 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Diagnostic audit of all dependencies
+        run: npm audit --json || true
+
       - name: Audit production dependencies
         run: npm audit --omit=dev
 
