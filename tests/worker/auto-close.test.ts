@@ -4,6 +4,7 @@ import worker from "../../worker/index";
 import type { WorkerEnv } from "../../worker/env";
 import { createSessionToken } from "../../worker/lib/session";
 import { businessDate } from "../../worker/lib/time";
+import { listAgendaHistory } from "../../worker/repositories/agendas";
 
 const db = (env as unknown as { DB: D1Database }).DB;
 const sessionSecret = "agenda-prado-test-session-secret";
@@ -121,6 +122,18 @@ describe("conclusão automática de agendas", () => {
 
     expect(audit.results).toEqual([
       { usuario_id: null, acao: "dia_concluido_automaticamente" },
+    ]);
+
+    const dayHistory = await listAgendaHistory(db, "agenda-auto-close-past");
+    expect(dayHistory).toEqual([
+      expect.objectContaining({
+        agenda_id: "agenda-auto-close-past",
+        usuario_id: null,
+        usuario_nome: null,
+        acao: "concluido_automaticamente",
+        detalhes:
+          "Dia concluído automaticamente após a virada da data operacional.",
+      }),
     ]);
   });
 
