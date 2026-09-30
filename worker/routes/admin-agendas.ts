@@ -434,7 +434,9 @@ adminAgendaRoutes.get("/:id/history", async (c) => {
       action: item.acao,
       details: item.detalhes,
       changedAt: item.alterado_em,
-      user: { id: item.usuario_id, name: item.usuario_nome },
+      user: item.usuario_id
+        ? { id: item.usuario_id, name: item.usuario_nome ?? "Usuário" }
+        : null,
     })),
   );
 });
