@@ -129,6 +129,7 @@ describe("eventos realtime de agenda", () => {
     await nextMessage(adminSocket);
     await nextMessage(adminSocket);
 
+    const statusEvent = nextMessage(adminSocket);
     const status = await mutate(
       `/api/store/appointments/${appointmentId}/status`,
       conferenteCookie,
@@ -136,7 +137,7 @@ describe("eventos realtime de agenda", () => {
     );
     expect(status.status).toBe(200);
 
-    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+    expect(JSON.parse(await statusEvent)).toEqual({
       version: 1,
       type: "agenda.changed",
       agendaId,
@@ -152,6 +153,7 @@ describe("eventos realtime de agenda", () => {
     );
     expect(invalid.status).toBe(400);
 
+    const exchangesEvent = nextMessage(adminSocket);
     const exchanges = await mutate(
       `/api/store/appointments/${appointmentId}/exchanges`,
       conferenteCookie,
@@ -159,7 +161,7 @@ describe("eventos realtime de agenda", () => {
     );
     expect(exchanges.status).toBe(200);
 
-    expect(JSON.parse(await nextMessage(adminSocket))).toEqual({
+    expect(JSON.parse(await exchangesEvent)).toEqual({
       version: 1,
       type: "agenda.changed",
       agendaId,
