@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
+import {
+  useRealtimeEvent,
+  useRealtimeState,
+} from "../realtime/useRealtimeConnection";
 import { AdminAgendaPreview } from "./AdminAgendaPreview";
 import { ImportAgendaPage } from "./ImportAgendaPage";
 import type { AdminAgendaSummary, AdminStore, AdminStorePresence } from "./types";
@@ -54,11 +58,33 @@ export function DashboardPage({
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
   const [presences, setPresences] = useState<AdminStorePresence[]>([]);
+  const [realtimePresences, setRealtimePresences] = useState<AdminStorePresence[]>([]);
+  const realtime = useRealtimeState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [previewAgendaId, setPreviewAgendaId] = useState<string | null>(null);
+
+  useRealtimeEvent((event) => {
+    if (event.type === "presence.snapshot") {
+      setRealtimePresences(event.stores);
+      return;
+    }
+
+    if (event.type === "presence.changed") {
+      setRealtimePresences((current) => {
+        const next = new Map(
+          current.map((presence) => [presence.storeId, presence]),
+        );
+        next.set(event.storeId, {
+          storeId: event.storeId,
+          status: event.status,
+        });
+        return [...next.values()];
+      });
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -93,17 +119,30 @@ export function DashboardPage({
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") {
         void refreshAgendas({ silent: true });
-        void refreshPresence();
+
+        if (
+          realtime.mode !== "on" ||
+          realtime.status !== "connected"
+        ) {
+          void refreshPresence();
+        }
       }
     };
 
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () =>
       document.removeEventListener("visibilitychange", refreshWhenVisible);
-  }, [selectedDate]);
+  }, [selectedDate, realtime.mode, realtime.status]);
 
   useEffect(() => {
     void refreshPresence();
+
+    if (
+      realtime.mode === "on" &&
+      realtime.status === "connected"
+    ) {
+      return;
+    }
 
     const presenceRefresh = window.setInterval(() => {
       if (document.visibilityState === "visible") {
@@ -112,13 +151,17 @@ export function DashboardPage({
     }, 60_000);
 
     return () => window.clearInterval(presenceRefresh);
-  }, []);
+  }, [realtime.mode, realtime.status]);
 
   const agendaByStore = new Map(
     agendas.map((agenda) => [agenda.storeCode, agenda]),
   );
+  const activePresences =
+    realtime.mode === "on" && realtime.status === "connected"
+      ? realtimePresences
+      : presences;
   const presenceByStore = new Map(
-    presences.map((presence) => [presence.storeId, presence]),
+    activePresences.map((presence) => [presence.storeId, presence]),
   );
 
   async function refreshPresence() {
