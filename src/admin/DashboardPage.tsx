@@ -324,8 +324,8 @@ export function DashboardPage({
                   <table>
                     <thead>
                       <tr>
-                        <th>Loja</th>
                         <th>Presença</th>
+                        <th>Loja</th>
                         <th>Agenda</th>
                         <th>Andamento</th>
                         <th>Pendências</th>
@@ -354,10 +354,6 @@ export function DashboardPage({
                             key={store.id}
                             data-testid={`dashboard-store-${store.codigo}`}
                           >
-                            <td className="dashboard-store-cell">
-                              <strong>{store.codigo}</strong>
-                              <span>{store.nome}</span>
-                            </td>
                             <td>
                               <span className="dashboard-presence">
                                 <span
@@ -368,6 +364,10 @@ export function DashboardPage({
                                 />
                                 {presenceText}
                               </span>
+                            </td>
+                            <td className="dashboard-store-cell">
+                              <strong>{store.codigo}</strong>
+                              <span>{store.nome}</span>
                             </td>
                             <td>
                               <span
