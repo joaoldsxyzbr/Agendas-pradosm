@@ -17,12 +17,15 @@ type PdfRow = {
 const PAGE_WIDTH = 595;
 const PAGE_HEIGHT = 842;
 const MARGIN = 26;
-const TABLE_TOP = 774;
+const TABLE_TOP = 768;
 const TABLE_HEADER_HEIGHT = 28;
-const TABLE_BOTTOM = 34;
+const TABLE_BOTTOM = 58;
 const ROW_FONT_SIZE = 7;
 const STATUS_FONT_SIZE = 6.5;
 const HEADER_FONT_SIZE = 6.4;
+const HEADER_META_FONT_SIZE = 7.4;
+const HEADER_SECONDARY_FONT_SIZE = 7.1;
+const TOTAL_FONT_SIZE = 8.2;
 const ROW_LINE_HEIGHT = 8.6;
 
 const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
@@ -303,45 +306,53 @@ function line(
   return `q ${color} RG ${number(width)} w ${number(x1)} ${number(y1)} m ${number(x2)} ${number(y2)} l S Q\n`;
 }
 
-function pageHeader(
-  agenda: AgendaMeta,
-  total: number,
-) {
+function pageHeader(agenda: AgendaMeta) {
   const date = formatDateBr(agenda.date);
   let content = "";
 
-  content += textCommand(MARGIN, 814, "Prado Supermercados", 10, "F2");
-  content += textCommand(MARGIN, 795, "Agendas de recebimento", 13, "F2");
+  content += textCommand(MARGIN, 814, "Prado Supermercados", 10.5, "F2");
+  content += textCommand(MARGIN, 794, "Agendas de recebimento", 13.5, "F2");
 
-  content += textCommand(
-    190,
-    814,
-    `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`,
-    6.5,
-    "F2",
-  );
+  const filterText =
+    `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`;
+  const filterLines = wrapText(
+    filterText,
+    PAGE_WIDTH - MARGIN - 190,
+    HEADER_META_FONT_SIZE,
+  ).slice(0, 2);
+
+  filterLines.forEach((filterLine, index) => {
+    content += textCommand(
+      190,
+      814 - index * 9,
+      filterLine,
+      HEADER_META_FONT_SIZE,
+      "F2",
+    );
+  });
+
   const dayStatus =
     agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto";
   content += textCommand(
     190,
-    801,
+    791,
     `Status do dia: ${dayStatus}`,
-    6.5,
+    HEADER_SECONDARY_FONT_SIZE,
     "F2",
     agenda.dayStatus === "concluido" ? "0.09 0.48 0.31" : "0.55 0.38 0.00",
   );
+
   if (agenda.dayStatus === "concluido" && agenda.completedBy?.name) {
     content += textCommand(
-      305,
-      801,
+      330,
+      791,
       `Concluído por: ${agenda.completedBy.name}`,
-      6.2,
+      7,
       "F1",
     );
   }
-  content += textCommand(503, 795, `Total: ${total}`, 10.5, "F2");
 
-  content += line(MARGIN, 786, PAGE_WIDTH - MARGIN, 786, "0.16 0.16 0.18", 1.2);
+  content += line(MARGIN, 781, PAGE_WIDTH - MARGIN, 781, "0.16 0.16 0.18", 1.2);
   return content;
 }
 
@@ -377,8 +388,8 @@ function tableHeader() {
       TABLE_TOP - TABLE_HEADER_HEIGHT,
       x,
       TABLE_TOP,
-      "0.52 0.52 0.55",
-      0.4,
+      "0.44 0.44 0.48",
+      0.5,
     );
     x += column.width;
   }
@@ -388,8 +399,8 @@ function tableHeader() {
     TABLE_TOP - TABLE_HEADER_HEIGHT,
     MARGIN + TABLE_WIDTH,
     TABLE_TOP,
-    "0.52 0.52 0.55",
-    0.4,
+    "0.44 0.44 0.48",
+    0.5,
   );
 
   return content;
@@ -452,8 +463,8 @@ function tableRows(rows: PdfRow[]) {
         rowBottom,
         x,
         rowTop,
-        "0.72 0.72 0.74",
-        0.32,
+        "0.58 0.58 0.62",
+        0.45,
       );
       x += column.width;
     });
@@ -463,21 +474,48 @@ function tableRows(rows: PdfRow[]) {
       rowBottom,
       MARGIN + TABLE_WIDTH,
       rowTop,
-      "0.72 0.72 0.74",
-      0.32,
+      "0.58 0.58 0.62",
+      0.45,
     );
     content += line(
       MARGIN,
       rowBottom,
       MARGIN + TABLE_WIDTH,
       rowBottom,
-      "0.72 0.72 0.74",
-      0.32,
+      "0.58 0.58 0.62",
+      0.45,
     );
 
     rowTop = rowBottom;
   });
 
+  return { content, bottomY: rowTop };
+}
+
+function totalSummary(total: number, rowBottom: number) {
+  const label = `Total: ${total}`;
+  const summaryLineY = rowBottom - 8;
+  const baselineY = rowBottom - 22;
+  const textX =
+    MARGIN + TABLE_WIDTH - textWidthApprox(label, TOTAL_FONT_SIZE);
+
+  let content = "";
+  content += line(
+    MARGIN,
+    summaryLineY,
+    MARGIN + TABLE_WIDTH,
+    summaryLineY,
+    "0.32 0.32 0.36",
+    0.65,
+  );
+  content += textCommand(
+    textX,
+    baselineY,
+    label,
+    TOTAL_FONT_SIZE,
+    "F2",
+    "0.12 0.12 0.14",
+  );
   return content;
 }
 
@@ -490,9 +528,15 @@ function pageContent(
   generatedAt: string,
 ) {
   let content = "";
-  content += pageHeader(agenda, total);
+  content += pageHeader(agenda);
   content += tableHeader();
-  content += tableRows(rows);
+
+  const table = tableRows(rows);
+  content += table.content;
+
+  if (pageIndex === pageCount - 1) {
+    content += totalSummary(total, table.bottomY);
+  }
 
   content += textCommand(
     MARGIN,

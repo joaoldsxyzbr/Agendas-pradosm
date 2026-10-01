@@ -100,6 +100,16 @@ describe("agenda PDF export", () => {
     expect(text).toContain("Status do dia: Concluído");
     expect(text).toContain("Concluído por: Conferente");
     expect(text).toContain("Total: 4");
+    expect(text).toContain("/F2 7.4 Tf");
+    expect(text).toContain("0.58 0.58 0.62 RG 0.45 w");
+
+    const tableHeaderIndex = text.indexOf("(Data agenda) Tj");
+    const totalIndex = text.indexOf("(Total: 4) Tj");
+    const lastSupplierIndex = text.lastIndexOf("(J.J COMERCIO DE CARVAO LTDA) Tj");
+
+    expect(tableHeaderIndex).toBeGreaterThan(-1);
+    expect(totalIndex).toBeGreaterThan(lastSupplierIndex);
+    expect(text.slice(0, tableHeaderIndex)).not.toContain("(Total: 4) Tj");
 
     for (const header of [
       "Data agenda",
@@ -232,6 +242,10 @@ describe("agenda PDF export", () => {
 
     expect(headerCount).toBeGreaterThan(1);
     expect(text).toContain("Página 2 de 2");
+    expect(text.match(/\(Total: 40\) Tj/g)).toHaveLength(1);
+    expect(text.indexOf("(Total: 40) Tj")).toBeGreaterThan(
+      text.indexOf("(Página 1 de 2) Tj"),
+    );
   });
 
   it("inclui fornecedor manual no PDF com horário único", () => {
