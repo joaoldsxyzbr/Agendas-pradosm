@@ -154,3 +154,33 @@ Critério: ausência de cortes, sobreposições, ambiguidades e regressões de a
 7. Validação final e PR de produção.
 
 Essa ordem preserva o sistema em uso e permite aprovar a direção visual antes de espalhá-la por todas as telas.
+
+## Publicação com Cloudflare Worker Previews
+
+A branch `preview` está preparada para usar **Worker Previews**.
+
+Configuração aplicada em `wrangler.jsonc`:
+
+- `previews.vars.REALTIME_MODE = "off"`;
+- nenhum `previews.d1_databases`, portanto a Preview não recebe o binding `DB` de produção;
+- `REALTIME_HUB` declarado em `previews.durable_objects.bindings`, usando namespace e storage isolados automaticamente pela Cloudflare;
+- Cron Trigger permanece somente na configuração de produção e não é direcionado para Previews.
+
+### Ativação no dashboard
+
+No Cloudflare Dashboard:
+
+1. abrir o Worker `agendas-pradosm`;
+2. acessar **Settings > Build > Branch control**;
+3. ativar **Enable Preview Builds**;
+4. manter a branch de produção como `main`;
+5. manter o Preview command padrão: `npx wrangler preview`.
+
+Depois disso, pushes em branches diferentes de `main`, incluindo `preview`, podem gerar uma URL de Preview própria.
+
+### Segurança
+
+O frontend da branch `preview` continua operando com mocks por meio de `PREVIEW_MOCKS_ENABLED = true`. Como defesa adicional, o binding D1 real não é disponibilizado à configuração de Worker Preview.
+
+Não adicionar `previews.d1_databases` apontando para `agendas-prado`.
+
