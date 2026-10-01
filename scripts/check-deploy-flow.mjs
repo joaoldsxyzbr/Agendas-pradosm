@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import { existsSync, readFileSync } from "node:fs";
 import {
+  CONTRACT_APPROVALS_FILE,
   CONTRACT_MIGRATION_BASELINE,
   destructiveOperation,
+  isValidContractApproval,
+  migrationDigest,
 } from "./check-migration-safety.mjs";
 
 const packageJson = JSON.parse(
@@ -83,6 +86,39 @@ assert.equal(
   "ALTER TABLE RENAME",
 );
 
+const contractMigration = {
+  fileName: "0099_contract_exemplo.sql",
+  operation: "DROP",
+  sql: "DROP TABLE exemplo_legado;\n",
+};
+const contractApproval = {
+  fileName: contractMigration.fileName,
+  operation: contractMigration.operation,
+  sha256: migrationDigest(contractMigration.sql),
+  issue: "#999",
+  approvedBy: "responsavel-revisao",
+  approvedAt: "2026-09-30T20:00:00.000Z",
+  reason: "Contract previamente aprovado após uma release inteira de observação.",
+};
+assert.equal(
+  isValidContractApproval(contractApproval, contractMigration),
+  true,
+  "manifesto contract válido deve liberar somente o SQL exatamente aprovado",
+);
+assert.equal(
+  isValidContractApproval(
+    contractApproval,
+    { ...contractMigration, sql: "DROP TABLE outro_exemplo;\n" },
+  ),
+  false,
+  "qualquer mudança no SQL deve invalidar a aprovação contract",
+);
+assert.equal(
+  existsSync(new URL(`../migrations/${CONTRACT_APPROVALS_FILE}`, import.meta.url)),
+  true,
+  "manifesto versionado de aprovações contract deve existir",
+);
+
 assert.equal(
   existsSync(new URL("../.github/workflows/deploy.yml", import.meta.url)),
   false,
@@ -152,8 +188,20 @@ assert.ok(
   "CI deve instalar navegador e dependências pelo Playwright",
 );
 assert.ok(
-  ci.includes("npm run test:e2e"),
-  "CI deve executar a suíte E2E real",
+  ci.includes("npm run test:e2e:ci"),
+  "CI deve executar a suíte E2E sem recompilar o bundle já validado",
+);
+assert.ok(
+  ci.includes("needs: [quality, codeql]"),
+  "check verify deve depender de qualidade e CodeQL",
+);
+assert.ok(
+  ci.includes("name: verify"),
+  "CI deve publicar um único gate obrigatório chamado verify",
+);
+assert.ok(
+  ci.includes("github/codeql-action/analyze@"),
+  "gate CI deve executar CodeQL antes de liberar verify",
 );
 assert.ok(
   !ci.includes("lighthouse@"),
@@ -162,7 +210,12 @@ assert.ok(
 assert.equal(
   packageJson.scripts?.["test:e2e"],
   "npm run build && npm run test:e2e:prepare && playwright test",
-  "package.json deve expor a suíte E2E oficial",
+  "package.json deve manter o E2E local autocontido",
+);
+assert.equal(
+  packageJson.scripts?.["test:e2e:ci"],
+  "npm run test:e2e:prepare && playwright test",
+  "CI não deve executar um segundo build antes do Playwright",
 );
 for (const path of [
   "../playwright.config.ts",
@@ -184,6 +237,23 @@ assert.equal(
 assert.ok(
   !ci.includes("CLOUDFLARE_API_TOKEN"),
   "CI não deve depender de credenciais Cloudflare",
+);
+
+const manualVerify = readFileSync(
+  new URL("../.github/workflows/verify.yml", import.meta.url),
+  "utf8",
+);
+assert.ok(
+  manualVerify.includes("name: Manual Verify"),
+  "workflow manual deve ter nome distinto do gate obrigatório",
+);
+assert.ok(
+  manualVerify.includes("manual-verify:"),
+  "job manual não pode reutilizar o contexto verify",
+);
+assert.ok(
+  manualVerify.includes('context="agenda-prado/manual-verify"'),
+  "status manual deve usar contexto inequívoco",
 );
 
 const loginLimiter = wranglerConfig.ratelimits?.find(
