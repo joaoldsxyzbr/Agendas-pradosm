@@ -223,12 +223,12 @@ describe("login e rotas protegidas", () => {
       target: { value: "admin" },
     });
     fireEvent.change(screen.getByLabelText("Senha"), {
-      target: { value: "senha-segura" },
+      target: { value: "teste-preview" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Dashboard" }),
+      await screen.findByRole("heading", { name: "Recebimento" }),
     ).toBeInTheDocument();
   });
 
@@ -247,7 +247,7 @@ describe("login e rotas protegidas", () => {
       target: { value: "loja" },
     });
     fireEvent.change(screen.getByLabelText("Senha"), {
-      target: { value: "senha-segura" },
+      target: { value: "teste-preview" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Entrar" }));
 
@@ -256,11 +256,11 @@ describe("login e rotas protegidas", () => {
     ).toBeInTheDocument();
     const topbar = screen.getByText("Agenda Prado").closest("header");
     expect(topbar).toHaveTextContent("Agenda Prado");
-    expect(topbar?.querySelector(".store-topbar-left")).toHaveTextContent(
-      "Agenda Prado",
+    expect(topbar?.querySelector(".store-topbar-brand")).toHaveTextContent(
+      "Agenda PradoRecebimento",
     );
-    expect(topbar?.querySelector(".store-topbar-meta")).toHaveTextContent(
-      "Recebimento · Conferente · Loja 03",
+    expect(topbar?.querySelector(".store-operator-context")).toHaveTextContent(
+      "ConferenteConferenteLoja 03",
     );
     expect(topbar?.querySelector(".store-topbar-user")).toBeNull();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
@@ -277,7 +277,7 @@ describe("login e rotas protegidas", () => {
     renderApp("/app");
 
     expect(
-      await screen.findByRole("heading", { name: "Dashboard" }),
+      await screen.findByRole("heading", { name: "Recebimento" }),
     ).toBeInTheDocument();
 
     await waitFor(() => {
