@@ -26,7 +26,7 @@ A preview contém dados representativos para testar:
 - fornecedor incluído sem agenda;
 - usuários Admin, Conferente e Visualizador.
 
-Sessão inicial: Administrador mock.
+A preview inicia na tela de login, sem sessão mock ativa.
 
 Para testar outro papel, use **Sair** e entre com um destes logins. A senha pode ser qualquer valor:
 
@@ -150,7 +150,7 @@ Critério: ausência de cortes, sobreposições, ambiguidades e regressões de a
 3. Tela Conferente.
 4. Lojas e Usuários.
 5. Importação e modais.
-6. Dark mode e acessibilidade.
+6. Tema escuro e acessibilidade.
 7. Validação final e PR de produção.
 
 Essa ordem preserva o sistema em uso e permite aprovar a direção visual antes de espalhá-la por todas as telas.
@@ -185,3 +185,19 @@ O frontend da branch `preview` continua operando com mocks por meio de `PREVIEW_
 Não adicionar `previews.d1_databases` apontando para `agendas-prado`.
 
 > Preview Builds ativado na Cloudflare em 01/10/2026. A branch `preview` é o ambiente visual isolado do projeto.
+
+
+## Estado para promoção
+
+A direção visual aprovada usa tema escuro fixo, navegação superior em ilhas e layouts operacionais para ADM e Conferente.
+
+Antes do merge em `main`, a mudança visual deve ser portada sem os arquivos de mock e sem a configuração exclusiva de Worker Preview. Os ajustes de PDF presentes na `main` já foram sincronizados na branch `preview`.
+
+Checklist de promoção:
+
+- alinhar ADM, Conferente e Login;
+- manter tema escuro fixo e sem seletor;
+- preservar fluxos e permissões existentes;
+- excluir mocks e configuração de Preview do pacote de produção;
+- executar uma validação final única;
+- abrir PR específica para `main` somente após aprovação final.
