@@ -100,7 +100,8 @@ describe("agenda PDF export", () => {
     expect(text).toContain("Status do dia: Concluído");
     expect(text).toContain("Concluído por: Conferente");
     expect(text).toContain("Total: 4");
-    expect(text).toContain("/F2 7.4 Tf");
+    expect(text).toContain("/F2 9.2 Tf");
+    expect(text).toContain("1 0 0 1 150 814 Tm (Filtros: Dia: 25/09/2026");
     expect(text).toContain("0.58 0.58 0.62 RG 0.45 w");
 
     const tableHeaderIndex = text.indexOf("(Data agenda) Tj");
