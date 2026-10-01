@@ -1,6 +1,6 @@
 export type Theme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "theme";
+export const THEME_STORAGE_KEY = "agenda-prado-preview-theme";
 
 export function readStoredTheme(): Theme {
   try {
