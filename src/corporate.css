@@ -2088,3 +2088,49 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
     grid-column: 1;
   }
 }
+
+/* ADM e Visualizador: reduzir o espaço do cabeçalho e usar a rolagem da página. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .admin-topbar {
+    padding: 8px 0 2px;
+  }
+
+  html[data-theme="dark"] .admin-content {
+    padding-top: 0.6rem;
+  }
+
+  html[data-theme="dark"] .admin-page > .page-heading.page-heading-actions {
+    padding-bottom: 0.65rem;
+  }
+
+  html[data-theme="dark"] .dashboard-operations {
+    gap: 0.42rem;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-summary {
+    min-height: 54px;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-summary > span {
+    padding-block: 0.48rem;
+  }
+}
+
+@media (min-width: 901px) {
+  html[data-theme="dark"] .dashboard-operation-table {
+    overflow: visible;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-table .table-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .dashboard-operation-table .table-scroll {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
+}

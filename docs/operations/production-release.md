@@ -12,11 +12,32 @@ Configuração confirmada em 29/09/2026:
 - build command: `npm run verify:production`;
 - deploy command: `npm run deploy`;
 - diretório raiz: `/`;
-- previews: desabilitados.
+- previews de PR: habilitados com recursos isolados da produção.
 
 O deploy command deve permanecer **`npm run deploy`**. A documentação oficial da Cloudflare permite apontar Workers Builds para um script do `package.json`; o padrão da plataforma seria `npx wrangler deploy`, que não executaria sozinho as migrations deste projeto.
 
 Referência oficial: https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
+
+## Previews de pull request
+
+Desde 01/10/2026, os Workers Builds podem publicar Preview de pull requests usando o bloco `previews` do `wrangler.jsonc`. A Preview é deliberadamente separada da produção:
+
+- `DB` aponta para o D1 `agendas-pradosm-preview` (`716cc88e-7da8-400e-b4be-edc4be0c9c03`), nunca para o D1 de produção;
+- `LOGIN_RATE_LIMITER` usa o namespace `2026100101`, diferente do namespace de produção;
+- `REALTIME_MODE=off` por padrão em Preview;
+- o binding `REALTIME_HUB` é repetido em `previews.durable_objects`; a Cloudflare cria namespace e storage de Durable Object isolados para cada Preview;
+- cron triggers e rotas de produção não são declarados dentro de `previews`;
+- segredos de Preview não devem ser versionados nem reutilizados da produção. Quando um fluxo de Preview precisar de `SESSION_SECRET`, configure um segredo exclusivo de Preview pela Cloudflare.
+
+O arquivo `wrangler.preview-migrations.jsonc` aponta para o mesmo D1 isolado e existe apenas para aplicar migrations nesse banco quando uma Preview funcional precisar de schema. Nunca trocar esse arquivo para o UUID do banco de produção.
+
+A suíte `test:deploy-flow` valida automaticamente que D1 e rate limit de Preview não compartilham os identificadores de produção.
+
+Referências oficiais:
+
+- https://developers.cloudflare.com/workers/previews/configuration/
+- https://developers.cloudflare.com/workers/previews/resources/
+
 
 ## Sequência obrigatória
 
