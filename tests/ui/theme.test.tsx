@@ -1,8 +1,7 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
-import { ThemeToggle } from "../../src/theme/ThemeToggle";
 import { THEME_STORAGE_KEY } from "../../src/theme/theme";
 
 afterEach(() => {
@@ -13,48 +12,24 @@ afterEach(() => {
 });
 
 describe("theme", () => {
-  it("inicia em dark e alterna para light sem recarregar", () => {
+  it("inicia sempre em dark", () => {
     render(
       <ThemeProvider>
-        <ThemeToggle />
+        <div>Conteúdo</div>
       </ThemeProvider>,
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Ativar modo claro" }),
-    );
-
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(document.documentElement.style.colorScheme).toBe("light");
-    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo escuro" }),
-    ).toBeInTheDocument();
+    expect(document.documentElement.style.colorScheme).toBe("dark");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
 
-  it("restaura light salvo", () => {
+  it("ignora preferência light salva anteriormente", () => {
     localStorage.setItem(THEME_STORAGE_KEY, "light");
 
     render(
       <ThemeProvider>
-        <ThemeToggle />
-      </ThemeProvider>,
-    );
-
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo escuro" }),
-    ).toBeInTheDocument();
-  });
-
-  it("valor inválido volta para dark", () => {
-    localStorage.setItem(THEME_STORAGE_KEY, "sepia");
-
-    render(
-      <ThemeProvider>
-        <ThemeToggle />
+        <div>Conteúdo</div>
       </ThemeProvider>,
     );
 
