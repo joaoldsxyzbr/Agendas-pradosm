@@ -333,8 +333,6 @@ function pageHeader(agenda: AgendaMeta) {
     HEADER_BRAND_FONT_SIZE,
     "F2",
   );
-  content += line(141, 806, 141, 823, "0.68 0.68 0.72", 0.55);
-
   const filterText =
     `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`;
   const filterFontSize = fitTextFontSize(
