@@ -1930,3 +1930,161 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
   overflow-x: auto;
   overflow-y: visible;
 }
+
+/* Conferente: comandos do dia no topo, resumo e busca em uma única faixa. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .store-topbar-agenda-slot {
+    min-width: 0;
+    min-height: 58px;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #151d26;
+  }
+
+  html[data-theme="dark"] .agenda-command-bar {
+    width: 100%;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  html[data-theme="dark"] .agenda-command-bar .agenda-date-controls {
+    min-width: 0;
+    gap: 3px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  html[data-theme="dark"] .agenda-command-bar .agenda-date-field {
+    min-width: 146px;
+  }
+
+  html[data-theme="dark"] .agenda-command-bar .agenda-date-step {
+    width: 32px;
+    min-height: 34px;
+  }
+
+  html[data-theme="dark"] .agenda-command-actions {
+    min-width: 0;
+    gap: 5px;
+  }
+
+  html[data-theme="dark"] .agenda-command-actions .primary-button,
+  html[data-theme="dark"] .agenda-command-actions .ghost-button {
+    min-height: 34px;
+    padding: 0.38rem 0.55rem;
+    white-space: nowrap;
+  }
+
+  html[data-theme="dark"] .agenda-day-chip {
+    white-space: nowrap;
+  }
+
+  html[data-theme="dark"] .store-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(350px, 0.9fr);
+    align-items: center;
+    gap: 0.55rem 0.7rem;
+  }
+
+  html[data-theme="dark"] .store-page > .agenda-completed-banner,
+  html[data-theme="dark"] .store-page > .agenda-desktop,
+  html[data-theme="dark"] .store-page > .agenda-search-empty,
+  html[data-theme="dark"] .store-page > .store-empty,
+  html[data-theme="dark"] .store-page > .muted-state,
+  html[data-theme="dark"] .store-page > .form-error {
+    grid-column: 1 / -1;
+  }
+
+  html[data-theme="dark"] .store-page > .agenda-metrics {
+    grid-column: 1;
+    width: 100%;
+    min-height: 40px;
+  }
+
+  html[data-theme="dark"] .agenda-metrics > span {
+    justify-content: center;
+    padding: 0.5rem 0.55rem;
+    font-size: 0.68rem;
+    white-space: nowrap;
+  }
+
+  html[data-theme="dark"] .store-page > .agenda-toolbar {
+    grid-column: 2;
+    width: 100%;
+    min-width: 0;
+  }
+
+  html[data-theme="dark"] .agenda-toolbar .agenda-search {
+    min-width: 0;
+  }
+}
+
+@media (min-width: 901px) and (max-width: 1100px) {
+  html[data-theme="dark"] .agenda-command-bar .agenda-date-field {
+    min-width: 128px;
+  }
+
+  html[data-theme="dark"] .agenda-command-actions .primary-button,
+  html[data-theme="dark"] .agenda-command-actions .ghost-button {
+    padding-inline: 0.42rem;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .store-operations-topbar .store-topbar-brand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  html[data-theme="dark"] .store-operator-context {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  html[data-theme="dark"] .store-operations-topbar .store-topbar-actions {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  html[data-theme="dark"] .store-topbar-agenda-slot {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    min-width: 0;
+    padding: 0 2px 8px;
+  }
+
+  html[data-theme="dark"] .agenda-command-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  html[data-theme="dark"] .store-page {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.65rem;
+  }
+
+  html[data-theme="dark"] .store-page > .agenda-metrics,
+  html[data-theme="dark"] .store-page > .agenda-toolbar,
+  html[data-theme="dark"] .store-page > .agenda-desktop,
+  html[data-theme="dark"] .store-page > .agenda-search-empty,
+  html[data-theme="dark"] .store-page > .store-empty {
+    grid-column: 1;
+  }
+}
