@@ -4,6 +4,7 @@ import App from "./App";
 import "./styles.css";
 import "./store-desktop.css";
 import "./corporate.css";
+import "./cadastros-compactos.css";
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Root element not found");

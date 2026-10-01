@@ -216,6 +216,8 @@ describe("gerenciamento de usuários", () => {
     expect(await screen.findByText("Admin Principal")).toBeInTheDocument();
     expect(screen.getByText("Visualizador Operação")).toBeInTheDocument();
     expect(screen.getByRole("columnheader", { name: "Papel" })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "+ Novo usuário" }));
     expect(screen.getByLabelText("Papel")).toBeInTheDocument();
     expect(
       screen.queryByRole("heading", { name: "Visualizadores do dashboard" }),

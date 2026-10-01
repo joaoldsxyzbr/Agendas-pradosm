@@ -46,6 +46,9 @@ describe("gerenciamento de lojas", () => {
     mockedApiFetch.mockResolvedValueOnce([]);
     render(<StoresPage />);
 
+    await screen.findByRole("button", { name: "+ Nova loja" });
+    fireEvent.click(screen.getByRole("button", { name: "+ Nova loja" }));
+
     const input = await screen.findByLabelText("Código");
     expect(input).toHaveAttribute("placeholder", "F03 ou CD DOCA 01");
     expect(input).not.toHaveAttribute("pattern");

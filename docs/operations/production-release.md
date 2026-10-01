@@ -247,3 +247,17 @@ Nunca usar esse script em testes automatizados contra o banco remoto.
 - O axe agora cobre login, ADM, visualizador e conferente em E2E.
 - O CI compila o bundle uma única vez; a etapa Playwright usa `test:e2e:ci` e reaproveita esse build.
 - Stack traces de falhas **esperadas** em testes de rollback foram mantidos intencionalmente porque validam observabilidade dos caminhos de erro. Eles são ruído conhecido de teste, não erro de produção.
+
+
+## Ajuste visual de cadastros em 01/10/2026
+
+Após validação na branch `preview`, as telas administrativas de **Lojas** e **Usuários** foram promovidas para produção com:
+
+- cadastro em modal;
+- busca e filtros de listagem;
+- contadores de registros ativos;
+- indicadores visuais de situação;
+- tabelas mais compactas;
+- preservação das APIs, regras de negócio e dados de produção.
+
+A promoção foi seletiva: recursos exclusivos da Preview não foram levados para a `main`.
