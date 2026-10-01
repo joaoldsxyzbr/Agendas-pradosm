@@ -179,6 +179,18 @@ export function DashboardPage({
     }
   }
 
+  const storesWithAgenda = stores.filter((store) =>
+    agendaByStore.has(store.codigo),
+  ).length;
+  const completedStores = stores.filter(
+    (store) => agendaByStore.get(store.codigo)?.dayStatus === "concluido",
+  ).length;
+  const openStores = stores.filter((store) => {
+    const agenda = agendaByStore.get(store.codigo);
+    return agenda && agenda.dayStatus !== "concluido";
+  }).length;
+  const storesWithoutAgenda = Math.max(0, stores.length - storesWithAgenda);
+
   return (
     <section className="admin-page">
       <header className="page-heading page-heading-actions">
@@ -268,120 +280,174 @@ export function DashboardPage({
 
       {!loading && !error ? (
         <>
-          <section className="dashboard-section" aria-label="Situação por loja">
-            <div className="dashboard-section-heading">
+          <section
+            className="dashboard-section dashboard-operations"
+            aria-label="Situação por loja"
+          >
+            <div className="dashboard-section-heading dashboard-operations-heading">
               <div>
                 <span className="eyebrow">Operação</span>
-                <h2>Por loja</h2>
+                <h2>Recebimento por loja</h2>
               </div>
-              <span>{stores.length} {stores.length === 1 ? "loja ativa" : "lojas ativas"}</span>
+              <span>{formatDate(selectedDate)}</span>
             </div>
 
-            <div className="dashboard-grid">
-              {stores.map((store) => {
-                const agenda = agendaByStore.get(store.codigo);
-                const presence = presenceByStore.get(store.id);
-                const presenceStatus = presence?.status ?? "offline";
-                const presenceText = presenceLabel(presenceStatus);
+            <div
+              className="dashboard-operation-summary"
+              aria-label="Situação do dia"
+            >
+              <span>
+                <strong>{stores.length}</strong>
+                lojas
+              </span>
+              <span>
+                <strong>{storesWithAgenda}</strong>
+                com agenda
+              </span>
+              <span>
+                <strong>{openStores}</strong>
+                em andamento
+              </span>
+              <span>
+                <strong>{completedStores}</strong>
+                concluídas
+              </span>
+              <span>
+                <strong>{storesWithoutAgenda}</strong>
+                sem agenda
+              </span>
+            </div>
 
-                return (
-                  <article
-                    className={`store-card dashboard-store-card ${
-                      agenda?.dayStatus === "concluido"
-                        ? "is-completed"
-                        : agenda
-                          ? "is-open"
-                          : "is-empty"
-                    }`}
-                    key={store.id}
-                    data-testid={`dashboard-store-${store.codigo}`}
-                  >
-                    <div className="store-card-header">
-                      <div className="store-card-identity">
-                        <span
-                          className={`presence-dot ${presenceStatus}`}
-                          role="img"
-                          aria-label={`Conferente ${presenceText.toLowerCase()}`}
-                          title={presenceText}
-                        />
-                        <div className="store-card-title">
-                          <strong>{store.codigo}</strong>
-                          <span>{store.nome}</span>
-                        </div>
-                      </div>
-                      <div
-                        className="store-card-header-actions"
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "flex-end",
-                          gap: "0.4rem",
-                          flexWrap: "wrap",
-                        }}
-                      >
-                        <span className={agenda ? "status-pill neutral" : "status-pill warning"}>
-                          {agenda ? "Agenda importada" : "Sem agenda"}
-                        </span>
-                        {agenda ? (
-                          <span
-                            className={`status-pill ${
-                              agenda.dayStatus === "concluido"
-                                ? "success"
-                                : "warning"
+            {stores.length > 0 ? (
+              <div className="dashboard-operation-table table-card">
+                <div className="table-scroll">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Loja</th>
+                        <th>Presença</th>
+                        <th>Agenda</th>
+                        <th>Andamento</th>
+                        <th>Pendências</th>
+                        <th>Situação</th>
+                        <th>
+                          <span className="sr-only">Ações</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {stores.map((store) => {
+                        const agenda = agendaByStore.get(store.codigo);
+                        const presence = presenceByStore.get(store.id);
+                        const presenceStatus = presence?.status ?? "offline";
+                        const presenceText = presenceLabel(presenceStatus);
+
+                        return (
+                          <tr
+                            className={`dashboard-operation-row ${
+                              agenda?.dayStatus === "concluido"
+                                ? "is-completed"
+                                : agenda
+                                  ? "is-open"
+                                  : "is-empty"
                             }`}
+                            key={store.id}
+                            data-testid={`dashboard-store-${store.codigo}`}
                           >
-                            {agenda.dayStatus === "concluido"
-                              ? "✓ Concluído"
-                              : "Em andamento"}
-                          </span>
-                        ) : null}
-                        {agenda ? (
-                          <button
-                            className="status-pill neutral dashboard-store-details"
-                            style={{
-                              border: 0,
-                              minHeight: 0,
-                              padding: "0.32rem 0.55rem",
-                              fontSize: "0.72rem",
-                            }}
-                            type="button"
-                            onClick={() => setPreviewAgendaId(agenda.id)}
-                          >
-                            Ver detalhes
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
-
-                    {agenda ? (
-                      <>
-                        <div className="store-progress">
-                          <span>Recebidos</span>
-                          <strong>{agenda.recebido} / {agenda.total}</strong>
-                        </div>
-                        <div className="store-card-metrics">
-                          <span>{agenda.aguardando} aguardando</span>
-                          <span>{agenda.naoChegou} não chegaram</span>
-                          <span>{agenda.recusado} recusados</span>
-                          {agenda.semAgenda > 0 ? (
-                            <span>{agenda.semAgenda} sem agenda</span>
-                          ) : null}
-                        </div>
-                      </>
-                    ) : (
-                      <p className="empty-copy">
-                        Nenhuma agenda foi importada para esta loja em{" "}
-                        {formatDate(selectedDate)}.
-                      </p>
-                    )}
-                  </article>
-                );
-              })}
-
-              {stores.length === 0 ? (
-                <div className="empty-panel">Nenhuma loja ativa cadastrada.</div>
-              ) : null}
-            </div>
+                            <td className="dashboard-store-cell">
+                              <strong>{store.codigo}</strong>
+                              <span>{store.nome}</span>
+                            </td>
+                            <td>
+                              <span className="dashboard-presence">
+                                <span
+                                  className={`presence-dot ${presenceStatus}`}
+                                  role="img"
+                                  aria-label={`Conferente ${presenceText.toLowerCase()}`}
+                                  title={presenceText}
+                                />
+                                {presenceText}
+                              </span>
+                            </td>
+                            <td>
+                              <span
+                                className={`dashboard-agenda-state ${
+                                  agenda ? "has-agenda" : "no-agenda"
+                                }`}
+                              >
+                                {agenda ? "Importada" : "Sem agenda"}
+                              </span>
+                            </td>
+                            <td className="dashboard-progress-cell">
+                              {agenda ? (
+                                <>
+                                  <strong>
+                                    {agenda.recebido} / {agenda.total}
+                                  </strong>
+                                  <span>recebidos</span>
+                                </>
+                              ) : (
+                                <span className="dashboard-empty-value">—</span>
+                              )}
+                            </td>
+                            <td className="dashboard-pending-cell">
+                              {agenda ? (
+                                <div>
+                                  <span>{agenda.aguardando} aguardando</span>
+                                  <span>{agenda.naoChegou} não recebidos</span>
+                                  {agenda.recusado > 0 ? (
+                                    <span>{agenda.recusado} recusados</span>
+                                  ) : null}
+                                  {agenda.semAgenda > 0 ? (
+                                    <span>{agenda.semAgenda} sem agenda</span>
+                                  ) : null}
+                                </div>
+                              ) : (
+                                <span className="dashboard-no-agenda-copy">
+                                  Não importada em {formatDate(selectedDate)}
+                                </span>
+                              )}
+                            </td>
+                            <td>
+                              {agenda ? (
+                                <span
+                                  className={`status-pill ${
+                                    agenda.dayStatus === "concluido"
+                                      ? "success"
+                                      : "warning"
+                                  }`}
+                                >
+                                  {agenda.dayStatus === "concluido"
+                                    ? "✓ Concluído"
+                                    : "Em andamento"}
+                                </span>
+                              ) : (
+                                <span className="status-pill muted">
+                                  Pendente
+                                </span>
+                              )}
+                            </td>
+                            <td className="table-action">
+                              {agenda ? (
+                                <button
+                                  className="ghost-button dashboard-store-details"
+                                  type="button"
+                                  onClick={() => setPreviewAgendaId(agenda.id)}
+                                >
+                                  Ver detalhes
+                                </button>
+                              ) : null}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="empty-panel">Nenhuma loja ativa cadastrada.</div>
+            )}
           </section>
         </>
       ) : null}
