@@ -1911,3 +1911,22 @@ html[data-theme="dark"] .exchange-control input[type="checkbox"] {
   width: 22px;
   height: 22px;
 }
+
+
+/* Listas do conferente no fluxo normal da página. */
+.store-page .agenda-desktop.table-card,
+html[data-theme="dark"] .store-page .agenda-desktop.table-card {
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.store-page .agenda-desktop .table-scroll,
+html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
+  max-height: none;
+  overflow-x: auto;
+  overflow-y: visible;
+}
