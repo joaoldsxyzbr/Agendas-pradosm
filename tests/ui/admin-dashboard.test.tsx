@@ -4,6 +4,14 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../../src/admin/DashboardPage";
 
+vi.mock("../../shared/time", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../shared/time")>();
+  return {
+    ...original,
+    businessDate: () => "2026-09-30",
+  };
+});
+
 function json(body: unknown) {
   return Promise.resolve(
     new Response(JSON.stringify(body), {
