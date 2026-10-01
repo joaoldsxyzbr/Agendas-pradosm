@@ -201,3 +201,16 @@ Checklist de promoção:
 - excluir mocks e configuração de Preview do pacote de produção;
 - executar uma validação final única;
 - abrir PR específica para `main` somente após aprovação final.
+
+
+## Ajuste de cadastros em 01/10/2026
+
+As telas **Lojas** e **Usuários** foram compactadas na preview:
+
+- criação movida para modal dedicado;
+- ação de novo cadastro posicionada no cabeçalho;
+- busca e filtros integrados ao topo da tabela;
+- contadores de registros ativos no cabeçalho;
+- status com indicador discreto;
+- linhas, ações e espaçamentos reduzidos para uso em PC;
+- cores e regras de negócio preservadas.
