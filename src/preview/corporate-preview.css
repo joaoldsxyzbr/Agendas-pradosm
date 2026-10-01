@@ -701,3 +701,205 @@ html[data-theme="dark"] .sidebar-footer > .ghost-button {
   font-size: 0.75rem;
 }
 
+/* ADM preview: navegação superior horizontal. */
+html[data-theme="dark"] .admin-shell {
+  min-height: 100vh;
+  display: block;
+  background: var(--color-background);
+}
+
+html[data-theme="dark"] .admin-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid var(--color-border-soft);
+  background: rgba(20, 27, 35, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+html[data-theme="dark"] .admin-topbar-inner {
+  width: min(100%, 1540px);
+  min-height: 62px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(220px, auto) 1fr auto;
+  align-items: center;
+  gap: 1.25rem;
+  padding: 0 1.5rem;
+}
+
+html[data-theme="dark"] .admin-topbar-brand {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+html[data-theme="dark"] .admin-topbar-brand .brand-icon.small {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] .admin-topbar-brand > div {
+  min-width: 0;
+  display: grid;
+  gap: 0.04rem;
+}
+
+html[data-theme="dark"] .admin-topbar-brand strong {
+  color: var(--color-text-strong);
+  font-size: 0.9rem;
+  font-weight: 720;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .admin-topbar-brand span {
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .admin-topnav {
+  min-width: 0;
+  height: 62px;
+  display: flex;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.15rem;
+}
+
+html[data-theme="dark"] .admin-topnav .nav-link {
+  position: relative;
+  min-height: 62px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 0.85rem;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.8rem;
+  font-weight: 660;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .admin-topnav .nav-link:hover {
+  background: transparent;
+  color: var(--color-text-strong);
+}
+
+html[data-theme="dark"] .admin-topnav .nav-link.active {
+  background: transparent;
+  color: var(--color-text-strong);
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .admin-topnav .nav-link.active::after {
+  content: "";
+  position: absolute;
+  right: 0.75rem;
+  bottom: 0;
+  left: 0.75rem;
+  height: 2px;
+  border-radius: 999px 999px 0 0;
+  background: var(--color-primary);
+}
+
+html[data-theme="dark"] .admin-topbar-account {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+html[data-theme="dark"] .admin-topbar-user {
+  min-width: 0;
+  display: grid;
+  gap: 0.03rem;
+  justify-items: end;
+  margin-right: 0.25rem;
+  text-align: right;
+}
+
+html[data-theme="dark"] .admin-topbar-user span {
+  max-width: 180px;
+  overflow: hidden;
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-weight: 680;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .admin-topbar-user small {
+  color: var(--color-text-soft);
+  font-size: 0.65rem;
+}
+
+html[data-theme="dark"] .admin-topbar-account .theme-toggle,
+html[data-theme="dark"] .admin-topbar-account .admin-logout {
+  min-height: 34px;
+  padding: 0.4rem 0.62rem;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 0.72rem;
+}
+
+html[data-theme="dark"] .admin-topbar-account .theme-toggle:hover,
+html[data-theme="dark"] .admin-topbar-account .admin-logout:hover {
+  background: var(--color-surface-muted);
+  color: var(--color-text-strong);
+}
+
+html[data-theme="dark"] .admin-content {
+  width: min(100%, 1480px);
+  padding-top: 1.45rem;
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .admin-topbar-inner {
+    grid-template-columns: auto 1fr;
+    gap: 0.75rem;
+    padding: 0.65rem 1rem 0;
+  }
+
+  html[data-theme="dark"] .admin-topbar-brand {
+    grid-column: 1;
+  }
+
+  html[data-theme="dark"] .admin-topbar-account {
+    grid-column: 2;
+  }
+
+  html[data-theme="dark"] .admin-topnav {
+    grid-column: 1 / -1;
+    min-height: 40px;
+    height: 40px;
+    overflow-x: auto;
+    border-top: 1px solid var(--color-border-soft);
+  }
+
+  html[data-theme="dark"] .admin-topnav .nav-link {
+    min-height: 40px;
+    padding: 0 0.7rem;
+  }
+
+  html[data-theme="dark"] .admin-topbar-user {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  html[data-theme="dark"] .admin-topbar-account .theme-toggle {
+    min-width: 34px;
+    padding-inline: 0.5rem;
+    font-size: 0;
+  }
+
+  html[data-theme="dark"] .admin-topbar-account .theme-toggle::before {
+    content: "Tema";
+    font-size: 0.7rem;
+  }
+}
+
