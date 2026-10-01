@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
 import { ThemeToggle } from "../../src/theme/ThemeToggle";
+import { THEME_STORAGE_KEY } from "../../src/theme/theme";
 
 afterEach(() => {
   cleanup();
@@ -12,42 +13,29 @@ afterEach(() => {
 });
 
 describe("theme", () => {
-  it("alterna para dark sem recarregar e persiste", () => {
+  it("inicia em dark e alterna para light sem recarregar", () => {
     render(
       <ThemeProvider>
         <ThemeToggle />
       </ThemeProvider>,
     );
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
 
     fireEvent.click(
+      screen.getByRole("button", { name: "Ativar modo claro" }),
+    );
+
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.style.colorScheme).toBe("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
+    expect(
       screen.getByRole("button", { name: "Ativar modo escuro" }),
-    );
-
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(document.documentElement.style.colorScheme).toBe("dark");
-    expect(localStorage.getItem("theme")).toBe("dark");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo claro" }),
     ).toBeInTheDocument();
   });
 
-  it("restaura dark salvo", () => {
-    localStorage.setItem("theme", "dark");
-
-    render(
-      <ThemeProvider>
-        <ThemeToggle />
-      </ThemeProvider>,
-    );
-
-    expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo claro" }),
-    ).toBeInTheDocument();
-  });
-
-  it("valor inválido volta para light", () => {
-    localStorage.setItem("theme", "sepia");
+  it("restaura light salvo", () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "light");
 
     render(
       <ThemeProvider>
@@ -56,6 +44,21 @@ describe("theme", () => {
     );
 
     expect(document.documentElement.dataset.theme).toBe("light");
-    expect(localStorage.getItem("theme")).toBe("light");
+    expect(
+      screen.getByRole("button", { name: "Ativar modo escuro" }),
+    ).toBeInTheDocument();
+  });
+
+  it("valor inválido volta para dark", () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "sepia");
+
+    render(
+      <ThemeProvider>
+        <ThemeToggle />
+      </ThemeProvider>,
+    );
+
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
 });
