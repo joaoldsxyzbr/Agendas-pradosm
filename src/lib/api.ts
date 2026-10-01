@@ -1,3 +1,6 @@
+import { PREVIEW_MOCKS_ENABLED } from "../preview/mockMode";
+import { mockApiFetch } from "../preview/mockApi";
+
 type ApiErrorBody = {
   error?: string;
   message?: string;
@@ -37,6 +40,10 @@ export async function apiFetch<T>(
   url: string,
   init: RequestInit = {},
 ): Promise<T> {
+  if (PREVIEW_MOCKS_ENABLED) {
+    return mockApiFetch<T>(url, init);
+  }
+
   const response = await fetch(url, {
     ...init,
     credentials: "include",
