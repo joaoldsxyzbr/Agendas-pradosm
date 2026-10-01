@@ -353,7 +353,9 @@ describe("TodayPage", () => {
 
     expect(within(card).getByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
     expect(recebidoButton).toHaveTextContent("✓");
+    expect(recebidoButton).toHaveAttribute("title", "Marcar como recebido");
     expect(naoRecebidoButton).toHaveTextContent("✕");
+    expect(naoRecebidoButton).toHaveAttribute("title", "Marcar como não recebido");
     expect(within(card).queryByRole("button", { name: "Aguardando" })).not.toBeInTheDocument();
     expect(within(card).queryByRole("button", { name: "Recusado" })).not.toBeInTheDocument();
 
@@ -369,9 +371,11 @@ describe("TodayPage", () => {
       ),
     );
     expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
+    expect(recebidoButton).toHaveAttribute("title", "Voltar para aguardando");
 
     fireEvent.click(recebidoButton);
     expect(await within(card).findByText("Aguardando", { selector: ".store-status" })).toBeInTheDocument();
+    expect(recebidoButton).toHaveAttribute("title", "Marcar como recebido");
 
     fireEvent.click(naoRecebidoButton);
     expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
