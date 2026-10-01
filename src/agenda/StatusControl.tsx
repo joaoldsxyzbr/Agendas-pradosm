@@ -81,7 +81,11 @@ export function StatusActions({
                 : `status-action status-action-${option.value}`
             }
             aria-label={option.label}
-            title={option.label}
+            title={
+              option.value === status
+                ? "Voltar para aguardando"
+                : `Marcar como ${option.label.toLowerCase()}`
+            }
             aria-pressed={option.value === status}
             disabled={Boolean(saving)}
             onClick={() => void changeStatus(option.value)}
