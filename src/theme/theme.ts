@@ -1,13 +1,9 @@
 export type Theme = "light" | "dark";
 
-export const THEME_STORAGE_KEY = "theme";
+export const THEME_STORAGE_KEY = "agenda-prado-theme";
 
 export function readStoredTheme(): Theme {
-  try {
-    return localStorage.getItem(THEME_STORAGE_KEY) === "dark" ? "dark" : "light";
-  } catch {
-    return "light";
-  }
+  return "dark";
 }
 
 export function applyTheme(theme: Theme) {
