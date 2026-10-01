@@ -10,6 +10,14 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodayPage } from "../../src/agenda/TodayPage";
 
+vi.mock("../../shared/time", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../shared/time")>();
+  return {
+    ...original,
+    businessDate: () => "2026-09-30",
+  };
+});
+
 type AppointmentStatus =
   | "aguardando"
   | "recebido"
