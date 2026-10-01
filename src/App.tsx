@@ -56,9 +56,9 @@ function StoreLayout() {
   }
 
   return (
-    <div className="store-shell">
-      <header className="store-topbar">
-        <div className="store-topbar-left">
+    <div className="store-shell store-operations-shell">
+      <header className="store-topbar store-operations-topbar">
+        <div className="store-topbar-inner">
           <div className="store-topbar-brand">
             <img
               className="brand-icon small"
@@ -68,22 +68,26 @@ function StoreLayout() {
             />
             <div>
               <strong>Agenda Prado</strong>
-              <span className="store-topbar-meta">
-                Recebimento · <strong>{user.nome}</strong> · {storeLabel}
-              </span>
+              <span>Recebimento</span>
             </div>
           </div>
-        </div>
 
-        <div className="store-topbar-actions">
-          <ThemeToggle />
-          <button className="ghost-button" type="button" onClick={handleLogout}>
-            Sair
-          </button>
+          <div className="store-operator-context">
+            <span>Conferente</span>
+            <strong>{user.nome}</strong>
+            <small>{storeLabel}</small>
+          </div>
+
+          <div className="store-topbar-actions">
+            <ThemeToggle />
+            <button className="ghost-button" type="button" onClick={handleLogout}>
+              Sair
+            </button>
+          </div>
         </div>
       </header>
 
-      <main className="store-content">
+      <main className="store-content store-operations-content">
         <Outlet />
       </main>
     </div>
