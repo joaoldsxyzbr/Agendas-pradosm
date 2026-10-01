@@ -1,8 +1,8 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { ThemeProvider } from "../../src/theme/ThemeProvider";
-import { ThemeToggle } from "../../src/theme/ThemeToggle";
+import { THEME_STORAGE_KEY } from "../../src/theme/theme";
 
 afterEach(() => {
   cleanup();
@@ -12,50 +12,28 @@ afterEach(() => {
 });
 
 describe("theme", () => {
-  it("alterna para dark sem recarregar e persiste", () => {
+  it("inicia sempre em dark", () => {
     render(
       <ThemeProvider>
-        <ThemeToggle />
+        <div>Conteúdo</div>
       </ThemeProvider>,
-    );
-
-    fireEvent.click(
-      screen.getByRole("button", { name: "Ativar modo escuro" }),
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
     expect(document.documentElement.style.colorScheme).toBe("dark");
-    expect(localStorage.getItem("theme")).toBe("dark");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo claro" }),
-    ).toBeInTheDocument();
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
 
-  it("restaura dark salvo", () => {
-    localStorage.setItem("theme", "dark");
+  it("ignora preferência light salva anteriormente", () => {
+    localStorage.setItem(THEME_STORAGE_KEY, "light");
 
     render(
       <ThemeProvider>
-        <ThemeToggle />
+        <div>Conteúdo</div>
       </ThemeProvider>,
     );
 
     expect(document.documentElement.dataset.theme).toBe("dark");
-    expect(
-      screen.getByRole("button", { name: "Ativar modo claro" }),
-    ).toBeInTheDocument();
-  });
-
-  it("valor inválido volta para light", () => {
-    localStorage.setItem("theme", "sepia");
-
-    render(
-      <ThemeProvider>
-        <ThemeToggle />
-      </ThemeProvider>,
-    );
-
-    expect(document.documentElement.dataset.theme).toBe("light");
-    expect(localStorage.getItem("theme")).toBe("light");
+    expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe("dark");
   });
 });
