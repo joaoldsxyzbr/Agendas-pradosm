@@ -14,7 +14,39 @@ import {
   mockStoreAgenda,
 } from "./mockData";
 
-let currentUser: AuthUser | null = MOCK_USERS_BY_ROLE.admin;
+const PREVIEW_USER_STORAGE_KEY = "agenda-prado-preview-user-role";
+
+function readPreviewUser(): AuthUser | null {
+  try {
+    const role = sessionStorage.getItem(PREVIEW_USER_STORAGE_KEY);
+    if (
+      role === "admin" ||
+      role === "conferente" ||
+      role === "visualizador"
+    ) {
+      return MOCK_USERS_BY_ROLE[role];
+    }
+  } catch {
+    // sessionStorage indisponível: segue sem sessão mock.
+  }
+
+  return null;
+}
+
+function persistPreviewUser(user: AuthUser | null) {
+  try {
+    if (!user) {
+      sessionStorage.removeItem(PREVIEW_USER_STORAGE_KEY);
+      return;
+    }
+
+    sessionStorage.setItem(PREVIEW_USER_STORAGE_KEY, user.papel);
+  } catch {
+    // A persistência é apenas conveniência da Preview.
+  }
+}
+
+let currentUser: AuthUser | null = readPreviewUser();
 
 function clone<T>(value: T): T {
   if (value === undefined) return value;
@@ -74,11 +106,13 @@ export async function mockApiFetch<T>(
   if (path === "/api/auth/login" && method === "POST") {
     const login = typeof body.login === "string" ? body.login : "admin";
     currentUser = MOCK_USERS_BY_ROLE[roleForLogin(login)];
+    persistPreviewUser(currentUser);
     return clone(currentUser) as unknown as T;
   }
 
   if (path === "/api/auth/logout" && method === "POST") {
     currentUser = null;
+    persistPreviewUser(null);
     return undefined as unknown as T;
   }
 
