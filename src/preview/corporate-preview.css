@@ -643,3 +643,61 @@ html[data-theme="dark"] .dashboard-store-details:hover {
   }
 }
 
+/* Navegação ADM mais próxima de software interno corporativo. */
+html[data-theme="dark"] .side-nav {
+  gap: 1.05rem;
+}
+
+html[data-theme="dark"] .side-nav-group {
+  display: grid;
+  gap: 0.22rem;
+}
+
+html[data-theme="dark"] .side-nav-label {
+  padding: 0 0.68rem 0.28rem;
+  color: #677583;
+  font-size: 0.62rem;
+  font-weight: 750;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+html[data-theme="dark"] .page-heading.page-heading-actions {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+html[data-theme="dark"] .dashboard-header-actions {
+  gap: 0.5rem;
+}
+
+html[data-theme="dark"] .dashboard-header-actions > .ghost-button,
+html[data-theme="dark"] .dashboard-import-action {
+  min-height: 38px;
+}
+
+html[data-theme="dark"] .dashboard-date-controls {
+  border-color: var(--color-border);
+  background: #141b23;
+}
+
+html[data-theme="dark"] .dashboard-date-controls .dashboard-date-step {
+  background: transparent;
+}
+
+html[data-theme="dark"] .dashboard-date-controls .dashboard-date-step:hover {
+  background: var(--color-surface-muted);
+}
+
+html[data-theme="dark"] .sidebar-footer .theme-toggle {
+  min-height: 34px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
+html[data-theme="dark"] .sidebar-footer > .ghost-button {
+  min-height: 34px;
+  color: var(--color-text-muted);
+  font-size: 0.75rem;
+}
+
