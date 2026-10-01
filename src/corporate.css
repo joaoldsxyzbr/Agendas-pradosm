@@ -2134,3 +2134,124 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
     overflow-y: visible;
   }
 }
+
+/* ADM e Visualizador: topo unificado e compactado, preservando a paleta atual. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .admin-topbar {
+    padding: 8px 0 4px;
+  }
+
+  html[data-theme="dark"] .admin-topbar-inner {
+    min-height: 54px;
+    grid-template-columns:
+      minmax(215px, 0.82fr)
+      minmax(420px, 1.22fr)
+      minmax(230px, auto);
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid var(--color-border);
+    border-radius: 12px;
+    background: #151d26;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.18),
+      0 8px 22px rgba(0, 0, 0, 0.08);
+  }
+
+  html[data-theme="dark"] .admin-topbar-brand,
+  html[data-theme="dark"] .admin-topnav,
+  html[data-theme="dark"] .admin-topbar-account {
+    min-height: 54px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  html[data-theme="dark"] .admin-topbar-brand {
+    padding: 0 14px;
+  }
+
+  html[data-theme="dark"] .admin-topnav {
+    height: 54px;
+    gap: 4px;
+    padding: 5px;
+  }
+
+  html[data-theme="dark"] .admin-topnav .nav-link {
+    min-height: 42px;
+  }
+
+  html[data-theme="dark"] .admin-topnav .nav-link.active::after {
+    bottom: -5px;
+  }
+
+  html[data-theme="dark"] .admin-topbar-account {
+    padding: 6px 9px 6px 13px;
+    border-left: 1px solid var(--color-border-soft);
+  }
+
+  html[data-theme="dark"] .admin-content {
+    padding-top: 0.55rem;
+  }
+
+  html[data-theme="dark"] .admin-page {
+    gap: 0.65rem;
+  }
+
+  html[data-theme="dark"] .admin-page > .page-heading.page-heading-actions {
+    min-height: 58px;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid var(--color-border-soft);
+    border-radius: 10px;
+    background: #151d26;
+  }
+
+  html[data-theme="dark"] .admin-page > .page-heading h1 {
+    font-size: 1.34rem;
+  }
+
+  html[data-theme="dark"] .admin-page > .page-heading p {
+    font-size: 0.76rem;
+  }
+
+  html[data-theme="dark"] .dashboard-header-actions {
+    gap: 0.38rem;
+  }
+
+  html[data-theme="dark"] .dashboard-header-actions > .ghost-button,
+  html[data-theme="dark"] .dashboard-import-action {
+    min-height: 34px;
+    padding: 0.4rem 0.62rem;
+  }
+
+  html[data-theme="dark"] .dashboard-date-controls {
+    min-height: 34px;
+  }
+
+  html[data-theme="dark"] .dashboard-date-controls .dashboard-date-step {
+    width: 32px;
+    min-height: 32px;
+  }
+
+  html[data-theme="dark"] .dashboard-date-controls .agenda-calendar-trigger {
+    min-height: 32px;
+    width: 154px;
+    padding-block: 0.34rem;
+  }
+
+  html[data-theme="dark"] .dashboard-operations {
+    gap: 0.36rem;
+  }
+
+  html[data-theme="dark"] .dashboard-operations-heading {
+    min-height: 30px;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-summary {
+    min-height: 50px;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-summary > span {
+    padding: 0.42rem 0.9rem;
+  }
+}
