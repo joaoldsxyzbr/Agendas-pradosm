@@ -184,3 +184,4 @@ O frontend da branch `preview` continua operando com mocks por meio de `PREVIEW_
 
 Não adicionar `previews.d1_databases` apontando para `agendas-prado`.
 
+> Preview Builds ativado na Cloudflare em 01/10/2026. A branch `preview` é o ambiente visual isolado do projeto.
