@@ -30,7 +30,7 @@ export function businessTime(now = new Date()): string {
   const values = partsFor(now, {
     hour: "2-digit",
     minute: "2-digit",
-    hour12: false,
+    hourCycle: "h23",
   });
 
   return `${values.hour}:${values.minute}`;
