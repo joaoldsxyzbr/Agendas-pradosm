@@ -260,7 +260,7 @@ describe("login e rotas protegidas", () => {
       "Agenda PradoRecebimento",
     );
     expect(topbar?.querySelector(".store-operator-context")).toHaveTextContent(
-      "ConferenteConferente·Loja 03",
+      "ConferenteConferenteLoja 03",
     );
     expect(topbar?.querySelector(".store-topbar-user")).toBeNull();
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
