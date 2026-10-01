@@ -196,11 +196,11 @@ export function DashboardPage({
       <header className="page-heading page-heading-actions">
         <div>
           <span className="eyebrow">{readOnly ? "Acompanhamento" : "Administração"}</span>
-          <h1>Dashboard</h1>
+          <h1>Recebimento</h1>
           <p>
             {readOnly
-              ? "Acompanhe as agendas por loja e atualize quando necessário."
-              : "Acompanhe as agendas por loja e importe novas agendas."}
+              ? "Acompanhe o andamento das agendas por loja."
+              : "Acompanhe o andamento das agendas e gerencie a operação do dia."}
           </p>
         </div>
         <div className="dashboard-header-actions">
