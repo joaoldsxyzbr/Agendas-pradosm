@@ -249,13 +249,13 @@ html[data-theme="dark"] .login-form button {
 
 html[data-theme="dark"] .primary-button,
 html[data-theme="dark"] .login-form button {
-  background: #4f7fab;
+  background: #47739b;
   color: #ffffff;
 }
 
 html[data-theme="dark"] .primary-button:hover,
 html[data-theme="dark"] .login-form button:hover:not(:disabled) {
-  background: #5b8dbb;
+  background: #4d7aa3;
 }
 
 html[data-theme="dark"] .ghost-button {
