@@ -1543,3 +1543,39 @@ html[data-theme="dark"] .dashboard-store-details:hover {
   }
 }
 
+/* ADM preview: Presença antes de Loja. */
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(1),
+html[data-theme="dark"] .dashboard-operation-table td:nth-child(1) {
+  width: 118px;
+  min-width: 118px;
+}
+
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(2),
+html[data-theme="dark"] .dashboard-operation-table td:nth-child(2) {
+  width: 25%;
+}
+
+html[data-theme="dark"] .dashboard-operation-row td:nth-child(1),
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(1) {
+  position: sticky;
+  left: 0;
+}
+
+html[data-theme="dark"] .dashboard-operation-row td:nth-child(2),
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(2) {
+  position: sticky;
+  left: 118px;
+  z-index: 1;
+}
+
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(1),
+html[data-theme="dark"] .dashboard-operation-table th:nth-child(2) {
+  z-index: 3;
+  background: #151c24;
+}
+
+html[data-theme="dark"] .dashboard-operation-row td:nth-child(1),
+html[data-theme="dark"] .dashboard-operation-row td:nth-child(2) {
+  background: inherit;
+}
+
