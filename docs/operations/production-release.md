@@ -42,15 +42,44 @@ Mudanças incompatíveis devem seguir expand/contract:
 1. adicionar a nova estrutura compatível;
 2. publicar código compatível com os dois formatos;
 3. migrar o uso;
-4. remover a estrutura antiga em uma release posterior e explicitamente revisada.
+4. observar pelo menos uma release estável;
+5. executar a etapa contract somente em release posterior e explicitamente revisada.
 
-O guard `npm run check:migrations` bloqueia migrations novas classificadas como destrutivas.
+O guard `npm run check:migrations` bloqueia por padrão toda migration nova classificada como destrutiva.
+
+Quando uma etapa **contract** for realmente necessária, ela só pode passar pelo caminho oficial se existir uma entrada correspondente em `migrations/contract-approvals.json` contendo:
+
+- nome exato do arquivo;
+- operação destrutiva detectada;
+- SHA-256 exato do conteúdo SQL;
+- issue GitHub de aprovação;
+- responsável pela aprovação;
+- data/hora da aprovação;
+- justificativa operacional.
+
+Qualquer alteração posterior no SQL muda o SHA-256 e invalida automaticamente a aprovação. O manifesto é versionado junto do código, portanto a exceção fica explícita e auditável no PR e no histórico Git.
 
 ## GitHub
 
-A `main` deve operar por pull request, com os checks de CI e CodeQL concluídos antes do merge.
+A `main` deve operar por pull request.
+
+O workflow **CI** publica um único gate obrigatório chamado `verify`. Esse gate só passa depois de:
+
+- testes, typecheck, build e E2E;
+- auditoria de dependências de produção;
+- análise CodeQL JavaScript/TypeScript.
+
+Assim, o contexto `verify` não fica ambíguo e representa o conjunto completo de qualidade + segurança. O workflow manual foi renomeado para **Manual Verify** e usa o contexto separado `agenda-prado/manual-verify`.
 
 O workflow de CI roda inclusive para alterações somente em documentação. Isso evita que um check obrigatório fique ausente em PRs de docs.
+
+A proteção administrativa esperada no GitHub é:
+
+- exigir pull request para `main`;
+- exigir o check `verify`;
+- impedir bypass administrativo, salvo procedimento break-glass explicitamente registrado.
+
+A integração GitHub usada pelo projeto não possui permissão de administração para alterar branch protection. Essa configuração deve ser mantida na área administrativa do repositório e revisada durante auditorias.
 
 O GitHub Actions de CI **não publica produção**. Não deve existir um segundo `wrangler deploy` em workflow GitHub.
 
@@ -131,9 +160,9 @@ O rollout completo está documentado na issue #59.
 
 Antes do merge:
 
-- CI verde;
-- CodeQL verde;
+- gate `verify` verde, o que inclui qualidade + CodeQL;
 - migration nova revisada como aditiva, quando houver;
+- qualquer contract migration acompanhada de aprovação versionada com SHA-256 exato;
 - `npm run deploy` preservado como deploy command do Workers Builds.
 
 Depois do merge:
@@ -187,3 +216,13 @@ O script:
 A criação e a verificação usam `wrangler d1 execute --remote`. Não tratar o CLI como garantia de atomicidade entre comandos separados. Se o processo falhar após alguma escrita, revisar o D1 e a auditoria antes de repetir.
 
 Nunca usar esse script em testes automatizados contra o banco remoto.
+
+
+## Decisões de manutenção da auditoria de 30/09/2026
+
+- A regra de data operacional de produção foi centralizada em `shared/time.ts` e reutilizada por Worker, ADM e conferente.
+- O preparo E2E mantém uma implementação independente da data como oráculo de integração entre runtime Node e aplicação; a regra de produção centralizada possui testes próprios de virada do dia.
+- A antiga `src/agenda/HistoryPage.tsx` foi removida porque não possuía rota utilizável. O redirect legado de `/app/history` para `/app` permanece para compatibilidade.
+- O axe agora cobre login, ADM, visualizador e conferente em E2E.
+- O CI compila o bundle uma única vez; a etapa Playwright usa `test:e2e:ci` e reaproveita esse build.
+- Stack traces de falhas **esperadas** em testes de rollback foram mantidos intencionalmente porque validam observabilidade dos caminhos de erro. Eles são ruído conhecido de teste, não erro de produção.

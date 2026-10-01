@@ -74,7 +74,7 @@
 }
 
 .agenda-completed-banner strong {
-  color: var(--color-accent-strong);
+  color: var(--color-warning);
 }
 
 .agenda-completed-banner span {

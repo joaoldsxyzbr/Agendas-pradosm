@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { businessDate } from "../../shared/time";
 import { ApiError, apiFetch } from "../lib/api";
 import { AgendaDatePicker } from "./AgendaDatePicker";
 import { AgendaDetails } from "./AgendaDetails";
@@ -19,23 +20,6 @@ function normalizeSearch(value: string) {
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .trim();
-}
-
-function businessDate() {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(new Date());
-
-  const values = Object.fromEntries(
-    parts
-      .filter((part) => part.type !== "literal")
-      .map((part) => [part.type, part.value]),
-  );
-
-  return `${values.year}-${values.month}-${values.day}`;
 }
 
 function formatDate(value: string) {

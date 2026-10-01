@@ -1,3 +1,4 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const password = "senha-segura-123";
@@ -7,6 +8,16 @@ async function login(page: Page, loginValue: string) {
   await page.getByLabel("Login").fill(loginValue);
   await page.getByLabel("Senha").fill(password);
   await page.getByRole("button", { name: "Entrar" }).click();
+}
+
+async function expectNoBlockingAccessibilityViolations(page: Page) {
+  const scan = await new AxeBuilder({ page }).analyze();
+  const blocking = scan.violations.filter(
+    (violation) =>
+      violation.impact === "critical" || violation.impact === "serious",
+  );
+
+  expect(blocking).toEqual([]);
 }
 
 test("admin pode reabrir uma agenda concluída", async ({ page }) => {
@@ -21,6 +32,8 @@ test("admin pode reabrir uma agenda concluída", async ({ page }) => {
   await expect(
     dialog.getByRole("button", { name: "Reabrir para conferente" }),
   ).toBeVisible();
+
+  await expectNoBlockingAccessibilityViolations(page);
 });
 
 test("visualizador consulta a agenda sem receber ações mutáveis", async ({
@@ -40,6 +53,8 @@ test("visualizador consulta a agenda sem receber ações mutáveis", async ({
   await expect(
     dialog.getByRole("button", { name: "Reabrir para conferente" }),
   ).toHaveCount(0);
+
+  await expectNoBlockingAccessibilityViolations(page);
 });
 
 test("conferente acessa apenas a própria loja", async ({ page }) => {
@@ -62,6 +77,8 @@ test("conferente acessa apenas a própria loja", async ({ page }) => {
     .first()
     .evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(headerBackground).not.toBe("rgba(0, 0, 0, 0)");
+
+  await expectNoBlockingAccessibilityViolations(page);
 
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/app$/);
