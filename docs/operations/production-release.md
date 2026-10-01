@@ -221,7 +221,7 @@ Nunca usar esse script em testes automatizados contra o banco remoto.
 ## Decisões de manutenção da auditoria de 30/09/2026
 
 - A regra de data operacional de produção foi centralizada em `shared/time.ts` e reutilizada por Worker, ADM e conferente.
-- O preparo E2E mantém uma implementação independente da data como oráculo de integração entre runtime Node e aplicação; a divergência é detectável pelos testes de virada do dia.
+- O preparo E2E mantém uma implementação independente da data como oráculo de integração entre runtime Node e aplicação; a regra de produção centralizada possui testes próprios de virada do dia.
 - A antiga `src/agenda/HistoryPage.tsx` foi removida porque não possuía rota utilizável. O redirect legado de `/app/history` para `/app` permanece para compatibilidade.
 - O axe agora cobre login, ADM, visualizador e conferente em E2E.
 - O CI compila o bundle uma única vez; a etapa Playwright usa `test:e2e:ci` e reaproveita esse build.
