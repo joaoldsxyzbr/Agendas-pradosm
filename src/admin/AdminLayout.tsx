@@ -3,9 +3,9 @@ import { useAuth } from "../auth/AuthProvider";
 import { ThemeToggle } from "../theme/ThemeToggle";
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "Dashboard", end: true },
-  { to: "/admin/stores", label: "Lojas" },
-  { to: "/admin/users", label: "Usuários" },
+  { to: "/admin", label: "Recebimento", end: true, group: "Operação" },
+  { to: "/admin/stores", label: "Lojas", group: "Cadastros" },
+  { to: "/admin/users", label: "Usuários", group: "Cadastros" },
 ];
 
 export function AdminLayout() {
@@ -16,10 +16,29 @@ export function AdminLayout() {
 
   const dashboardOnly = user.papel === "visualizador";
   const navItems = dashboardOnly ? NAV_ITEMS.slice(0, 1) : NAV_ITEMS;
+  const operationItems = navItems.filter((item) => item.group === "Operação");
+  const registrationItems = navItems.filter((item) => item.group === "Cadastros");
 
   async function handleLogout() {
     await logout();
     navigate("/login", { replace: true });
+  }
+
+  function renderNavItems(
+    items: typeof NAV_ITEMS,
+  ) {
+    return items.map((item) => (
+      <NavLink
+        key={item.to}
+        to={item.to}
+        end={item.end}
+        className={({ isActive }) =>
+          isActive ? "nav-link active" : "nav-link"
+        }
+      >
+        {item.label}
+      </NavLink>
+    ));
   }
 
   return (
@@ -39,18 +58,17 @@ export function AdminLayout() {
         </div>
 
         <nav className="side-nav" aria-label="Navegação principal">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? "nav-link active" : "nav-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          <div className="side-nav-group">
+            <span className="side-nav-label">Operação</span>
+            {renderNavItems(operationItems)}
+          </div>
+
+          {registrationItems.length > 0 ? (
+            <div className="side-nav-group">
+              <span className="side-nav-label">Cadastros</span>
+              {renderNavItems(registrationItems)}
+            </div>
+          ) : null}
         </nav>
 
         <div className="sidebar-footer">
@@ -80,18 +98,7 @@ export function AdminLayout() {
         </header>
 
         <nav className="mobile-nav" aria-label="Navegação principal">
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                isActive ? "nav-link active" : "nav-link"
-              }
-            >
-              {item.label}
-            </NavLink>
-          ))}
+          {renderNavItems(navItems)}
         </nav>
 
         <main className="app-content">
