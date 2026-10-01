@@ -1,4 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
+import { useOutletContext } from "react-router-dom";
 import { businessDate } from "../../shared/time";
 import { ApiError, apiFetch } from "../lib/api";
 import { AgendaDatePicker } from "./AgendaDatePicker";
@@ -43,6 +45,11 @@ function formatCompletion(value: string | null | undefined) {
 }
 
 export function TodayPage() {
+  const outletContext = useOutletContext<{
+    agendaCommandSlot: HTMLDivElement | null;
+  } | null>();
+  const [commandPortalTarget, setCommandPortalTarget] =
+    useState<HTMLDivElement | null>(null);
   const [today] = useState(businessDate);
   const [selectedDate, setSelectedDate] = useState(today);
   const [agenda, setAgenda] = useState<StoreAgenda | null>(null);
@@ -62,6 +69,10 @@ export function TodayPage() {
 
   const isToday = selectedDate === today;
   const isEditable = agenda?.agenda?.dayStatus === "aberto";
+
+  useLayoutEffect(() => {
+    setCommandPortalTarget(outletContext?.agendaCommandSlot ?? null);
+  }, [outletContext?.agendaCommandSlot]);
 
   useEffect(() => {
     let active = true;
@@ -290,85 +301,86 @@ export function TodayPage() {
   const naoChegou = countStatus(appointments, "nao_chegou");
   const trocas = appointments.filter((appointment) => appointment.hasExchanges).length;
 
+  const agendaCommandBar = (
+    <section className="agenda-command-bar" aria-label="Selecionar dia da agenda">
+      <div className="agenda-date-controls">
+        <button
+          className="ghost-button agenda-date-step"
+          type="button"
+          aria-label="Dia anterior"
+          onClick={() => setSelectedDate((current) => addDays(current, -1))}
+        >
+          ‹
+        </button>
+
+        <AgendaDatePicker
+          value={selectedDate}
+          today={today}
+          onChange={setSelectedDate}
+        />
+
+        <button
+          className="ghost-button agenda-date-step"
+          type="button"
+          aria-label="Dia seguinte"
+          onClick={() => setSelectedDate((current) => addDays(current, 1))}
+        >
+          ›
+        </button>
+      </div>
+
+      <div className="agenda-command-actions">
+        <span
+          className={`agenda-day-chip ${
+            !agenda?.agenda ? "empty" : isEditable ? "open" : "closed"
+          }`}
+        >
+          {!agenda?.agenda
+            ? "Sem agenda"
+            : isEditable
+              ? "Em aberto"
+              : "Concluído"}
+        </span>
+
+        {!isToday ? (
+          <button
+            className="ghost-button agenda-today-button"
+            type="button"
+            onClick={() => setSelectedDate(today)}
+          >
+            Hoje
+          </button>
+        ) : null}
+
+        {agenda?.agenda && isEditable ? (
+          <button
+            className="primary-button agenda-complete-button"
+            type="button"
+            onClick={() => setCompleteConfirmOpen(true)}
+          >
+            Concluir dia
+          </button>
+        ) : null}
+
+        {agenda?.agenda ? (
+          <button
+            className="ghost-button agenda-export-button"
+            type="button"
+            onClick={exportPdf}
+          >
+            Exportar PDF
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+
   return (
     <section className="store-page">
       <h1 className="sr-only">Agenda de recebimento</h1>
-
-      <section className="agenda-command-bar" aria-label="Selecionar dia da agenda">
-        <div className="agenda-date-controls">
-          <button
-            className="ghost-button agenda-date-step"
-            type="button"
-            aria-label="Dia anterior"
-            onClick={() => setSelectedDate((current) => addDays(current, -1))}
-          >
-            ‹
-          </button>
-
-          <AgendaDatePicker
-            value={selectedDate}
-            today={today}
-            onChange={setSelectedDate}
-          />
-
-          <button
-            className="ghost-button agenda-date-step"
-            type="button"
-            aria-label="Dia seguinte"
-            onClick={() => setSelectedDate((current) => addDays(current, 1))}
-          >
-            ›
-          </button>
-        </div>
-
-        <div className="agenda-command-actions">
-          <span
-            className={`agenda-day-chip ${
-              !agenda?.agenda
-                ? "empty"
-                : isEditable
-                  ? "open"
-                  : "closed"
-            }`}
-          >
-            {!agenda?.agenda
-              ? "Sem agenda"
-              : isEditable
-                ? "Em aberto"
-                : "Concluído"}
-          </span>
-
-          {!isToday ? (
-            <button
-              className="ghost-button agenda-today-button"
-              type="button"
-              onClick={() => setSelectedDate(today)}
-            >
-              Hoje
-            </button>
-          ) : null}
-
-          {agenda?.agenda && isEditable ? (
-            <button
-              className="primary-button agenda-complete-button"
-              type="button"
-              onClick={() => setCompleteConfirmOpen(true)}
-            >
-              Concluir dia
-            </button>
-          ) : null}
-
-          {agenda?.agenda ? (
-            <button
-              className="ghost-button agenda-export-button"
-              type="button"
-              onClick={exportPdf}
-            >
-              Exportar PDF
-            </button>
-          ) : null}
-        </div>
-      </section>
+      {commandPortalTarget
+        ? createPortal(agendaCommandBar, commandPortalTarget)
+        : agendaCommandBar}
 
       {loading ? <p className="muted-state">Carregando agenda...</p> : null}
       {error ? <p className="form-error">{error}</p> : null}
