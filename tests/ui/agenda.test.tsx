@@ -1,4 +1,6 @@
 import "@testing-library/jest-dom/vitest";
+import { useState } from "react";
+import { MemoryRouter, Outlet, Route, Routes } from "react-router-dom";
 import {
   cleanup,
   fireEvent,
@@ -81,6 +83,18 @@ function json(status: number, body?: unknown) {
   );
 }
 
+function StoreLayoutHarness() {
+  const [agendaCommandSlot, setAgendaCommandSlot] =
+    useState<HTMLDivElement | null>(null);
+
+  return (
+    <div>
+      <div className="store-topbar-agenda-slot" ref={setAgendaCommandSlot} />
+      <Outlet context={{ agendaCommandSlot }} />
+    </div>
+  );
+}
+
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
@@ -88,6 +102,34 @@ afterEach(() => {
 });
 
 describe("TodayPage", () => {
+  it("mostra os comandos da agenda no cabeçalho operacional integrado", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json(200, agendaBody([appointment("appt-header", "08:00")]))),
+    );
+
+    render(
+      <MemoryRouter initialEntries={["/"]}>
+        <Routes>
+          <Route path="/" element={<StoreLayoutHarness />}>
+            <Route index element={<TodayPage />} />
+          </Route>
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByRole("searchbox", {
+      name: "Pesquisar fornecedor ou protocolo",
+    });
+
+    const slot = document.querySelector(".store-topbar-agenda-slot");
+    expect(slot?.querySelector(".agenda-command-bar")).not.toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Exportar PDF" }).closest(".agenda-command-bar"),
+    ).not.toBeNull();
+    expect(document.querySelector(".store-page .agenda-command-bar")).toBeNull();
+  });
+
   it("mostra resumo, colunas essenciais e ordena por horário", async () => {
     vi.stubGlobal(
       "fetch",
