@@ -1,5 +1,5 @@
 /*
- * Direção visual da branch preview.
+ * Direção visual corporativa do Agenda Prado.
  * Tema escuro suave, corporativo e focado em operação.
  */
 
@@ -343,7 +343,7 @@ html[data-theme="dark"] :focus-visible {
   }
 }
 
-/* Dashboard ADM preview: conceito "Painel Operacional". */
+/* Dashboard ADM: conceito "Painel Operacional". */
 @media (min-width: 981px) {
   html[data-theme="dark"] .app-content {
     width: min(100%, 1480px);
@@ -689,19 +689,13 @@ html[data-theme="dark"] .dashboard-date-controls .dashboard-date-step:hover {
   background: var(--color-surface-muted);
 }
 
-html[data-theme="dark"] .sidebar-footer .theme-toggle {
-  min-height: 34px;
-  color: var(--color-text-muted);
-  font-size: 0.75rem;
-}
-
 html[data-theme="dark"] .sidebar-footer > .ghost-button {
   min-height: 34px;
   color: var(--color-text-muted);
   font-size: 0.75rem;
 }
 
-/* ADM preview: navegação superior horizontal. */
+/* ADM: navegação superior horizontal. */
 html[data-theme="dark"] .admin-shell {
   min-height: 100vh;
   display: block;
@@ -888,20 +882,7 @@ html[data-theme="dark"] .admin-content {
   }
 }
 
-@media (max-width: 560px) {
-  html[data-theme="dark"] .admin-topbar-account .theme-toggle {
-    min-width: 34px;
-    padding-inline: 0.5rem;
-    font-size: 0;
-  }
-
-  html[data-theme="dark"] .admin-topbar-account .theme-toggle::before {
-    content: "Tema";
-    font-size: 0.7rem;
-  }
-}
-
-/* Conferente preview: central operacional alinhada ao ADM. */
+/* Conferente: central operacional alinhada ao ADM. */
 html[data-theme="dark"] .store-operations-shell {
   min-height: 100vh;
   background: var(--color-background);
@@ -1254,7 +1235,7 @@ html[data-theme="dark"] .agenda-completed-banner {
   }
 }
 
-/* ADM preview: segunda lapidação visual, preservando o conceito aprovado. */
+/* ADM: segunda lapidação visual, preservando o conceito aprovado. */
 html[data-theme="dark"] .admin-topbar-inner {
   min-height: 60px;
   grid-template-columns: minmax(210px, auto) 1fr minmax(260px, auto);
@@ -1539,7 +1520,7 @@ html[data-theme="dark"] .dashboard-store-details:hover {
   }
 }
 
-/* ADM preview: Presença antes de Loja. */
+/* ADM: Presença antes de Loja. */
 html[data-theme="dark"] .dashboard-operation-table th:nth-child(1),
 html[data-theme="dark"] .dashboard-operation-table td:nth-child(1) {
   width: 118px;
@@ -1575,7 +1556,7 @@ html[data-theme="dark"] .dashboard-operation-row td:nth-child(2) {
   background: inherit;
 }
 
-/* ADM preview: topo em três ilhas flutuantes. */
+/* ADM: topo em três ilhas flutuantes. */
 html[data-theme="dark"] .admin-topbar {
   padding: 10px 0 6px;
   border-bottom: 0;
@@ -1741,7 +1722,7 @@ html[data-theme="dark"] .admin-content {
   }
 }
 
-/* Conferente preview: topo em três ilhas, seguindo o ADM. */
+/* Conferente: topo em três ilhas, seguindo o ADM. */
 html[data-theme="dark"] .store-operations-topbar {
   padding: 10px 0 6px;
   border-bottom: 0;
