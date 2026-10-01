@@ -70,13 +70,9 @@
     "REALTIME_MODE": "on"
   },
   "previews": {
-    // A preview visual usa somente mocks no frontend. O binding D1 de produção
-    // é omitido de propósito para impedir acesso acidental aos dados reais.
     "vars": {
       "REALTIME_MODE": "off"
     },
-    // O Worker lê REALTIME_HUB pelo env; Previews cria namespace/storage
-    // isolados automaticamente para este binding.
     "durable_objects": {
       "bindings": [
         {
