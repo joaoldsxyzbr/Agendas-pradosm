@@ -1,0 +1,342 @@
+/*
+ * Direção visual da branch preview.
+ * Mantém a aplicação operacional, mas reduz a aparência de dashboard genérico:
+ * superfícies mais planas, raios menores, sombras discretas e hierarquia mais sóbria.
+ */
+
+html[data-theme="dark"] {
+  --color-primary: #4f8fdc;
+  --color-primary-strong: #6aa5eb;
+  --color-primary-soft: #16263a;
+  --color-accent: #d8b24a;
+  --color-accent-strong: #c29a32;
+
+  --color-background: #0a0f14;
+  --color-surface: #10171f;
+  --color-surface-glass: #10171f;
+  --color-surface-muted: #151e27;
+  --color-surface-strong: #19232d;
+  --color-neutral-soft: #17212b;
+
+  --color-text: #dce5ed;
+  --color-text-strong: #f5f8fa;
+  --color-text-muted: #9aa8b5;
+  --color-text-soft: #7e8b98;
+
+  --color-border: #27333e;
+  --color-border-soft: #1d2832;
+  --color-border-strong: #3a4855;
+
+  --color-on-primary: #ffffff;
+
+  --color-danger: #f28b82;
+  --color-danger-strong: #f5a29b;
+  --color-danger-soft: #2b191b;
+  --color-danger-border: #583034;
+
+  --color-success: #69c99a;
+  --color-success-soft: #14271f;
+  --color-success-border: #28503e;
+
+  --color-warning: #e2bd64;
+  --color-warning-soft: #292314;
+  --color-warning-border: #554722;
+
+  --color-primary-glow: transparent;
+  --color-focus-ring: rgba(79, 143, 220, 0.25);
+  --color-overlay: rgba(2, 6, 10, 0.78);
+
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.18);
+  --shadow-elevated: 0 14px 36px rgba(0, 0, 0, 0.32);
+}
+
+html[data-theme="dark"] body {
+  background: var(--color-background);
+}
+
+html[data-theme="dark"] .login-page {
+  background: var(--color-background);
+}
+
+html[data-theme="dark"] .login-card {
+  border-radius: 10px;
+  box-shadow: var(--shadow-elevated);
+}
+
+html[data-theme="dark"] .brand-icon,
+html[data-theme="dark"] .brand-mark {
+  border-radius: 9px;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .brand-icon.small,
+html[data-theme="dark"] .brand-mark.small {
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] .app-frame {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+html[data-theme="dark"] .sidebar {
+  gap: 1.25rem;
+  padding: 1rem 0.8rem;
+  background: #0d141b;
+  border-right-color: var(--color-border-soft);
+}
+
+html[data-theme="dark"] .sidebar-brand {
+  padding: 0.1rem 0.35rem 0.8rem;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+html[data-theme="dark"] .sidebar-brand strong {
+  color: var(--color-text-strong);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+
+html[data-theme="dark"] .sidebar-brand span,
+html[data-theme="dark"] .user-summary small {
+  color: var(--color-text-soft);
+}
+
+html[data-theme="dark"] .side-nav {
+  gap: 0.12rem;
+}
+
+html[data-theme="dark"] .nav-link {
+  padding: 0.58rem 0.65rem;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  font-size: 0.84rem;
+  font-weight: 650;
+}
+
+html[data-theme="dark"] .nav-link:hover {
+  background: var(--color-surface-muted);
+}
+
+html[data-theme="dark"] .nav-link.active {
+  background: var(--color-primary-soft);
+  color: #b9d7fb;
+  box-shadow: inset 2px 0 0 var(--color-primary);
+}
+
+html[data-theme="dark"] .sidebar-footer {
+  gap: 0.5rem;
+  border-top-color: var(--color-border-soft);
+}
+
+html[data-theme="dark"] .content-shell {
+  background: var(--color-background);
+}
+
+html[data-theme="dark"] .app-content,
+html[data-theme="dark"] .store-content {
+  padding-top: 1.5rem;
+  padding-bottom: 1.75rem;
+}
+
+html[data-theme="dark"] .store-topbar {
+  min-height: 64px;
+  background: #0d141b;
+  border-bottom-color: var(--color-border-soft);
+}
+
+html[data-theme="dark"] .store-topbar-brand strong,
+html[data-theme="dark"] .store-topbar-user strong {
+  color: var(--color-text-strong);
+}
+
+html[data-theme="dark"] .eyebrow {
+  color: var(--color-text-soft);
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+}
+
+html[data-theme="dark"] .page-heading h1,
+html[data-theme="dark"] .login-heading h1 {
+  color: var(--color-text-strong);
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+html[data-theme="dark"] .page-heading h1 {
+  font-size: clamp(1.55rem, 2vw, 1.85rem);
+}
+
+html[data-theme="dark"] .page-heading p,
+html[data-theme="dark"] .section-heading p {
+  color: var(--color-text-muted);
+}
+
+html[data-theme="dark"] .page-panel,
+html[data-theme="dark"] .store-card,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .upload-card,
+html[data-theme="dark"] .preview-summary,
+html[data-theme="dark"] .table-card,
+html[data-theme="dark"] .detail-panel,
+html[data-theme="dark"] .validation-panel,
+html[data-theme="dark"] .replace-panel,
+html[data-theme="dark"] .empty-panel,
+html[data-theme="dark"] .dashboard-kpi {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+html[data-theme="dark"] .dashboard-kpi {
+  gap: 0.2rem;
+  padding: 0.78rem 0.9rem;
+  background: var(--color-surface);
+}
+
+html[data-theme="dark"] .dashboard-kpi span {
+  color: var(--color-text-soft);
+  font-size: 0.68rem;
+  letter-spacing: 0.035em;
+}
+
+html[data-theme="dark"] .dashboard-kpi strong {
+  font-size: 1.38rem;
+  font-weight: 720;
+  letter-spacing: -0.025em;
+}
+
+html[data-theme="dark"] .dashboard-attention {
+  border-radius: 8px;
+}
+
+html[data-theme="dark"] .dashboard-attention-item,
+html[data-theme="dark"] .dashboard-all-clear {
+  border-radius: 6px;
+}
+
+html[data-theme="dark"] .dashboard-store-card {
+  padding: 0.85rem;
+  border-left-width: 2px;
+}
+
+html[data-theme="dark"] .store-card-metrics span,
+html[data-theme="dark"] .metric-grid > div {
+  border-radius: 5px;
+}
+
+html[data-theme="dark"] .filter-bar {
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+html[data-theme="dark"] .filter-bar input,
+html[data-theme="dark"] .filter-bar select,
+html[data-theme="dark"] .form-card input,
+html[data-theme="dark"] .form-card select,
+html[data-theme="dark"] .file-field input,
+html[data-theme="dark"] .login-form input {
+  border-radius: 6px;
+  background: #0d141b;
+}
+
+html[data-theme="dark"] .primary-button,
+html[data-theme="dark"] .danger-button,
+html[data-theme="dark"] .ghost-button,
+html[data-theme="dark"] .login-form button {
+  border-radius: 6px;
+}
+
+html[data-theme="dark"] .primary-button,
+html[data-theme="dark"] .login-form button {
+  background: #376fae;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .primary-button:hover,
+html[data-theme="dark"] .login-form button:hover:not(:disabled) {
+  background: #447fbd;
+}
+
+html[data-theme="dark"] .ghost-button {
+  background: transparent;
+  border-color: var(--color-border);
+  color: var(--color-text);
+}
+
+html[data-theme="dark"] .ghost-button:hover {
+  background: var(--color-surface-muted);
+  border-color: var(--color-border-strong);
+}
+
+html[data-theme="dark"] .table-card {
+  border-color: var(--color-border);
+}
+
+html[data-theme="dark"] table {
+  background: var(--color-surface);
+  font-size: 0.82rem;
+}
+
+html[data-theme="dark"] th {
+  background: #0d141b;
+  color: #8d9aa7;
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+html[data-theme="dark"] th,
+html[data-theme="dark"] td {
+  border-bottom-color: var(--color-border-soft);
+}
+
+html[data-theme="dark"] tbody tr:hover {
+  background: #131c25;
+}
+
+html[data-theme="dark"] .status-pill,
+html[data-theme="dark"] .store-status,
+html[data-theme="dark"] .agenda-day-chip {
+  border-radius: 5px;
+}
+
+html[data-theme="dark"] .agenda-metrics > span {
+  border: 1px solid var(--color-border-soft);
+  border-radius: 5px;
+  background: var(--color-surface);
+}
+
+html[data-theme="dark"] .status-action {
+  border-radius: 5px;
+  background: #0d141b;
+}
+
+html[data-theme="dark"] .agenda-calendar-popover {
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+html[data-theme="dark"] .agenda-calendar-day,
+html[data-theme="dark"] .agenda-calendar-header button,
+html[data-theme="dark"] .agenda-calendar-footer button {
+  border-radius: 5px;
+}
+
+html[data-theme="dark"] .agenda-desktop.table-card {
+  border-radius: 7px;
+}
+
+html[data-theme="dark"] .agenda-desktop thead th,
+html[data-theme="dark"] .admin-agenda-preview .agenda-desktop thead th {
+  background: #0d141b;
+}
+
+html[data-theme="dark"] :focus-visible {
+  outline-color: var(--color-primary);
+}
+
+@media (max-width: 760px) {
+  html[data-theme="dark"] .mobile-header,
+  html[data-theme="dark"] .mobile-nav {
+    background: #0d141b;
+  }
+}
