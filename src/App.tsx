@@ -6,6 +6,7 @@ import {
   Routes,
   useNavigate,
 } from "react-router-dom";
+import { useState } from "react";
 import { AdminAgendaHistoryPage } from "./admin/AdminAgendaHistoryPage";
 import { AdminLayout } from "./admin/AdminLayout";
 import { DashboardPage } from "./admin/DashboardPage";
@@ -42,6 +43,7 @@ function StoreLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { disconnect } = useStorePresence(user?.papel === "conferente");
+  const [agendaCommandSlot, setAgendaCommandSlot] = useState<HTMLDivElement | null>(null);
 
   if (!user) return null;
 
@@ -77,6 +79,11 @@ function StoreLayout() {
             <small>{storeLabel}</small>
           </div>
 
+          <div
+            className="store-topbar-agenda-slot"
+            ref={setAgendaCommandSlot}
+          />
+
           <div className="store-topbar-actions">
             <button className="ghost-button" type="button" onClick={handleLogout}>
               Sair
@@ -86,7 +93,7 @@ function StoreLayout() {
       </header>
 
       <main className="store-content store-operations-content">
-        <Outlet />
+        <Outlet context={{ agendaCommandSlot }} />
       </main>
     </div>
   );
