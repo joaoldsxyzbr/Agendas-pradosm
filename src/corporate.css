@@ -2116,8 +2116,21 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
   }
 }
 
-html[data-theme="dark"] .dashboard-operation-table .table-scroll {
-  max-height: none;
-  overflow-x: auto;
-  overflow-y: visible;
+@media (min-width: 901px) {
+  html[data-theme="dark"] .dashboard-operation-table {
+    overflow: visible;
+  }
+
+  html[data-theme="dark"] .dashboard-operation-table .table-scroll {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+@media (max-width: 900px) {
+  html[data-theme="dark"] .dashboard-operation-table .table-scroll {
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: visible;
+  }
 }
