@@ -1,7 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { apiFetch, ApiError } from "../lib/api";
-import { ThemeToggle } from "../theme/ThemeToggle";
 import { useAuth } from "./AuthProvider";
 
 type BootstrapStatus = {
@@ -140,7 +139,6 @@ export function LoginPage() {
             alt=""
             aria-hidden="true"
           />
-          <ThemeToggle />
         </div>
 
         {bootstrapMode ? (
