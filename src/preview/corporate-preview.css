@@ -837,7 +837,6 @@ html[data-theme="dark"] .admin-topbar-user small {
   font-size: 0.65rem;
 }
 
-html[data-theme="dark"] .admin-topbar-account .theme-toggle,
 html[data-theme="dark"] .admin-topbar-account .admin-logout {
   min-height: 34px;
   padding: 0.4rem 0.62rem;
@@ -846,7 +845,6 @@ html[data-theme="dark"] .admin-topbar-account .admin-logout {
   font-size: 0.72rem;
 }
 
-html[data-theme="dark"] .admin-topbar-account .theme-toggle:hover,
 html[data-theme="dark"] .admin-topbar-account .admin-logout:hover {
   background: var(--color-surface-muted);
   color: var(--color-text-strong);
@@ -1003,7 +1001,6 @@ html[data-theme="dark"] .store-operations-topbar .store-topbar-actions {
   gap: 0.45rem;
 }
 
-html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .theme-toggle,
 html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button {
   min-height: 34px;
   padding: 0.4rem 0.62rem;
@@ -1012,7 +1009,6 @@ html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-bu
   font-size: 0.72rem;
 }
 
-html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .theme-toggle:hover,
 html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button:hover {
   background: var(--color-surface-muted);
   color: var(--color-text-strong);
@@ -1593,7 +1589,7 @@ html[data-theme="dark"] .admin-topbar-inner {
   grid-template-columns:
     minmax(215px, 0.86fr)
     minmax(330px, 1.12fr)
-    minmax(310px, auto);
+    minmax(230px, auto);
   gap: 14px;
   padding: 0;
 }
@@ -1670,7 +1666,6 @@ html[data-theme="dark"] .admin-topbar-user {
   border-right: 1px solid var(--color-border-soft);
 }
 
-html[data-theme="dark"] .admin-topbar-account .theme-toggle,
 html[data-theme="dark"] .admin-topbar-account .admin-logout {
   min-height: 36px;
   padding: 0 10px;
@@ -1679,7 +1674,6 @@ html[data-theme="dark"] .admin-topbar-account .admin-logout {
   background: #131a22;
 }
 
-html[data-theme="dark"] .admin-topbar-account .theme-toggle:hover,
 html[data-theme="dark"] .admin-topbar-account .admin-logout:hover {
   border-color: var(--color-border-strong);
   background: var(--color-surface-muted);
@@ -1692,7 +1686,7 @@ html[data-theme="dark"] .admin-content {
 @media (max-width: 1050px) and (min-width: 901px) {
   html[data-theme="dark"] .admin-topbar-inner {
     width: min(calc(100% - 20px), 1540px);
-    grid-template-columns: 190px minmax(300px, 1fr) minmax(285px, auto);
+    grid-template-columns: 190px minmax(300px, 1fr) minmax(230px, auto);
     gap: 9px;
   }
 
@@ -1713,8 +1707,7 @@ html[data-theme="dark"] .admin-content {
     padding-inline: 8px;
   }
 
-  html[data-theme="dark"] .admin-topbar-account .theme-toggle,
-  html[data-theme="dark"] .admin-topbar-account .admin-logout {
+    html[data-theme="dark"] .admin-topbar-account .admin-logout {
     padding-inline: 8px;
   }
 }
@@ -1762,7 +1755,7 @@ html[data-theme="dark"] .store-operations-topbar .store-topbar-inner {
   grid-template-columns:
     minmax(215px, 0.88fr)
     minmax(330px, 1.12fr)
-    minmax(220px, auto);
+    minmax(110px, auto);
   gap: 14px;
   padding: 0;
 }
@@ -1815,7 +1808,6 @@ html[data-theme="dark"] .store-operations-topbar .store-topbar-actions {
   padding: 6px 9px;
 }
 
-html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .theme-toggle,
 html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button {
   min-height: 36px;
   padding: 0 10px;
@@ -1824,7 +1816,6 @@ html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-bu
   background: #131a22;
 }
 
-html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .theme-toggle:hover,
 html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button:hover {
   border-color: var(--color-border-strong);
   background: var(--color-surface-muted);
@@ -1837,7 +1828,7 @@ html[data-theme="dark"] .store-operations-content {
 @media (max-width: 1050px) and (min-width: 901px) {
   html[data-theme="dark"] .store-operations-topbar .store-topbar-inner {
     width: min(calc(100% - 20px), 1540px);
-    grid-template-columns: 190px minmax(300px, 1fr) minmax(190px, auto);
+    grid-template-columns: 190px minmax(300px, 1fr) minmax(110px, auto);
     gap: 9px;
   }
 
@@ -1854,8 +1845,7 @@ html[data-theme="dark"] .store-operations-content {
     padding-inline: 8px;
   }
 
-  html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .theme-toggle,
-  html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button {
+    html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button {
     padding-inline: 8px;
   }
 }
@@ -1885,3 +1875,25 @@ html[data-theme="dark"] .store-operations-content {
   }
 }
 
+
+
+/* Acabamento final da navegação em ilhas sem seletor de tema. */
+html[data-theme="dark"] .admin-topbar-account {
+  min-width: 0;
+}
+
+html[data-theme="dark"] .admin-topbar-account .admin-logout {
+  min-width: 58px;
+}
+
+html[data-theme="dark"] .store-operations-topbar .store-topbar-actions {
+  justify-content: center;
+}
+
+html[data-theme="dark"] .store-operations-topbar .store-topbar-actions .ghost-button {
+  min-width: 64px;
+}
+
+html[data-theme="dark"] .login-toolbar {
+  justify-content: flex-start;
+}
