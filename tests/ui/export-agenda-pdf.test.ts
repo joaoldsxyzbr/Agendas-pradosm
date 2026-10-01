@@ -94,16 +94,23 @@ describe("agenda PDF export", () => {
     expect(text).toContain("/MediaBox [0 0 595 842]");
     expect(text).toContain("Prado Supermercados");
     expect(text).toContain("Agendas de recebimento");
-    expect(text).toContain("Filtros: Dia: 25/09/2026 | Filiais: F08 - PORTO BELO |");
-    expect(text).toContain("Doca: Todas");
+    expect(text).toContain(
+      "Filtros: Dia: 25/09/2026 | Filiais: F08 - PORTO BELO | Doca: Todas",
+    );
     expect(text).toContain("Status do dia: Concluído");
     expect(text).toContain("Concluído por: Conferente");
     expect(text).toContain("Total: 4");
+    expect(text).toContain("/F2 11.2 Tf");
     expect(text).toContain("/F2 9.2 Tf");
-    expect(text).toContain("1 0 0 1 145 814 Tm (Filtros: Dia: 25/09/2026");
-    expect(text).toContain("1 0 0 1 145 803.5 Tm (Doca: Todas)");
-    expect(text).toContain("/F2 7.5 Tf");
-    expect(text).toContain("1 0 0 1 205 791 Tm (Status do dia: Concluído)");
+    expect(text).toContain(
+      "1 0 0 1 150 814 Tm (Filtros: Dia: 25/09/2026 | Filiais: F08 - PORTO BELO | Doca: Todas)",
+    );
+    expect(text).not.toContain("1 0 0 1 150 803.5 Tm");
+    expect(text).toContain("/F2 16.5 Tf");
+    expect(text).toContain("1 0 0 1 26 791 Tm (Agendas de recebimento)");
+    expect(text).toContain("/F2 8.4 Tf");
+    expect(text).toContain("1 0 0 1 240 793 Tm (Status do dia: Concluído)");
+    expect(text).toContain("1 0 0 1 365 793 Tm (Concluído por: Conferente)");
     expect(text).toContain("0.58 0.58 0.62 RG 0.45 w");
 
     const tableHeaderIndex = text.indexOf("(Data agenda) Tj");

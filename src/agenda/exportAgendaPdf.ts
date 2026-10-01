@@ -23,10 +23,12 @@ const TABLE_BOTTOM = 58;
 const ROW_FONT_SIZE = 7;
 const STATUS_FONT_SIZE = 6.5;
 const HEADER_FONT_SIZE = 6.4;
+const HEADER_BRAND_FONT_SIZE = 11.2;
 const HEADER_META_FONT_SIZE = 9.2;
-const HEADER_META_X = 145;
-const HEADER_CONTENT_RIGHT = 400;
-const HEADER_SECONDARY_FONT_SIZE = 7.5;
+const HEADER_META_X = 150;
+const HEADER_TITLE_FONT_SIZE = 16.5;
+const HEADER_SECONDARY_FONT_SIZE = 8.4;
+const HEADER_STATUS_X = 240;
 const TOTAL_FONT_SIZE = 8.2;
 const ROW_LINE_HEIGHT = 8.6;
 
@@ -128,6 +130,18 @@ function textWidthApprox(text: string, fontSize: number) {
     (width, char) => width + fontSize * characterWidthFactor(char),
     0,
   );
+}
+
+function fitTextFontSize(
+  text: string,
+  maxWidth: number,
+  preferredSize: number,
+  minimumSize: number,
+) {
+  const width = textWidthApprox(text, preferredSize);
+  if (width <= maxWidth) return preferredSize;
+
+  return Math.max(minimumSize, preferredSize * (maxWidth / width));
 }
 
 function splitWordToWidth(word: string, maxWidth: number, fontSize: number) {
@@ -312,32 +326,45 @@ function pageHeader(agenda: AgendaMeta) {
   const date = formatDateBr(agenda.date);
   let content = "";
 
-  content += textCommand(MARGIN, 814, "Prado Supermercados", 10.5, "F2");
-  content += textCommand(MARGIN, 794, "Agendas de recebimento", 13.5, "F2");
+  content += textCommand(
+    MARGIN,
+    814,
+    "Prado Supermercados",
+    HEADER_BRAND_FONT_SIZE,
+    "F2",
+  );
+  content += line(141, 806, 141, 823, "0.68 0.68 0.72", 0.55);
 
   const filterText =
     `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`;
-  const filterLines = wrapText(
+  const filterFontSize = fitTextFontSize(
     filterText,
-    HEADER_CONTENT_RIGHT - HEADER_META_X,
+    PAGE_WIDTH - MARGIN - HEADER_META_X,
     HEADER_META_FONT_SIZE,
-  ).slice(0, 2);
+    7.4,
+  );
+  content += textCommand(
+    HEADER_META_X,
+    814,
+    filterText,
+    filterFontSize,
+    "F2",
+  );
 
-  filterLines.forEach((filterLine, index) => {
-    content += textCommand(
-      HEADER_META_X,
-      814 - index * 10.5,
-      filterLine,
-      HEADER_META_FONT_SIZE,
-      "F2",
-    );
-  });
+  content += textCommand(
+    MARGIN,
+    791,
+    "Agendas de recebimento",
+    HEADER_TITLE_FONT_SIZE,
+    "F2",
+  );
+  content += line(228, 783, 228, 801, "0.68 0.68 0.72", 0.55);
 
   const dayStatus =
     agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto";
   content += textCommand(
-    205,
-    791,
+    HEADER_STATUS_X,
+    793,
     `Status do dia: ${dayStatus}`,
     HEADER_SECONDARY_FONT_SIZE,
     "F2",
@@ -346,15 +373,15 @@ function pageHeader(agenda: AgendaMeta) {
 
   if (agenda.dayStatus === "concluido" && agenda.completedBy?.name) {
     content += textCommand(
-      330,
-      791,
+      365,
+      793,
       `Concluído por: ${agenda.completedBy.name}`,
       7,
       "F1",
     );
   }
 
-  content += line(MARGIN, 781, PAGE_WIDTH - MARGIN, 781, "0.16 0.16 0.18", 1.2);
+  content += line(MARGIN, 777, PAGE_WIDTH - MARGIN, 777, "0.16 0.16 0.18", 1.2);
   return content;
 }
 
