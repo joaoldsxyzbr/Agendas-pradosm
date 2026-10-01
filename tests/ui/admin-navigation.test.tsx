@@ -25,7 +25,7 @@ afterEach(() => {
 });
 
 describe("navegação administrativa", () => {
-  it("remove Importar da navegação lateral e mobile", () => {
+  it("usa navegação superior única e mantém Importar fora do menu", () => {
     render(
       <MemoryRouter initialEntries={["/admin"]}>
         <ThemeProvider>
@@ -41,7 +41,7 @@ describe("navegação administrativa", () => {
     expect(
       screen.queryByRole("link", { name: "Importar" }),
     ).not.toBeInTheDocument();
-    expect(screen.getAllByRole("link")).toHaveLength(6);
+    expect(screen.getAllByRole("link")).toHaveLength(3);
   });
 
   it("abre Importar agenda em modal no Dashboard", async () => {
