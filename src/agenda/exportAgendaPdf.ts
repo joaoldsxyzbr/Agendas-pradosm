@@ -24,8 +24,9 @@ const ROW_FONT_SIZE = 7;
 const STATUS_FONT_SIZE = 6.5;
 const HEADER_FONT_SIZE = 6.4;
 const HEADER_META_FONT_SIZE = 9.2;
-const HEADER_META_X = 150;
-const HEADER_SECONDARY_FONT_SIZE = 7.1;
+const HEADER_META_X = 145;
+const HEADER_CONTENT_RIGHT = 400;
+const HEADER_SECONDARY_FONT_SIZE = 7.5;
 const TOTAL_FONT_SIZE = 8.2;
 const ROW_LINE_HEIGHT = 8.6;
 
@@ -318,7 +319,7 @@ function pageHeader(agenda: AgendaMeta) {
     `Filtros: Dia: ${date} | Filiais: ${agenda.storeCode} - ${agenda.storeName} | Doca: Todas`;
   const filterLines = wrapText(
     filterText,
-    PAGE_WIDTH - MARGIN - HEADER_META_X,
+    HEADER_CONTENT_RIGHT - HEADER_META_X,
     HEADER_META_FONT_SIZE,
   ).slice(0, 2);
 
@@ -335,7 +336,7 @@ function pageHeader(agenda: AgendaMeta) {
   const dayStatus =
     agenda.dayStatus === "concluido" ? "Concluído" : "Em aberto";
   content += textCommand(
-    190,
+    205,
     791,
     `Status do dia: ${dayStatus}`,
     HEADER_SECONDARY_FONT_SIZE,
