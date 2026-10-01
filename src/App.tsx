@@ -19,7 +19,6 @@ import { TodayPage } from "./agenda/TodayPage";
 import { ThemeProvider } from "./theme/ThemeProvider";
 import { useStorePresence } from "./presence/useStorePresence";
 import { useRealtimeConnection } from "./realtime/useRealtimeConnection";
-import { ThemeToggle } from "./theme/ThemeToggle";
 
 function PlaceholderPage({
   title,
@@ -79,7 +78,6 @@ function StoreLayout() {
           </div>
 
           <div className="store-topbar-actions">
-            <ThemeToggle />
             <button className="ghost-button" type="button" onClick={handleLogout}>
               Sair
             </button>
