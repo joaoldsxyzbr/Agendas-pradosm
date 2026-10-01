@@ -5,6 +5,14 @@ import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../../src/admin/DashboardPage";
 import { useRealtimeConnection } from "../../src/realtime/useRealtimeConnection";
 
+vi.mock("../../shared/time", async (importOriginal) => {
+  const original = await importOriginal<typeof import("../../shared/time")>();
+  return {
+    ...original,
+    businessDate: () => "2026-09-30",
+  };
+});
+
 class MockWebSocket {
   static readonly CONNECTING = 0;
   static readonly OPEN = 1;
