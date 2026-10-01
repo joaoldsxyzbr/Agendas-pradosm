@@ -1,6 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider";
-import { ThemeToggle } from "../theme/ThemeToggle";
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Recebimento", end: true },
@@ -59,7 +58,6 @@ export function AdminLayout() {
               <span>{user.nome}</span>
               <small>{dashboardOnly ? "Visualizador" : "Administrador"}</small>
             </div>
-            <ThemeToggle />
             <button
               className="ghost-button admin-logout"
               type="button"
