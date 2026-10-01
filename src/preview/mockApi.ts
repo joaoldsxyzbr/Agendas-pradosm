@@ -18,7 +18,7 @@ let currentUser: AuthUser | null = MOCK_USERS_BY_ROLE.admin;
 
 function clone<T>(value: T): T {
   if (value === undefined) return value;
-  return JSON.parse(JSON.stringify(value)) as T;
+  return JSON.parse(JSON.stringify(value)) as unknown as T;
 }
 
 function bodyAsRecord(init: RequestInit): Record<string, unknown> {
@@ -68,34 +68,34 @@ export async function mockApiFetch<T>(
 
   if (path === "/api/auth/me" && method === "GET") {
     if (!currentUser) throw new Error("Sessão mock encerrada.");
-    return clone(currentUser) as T;
+    return clone(currentUser) as unknown as T;
   }
 
   if (path === "/api/auth/login" && method === "POST") {
     const login = typeof body.login === "string" ? body.login : "admin";
     currentUser = MOCK_USERS_BY_ROLE[roleForLogin(login)];
-    return clone(currentUser) as T;
+    return clone(currentUser) as unknown as T;
   }
 
   if (path === "/api/auth/logout" && method === "POST") {
     currentUser = null;
-    return undefined as T;
+    return undefined as unknown as T;
   }
 
   if (path === "/api/auth/bootstrap-status" && method === "GET") {
-    return { available: false } as T;
+    return { available: false } as unknown as T;
   }
 
   if (path === "/api/realtime/config" && method === "GET") {
-    return { mode: "off", protocolVersion: 1 } as T;
+    return { mode: "off", protocolVersion: 1 } as unknown as T;
   }
 
   if (path === "/api/admin/presence" && method === "GET") {
-    return clone(MOCK_PRESENCES) as T;
+    return clone(MOCK_PRESENCES) as unknown as T;
   }
 
   if (path === "/api/admin/stores" && method === "GET") {
-    return clone(MOCK_STORES) as T;
+    return clone(MOCK_STORES) as unknown as T;
   }
 
   if (path === "/api/admin/stores" && method === "POST") {
@@ -105,7 +105,7 @@ export async function mockApiFetch<T>(
       nome: typeof body.nome === "string" ? body.nome : "Loja Preview",
       ativo: true,
     };
-    return created as T;
+    return created as unknown as T;
   }
 
   if (/^\/api\/admin\/stores\/[^/]+$/.test(path) && method === "PATCH") {
@@ -115,15 +115,15 @@ export async function mockApiFetch<T>(
       ...base,
       ...body,
       id: base.id,
-    } as T;
+    } as unknown as T;
   }
 
   if (/^\/api\/admin\/stores\/[^/]+$/.test(path) && method === "DELETE") {
-    return undefined as T;
+    return undefined as unknown as T;
   }
 
   if (path === "/api/admin/users" && method === "GET") {
-    return clone(MOCK_ADMIN_USERS) as T;
+    return clone(MOCK_ADMIN_USERS) as unknown as T;
   }
 
   if (path === "/api/admin/users" && method === "POST") {
@@ -141,7 +141,7 @@ export async function mockApiFetch<T>(
       lojaId: typeof body.lojaId === "string" ? body.lojaId : null,
       ativo: true,
     };
-    return created as T;
+    return created as unknown as T;
   }
 
   if (/^\/api\/admin\/users\/[^/]+$/.test(path) && method === "PATCH") {
@@ -152,21 +152,21 @@ export async function mockApiFetch<T>(
       ...base,
       ...body,
       id: base.id,
-    } as T;
+    } as unknown as T;
   }
 
   if (/^\/api\/admin\/users\/[^/]+$/.test(path) && method === "DELETE") {
-    return undefined as T;
+    return undefined as unknown as T;
   }
 
   if (path === "/api/admin/agendas" && method === "GET") {
     const date = url.searchParams.get("date") ?? MOCK_DATE;
-    return MOCK_AGENDAS.map((agenda) => withDate(agenda, date)) as T;
+    return MOCK_AGENDAS.map((agenda) => withDate(agenda, date)) as unknown as T;
   }
 
   if (/^\/api\/admin\/agendas\/[^/]+$/.test(path) && method === "GET") {
     const id = path.split("/").at(-1) ?? "";
-    return clone(mockAdminAgendaDetail(id)) as T;
+    return clone(mockAdminAgendaDetail(id)) as unknown as T;
   }
 
   if (/^\/api\/admin\/agendas\/[^/]+\/status$/.test(path) && method === "PATCH") {
@@ -177,32 +177,32 @@ export async function mockApiFetch<T>(
       dayStatus: "aberto",
       completedAt: null,
       completedBy: null,
-    } as T;
+    } as unknown as T;
   }
 
   if (path === "/api/store/today" && method === "GET") {
-    return clone(mockStoreAgenda()) as T;
+    return clone(mockStoreAgenda()) as unknown as T;
   }
 
   if (/^\/api\/store\/history\/\d{4}-\d{2}-\d{2}$/.test(path) && method === "GET") {
     const date = path.split("/").at(-1) ?? MOCK_DATE;
-    return clone(mockStoreAgenda(date)) as T;
+    return clone(mockStoreAgenda(date)) as unknown as T;
   }
 
   if (path === "/api/store/presence" && method === "POST") {
     return {
       ok: true,
       recordedAt: new Date().toISOString(),
-    } as T;
+    } as unknown as T;
   }
 
   if (path === "/api/store/presence" && method === "DELETE") {
-    return undefined as T;
+    return undefined as unknown as T;
   }
 
   if (/^\/api\/store\/appointments\/[^/]+$/.test(path) && method === "GET") {
     const id = path.split("/").at(-1) ?? "";
-    return clone(mockAppointmentDetail(id)) as T;
+    return clone(mockAppointmentDetail(id)) as unknown as T;
   }
 
   if (/^\/api\/store\/appointments\/[^/]+\/status$/.test(path) && method === "PATCH") {
@@ -215,7 +215,7 @@ export async function mockApiFetch<T>(
       body.status === "recusado"
         ? body.status
         : base.status;
-    return { ...clone(base), status } as T;
+    return { ...clone(base), status } as unknown as T;
   }
 
   if (/^\/api\/store\/appointments\/[^/]+\/exchanges$/.test(path) && method === "PATCH") {
@@ -227,7 +227,7 @@ export async function mockApiFetch<T>(
         typeof body.hasExchanges === "boolean"
           ? body.hasExchanges
           : base.hasExchanges,
-    } as T;
+    } as unknown as T;
   }
 
   if (/^\/api\/store\/agenda\/\d{4}-\d{2}-\d{2}\/manual$/.test(path) && method === "POST") {
@@ -251,7 +251,7 @@ export async function mockApiFetch<T>(
       origin: "manual",
       ativo: true,
     };
-    return created as T;
+    return created as unknown as T;
   }
 
   if (/^\/api\/store\/appointments\/[^/]+\/manual$/.test(path) && method === "PATCH") {
@@ -261,11 +261,11 @@ export async function mockApiFetch<T>(
       ...clone(base),
       supplier:
         typeof body.supplier === "string" ? body.supplier : base.supplier,
-    } as T;
+    } as unknown as T;
   }
 
   if (/^\/api\/store\/appointments\/[^/]+\/manual$/.test(path) && method === "DELETE") {
-    return undefined as T;
+    return undefined as unknown as T;
   }
 
   if (/^\/api\/store\/agenda\/\d{4}-\d{2}-\d{2}\/complete$/.test(path) && method === "POST") {
@@ -280,7 +280,7 @@ export async function mockApiFetch<T>(
         id: "preview-conferente",
         name: "Gabriel Souza",
       },
-    } as T;
+    } as unknown as T;
   }
 
   throw new Error(`Endpoint não mockado na preview: ${method} ${path}`);
