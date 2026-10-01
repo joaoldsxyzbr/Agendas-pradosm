@@ -20,8 +20,10 @@ const MARGIN = 26;
 const TABLE_TOP = 774;
 const TABLE_HEADER_HEIGHT = 28;
 const TABLE_BOTTOM = 34;
-const ROW_FONT_SIZE = 6;
-const ROW_LINE_HEIGHT = 7.4;
+const ROW_FONT_SIZE = 7;
+const STATUS_FONT_SIZE = 6.5;
+const HEADER_FONT_SIZE = 6.4;
+const ROW_LINE_HEIGHT = 8.6;
 
 const STATUS_LABELS: Record<StoreAppointment["status"], string> = {
   aguardando: "Aguardando",
@@ -38,13 +40,13 @@ const STATUS_COLORS: Record<StoreAppointment["status"], string> = {
 };
 
 const COLUMNS = [
-  { key: "agendaDate", label: "Data agenda", width: 78 },
-  { key: "supplier", label: "Fornecedor", width: 205 },
-  { key: "status", label: "Status", width: 64 },
-  { key: "type", label: "Tipo", width: 52 },
-  { key: "nfe", label: "N° NFe", width: 58 },
-  { key: "orders", label: "Pedidos", width: 46 },
-  { key: "exchanges", label: "Trocas", width: 40 },
+  { key: "agendaDate", label: "Data agenda", width: 76 },
+  { key: "supplier", label: "Fornecedor", width: 225 },
+  { key: "status", label: "Status", width: 58 },
+  { key: "type", label: "Tipo", width: 48 },
+  { key: "nfe", label: "N° NFe", width: 55 },
+  { key: "orders", label: "Pedidos", width: 44 },
+  { key: "exchanges", label: "Trocas", width: 37 },
 ] as const;
 
 const TABLE_WIDTH = COLUMNS.reduce((total, column) => total + column.width, 0);
@@ -84,6 +86,14 @@ function formatDateBr(date: string) {
   return year && month && day ? `${day}/${month}/${year}` : date;
 }
 
+function formatDateTimeBr(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return (
+    `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()} ` +
+    `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`
+  );
+}
+
 function fileDate(date: string) {
   return formatDateBr(date).replaceAll("/", "-");
 }
@@ -96,12 +106,41 @@ export function agendaPdfFileName(agenda: AgendaMeta) {
   return `agenda-${safeFilePart(agenda.storeCode)}-${fileDate(agenda.date)}.pdf`;
 }
 
+function characterWidthFactor(char: string) {
+  if ("W".includes(char)) return 0.95;
+  if ("M".includes(char)) return 0.84;
+  if ("@".includes(char)) return 1.02;
+  if ("%".includes(char)) return 0.9;
+  if ("mw".includes(char)) return 0.8;
+  if ("ABCDEFGHJKLMNOPQRSTUVWXYZ".includes(char)) return 0.68;
+  if ("ilI.,:;|!' \"()[]{}".includes(char)) return 0.3;
+  if ("frt".includes(char)) return 0.4;
+  return 0.56;
+}
+
 function textWidthApprox(text: string, fontSize: number) {
-  return Array.from(text).reduce((width, char) => {
-    if ("MW@#%".includes(char)) return width + fontSize * 0.72;
-    if ("ilI.,:;|!' ".includes(char)) return width + fontSize * 0.3;
-    return width + fontSize * 0.52;
-  }, 0);
+  return Array.from(text).reduce(
+    (width, char) => width + fontSize * characterWidthFactor(char),
+    0,
+  );
+}
+
+function splitWordToWidth(word: string, maxWidth: number, fontSize: number) {
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const char of Array.from(word)) {
+    const candidate = `${current}${char}`;
+    if (current && textWidthApprox(candidate, fontSize) > maxWidth) {
+      chunks.push(current);
+      current = char;
+    } else {
+      current = candidate;
+    }
+  }
+
+  if (current) chunks.push(current);
+  return chunks.length ? chunks : [word];
 }
 
 function wrapText(value: string, maxWidth: number, fontSize = ROW_FONT_SIZE) {
@@ -111,14 +150,25 @@ function wrapText(value: string, maxWidth: number, fontSize = ROW_FONT_SIZE) {
   let current = "";
 
   for (const word of words) {
-    const candidate = current ? `${current} ${word}` : word;
-    if (!current || textWidthApprox(candidate, fontSize) <= maxWidth) {
-      current = candidate;
+    if (textWidthApprox(word, fontSize) > maxWidth) {
+      if (current) {
+        lines.push(current);
+        current = "";
+      }
+
+      const chunks = splitWordToWidth(word, maxWidth, fontSize);
+      lines.push(...chunks.slice(0, -1));
+      current = chunks.at(-1) ?? "";
       continue;
     }
 
-    lines.push(current);
-    current = word;
+    const candidate = current ? `${current} ${word}` : word;
+    if (current && textWidthApprox(candidate, fontSize) > maxWidth) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
   }
 
   if (current) lines.push(current);
@@ -167,7 +217,7 @@ function layoutRow(
     orders,
     exchanges,
     statusColor: STATUS_COLORS[appointment.status],
-    height: Math.max(19, lineCount * ROW_LINE_HEIGHT + 6),
+    height: Math.max(23, lineCount * ROW_LINE_HEIGHT + 8),
   };
 }
 
@@ -230,6 +280,16 @@ function textCommand(
   color = "0.08 0.08 0.10",
 ) {
   return `BT /${font} ${size} Tf ${color} rg 1 0 0 1 ${number(x)} ${number(y)} Tm (${pdfText(value)}) Tj ET\n`;
+}
+
+function fillRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  color: string,
+) {
+  return `q ${color} rg ${number(x)} ${number(y)} ${number(width)} ${number(height)} re f Q\n`;
 }
 
 function line(
@@ -300,13 +360,13 @@ function tableHeader() {
   );
 
   for (const column of COLUMNS) {
-    const labelLines = wrapText(column.label, column.width - 5, 5.8);
+    const labelLines = wrapText(column.label, column.width - 6, HEADER_FONT_SIZE);
     labelLines.forEach((label, index) => {
       content += textCommand(
         x + 3,
         TABLE_TOP - 11 - index * 7,
         label,
-        5.8,
+        HEADER_FONT_SIZE,
         "F2",
         "0.18 0.18 0.20",
       );
@@ -335,23 +395,53 @@ function tableHeader() {
   return content;
 }
 
+function textBlockBaseline(
+  rowTop: number,
+  rowHeight: number,
+  lineCount: number,
+  fontSize: number,
+  lineIndex: number,
+) {
+  const blockHeight = fontSize + Math.max(0, lineCount - 1) * ROW_LINE_HEIGHT;
+  const topPadding = Math.max(0, (rowHeight - blockHeight) / 2);
+  return rowTop - topPadding - fontSize * 0.8 - lineIndex * ROW_LINE_HEIGHT;
+}
+
 function tableRows(rows: PdfRow[]) {
   let content = "";
   let rowTop = TABLE_TOP - TABLE_HEADER_HEIGHT;
 
-  for (const row of rows) {
+  rows.forEach((row, rowIndex) => {
     const rowBottom = rowTop - row.height;
     let x = MARGIN;
 
+    if (rowIndex % 2 === 1) {
+      content += fillRect(
+        MARGIN,
+        rowBottom,
+        TABLE_WIDTH,
+        row.height,
+        "0.975 0.98 0.99",
+      );
+    }
+
     COLUMNS.forEach((column) => {
       const cellLines = row[column.key];
+      const fontSize =
+        column.key === "status" ? STATUS_FONT_SIZE : ROW_FONT_SIZE;
 
       cellLines.forEach((cellLine, index) => {
         content += textCommand(
           x + 3,
-          rowTop - 9 - index * ROW_LINE_HEIGHT,
+          textBlockBaseline(
+            rowTop,
+            row.height,
+            cellLines.length,
+            fontSize,
+            index,
+          ),
           cellLine,
-          column.key === "status" ? 5.8 : ROW_FONT_SIZE,
+          fontSize,
           column.key === "status" ? "F2" : "F1",
           column.key === "status" ? row.statusColor : "0.12 0.12 0.14",
         );
@@ -362,8 +452,8 @@ function tableRows(rows: PdfRow[]) {
         rowBottom,
         x,
         rowTop,
-        "0.62 0.62 0.64",
-        0.35,
+        "0.72 0.72 0.74",
+        0.32,
       );
       x += column.width;
     });
@@ -373,20 +463,20 @@ function tableRows(rows: PdfRow[]) {
       rowBottom,
       MARGIN + TABLE_WIDTH,
       rowTop,
-      "0.62 0.62 0.64",
-      0.35,
+      "0.72 0.72 0.74",
+      0.32,
     );
     content += line(
       MARGIN,
       rowBottom,
       MARGIN + TABLE_WIDTH,
       rowBottom,
-      "0.62 0.62 0.64",
-      0.35,
+      "0.72 0.72 0.74",
+      0.32,
     );
 
     rowTop = rowBottom;
-  }
+  });
 
   return content;
 }
@@ -397,12 +487,21 @@ function pageContent(
   total: number,
   pageIndex: number,
   pageCount: number,
+  generatedAt: string,
 ) {
   let content = "";
   content += pageHeader(agenda, total);
   content += tableHeader();
   content += tableRows(rows);
 
+  content += textCommand(
+    MARGIN,
+    18,
+    `Gerado em: ${generatedAt}`,
+    6.2,
+    "F1",
+    "0.42 0.42 0.46",
+  );
   content += textCommand(
     PAGE_WIDTH - MARGIN - 72,
     18,
@@ -433,6 +532,7 @@ export function buildAgendaPdf(
       a.protocol.localeCompare(b.protocol),
   );
   const agendaDate = formatDateBr(agenda.date);
+  const generatedAt = formatDateTimeBr(new Date());
   const pages = paginateRows(
     sorted.map((appointment) => layoutRow(appointment, agendaDate)),
   );
@@ -455,6 +555,7 @@ export function buildAgendaPdf(
       sorted.length,
       pageIndex,
       pages.length,
+      generatedAt,
     );
 
     pageObjectIds.push(pageObjectId);
