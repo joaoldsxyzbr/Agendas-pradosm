@@ -12,6 +12,7 @@ const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
 );
 const deploy = packageJson.scripts?.deploy ?? "";
+const cloudflareDeploy = packageJson.scripts?.["deploy:cloudflare"] ?? "";
 const productionVerify = packageJson.scripts?.["verify:production"] ?? "";
 const migrationCheck = packageJson.scripts?.["check:migrations"] ?? "";
 const wranglerConfig = JSON.parse(
@@ -36,33 +37,26 @@ assert.equal(
   "wrangler deve apontar para o Worker de produção",
 );
 
-assert.ok(
-  deploy.startsWith("npm run verify:production"),
-  "deploy deve verificar toda a aplicação antes de tocar no banco remoto",
+assert.equal(
+  deploy,
+  "npm run verify:production && npm run deploy:cloudflare",
+  "deploy local deve verificar toda a aplicação antes do caminho de publicação",
 );
-assert.ok(
-  deploy.includes("npm run check:migrations"),
-  "deploy deve validar segurança das migrations",
-);
-assert.ok(
-  deploy.includes("wrangler d1 migrations apply DB --remote"),
-  "deploy nativo deve aplicar migrations D1 remotas",
-);
-assert.ok(
-  deploy.includes("wrangler deploy"),
-  "deploy nativo deve publicar o Worker com Wrangler",
+assert.equal(
+  cloudflareDeploy,
+  "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy",
+  "Workers Builds deve usar o caminho de publicação já verificado no build command",
 );
 
-const verifyIndex = deploy.indexOf("npm run verify:production");
-const guardIndex = deploy.indexOf("npm run check:migrations");
-const migrationIndex = deploy.indexOf(
+const guardIndex = cloudflareDeploy.indexOf("npm run check:migrations");
+const migrationIndex = cloudflareDeploy.indexOf(
   "wrangler d1 migrations apply DB --remote",
 );
-const deployIndex = deploy.lastIndexOf("wrangler deploy");
+const deployIndex = cloudflareDeploy.lastIndexOf("wrangler deploy");
 
 assert.ok(
-  verifyIndex === 0 && guardIndex > verifyIndex,
-  "gate de migrations deve ocorrer depois da verificação completa",
+  guardIndex === 0,
+  "deploy Cloudflare deve começar pelo gate de migrations",
 );
 assert.ok(
   migrationIndex > guardIndex,
@@ -145,7 +139,11 @@ assert.equal(
 const productionRelease = readFileSync(productionReleasePath, "utf8");
 assert.ok(
   productionRelease.includes("npm run deploy"),
-  "runbook deve registrar npm run deploy como comando de produção",
+  "runbook deve registrar npm run deploy como comando local seguro",
+);
+assert.ok(
+  productionRelease.includes("npm run deploy:cloudflare"),
+  "runbook deve registrar deploy:cloudflare como comando do Workers Builds",
 );
 assert.ok(
   productionRelease.includes("Workers Builds"),
@@ -171,6 +169,10 @@ assert.ok(
 );
 
 assert.ok(!ci.includes("wrangler deploy"), "CI não deve publicar produção");
+assert.ok(
+  ci.includes("branches: [main, preview]"),
+  "CI deve validar pushes e PRs nas duas branches oficiais",
+);
 assert.ok(
   !ci.includes("paths-ignore:"),
   "CI deve rodar também em alterações somente de documentação",

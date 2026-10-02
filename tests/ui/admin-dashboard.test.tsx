@@ -4,11 +4,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../../src/admin/DashboardPage";
 
+const mockedTime = vi.hoisted(() => ({
+  businessDate: "2026-09-30",
+}));
+
 vi.mock("../../shared/time", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../shared/time")>();
   return {
     ...original,
-    businessDate: () => "2026-09-30",
+    businessDate: () => mockedTime.businessDate,
   };
 });
 
@@ -22,12 +26,47 @@ function json(body: unknown) {
 }
 
 afterEach(() => {
+  mockedTime.businessDate = "2026-09-30";
   cleanup();
   vi.unstubAllGlobals();
   vi.clearAllMocks();
 });
 
 describe("dashboard operacional", () => {
+  it("acompanha a virada da data operacional quando estava em hoje", async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/admin/stores") return json([]);
+      if (url === "/api/admin/presence") return json([]);
+      if (url.startsWith("/api/admin/agendas?date=")) return json([]);
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <MemoryRouter>
+        <DashboardPage />
+      </MemoryRouter>,
+    );
+
+    await screen.findByText("Nenhuma loja ativa cadastrada.");
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/admin/agendas?date=2026-09-30",
+      expect.objectContaining({ credentials: "include" }),
+    );
+
+    mockedTime.businessDate = "2026-10-01";
+    window.dispatchEvent(new Event("focus"));
+
+    await screen.findByText("Nenhuma loja ativa cadastrada.");
+    await vi.waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/agendas?date=2026-10-01",
+        expect.objectContaining({ credentials: "include" }),
+      ),
+    );
+  });
+
   it("mostra a operação por loja sem resumo geral", async () => {
     const stores = [
       { id: "s1", codigo: "F03", nome: "Canasvieiras", ativo: true },

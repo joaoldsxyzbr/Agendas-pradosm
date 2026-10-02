@@ -41,6 +41,19 @@ export async function findUserById(
     .first<UserRecord>();
 }
 
+export async function upgradeUserPasswordHash(
+  db: D1Database,
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  await db
+    .prepare(
+      "UPDATE usuarios SET senha_hash = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL",
+    )
+    .bind(passwordHash, new Date().toISOString(), userId)
+    .run();
+}
+
 export async function hasAdmin(db: D1Database): Promise<boolean> {
   const result = await db
     .prepare(

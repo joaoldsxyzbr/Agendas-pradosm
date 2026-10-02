@@ -71,6 +71,24 @@ function websocketRequest(
   });
 }
 
+async function nextClose(socket: WebSocket) {
+  return new Promise<{ code: number; reason: string }>((resolve, reject) => {
+    const timeout = setTimeout(
+      () => reject(new Error("WebSocket não fechou a tempo.")),
+      2_000,
+    );
+
+    socket.addEventListener(
+      "close",
+      (event) => {
+        clearTimeout(timeout);
+        resolve({ code: event.code, reason: event.reason });
+      },
+      { once: true },
+    );
+  });
+}
+
 async function nextMessage(socket: WebSocket) {
   return new Promise<string>((resolve, reject) => {
     const timeout = setTimeout(
@@ -199,6 +217,40 @@ describe("infraestrutura realtime", () => {
     expect(await nextMessage(socket!)).toBe("pong");
 
     socket!.close(1000, "teste concluído");
+  });
+
+  it("revoga imediatamente conexões realtime de um usuário", async () => {
+    const admin = await seedUser({ role: "admin" });
+    const response = await exports.default.fetch(
+      websocketRequest(admin.cookie),
+    );
+    expect(response.status).toBe(101);
+
+    const socket = (
+      response as Response & { webSocket?: WebSocket }
+    ).webSocket!;
+    socket.accept();
+    await nextMessage(socket);
+    await nextMessage(socket);
+
+    const namespace = (
+      env as unknown as { REALTIME_HUB: DurableObjectNamespace }
+    ).REALTIME_HUB;
+    const hub = namespace.get(namespace.idFromName("agenda-prado"));
+
+    const closed = nextClose(socket);
+    const revoked = await hub.fetch(
+      new Request("https://realtime.internal/internal/revoke", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: admin.userId }),
+      }),
+    );
+
+    expect(revoked.status).toBe(204);
+    await expect(closed).resolves.toMatchObject({
+      code: 4003,
+    });
   });
 
   it("visualizador autenticado também pode abrir o canal do dashboard", async () => {

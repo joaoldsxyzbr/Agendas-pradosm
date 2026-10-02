@@ -23,7 +23,7 @@ class MockWebSocket {
   onopen: (() => void) | null = null;
   onmessage: ((event: MessageEvent) => void) | null = null;
   onerror: (() => void) | null = null;
-  onclose: (() => void) | null = null;
+  onclose: ((event: CloseEvent) => void) | null = null;
 
   constructor(url: string | URL) {
     this.url = String(url);
@@ -51,7 +51,7 @@ class MockWebSocket {
     if (this.readyState === MockWebSocket.CLOSED) return;
     this.readyState = MockWebSocket.CLOSED;
     this.closeCalls.push({ code, reason });
-    this.onclose?.();
+    this.onclose?.({ code: code ?? 1000, reason: reason ?? "" } as CloseEvent);
   }
 }
 
@@ -214,6 +214,50 @@ describe("cliente realtime", () => {
       code: 4002,
       reason: "Falha na conexão realtime.",
     });
+  });
+
+  it("não reconecta quando a sessão realtime é revogada", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json({ mode: "on", protocolVersion: 1 })),
+    );
+    vi.stubGlobal("WebSocket", MockWebSocket);
+
+    render(<Harness sessionKey="user-revoked" />);
+    await flushPromises();
+
+    const socket = MockWebSocket.instances[0];
+    act(() => socket.open());
+    act(() => socket.close(4003, "Sessão realtime revogada."));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(60_000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(1);
+  });
+
+  it("reconecta após atualização de papel ou loja", async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => json({ mode: "on", protocolVersion: 1 })),
+    );
+    vi.stubGlobal("WebSocket", MockWebSocket);
+
+    render(<Harness sessionKey="user-refresh" />);
+    await flushPromises();
+
+    const first = MockWebSocket.instances[0];
+    act(() => first.open());
+    act(() => first.close(4004, "Identidade realtime atualizada."));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_000);
+    });
+
+    expect(MockWebSocket.instances).toHaveLength(2);
   });
 
   it("reconecta com atraso progressivo quando a conexão cai", async () => {

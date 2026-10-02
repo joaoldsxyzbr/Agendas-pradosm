@@ -18,6 +18,7 @@ type LivePresenceStatus = Exclude<RealtimePresenceStatus, "offline">;
 
 type ConnectionAttachment = RealtimeConnectionIdentity & {
   connectedAt: string;
+  sessionExpiresAt: number;
   presenceStatus: LivePresenceStatus | null;
   lastPresenceAt: number | null;
 };
@@ -150,6 +151,44 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       return new Response(null, { status: 204 });
     }
 
+    if (request.method === "POST" && url.pathname === "/internal/revoke") {
+      const body = (await request.json().catch(() => null)) as
+        | { userId?: unknown; reconnect?: unknown }
+        | null;
+      if (
+        !body ||
+        typeof body.userId !== "string" ||
+        !body.userId ||
+        (body.reconnect !== undefined && typeof body.reconnect !== "boolean")
+      ) {
+        return new Response("Invalid realtime revoke request.", { status: 400 });
+      }
+
+      const revoked = new Set<WebSocket>();
+      const affectedStores = new Set<string>();
+
+      for (const ws of this.ctx.getWebSockets(connectionTag("user", body.userId))) {
+        const attachment = this.attachment(ws);
+        revoked.add(ws);
+        if (attachment?.role === "conferente" && attachment.storeId) {
+          affectedStores.add(attachment.storeId);
+        }
+        ws.close(
+          body.reconnect ? 4004 : 4003,
+          body.reconnect
+            ? "Identidade realtime atualizada."
+            : "Sessão realtime revogada.",
+        );
+      }
+
+      for (const storeId of affectedStores) {
+        this.broadcastPresence(storeId, revoked);
+      }
+      await this.ensureAlarm(revoked);
+
+      return new Response(null, { status: 204 });
+    }
+
     if (request.headers.get("Upgrade")?.toLowerCase() !== "websocket") {
       return new Response("WebSocket upgrade required.", { status: 426 });
     }
@@ -158,9 +197,14 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     const role = request.headers.get("X-Agenda-Realtime-Role");
     const storeId =
       request.headers.get("X-Agenda-Realtime-Store-Id") || null;
+    const sessionExpiresAtSeconds = Number(
+      request.headers.get("X-Agenda-Realtime-Session-Exp"),
+    );
 
     if (
       !userId ||
+      !Number.isInteger(sessionExpiresAtSeconds) ||
+      sessionExpiresAtSeconds <= Math.floor(Date.now() / 1000) ||
       (role !== "admin" &&
         role !== "visualizador" &&
         role !== "conferente") ||
@@ -178,6 +222,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       role,
       storeId,
       connectedAt: new Date(now).toISOString(),
+      sessionExpiresAt: sessionExpiresAtSeconds * 1000,
       presenceStatus: null,
       lastPresenceAt: role === "conferente" ? now : null,
     };
@@ -205,9 +250,9 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
         stores: this.presenceSnapshot(),
       };
       server.send(JSON.stringify(snapshot));
-    } else {
-      await this.ensurePresenceAlarm();
     }
+
+    await this.ensureAlarm();
 
     console.log(
       JSON.stringify({
@@ -254,7 +299,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     }
 
     ws.serializeAttachment(attachment);
-    await this.ensurePresenceAlarm();
+    await this.ensureAlarm();
 
     if (parsed.type === "presence.set") {
       this.broadcastPresence(attachment.storeId);
@@ -270,7 +315,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
 
     if (attachment?.role === "conferente" && attachment.storeId) {
       this.broadcastPresence(attachment.storeId, new Set([ws]));
-      await this.ensurePresenceAlarm(new Set([ws]));
+      await this.ensureAlarm(new Set([ws]));
     }
 
     console.log(
@@ -288,7 +333,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
 
     if (attachment?.role === "conferente" && attachment.storeId) {
       this.broadcastPresence(attachment.storeId, new Set([ws]));
-      await this.ensurePresenceAlarm(new Set([ws]));
+      await this.ensureAlarm(new Set([ws]));
     }
 
     console.error(
@@ -304,12 +349,23 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
 
   async alarm(): Promise<void> {
     const now = Date.now();
+    const expired = new Set<WebSocket>();
     const stale = new Set<WebSocket>();
     const affectedStores = new Set<string>();
 
     for (const ws of this.ctx.getWebSockets()) {
       const attachment = this.attachment(ws);
-      if (attachment?.role !== "conferente" || !attachment.storeId) continue;
+      if (!attachment) continue;
+
+      if (now >= attachment.sessionExpiresAt) {
+        expired.add(ws);
+        if (attachment.role === "conferente" && attachment.storeId) {
+          affectedStores.add(attachment.storeId);
+        }
+        continue;
+      }
+
+      if (attachment.role !== "conferente" || !attachment.storeId) continue;
 
       const lastSeen = this.connectionLastSeen(ws, attachment);
       if (!Number.isFinite(lastSeen) || now - lastSeen >= PRESENCE_STALE_MS) {
@@ -318,15 +374,19 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       }
     }
 
+    for (const ws of expired) {
+      ws.close(4003, "Sessão realtime expirada.");
+    }
     for (const ws of stale) {
       ws.close(4001, "Presença realtime expirada.");
     }
 
+    const excluded = new Set([...expired, ...stale]);
     for (const storeId of affectedStores) {
-      this.broadcastPresence(storeId, stale);
+      this.broadcastPresence(storeId, excluded);
     }
 
-    await this.ensurePresenceAlarm(stale);
+    await this.ensureAlarm(excluded);
   }
 
   private attachment(ws: WebSocket) {
@@ -437,22 +497,29 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
     }
   }
 
-  private async ensurePresenceAlarm(
+  private async ensureAlarm(
     excluded: ReadonlySet<WebSocket> = new Set(),
   ) {
     let nextAlarm: number | null = null;
 
-    for (const ws of this.ctx.getWebSockets(connectionTag("role", "conferente"))) {
+    for (const ws of this.ctx.getWebSockets()) {
       if (excluded.has(ws)) continue;
 
       const attachment = this.attachment(ws);
       if (!attachment) continue;
 
+      nextAlarm =
+        nextAlarm === null
+          ? attachment.sessionExpiresAt
+          : Math.min(nextAlarm, attachment.sessionExpiresAt);
+
+      if (attachment.role !== "conferente") continue;
+
       const lastSeen = this.connectionLastSeen(ws, attachment);
       if (!Number.isFinite(lastSeen)) continue;
 
-      const due = lastSeen + PRESENCE_STALE_MS;
-      nextAlarm = nextAlarm === null ? due : Math.min(nextAlarm, due);
+      const presenceDue = lastSeen + PRESENCE_STALE_MS;
+      nextAlarm = Math.min(nextAlarm, presenceDue);
     }
 
     const currentAlarm = await this.ctx.storage.getAlarm();
@@ -464,7 +531,7 @@ export class RealtimeHub extends DurableObject<WorkerEnv> {
       return;
     }
 
-    if (currentAlarm === null || nextAlarm < currentAlarm) {
+    if (currentAlarm === null || nextAlarm !== currentAlarm) {
       await this.ctx.storage.setAlarm(nextAlarm);
     }
   }

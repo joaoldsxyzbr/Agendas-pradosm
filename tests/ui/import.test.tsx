@@ -120,6 +120,25 @@ describe("ImportAgendaPage", () => {
     expect(screen.getByText("90000001")).toBeInTheDocument();
   });
 
+  it("rejeita arquivo acima de 10 MB antes de carregar o parser", async () => {
+    render(<ImportAgendaPage />);
+
+    const file = new File(["pdf"], "agenda-grande.pdf", {
+      type: "application/pdf",
+    });
+    Object.defineProperty(file, "size", { value: 10 * 1024 * 1024 + 1 });
+
+    fireEvent.change(screen.getByLabelText("Arquivo CSV ou PDF"), {
+      target: { files: [file] },
+    });
+
+    expect(
+      screen.getByText("O arquivo excede o limite de 10 MB."),
+    ).toBeInTheDocument();
+    expect(mockedExtract).not.toHaveBeenCalled();
+    expect(mockedParsePdf).not.toHaveBeenCalled();
+  });
+
   it("usa CSV como caminho direto sem tentar extrair PDF", async () => {
     mockedParseCsv.mockReturnValue({
       ...validResult(),

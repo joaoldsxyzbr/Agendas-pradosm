@@ -7,6 +7,8 @@ import {
 } from "../import/parseAgendaBatch";
 import { ApiError, apiFetch } from "../lib/api";
 
+const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
+
 function formatDate(value: string | null) {
   if (!value) return "Data não identificada";
   const [year, month, day] = value.split("-");
@@ -91,6 +93,11 @@ export function ImportAgendaPage({
     setReplacePending(false);
 
     if (!selected) return;
+
+    if (selected.size > MAX_SOURCE_FILE_BYTES) {
+      setMessage("O arquivo excede o limite de 10 MB.");
+      return;
+    }
 
     if (!isCsv(selected) && !isPdf(selected)) {
       setMessage("Selecione um arquivo CSV ou PDF.");

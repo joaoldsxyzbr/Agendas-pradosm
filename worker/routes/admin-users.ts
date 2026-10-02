@@ -3,6 +3,7 @@ import { z } from "zod";
 import { CreateUserInput, UpdateUserInput } from "../../shared/api";
 import type { UserRole } from "../../shared/auth";
 import type { AppEnv } from "../env";
+import { revokeRealtimeUser } from "../services/realtime";
 import { findStoreById } from "../repositories/stores";
 import {
   createUser,
@@ -167,6 +168,19 @@ adminUserRoutes.patch("/", async (c) => {
       },
       actor.id,
     );
+    const sessionInvalidated =
+      Boolean(parsed.data.senha) ||
+      (current.ativo === 1 && user.ativo !== 1);
+    const realtimeIdentityChanged =
+      current.papel !== user.papel ||
+      current.loja_id !== user.loja_id;
+
+    if (sessionInvalidated) {
+      await revokeRealtimeUser(c.env, current.id, "terminate");
+    } else if (realtimeIdentityChanged) {
+      await revokeRealtimeUser(c.env, current.id, "refresh");
+    }
+
     return c.json(userJson(user));
   } catch (error) {
     if (isDuplicateLogin(error)) {
@@ -208,6 +222,9 @@ adminUserRoutes.delete("/:id", async (c) => {
   try {
     const actor = c.get("authUser");
     const deleted = await softDeleteUser(c.env.DB, current, actor.id);
+    if (deleted) {
+      await revokeRealtimeUser(c.env, current.id);
+    }
     if (!deleted) {
       return c.json(
         { error: "USUARIO_NAO_ENCONTRADO", message: "Usuário não encontrado." },

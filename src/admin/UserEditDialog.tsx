@@ -166,7 +166,7 @@ export function UserEditDialog({
                 type="password"
                 value={senha}
                 onChange={(event) => setSenha(event.target.value)}
-                minLength={8}
+                minLength={12}
                 autoComplete="new-password"
               />
             </label>

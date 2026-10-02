@@ -1,18 +1,20 @@
 import { Hono } from "hono";
 import type { Context } from "hono";
-import { deleteCookie, setCookie } from "hono/cookie";
+import { deleteCookie, getCookie, setCookie } from "hono/cookie";
 import { z } from "zod";
 import { RegisterFirstAdminInput } from "../../shared/api";
 import type { AppEnv } from "../env";
 import { checkLoginRateLimit } from "../lib/login-rate-limit";
-import { verifyPassword } from "../lib/password";
-import { createSessionToken, SESSION_MAX_AGE } from "../lib/session";
+import { hashPassword, passwordNeedsUpgrade, verifyPassword } from "../lib/password";
+import { createSessionToken, SESSION_MAX_AGE, verifySessionToken } from "../lib/session";
 import { requireAuth } from "../middleware/auth";
+import { revokeRealtimeUser } from "../services/realtime";
 import { findActiveStoreById } from "../repositories/stores";
 import {
   createInactiveFirstAdmin,
   findUserByLogin,
   hasAdmin,
+  upgradeUserPasswordHash,
 } from "../repositories/users";
 
 const COOKIE_NAME = "agenda_session";
@@ -145,6 +147,11 @@ authRoutes.post("/login", async (c) => {
   const passwordOk = await verifyPassword(parsed.data.senha, user.senha_hash);
   if (!passwordOk) return invalidCredentials(c);
 
+  if (passwordNeedsUpgrade(user.senha_hash)) {
+    const upgradedHash = await hashPassword(parsed.data.senha);
+    await upgradeUserPasswordHash(c.env.DB, user.id, upgradedHash);
+  }
+
   const store =
     user.papel === "conferente" && user.loja_id
       ? await findActiveStoreById(c.env.DB, user.loja_id)
@@ -174,7 +181,15 @@ authRoutes.post("/login", async (c) => {
   });
 });
 
-authRoutes.post("/logout", (c) => {
+authRoutes.post("/logout", async (c) => {
+  const token = getCookie(c, COOKIE_NAME);
+  if (token) {
+    const payload = await verifySessionToken(token, c.env.SESSION_SECRET);
+    if (payload) {
+      await revokeRealtimeUser(c.env, payload.userId);
+    }
+  }
+
   deleteCookie(c, COOKIE_NAME, {
     path: "/",
     secure: new URL(c.req.url).protocol === "https:",

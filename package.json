@@ -11,7 +11,7 @@
     "build": "vite build",
     "verify:production": "npm test && npm run typecheck && npm run build",
     "check:migrations": "node scripts/check-migration-safety.mjs",
-    "deploy": "npm run verify:production && npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "deploy": "npm run verify:production && npm run deploy:cloudflare",
     "test:ui": "vitest run --config vitest.ui.config.ts",
     "test:worker": "vitest run",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
@@ -21,7 +21,8 @@
     "test:e2e": "npm run build && npm run test:e2e:prepare && playwright test",
     "preview": "vite preview",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
-    "test:e2e:ci": "npm run test:e2e:prepare && playwright test"
+    "test:e2e:ci": "npm run test:e2e:prepare && playwright test",
+    "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",

@@ -16,13 +16,20 @@ export async function checkLoginRateLimit(
   }
 
   const normalizedLogin = login.trim().toLowerCase();
-  const normalizedActor = actor?.trim() || "unknown";
+  const normalizedActor = actor?.trim();
 
   try {
-    const result = await limiter.limit({
-      key: `${normalizedLogin}:${normalizedActor}`,
+    if (normalizedActor) {
+      const actorResult = await limiter.limit({
+        key: `actor:${normalizedActor}`,
+      });
+      if (!actorResult.success) return "limited";
+    }
+
+    const loginResult = await limiter.limit({
+      key: `login:${normalizedLogin}`,
     });
-    return result.success ? "allowed" : "limited";
+    return loginResult.success ? "allowed" : "limited";
   } catch {
     console.warn("Login rate limiter unavailable; denying request.");
     return "unavailable";

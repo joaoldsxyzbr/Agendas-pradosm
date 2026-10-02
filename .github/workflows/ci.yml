@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, preview]
   pull_request:
-    branches: [main]
+    branches: [main, preview]
 
 permissions:
   contents: read
@@ -36,6 +36,8 @@ jobs:
         run: npm run typecheck
 
       - name: Build
+        env:
+          VITE_PREVIEW_MOCKS: "off"
         run: npm run build
 
       - name: Install Playwright Chromium

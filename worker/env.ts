@@ -16,5 +16,6 @@ export type AppEnv = {
   Bindings: WorkerEnv;
   Variables: {
     authUser: AuthUser;
+    sessionExpiresAt: number;
   };
 };

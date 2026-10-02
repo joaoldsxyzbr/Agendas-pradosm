@@ -274,6 +274,25 @@ describe("admin store and user management", () => {
     expect(body).not.toHaveProperty("senha_hash");
   });
 
+  it("rejeita senha nova com menos de 12 caracteres", async () => {
+    const cookie = await adminCookie(
+      "admin-short-password",
+      "admin-short-password",
+    );
+
+    const response = await jsonRequest("/api/admin/users", "POST", cookie, {
+      nome: "Senha Curta",
+      login: "senha-curta",
+      senha: "curta12345",
+      papel: "admin",
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "REQUISICAO_INVALIDA",
+    });
+  });
+
   it("usuário de loja sem lojaId retorna 400", async () => {
     const cookie = await adminCookie("admin-user-no-store", "admin-user-no-store");
 

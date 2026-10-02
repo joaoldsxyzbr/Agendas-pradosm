@@ -268,11 +268,18 @@ export function useRealtimeConnection(sessionKey: string | null) {
         }
       };
 
-      current.onclose = () => {
+      current.onclose = (event) => {
         if (socket === current) socket = null;
         if (activeSocket === current) activeSocket = null;
 
         clearConnectionTimers();
+
+        if (event?.code === 4003) {
+          mode = "off";
+          updateRuntimeState({ mode: "off", status: "disabled" });
+          return;
+        }
+
         scheduleReconnect(connect);
       };
     };

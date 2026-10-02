@@ -285,8 +285,8 @@ describe("dashboard com presença realtime", () => {
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(75);
-      await Promise.resolve();
     });
+    await flushPromises();
 
     expect(within(card).getByText("1 / 1")).toBeInTheDocument();
     expect(agendaReads).toBe(2);

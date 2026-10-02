@@ -10,11 +10,11 @@ Configuração confirmada em 29/09/2026:
 
 - branch de produção: `main`;
 - build command: `npm run verify:production`;
-- deploy command: `npm run deploy`;
+- deploy command: `npm run deploy:cloudflare`;
 - diretório raiz: `/`;
 - previews de PR: habilitados com recursos isolados da produção.
 
-O deploy command deve permanecer **`npm run deploy`**. A documentação oficial da Cloudflare permite apontar Workers Builds para um script do `package.json`; o padrão da plataforma seria `npx wrangler deploy`, que não executaria sozinho as migrations deste projeto.
+O deploy command do Workers Builds deve permanecer **`npm run deploy:cloudflare`**. O build command já executa `npm run verify:production`, portanto o caminho Cloudflare aplica apenas o gate de migrations, as migrations remotas e a publicação, sem repetir testes/typecheck/build. O comando local **`npm run deploy`** continua autocontido: primeiro verifica toda a aplicação e depois chama `deploy:cloudflare`.
 
 Referência oficial: https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
 
@@ -41,12 +41,16 @@ Referências oficiais:
 
 ## Sequência obrigatória
 
-O script `npm run deploy` executa, nesta ordem:
+O comando local `npm run deploy` executa, nesta ordem:
 
 1. `npm run verify:production`;
-2. `npm run check:migrations`;
-3. `wrangler d1 migrations apply DB --remote`;
-4. `wrangler deploy`.
+2. `npm run deploy:cloudflare`.
+
+O caminho `deploy:cloudflare`, usado pelo Workers Builds depois do build command já validado, executa:
+
+1. `npm run check:migrations`;
+2. `wrangler d1 migrations apply DB --remote`;
+3. `wrangler deploy`.
 
 O Worker só deve ser publicado depois de as migrations aditivas necessárias terem sido aplicadas.
 
@@ -184,7 +188,9 @@ Antes do merge:
 - gate `verify` verde, o que inclui qualidade + CodeQL;
 - migration nova revisada como aditiva, quando houver;
 - qualquer contract migration acompanhada de aprovação versionada com SHA-256 exato;
-- `npm run deploy` preservado como deploy command do Workers Builds.
+- `npm run verify:production` preservado como build command do Workers Builds;
+- `npm run deploy:cloudflare` preservado como deploy command do Workers Builds;
+- `npm run deploy` preservado como caminho local seguro e autocontido.
 
 Depois do merge:
 
@@ -261,3 +267,22 @@ Após validação na branch `preview`, as telas administrativas de **Lojas** e *
 - preservação das APIs, regras de negócio e dados de produção.
 
 A promoção foi seletiva: recursos exclusivos da Preview não foram levados para a `main`.
+
+
+## Configuração atual do Workers Builds após a remediação de 02/10/2026
+
+A produção usa:
+
+- build command: `npm run verify:production`;
+- deploy command: `npm run deploy:cloudflare`.
+
+O comando local `npm run deploy` continua autocontido e executa a verificação completa antes de chamar o caminho de publicação.
+
+## Regras operacionais adicionais da auditoria de 02/10/2026
+
+- A branch `preview` deve permanecer baseada na `main` atual; diferenças são permitidas apenas para mocks, isolamento de dados e experiências visuais ainda não promovidas.
+- O CI deve executar o mesmo gate completo em `preview` e `main`.
+- A proteção da `main` deve exigir pull request + check `verify` também para administradores. A integração GitHub atual não possui permissão administrativa para impor essa configuração; revisar no painel sempre que houver auditoria de governança.
+- Produção deve manter pelo menos dois administradores ativos quando houver um segundo responsável disponível. Nunca criar credenciais automaticamente ou registrar senha no GitHub.
+- A auditoria operacional deve ser preservada. Não executar limpeza automática de `auditoria`, `historico_status` ou `historico_agenda`; revisar volume e retenção quando o banco atingir crescimento material.
+- A visibilidade pública/privada do repositório é uma decisão operacional. Não alterar automaticamente, pois pode afetar integrações, previews e acesso de manutenção.

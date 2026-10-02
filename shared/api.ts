@@ -27,7 +27,7 @@ export const CreateUserInput = z
   .object({
     nome: z.string().trim().min(1).max(120),
     login: z.string().trim().min(3).max(100),
-    senha: z.string().min(8).max(200),
+    senha: z.string().min(12).max(200),
     papel: UserRoleInput.default("conferente"),
     lojaId: z.string().uuid().optional(),
   })
@@ -52,7 +52,7 @@ export const UpdateUserInput = z
     id: z.string().uuid(),
     nome: z.string().trim().min(1).max(120).optional(),
     login: z.string().trim().min(3).max(100).optional(),
-    senha: z.string().min(8).max(200).optional(),
+    senha: z.string().min(12).max(200).optional(),
     papel: UserRoleInput.optional(),
     lojaId: z.string().uuid().optional(),
     ativo: z.boolean().optional(),

@@ -62,6 +62,10 @@ realtimeRoutes.get("/", async (c) => {
   const headers = new Headers(c.req.raw.headers);
   headers.set("X-Agenda-Realtime-User-Id", user.id);
   headers.set("X-Agenda-Realtime-Role", user.papel);
+  headers.set(
+    "X-Agenda-Realtime-Session-Exp",
+    String(c.get("sessionExpiresAt")),
+  );
 
   if (user.lojaId) {
     headers.set("X-Agenda-Realtime-Store-Id", user.lojaId);

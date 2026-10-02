@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { businessDate } from "../../shared/time";
 import { AgendaDatePicker } from "../agenda/AgendaDatePicker";
 import { apiFetch } from "../lib/api";
+import { useBusinessDate } from "../lib/useBusinessDate";
 import {
   useRealtimeEvent,
   useRealtimeState,
@@ -37,7 +37,8 @@ export function DashboardPage({
 }: {
   readOnly?: boolean;
 } = {}) {
-  const [today] = useState(businessDate);
+  const today = useBusinessDate();
+  const previousTodayRef = useRef(today);
   const [selectedDate, setSelectedDate] = useState(today);
   const [stores, setStores] = useState<AdminStore[]>([]);
   const [agendas, setAgendas] = useState<AdminAgendaSummary[]>([]);
@@ -50,6 +51,12 @@ export function DashboardPage({
   const [importOpen, setImportOpen] = useState(false);
   const [previewAgendaId, setPreviewAgendaId] = useState<string | null>(null);
   const realtimeAgendaRefreshTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    const previousToday = previousTodayRef.current;
+    setSelectedDate((current) => (current === previousToday ? today : current));
+    previousTodayRef.current = today;
+  }, [today]);
 
   useEffect(() => {
     return () => {
