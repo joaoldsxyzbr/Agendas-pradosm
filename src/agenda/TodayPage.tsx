@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useOutletContext } from "react-router-dom";
-import { businessDate } from "../../shared/time";
+import { BUSINESS_TIME_ZONE, businessDate } from "../../shared/time";
 import { ApiError, apiFetch } from "../lib/api";
 import { AgendaDatePicker } from "./AgendaDatePicker";
 import { AgendaDetails } from "./AgendaDetails";
@@ -44,13 +44,34 @@ function formatCompletion(value: string | null | undefined) {
   }).format(new Date(value));
 }
 
+function millisecondsUntilNextBusinessDate(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: BUSINESS_TIME_ZONE,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23",
+  }).formatToParts(now);
+
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    Number(parts.find((entry) => entry.type === type)?.value ?? 0);
+
+  const elapsedSeconds =
+    part("hour") * 60 * 60 + part("minute") * 60 + part("second");
+  const remainingMilliseconds =
+    (24 * 60 * 60 - elapsedSeconds - 1) * 1000 +
+    (1000 - now.getMilliseconds());
+
+  return Math.max(1000, remainingMilliseconds);
+}
+
 export function TodayPage() {
   const outletContext = useOutletContext<{
     agendaCommandSlot: HTMLDivElement | null;
   } | null>();
   const [commandPortalTarget, setCommandPortalTarget] =
     useState<HTMLDivElement | null>(null);
-  const [today] = useState(businessDate);
+  const [today, setToday] = useState(businessDate);
   const [selectedDate, setSelectedDate] = useState(today);
   const [agenda, setAgenda] = useState<StoreAgenda | null>(null);
   const [loading, setLoading] = useState(true);
@@ -73,6 +94,38 @@ export function TodayPage() {
   useLayoutEffect(() => {
     setCommandPortalTarget(outletContext?.agendaCommandSlot ?? null);
   }, [outletContext?.agendaCommandSlot]);
+
+  useEffect(() => {
+    const syncBusinessDate = () => {
+      const currentBusinessDate = businessDate();
+      if (currentBusinessDate === today) return;
+
+      setSelectedDate((current) =>
+        current === today ? currentBusinessDate : current,
+      );
+      setToday(currentBusinessDate);
+    };
+
+    const syncWhenVisible = () => {
+      if (document.visibilityState === "visible") {
+        syncBusinessDate();
+      }
+    };
+
+    const rolloverTimer = window.setTimeout(
+      syncBusinessDate,
+      millisecondsUntilNextBusinessDate() + 1500,
+    );
+
+    window.addEventListener("focus", syncBusinessDate);
+    document.addEventListener("visibilitychange", syncWhenVisible);
+
+    return () => {
+      window.clearTimeout(rolloverTimer);
+      window.removeEventListener("focus", syncBusinessDate);
+      document.removeEventListener("visibilitychange", syncWhenVisible);
+    };
+  }, [today]);
 
   useEffect(() => {
     let active = true;

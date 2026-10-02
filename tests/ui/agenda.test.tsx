@@ -12,11 +12,15 @@ import {
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { TodayPage } from "../../src/agenda/TodayPage";
 
+const mockedTime = vi.hoisted(() => ({
+  businessDate: "2026-09-30",
+}));
+
 vi.mock("../../shared/time", async (importOriginal) => {
   const original = await importOriginal<typeof import("../../shared/time")>();
   return {
     ...original,
-    businessDate: () => "2026-09-30",
+    businessDate: () => mockedTime.businessDate,
   };
 });
 
@@ -96,12 +100,39 @@ function StoreLayoutHarness() {
 }
 
 afterEach(() => {
+  mockedTime.businessDate = "2026-09-30";
   cleanup();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("TodayPage", () => {
+  it("acompanha a virada da data operacional sem manter o dia anterior como hoje", async () => {
+    const fetchMock = vi.fn(() =>
+      json(200, agendaBody([appointment("appt-today", "08:00")])),
+    );
+
+    vi.stubGlobal("fetch", fetchMock);
+    render(<TodayPage />);
+
+    const dateButton = await screen.findByRole("button", {
+      name: "Data da agenda",
+    });
+    expect(dateButton).toHaveTextContent("30/09/2026");
+
+    mockedTime.businessDate = "2026-10-01";
+    window.dispatchEvent(new Event("focus"));
+
+    await waitFor(() =>
+      expect(dateButton).toHaveTextContent("01/10/2026"),
+    );
+
+    const todayCalls = fetchMock.mock.calls.filter(
+      (call) => String(call[0]) === "/api/store/today",
+    );
+    expect(todayCalls).toHaveLength(2);
+  });
+
   it("mostra os comandos da agenda no cabeçalho operacional integrado", async () => {
     vi.stubGlobal(
       "fetch",
