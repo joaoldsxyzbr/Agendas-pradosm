@@ -1,8 +1,13 @@
-import { getCookie } from "hono/cookie";
+import { getCookie, setCookie } from "hono/cookie";
 import { createMiddleware } from "hono/factory";
 import type { AuthUser } from "../../shared/auth";
 import type { AppEnv } from "../env";
-import { verifySessionToken } from "../lib/session";
+import {
+  createSessionToken,
+  SESSION_MAX_AGE,
+  shouldRenewSession,
+  verifySessionToken,
+} from "../lib/session";
 import { findActiveStoreById } from "../repositories/stores";
 import { findUserById } from "../repositories/users";
 
@@ -55,6 +60,21 @@ export const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
     lojaCodigo: store?.codigo ?? null,
     lojaNome: store?.nome ?? null,
   };
+
+  if (shouldRenewSession(payload)) {
+    const refreshedToken = await createSessionToken(
+      user.id,
+      user.session_version,
+      c.env.SESSION_SECRET,
+    );
+    setCookie(c, COOKIE_NAME, refreshedToken, {
+      httpOnly: true,
+      secure: new URL(c.req.url).protocol === "https:",
+      sameSite: "Strict",
+      path: "/",
+      maxAge: SESSION_MAX_AGE,
+    });
+  }
 
   c.set("authUser", authUser);
   c.set("sessionExpiresAt", payload.exp);

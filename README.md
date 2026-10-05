@@ -206,6 +206,7 @@ Os planos e especificações técnicas ficam em `docs/superpowers/`.
 
 - `SESSION_SECRET` é segredo de runtime e não deve ser versionado.
 - Cookies de sessão são `HttpOnly`, `SameSite=Strict` e seguros em HTTPS.
+- Sessões usam janela de 30 dias e são renovadas automaticamente durante o uso, no máximo uma vez por dia, evitando login diário sem criar uma credencial eterna.
 - Sessões são versionadas e são revogadas após troca de senha.
 - Conferentes precisam estar ativos e ligados a uma loja ativa/não removida.
 - O login usa rate limiter com comportamento fail-closed.

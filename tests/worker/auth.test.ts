@@ -197,6 +197,8 @@ describe("auth", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("Set-Cookie")).toContain("HttpOnly");
     expect(response.headers.get("Set-Cookie")).toContain("SameSite=Strict");
+    expect(response.headers.get("Set-Cookie")).toContain("Secure");
+    expect(response.headers.get("Set-Cookie")).toContain("Max-Age=2592000");
 
     const me = await exports.default.fetch(
       new Request("https://example.com/api/auth/me", {
@@ -210,6 +212,33 @@ describe("auth", () => {
       papel: "admin",
       lojaId: null,
     });
+  });
+
+  it("renova sessão antiga por mais 30 dias sem exigir novo login", async () => {
+    await seedUser({ id: "admin-renew", login: "admin-renew", papel: "admin" });
+    const exp = Math.floor(Date.now() / 1000) + 8 * 60 * 60;
+    const token = await signedSession("admin-renew", exp);
+
+    const me = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: `agenda_session=${token}` },
+      }),
+    );
+
+    expect(me.status).toBe(200);
+    expect(me.headers.get("Set-Cookie")).toContain("Max-Age=2592000");
+    expect(me.headers.get("Set-Cookie")).toContain("HttpOnly");
+    expect(me.headers.get("Set-Cookie")).toContain("SameSite=Strict");
+
+    const renewedCookie = cookiePair(me);
+    const secondMe = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: renewedCookie },
+      }),
+    );
+
+    expect(secondMe.status).toBe(200);
+    expect(secondMe.headers.get("Set-Cookie")).toBeNull();
   });
 
   it("retorna o nome e a loja do conferente na sessão", async () => {

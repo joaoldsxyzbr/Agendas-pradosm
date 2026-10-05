@@ -4,7 +4,8 @@ export type SessionPayload = {
   exp: number;
 };
 
-const SESSION_SECONDS = 8 * 60 * 60;
+const SESSION_SECONDS = 30 * 24 * 60 * 60;
+const SESSION_RENEW_AFTER_SECONDS = 24 * 60 * 60;
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";
@@ -99,6 +100,18 @@ export async function verifySessionToken(
   } catch {
     return null;
   }
+}
+
+export function shouldRenewSession(
+  payload: SessionPayload,
+  nowMs = Date.now(),
+): boolean {
+  const nowSeconds = Math.floor(nowMs / 1000);
+  const remainingSeconds = payload.exp - nowSeconds;
+  return (
+    remainingSeconds > 0 &&
+    remainingSeconds <= SESSION_SECONDS - SESSION_RENEW_AFTER_SECONDS
+  );
 }
 
 export const SESSION_MAX_AGE = SESSION_SECONDS;
