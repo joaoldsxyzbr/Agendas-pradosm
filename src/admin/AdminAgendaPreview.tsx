@@ -42,11 +42,13 @@ function toStoreAppointment(appointment: AdminAppointment): StoreAppointment {
 export function AdminAgendaPreview({
   agendaId,
   canReopen,
+  canEdit,
   onClose,
   onAgendaChanged,
 }: {
   agendaId: string;
   canReopen: boolean;
+  canEdit: boolean;
   onClose: () => void;
   onAgendaChanged?: () => void;
 }) {
@@ -55,6 +57,15 @@ export function AdminAgendaPreview({
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [reopening, setReopening] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [manualOpen, setManualOpen] = useState(false);
+  const [manualEditing, setManualEditing] = useState<StoreAppointment | null>(null);
+  const [manualSupplier, setManualSupplier] = useState("");
+  const [manualSaving, setManualSaving] = useState(false);
+  const [manualError, setManualError] = useState<string | null>(null);
+  const [manualDeleting, setManualDeleting] = useState<StoreAppointment | null>(null);
+  const [manualDeleteSaving, setManualDeleteSaving] = useState(false);
+  const [manualDeleteError, setManualDeleteError] = useState<string | null>(null);
 
   useRealtimeEvent((event) => {
     if (event.type !== "agenda.changed" || event.agendaId !== agendaId) return;
@@ -71,6 +82,14 @@ export function AdminAgendaPreview({
     setLoading(true);
     setError(null);
     setSearchQuery("");
+    setEditMode(false);
+    setManualOpen(false);
+    setManualEditing(null);
+    setManualSupplier("");
+    setManualError(null);
+    setManualDeleting(null);
+    setManualDeleteSaving(false);
+    setManualDeleteError(null);
 
     void apiFetch<AdminAgendaDetail>(`/api/admin/agendas/${agendaId}`)
       .then((data) => {
@@ -120,9 +139,161 @@ export function AdminAgendaPreview({
     (appointment) => appointment.hasExchanges,
   ).length;
 
+  function appointmentChanged(updated: StoreAppointment) {
+    setDetail((current) =>
+      current
+        ? {
+            ...current,
+            appointments: current.appointments.map((appointment) =>
+              appointment.id === updated.id ? updated : appointment,
+            ),
+          }
+        : current,
+    );
+    onAgendaChanged?.();
+  }
+
+  function openManualSupplier() {
+    if (!canEdit || !editMode) return;
+    setManualEditing(null);
+    setManualSupplier("");
+    setManualError(null);
+    setManualOpen(true);
+  }
+
+  function editManualSupplier(appointment: StoreAppointment) {
+    if (!canEdit || !editMode) return;
+    setManualEditing(appointment);
+    setManualSupplier(appointment.supplier);
+    setManualError(null);
+    setManualOpen(true);
+  }
+
+  function closeManualSupplier() {
+    if (manualSaving) return;
+    setManualOpen(false);
+    setManualEditing(null);
+    setManualSupplier("");
+    setManualError(null);
+  }
+
+  function requestDeleteManual(appointment: StoreAppointment) {
+    if (!canEdit || !editMode || appointment.origin !== "manual") return;
+    setManualDeleting(appointment);
+    setManualDeleteError(null);
+  }
+
+  function closeDeleteManual() {
+    if (manualDeleteSaving) return;
+    setManualDeleting(null);
+    setManualDeleteError(null);
+  }
+
+  async function deleteManualSupplier() {
+    if (!canEdit || !editMode || !manualDeleting || manualDeleteSaving) return;
+
+    setManualDeleteSaving(true);
+    setManualDeleteError(null);
+
+    try {
+      await apiFetch<void>(
+        `/api/admin/appointments/${manualDeleting.id}/manual`,
+        { method: "DELETE" },
+      );
+
+      setDetail((current) =>
+        current
+          ? {
+              ...current,
+              appointments: current.appointments.filter(
+                (appointment) => appointment.id !== manualDeleting.id,
+              ),
+            }
+          : current,
+      );
+      setManualDeleting(null);
+      onAgendaChanged?.();
+    } catch (caught) {
+      setManualDeleteError(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível excluir o fornecedor.",
+      );
+    } finally {
+      setManualDeleteSaving(false);
+    }
+  }
+
+  function toggleEditMode() {
+    if (!canEdit || manualSaving) return;
+
+    if (editMode) {
+      setManualOpen(false);
+      setManualEditing(null);
+      setManualSupplier("");
+      setManualError(null);
+      setManualDeleting(null);
+      setManualDeleteError(null);
+    }
+
+    setEditMode(!editMode);
+  }
+
+  async function saveManualSupplier(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!canEdit || !editMode || manualSaving) return;
+
+    const supplier = manualSupplier.trim();
+    if (!supplier) return;
+
+    setManualSaving(true);
+    setManualError(null);
+
+    try {
+      const saved = await apiFetch<StoreAppointment>(
+        manualEditing
+          ? `/api/admin/appointments/${manualEditing.id}/manual`
+          : `/api/admin/agendas/${agendaId}/manual`,
+        {
+          method: manualEditing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ supplier }),
+        },
+      );
+
+      if (manualEditing) {
+        appointmentChanged(saved);
+      } else {
+        setDetail((current) =>
+          current
+            ? {
+                ...current,
+                appointments: [...current.appointments, saved],
+              }
+            : current,
+        );
+        onAgendaChanged?.();
+      }
+
+      setManualOpen(false);
+      setManualEditing(null);
+      setManualSupplier("");
+      setSearchQuery("");
+    } catch (caught) {
+      setManualError(
+        caught instanceof Error
+          ? caught.message
+          : "Não foi possível salvar o fornecedor.",
+      );
+    } finally {
+      setManualSaving(false);
+    }
+  }
+
   async function reopenForStore() {
     if (
       !canReopen ||
+      !editMode ||
       !detail ||
       reopening ||
       detail.agenda.dayStatus !== "concluido"
@@ -191,7 +362,7 @@ export function AdminAgendaPreview({
                 <span>Visualização do conferente</span>
               </div>
               <div className="agenda-preview-status">
-                {canReopen && detail.agenda.dayStatus === "concluido" ? (
+                {canReopen && editMode && detail.agenda.dayStatus === "concluido" ? (
                   <button
                     className="status-pill warning agenda-preview-reopen"
                     type="button"
@@ -212,7 +383,19 @@ export function AdminAgendaPreview({
                     ? "✓ Concluído"
                     : "Em andamento"}
                 </span>
-                <span className="status-pill muted">Somente leitura</span>
+                {canEdit ? (
+                  <button
+                    className={editMode ? "primary-button" : "ghost-button"}
+                    type="button"
+                    aria-pressed={editMode}
+                    onClick={toggleEditMode}
+                  >
+                    {editMode ? "Sair da edição" : "Editar agenda"}
+                  </button>
+                ) : null}
+                <span className="status-pill muted">
+                  {canEdit && editMode ? "Modo edição" : "Somente leitura"}
+                </span>
               </div>
             </div>
 
@@ -246,12 +429,26 @@ export function AdminAgendaPreview({
                   onChange={(event) => setSearchQuery(event.target.value)}
                 />
               </label>
+
+              {canEdit && editMode ? (
+                <button
+                  className="ghost-button agenda-manual-button"
+                  type="button"
+                  onClick={openManualSupplier}
+                >
+                  + Fornecedor sem agenda
+                </button>
+              ) : null}
             </div>
 
             {filteredAppointments.length > 0 ? (
               <AgendaList
                 appointments={filteredAppointments}
-                editable={false}
+                editable={canEdit && editMode}
+                onChanged={canEdit && editMode ? appointmentChanged : undefined}
+                onEditManual={canEdit && editMode ? editManualSupplier : undefined}
+                onDeleteManual={canEdit && editMode ? requestDeleteManual : undefined}
+                appointmentApiBase="/api/admin/appointments"
                 highlightPositiveExchanges
               />
             ) : (
@@ -262,6 +459,129 @@ export function AdminAgendaPreview({
           </section>
         ) : null}
       </div>
+
+      {canEdit && editMode && manualDeleting ? (
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal-card manual-supplier-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-manual-delete-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">Confirmação</span>
+                <h2 id="admin-manual-delete-title">Excluir fornecedor</h2>
+              </div>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={manualDeleteSaving}
+                onClick={closeDeleteManual}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <p>
+              Excluir <strong>{manualDeleting.supplier}</strong> desta agenda?
+            </p>
+            <p className="muted-state">
+              A remoção fica registrada na auditoria.
+            </p>
+
+            {manualDeleteError ? (
+              <p className="form-error">{manualDeleteError}</p>
+            ) : null}
+
+            <div className="modal-actions">
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={manualDeleteSaving}
+                onClick={closeDeleteManual}
+              >
+                Cancelar
+              </button>
+              <button
+                className="primary-button"
+                type="button"
+                disabled={manualDeleteSaving}
+                onClick={() => void deleteManualSupplier()}
+              >
+                {manualDeleteSaving ? "Excluindo..." : "Excluir fornecedor"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {canEdit && editMode && manualOpen ? (
+        <div className="modal-backdrop" role="presentation">
+          <div
+            className="modal-card manual-supplier-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-manual-supplier-title"
+          >
+            <div className="modal-heading">
+              <div>
+                <span className="eyebrow">Ajuste administrativo</span>
+                <h2 id="admin-manual-supplier-title">
+                  {manualEditing ? "Editar fornecedor" : "Fornecedor sem agenda"}
+                </h2>
+              </div>
+              <button
+                className="ghost-button"
+                type="button"
+                disabled={manualSaving}
+                onClick={closeManualSupplier}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <form className="modal-form" onSubmit={saveManualSupplier}>
+              <label>
+                Nome do fornecedor
+                <input
+                  type="text"
+                  value={manualSupplier}
+                  autoFocus
+                  maxLength={160}
+                  onChange={(event) => setManualSupplier(event.target.value)}
+                />
+              </label>
+
+              {manualError ? <p className="form-error">{manualError}</p> : null}
+
+              <div className="modal-actions">
+                <button
+                  className="ghost-button"
+                  type="button"
+                  disabled={manualSaving}
+                  onClick={closeManualSupplier}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={manualSaving || !manualSupplier.trim()}
+                >
+                  {manualSaving
+                    ? manualEditing
+                      ? "Salvando..."
+                      : "Adicionando..."
+                    : manualEditing
+                      ? "Salvar"
+                      : "Adicionar"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

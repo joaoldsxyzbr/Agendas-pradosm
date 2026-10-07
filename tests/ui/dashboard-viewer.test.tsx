@@ -111,6 +111,9 @@ describe("visualizador do dashboard", () => {
     });
     expect(within(dialog).getByText("✓ Concluído")).toHaveClass("success");
     expect(within(dialog).getByText("Somente leitura")).toHaveClass("muted");
+    expect(
+      within(dialog).queryByRole("button", { name: "Editar agenda" }),
+    ).not.toBeInTheDocument();
     expect(dialog.querySelector(".agenda-metric-success")).toHaveTextContent(
       "recebidos",
     );
@@ -180,6 +183,16 @@ describe("visualizador do dashboard", () => {
     const dialog = await screen.findByRole("dialog", {
       name: "Agenda F05 - Pagani",
     });
+    expect(
+      within(dialog).queryByRole("button", {
+        name: "Reabrir para conferente",
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Editar agenda" }),
+    );
+
     expect(
       within(dialog).getByRole("button", {
         name: "Reabrir para conferente",

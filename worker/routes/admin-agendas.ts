@@ -2,12 +2,14 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda";
 import type { AppEnv } from "../env";
+import { businessTime } from "../lib/time";
 import { publishAgendaChanged } from "../services/realtime";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
   changeAppointmentStatus,
   createAgendaImport,
+  createManualAppointment,
   importAgendaBatchAtomic,
   AgendaBatchQueryBudgetError,
   findAgendaById,
@@ -471,6 +473,59 @@ adminAgendaRoutes.get("/:id/history", async (c) => {
         : null,
     })),
   );
+});
+
+adminAgendaRoutes.post("/:id/manual", async (c) => {
+  const parsed = z.object({
+    supplier: z.string().trim().min(1).max(160),
+  }).safeParse(await c.req.json().catch(() => null));
+
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Informe o nome do fornecedor." },
+      400,
+    );
+  }
+
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404,
+    );
+  }
+
+  try {
+    const user = c.get("authUser");
+    const appointment = await createManualAppointment(
+      c.env.DB,
+      agenda,
+      user.id,
+      parsed.data.supplier,
+      businessTime(new Date()),
+      agenda.status_dia === "concluido"
+        ? `Fornecedor manual ${parsed.data.supplier} adicionado pelo administrador.`
+        : undefined,
+    );
+
+    await publishAgendaChanged(c.env, {
+      agendaId: agenda.id,
+      storeId: agenda.loja_id,
+      date: agenda.data_agenda,
+      reason: "manual",
+    });
+
+    return c.json(appointmentJson(appointment), 201);
+  } catch (error) {
+    console.error("Admin manual supplier creation failed", error);
+    return c.json(
+      {
+        error: "FORNECEDOR_MANUAL_NAO_CRIADO",
+        message: "Não foi possível adicionar o fornecedor.",
+      },
+      500,
+    );
+  }
 });
 
 adminAgendaRoutes.get("/:id", async (c) => {

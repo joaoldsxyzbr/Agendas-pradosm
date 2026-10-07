@@ -764,6 +764,82 @@ describe("admin agenda import", () => {
     ]);
   });
 
+  it("admin adiciona fornecedor sem agenda e registra ajuste em dia concluído", async () => {
+    const adminId = "admin-manual-create";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-create", "F92");
+
+    const imported = await importAgenda(cookie, payload("F92"));
+    const importedBody = (await imported.json()) as { agenda: { id: string } };
+
+    await db
+      .prepare(
+        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?",
+      )
+      .bind(now, adminId, importedBody.agenda.id)
+      .run();
+
+    const created = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/manual`,
+      cookie,
+      { method: "POST", body: { supplier: "FORNECEDOR EXTRA ADM" } },
+    );
+
+    expect(created.status).toBe(201);
+    const createdBody = (await created.json()) as {
+      id: string;
+      supplier: string;
+      status: string;
+      origin: string;
+    };
+    expect(createdBody).toMatchObject({
+      supplier: "FORNECEDOR EXTRA ADM",
+      status: "aguardando",
+      origin: "manual",
+    });
+
+    const stored = await db
+      .prepare(
+        "SELECT fornecedor, status, origem, ativo FROM agendamentos WHERE id = ?",
+      )
+      .bind(createdBody.id)
+      .first<{
+        fornecedor: string;
+        status: string;
+        origem: string;
+        ativo: number;
+      }>();
+    expect(stored).toEqual({
+      fornecedor: "FORNECEDOR EXTRA ADM",
+      status: "aguardando",
+      origem: "manual",
+      ativo: 1,
+    });
+
+    const appointmentAudit = await db
+      .prepare(
+        "SELECT acao FROM auditoria WHERE agendamento_id = ? ORDER BY criado_em ASC, rowid ASC",
+      )
+      .bind(createdBody.id)
+      .all<{ acao: string }>();
+    expect(appointmentAudit.results.map((item) => item.acao)).toContain(
+      "fornecedor_manual_criado",
+    );
+
+    const agendaHistory = await db
+      .prepare(
+        "SELECT acao, detalhes FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid",
+      )
+      .bind(importedBody.agenda.id)
+      .all<{ acao: string; detalhes: string | null }>();
+    expect(agendaHistory.results).toEqual([
+      expect.objectContaining({
+        acao: "ajuste_admin",
+        detalhes: expect.stringContaining("FORNECEDOR EXTRA ADM"),
+      }),
+    ]);
+  });
+
   it("admin edita e remove fornecedor manual mesmo em dia concluído", async () => {
     const adminId = "admin-manual-edit";
     const cookie = await seedAdmin(adminId);

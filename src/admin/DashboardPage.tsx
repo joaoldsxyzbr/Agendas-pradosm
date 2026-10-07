@@ -280,6 +280,7 @@ export function DashboardPage({
         <AdminAgendaPreview
           agendaId={previewAgendaId}
           canReopen={!readOnly}
+          canEdit={!readOnly}
           onClose={() => setPreviewAgendaId(null)}
           onAgendaChanged={() => void refreshAgendas()}
         />

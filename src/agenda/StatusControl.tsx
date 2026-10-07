@@ -30,10 +30,12 @@ export function StatusActions({
   appointmentId,
   status,
   onChanged,
+  apiBase = "/api/store/appointments",
 }: {
   appointmentId: string;
   status: AppointmentStatus;
   onChanged: (appointment: StoreAppointment) => void;
+  apiBase?: string;
 }) {
   const [saving, setSaving] = useState<AppointmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,7 +51,7 @@ export function StatusActions({
 
     try {
       const updated = await apiFetch<StoreAppointment>(
-        `/api/store/appointments/${appointmentId}/status`,
+        `${apiBase}/${appointmentId}/status`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -110,10 +112,12 @@ export function ExchangeCheckbox({
   appointmentId,
   hasExchanges,
   onChanged,
+  apiBase = "/api/store/appointments",
 }: {
   appointmentId: string;
   hasExchanges: boolean;
   onChanged: (appointment: StoreAppointment) => void;
+  apiBase?: string;
 }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,7 +130,7 @@ export function ExchangeCheckbox({
 
     try {
       const updated = await apiFetch<StoreAppointment>(
-        `/api/store/appointments/${appointmentId}/exchanges`,
+        `${apiBase}/${appointmentId}/exchanges`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -167,10 +171,12 @@ export function StatusControl({
   appointmentId,
   status,
   onChanged,
+  apiBase = "/api/store/appointments",
 }: {
   appointmentId: string;
   status: AppointmentStatus;
   onChanged: (appointment: StoreAppointment) => void;
+  apiBase?: string;
 }) {
   return (
     <div className="status-control">
@@ -179,6 +185,7 @@ export function StatusControl({
         appointmentId={appointmentId}
         status={status}
         onChanged={onChanged}
+        apiBase={apiBase}
       />
     </div>
   );

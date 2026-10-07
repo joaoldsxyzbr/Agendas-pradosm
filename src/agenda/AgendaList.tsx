@@ -49,6 +49,8 @@ export function AgendaList({
   onChanged,
   editable = true,
   onEditManual,
+  onDeleteManual,
+  appointmentApiBase = "/api/store/appointments",
   highlightPositiveExchanges = false,
 }: {
   appointments: StoreAppointment[];
@@ -56,6 +58,8 @@ export function AgendaList({
   onChanged?: (appointment: StoreAppointment) => void;
   editable?: boolean;
   onEditManual?: (appointment: StoreAppointment) => void;
+  onDeleteManual?: (appointment: StoreAppointment) => void;
+  appointmentApiBase?: string;
   highlightPositiveExchanges?: boolean;
 }) {
   const [sort, setSort] = useState<SortState>(null);
@@ -69,7 +73,7 @@ export function AgendaList({
   });
 
   const hasActions = Boolean(
-    onOpen || (editable && (onChanged || onEditManual)),
+    onOpen || (editable && (onChanged || onEditManual || onDeleteManual)),
   );
 
   function cycleSort(key: SortKey) {
@@ -110,6 +114,7 @@ export function AgendaList({
         appointmentId={appointment.id}
         hasExchanges={appointment.hasExchanges}
         onChanged={onChanged}
+        apiBase={appointmentApiBase}
       />
     );
   }
@@ -122,6 +127,7 @@ export function AgendaList({
             appointmentId={appointment.id}
             status={appointment.status}
             onChanged={onChanged}
+            apiBase={appointmentApiBase}
           />
         ) : null}
 
@@ -145,6 +151,26 @@ export function AgendaList({
           </button>
         ) : null}
 
+        {editable && appointment.origin === "manual" && onDeleteManual ? (
+          <button
+            className="ghost-button agenda-manual-delete-action"
+            type="button"
+            style={{ width: 34, height: 34, minHeight: 34, padding: 0, display: "inline-flex", alignItems: "center", justifyContent: "center" }}
+            aria-label={`Excluir fornecedor ${appointment.supplier}`}
+            title="Excluir fornecedor"
+            onClick={() => onDeleteManual(appointment)}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              focusable="false"
+              style={{ width: 15, height: 15, fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" }}
+            >
+              <path d="M4 7h16M9 7V4h6v3m-8 0 1 13h8l1-13M10 11v5m4-5v5" />
+            </svg>
+          </button>
+        ) : null}
+
         {onOpen ? (
           <button
             className="ghost-button agenda-detail-button"
@@ -160,7 +186,11 @@ export function AgendaList({
 
   return (
     <>
-      <div className="agenda-desktop table-card">
+      <div
+        className={`agenda-desktop table-card ${
+          hasActions ? "has-actions" : "is-readonly"
+        }`}
+      >
         <div className="table-scroll">
           <table>
             <thead>

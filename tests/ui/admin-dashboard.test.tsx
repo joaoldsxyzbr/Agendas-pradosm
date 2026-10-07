@@ -1,5 +1,5 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { MemoryRouter } from "react-router-dom";
 import { DashboardPage } from "../../src/admin/DashboardPage";
@@ -180,7 +180,7 @@ describe("dashboard operacional", () => {
   });
 
 
-  it("abre a agenda da loja em modo somente leitura", async () => {
+  it("protege a agenda e permite ao ADM editar e adicionar fornecedor manual após ativar o modo edição", async () => {
     const stores = [
       { id: "s1", codigo: "F03", nome: "Canasvieiras", ativo: true },
     ];
@@ -251,14 +251,57 @@ describe("dashboard operacional", () => {
       ],
     };
 
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-      const url = String(input);
-      if (url === "/api/admin/stores") return json(stores);
-      if (url === "/api/admin/presence") return json([]);
-      if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
-      if (url === "/api/admin/agendas/a1") return json(detail);
-      return new Response(null, { status: 404 });
-    });
+    const fetchMock = vi.fn(
+      async (input: RequestInfo | URL, init?: RequestInit) => {
+        const url = String(input);
+        if (url === "/api/admin/stores") return json(stores);
+        if (url === "/api/admin/presence") return json([]);
+        if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
+        if (url === "/api/admin/agendas/a1" && !init?.method) return json(detail);
+        if (
+          url === "/api/admin/appointments/ap1/status" &&
+          init?.method === "PATCH"
+        ) {
+          return json({ ...detail.appointments[0], status: "recebido" });
+        }
+        if (
+          url === "/api/admin/appointments/ap1/exchanges" &&
+          init?.method === "PATCH"
+        ) {
+          return json({ ...detail.appointments[0], hasExchanges: true });
+        }
+        if (
+          url === "/api/admin/appointments/manual-1/manual" &&
+          init?.method === "DELETE"
+        ) {
+          return new Response(null, { status: 204 });
+        }
+        if (
+          url === "/api/admin/agendas/a1/manual" &&
+          init?.method === "POST"
+        ) {
+          return json({
+            id: "manual-1",
+            protocol: "Sem agenda",
+            startTime: "11:30",
+            endTime: "11:30",
+            supplier: "Fornecedor Extra",
+            items: null,
+            volumes: null,
+            pallets: null,
+            cargaBatida: null,
+            type: "Sem agenda",
+            nfe: [],
+            orders: [],
+            status: "aguardando",
+            hasExchanges: false,
+            origin: "manual",
+            ativo: true,
+          });
+        }
+        return new Response(null, { status: 404 });
+      },
+    );
 
     vi.stubGlobal("fetch", fetchMock);
 
@@ -278,16 +321,122 @@ describe("dashboard operacional", () => {
     });
     expect(within(dialog).getByText("Somente leitura")).toBeInTheDocument();
     expect(within(dialog).getByRole("cell", { name: "Fornecedor Teste" })).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Recebido" }),
+    ).not.toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "+ Fornecedor sem agenda" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Editar agenda" }),
+    );
+    expect(within(dialog).getByText("Modo edição")).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Sair da edição" }),
+    ).toHaveAttribute("aria-pressed", "true");
 
     const desktopRows = within(dialog).getAllByTestId("agenda-desktop-row");
-    expect(within(desktopRows[0]).getByText("Não")).not.toHaveClass("positive");
-    expect(within(desktopRows[1]).getByText("Sim")).toHaveClass("positive");
+    expect(within(desktopRows[0]).getByRole("checkbox", { name: "Trocas" })).not.toBeChecked();
+    expect(within(desktopRows[1]).getByRole("checkbox", { name: "Trocas" })).toBeChecked();
+
+    fireEvent.click(
+      within(desktopRows[0]).getByRole("button", { name: "Recebido" }),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/appointments/ap1/status",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ status: "recebido" }),
+          credentials: "include",
+        }),
+      ),
+    );
+
+    fireEvent.click(
+      within(desktopRows[0]).getByRole("checkbox", { name: "Trocas" }),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/appointments/ap1/exchanges",
+        expect.objectContaining({
+          method: "PATCH",
+          body: JSON.stringify({ hasExchanges: true }),
+          credentials: "include",
+        }),
+      ),
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "+ Fornecedor sem agenda" }),
+    );
+    const manualDialog = await screen.findByRole("dialog", {
+      name: "Fornecedor sem agenda",
+    });
+    fireEvent.change(
+      within(manualDialog).getByRole("textbox", { name: "Nome do fornecedor" }),
+      { target: { value: "Fornecedor Extra" } },
+    );
+    fireEvent.click(
+      within(manualDialog).getByRole("button", { name: "Adicionar" }),
+    );
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/agendas/a1/manual",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ supplier: "Fornecedor Extra" }),
+          credentials: "include",
+        }),
+      ),
+    );
+    expect(
+      await within(dialog).findByRole("cell", { name: "Fornecedor Extra" }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getAllByRole("button", {
+        name: "Excluir fornecedor Fornecedor Extra",
+      })[0],
+    );
+    const deleteDialog = await screen.findByRole("dialog", {
+      name: "Excluir fornecedor",
+    });
+    expect(
+      within(deleteDialog).getByText("Fornecedor Extra"),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(deleteDialog).getByRole("button", {
+        name: "Excluir fornecedor",
+      }),
+    );
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        "/api/admin/appointments/manual-1/manual",
+        expect.objectContaining({
+          method: "DELETE",
+          credentials: "include",
+        }),
+      ),
+    );
+    await waitFor(() =>
+      expect(
+        within(dialog).queryByRole("cell", { name: "Fornecedor Extra" }),
+      ).not.toBeInTheDocument(),
+    );
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Sair da edição" }),
+    );
+    expect(within(dialog).getByText("Somente leitura")).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole("button", { name: "Recebido" }),
+    ).not.toBeInTheDocument();
 
     expect(
       within(dialog).queryByRole("button", { name: "Concluir dia" }),
-    ).not.toBeInTheDocument();
-    expect(
-      within(dialog).queryByRole("button", { name: /Fornecedor sem agenda/i }),
     ).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/admin/agendas/a1",
@@ -386,6 +535,15 @@ describe("dashboard operacional", () => {
     const dialog = await screen.findByRole("dialog", {
       name: "Agenda F05 - Pagani",
     });
+    expect(
+      within(dialog).queryByRole("button", {
+        name: "Reabrir para conferente",
+      }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      within(dialog).getByRole("button", { name: "Editar agenda" }),
+    );
     fireEvent.click(
       within(dialog).getByRole("button", {
         name: "Reabrir para conferente",

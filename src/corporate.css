@@ -2255,3 +2255,267 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
     padding: 0.42rem 0.9rem;
   }
 }
+
+/* ADM agenda: refinamento visual do modo edição. */
+@media (min-width: 981px) {
+  html[data-theme="dark"] .agenda-preview-modal {
+    width: min(96vw, 1320px);
+    border-color: #2a394b;
+    background: #111923;
+    box-shadow: 0 24px 72px rgba(0, 0, 0, 0.38);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview {
+    gap: 0.8rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-preview-context {
+    padding-bottom: 0.85rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metrics {
+    min-height: 48px;
+    gap: 0.5rem;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metrics > span {
+    min-height: 46px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.58rem 0.85rem;
+    border: 1px solid var(--color-border);
+    border-radius: 10px;
+    background: #141e29;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    font-size: 0.74rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metrics > span:last-child {
+    border-right: 1px solid var(--color-border);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metrics strong {
+    font-size: 0.92rem;
+    font-weight: 780;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metric-success {
+    border-color: var(--color-success-border);
+    background: linear-gradient(180deg, #173226 0%, #142a22 100%);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metric-danger {
+    border-color: var(--color-danger-border);
+    background: linear-gradient(180deg, #352026 0%, #2b1b20 100%);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-metric-exchange {
+    border-color: #31557d;
+    background: linear-gradient(180deg, #172d44 0%, #15263a 100%);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-toolbar {
+    gap: 0.7rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-search input {
+    min-height: 44px;
+    padding-inline: 0.9rem;
+    border-color: #314154;
+    border-radius: 10px;
+    background: #111a24;
+    font-size: 0.82rem;
+    transition:
+      border-color 140ms ease,
+      box-shadow 140ms ease,
+      background 140ms ease;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-search input:hover {
+    border-color: #40546a;
+    background: #131e2a;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-manual-button {
+    min-height: 44px;
+    padding-inline: 0.95rem;
+    border-color: #3b6f9f;
+    border-radius: 10px;
+    background: #244f76;
+    color: #f4f8fc;
+    font-size: 0.76rem;
+    font-weight: 760;
+    box-shadow: 0 6px 16px rgba(18, 66, 105, 0.2);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-manual-button:hover {
+    border-color: #548bc0;
+    background: #2b5d8b;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.table-card {
+    overflow: hidden;
+    border-color: #304154;
+    border-radius: 12px;
+    background: #111923;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.14);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop thead th {
+    height: 42px;
+    padding: 0.58rem 0.72rem;
+    background: #162231;
+    color: #9aa8b7;
+    font-size: 0.68rem;
+    font-weight: 760;
+    letter-spacing: 0.065em;
+    box-shadow: inset 0 -1px 0 #304154;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop tbody tr {
+    background: #111923;
+    transition:
+      background 120ms ease,
+      box-shadow 120ms ease;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop tbody tr:hover {
+    background: #172434;
+    box-shadow: inset 2px 0 0 #436f98;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop td {
+    height: 54px;
+    padding: 0.62rem 0.72rem;
+    border-bottom-color: #253548;
+    color: #dce4ed;
+    font-size: 0.8rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop td:nth-child(2) {
+    color: #f1f5f9;
+    font-weight: 690;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(1),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(1) {
+    width: 118px;
+    min-width: 118px;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(3),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(3) {
+    width: 132px;
+    min-width: 132px;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(4),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(4) {
+    width: 105px;
+    min-width: 105px;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(5),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(5) {
+    width: 124px;
+    min-width: 124px;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(6),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(6) {
+    width: 176px;
+    min-width: 176px;
+    text-align: center;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions th:nth-child(7),
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop.has-actions td:nth-child(7) {
+    width: 66px;
+    min-width: 66px;
+    text-align: center;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop .store-status {
+    min-width: 96px;
+    justify-content: center;
+    gap: 0.42rem;
+    padding: 0.3rem 0.56rem;
+    border-radius: 999px;
+    background: #131d28;
+    font-size: 0.69rem;
+    font-weight: 760;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-desktop .store-status::before {
+    width: 0.42rem;
+    height: 0.42rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: currentColor;
+    content: "";
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions {
+    justify-content: center;
+    gap: 0.3rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .status-actions {
+    gap: 0.3rem;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .status-action,
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-edit-action,
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-delete-action {
+    width: 32px !important;
+    height: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+    border-radius: 8px;
+    background: #121c27;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .status-action-recebido {
+    border-color: #285b45;
+    color: #6bd6a0;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .status-action-nao_chegou {
+    border-color: #5b4045;
+    color: #ef8d87;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-edit-action {
+    border-color: #344a62;
+    color: #a8bdd0;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-delete-action {
+    border-color: #49333a;
+    color: #c99898;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-edit-action:hover {
+    border-color: #527596;
+    background: #17283a;
+    color: #d0e2f2;
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .agenda-row-actions .agenda-manual-delete-action:hover {
+    border-color: var(--color-danger-border);
+    background: var(--color-danger-soft);
+    color: var(--color-danger);
+  }
+
+  html[data-theme="dark"] .admin-agenda-preview .exchange-control input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+  }
+}

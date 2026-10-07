@@ -606,11 +606,11 @@ export async function createManualAppointment(
   userId: string,
   supplier: string,
   businessHour: string,
+  adminAdjustmentDetails?: string,
 ): Promise<AppointmentRecord> {
   const id = crypto.randomUUID();
   const now = new Date().toISOString();
-
-  await db.batch([
+  const statements: D1PreparedStatement[] = [
     db
       .prepare(
         "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, NULL, NULL, NULL, NULL, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)",
@@ -637,7 +637,18 @@ export async function createManualAppointment(
       details: "Fornecedor sem agenda criado.",
       createdAt: now,
     }),
-  ]);
+  ];
+
+  const adjustment = agendaAdminAdjustmentStatement(
+    db,
+    agenda,
+    userId,
+    adminAdjustmentDetails,
+    now,
+  );
+  if (adjustment) statements.push(adjustment);
+
+  await db.batch(statements);
 
   const appointment = await findAppointmentById(db, id);
   if (!appointment) throw new Error("Fornecedor manual não pôde ser relido.");
