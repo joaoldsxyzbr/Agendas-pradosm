@@ -4,7 +4,11 @@ import worker from "../../worker/index";
 import type { WorkerEnv } from "../../worker/env";
 import { createSessionToken } from "../../worker/lib/session";
 import { businessDate } from "../../worker/lib/time";
-import { listAgendaHistory } from "../../worker/repositories/agendas";
+import {
+  changeAgendaDayStatus,
+  findAgendaById,
+  listAgendaHistory,
+} from "../../worker/repositories/agendas";
 
 const db = (env as unknown as { DB: D1Database }).DB;
 const sessionSecret = "agenda-prado-test-session-secret";
@@ -135,6 +139,59 @@ describe("conclusão automática de agendas", () => {
           "Dia concluído automaticamente após a virada da data operacional.",
       }),
     ]);
+  });
+
+  it("preserva agenda passada reaberta manualmente", async () => {
+    const seeded = await seedStoreUser("reopened");
+    const agendaId = "agenda-auto-close-reopened";
+
+    await seedAgenda(
+      agendaId,
+      "2026-01-02",
+      seeded.storeId,
+      seeded.userId,
+    );
+
+    const initial = await findAgendaById(db, agendaId);
+    if (!initial) throw new Error("Agenda de teste não encontrada.");
+
+    const closed = await changeAgendaDayStatus(
+      db,
+      initial,
+      seeded.userId,
+      "concluido",
+    );
+    const reopened = await changeAgendaDayStatus(
+      db,
+      closed,
+      seeded.userId,
+      "aberto",
+    );
+
+    expect(reopened.status_dia).toBe("aberto");
+
+    const response = await exports.default.fetch(
+      new Request("https://example.com/api/store/today", {
+        headers: { Cookie: seeded.cookie },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await agendaState(agendaId)).toMatchObject({
+      data_agenda: "2026-01-02",
+      status_dia: "aberto",
+      concluido_em: null,
+      concluido_por: null,
+    });
+
+    const audit = await db
+      .prepare(
+        "SELECT COUNT(*) AS total FROM auditoria WHERE agenda_id = ? AND acao = 'dia_concluido_automaticamente'",
+      )
+      .bind(agendaId)
+      .first<{ total: number }>();
+
+    expect(audit?.total).toBe(0);
   });
 
   it("fecha agendas passadas pelo handler scheduled sem depender de acesso HTTP", async () => {

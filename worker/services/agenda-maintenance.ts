@@ -1,5 +1,21 @@
 import { businessDate } from "../lib/time";
 
+const AUTO_CLOSE_ELIGIBILITY = `
+  status_dia = 'aberto'
+  AND data_agenda < ?
+  AND COALESCE(
+    (
+      SELECT h.acao
+      FROM historico_agenda h
+      WHERE h.agenda_id = agendas.id
+        AND h.acao IN ('concluido', 'reaberto')
+      ORDER BY h.alterado_em DESC, h.rowid DESC
+      LIMIT 1
+    ),
+    ''
+  ) <> 'reaberto'
+`;
+
 export async function closePastOpenAgendas(
   db: D1Database,
   now = new Date(),
@@ -20,12 +36,17 @@ export async function closePastOpenAgendas(
           '{"dayStatus":"concluido"}',
           'Dia concluído automaticamente após a virada da data operacional.', ?
         FROM agendas
-        WHERE status_dia = 'aberto' AND data_agenda < ?`,
+        WHERE ${AUTO_CLOSE_ELIGIBILITY}`,
       )
       .bind(completedAt, today),
     db
       .prepare(
-        "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = NULL, atualizado_em = ? WHERE status_dia = 'aberto' AND data_agenda < ?",
+        `UPDATE agendas
+         SET status_dia = 'concluido',
+             concluido_em = ?,
+             concluido_por = NULL,
+             atualizado_em = ?
+         WHERE ${AUTO_CLOSE_ELIGIBILITY}`,
       )
       .bind(completedAt, completedAt, today),
   ]);
