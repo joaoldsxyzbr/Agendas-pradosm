@@ -4,7 +4,11 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "preview"
+    open-pull-requests-limit: 0
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
+    target-branch: "preview"
+    open-pull-requests-limit: 0
