@@ -28,5 +28,16 @@ jobs:
           languages: javascript-typescript
           queries: security-extended
 
-      - name: Analyze
+      - name: Analyze without Code Scanning upload
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          upload: never
+          output: codeql-results
+
+      - name: Require no CodeQL findings
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(codeql-results/*.sarif)
+          test "${#files[@]}" -gt 0
+          jq -e '[.[].runs[]?.results[]?] | length == 0' --slurp "${files[@]}"

@@ -29,6 +29,8 @@ test("admin pode reabrir uma agenda concluída", async ({ page }) => {
   await card.getByRole("button", { name: "Ver detalhes" }).click();
 
   const dialog = page.getByRole("dialog", { name: "Agenda F05 - Pagani E2E" });
+  await expect(dialog.getByRole("button", { name: "Reabrir para conferente" })).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
   await expect(
     dialog.getByRole("button", { name: "Reabrir para conferente" }),
   ).toBeVisible();
