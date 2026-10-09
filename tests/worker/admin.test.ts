@@ -395,6 +395,7 @@ describe("admin store and user management", () => {
     });
     const user = (await userResponse.json()) as { id: string };
 
+    const oldCookie = cookiePair(await login("usuario-desativavel"));
     const deactivate = await jsonRequest("/api/admin/users", "PATCH", cookie, {
       id: user.id,
       ativo: false,
@@ -403,6 +404,20 @@ describe("admin store and user management", () => {
 
     const relogin = await login("usuario-desativavel");
     expect(relogin.status).toBe(401);
+
+    const reactivate = await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: user.id,
+      ativo: true,
+    });
+    expect(reactivate.status).toBe(200);
+
+    const staleSession = await exports.default.fetch(
+      new Request("https://example.com/api/auth/me", {
+        headers: { Cookie: oldCookie },
+      }),
+    );
+    expect(staleSession.status).toBe(401);
+    expect((await login("usuario-desativavel")).status).toBe(200);
   });
   it("admin edita login e senha do usuário", async () => {
     const cookie = await adminCookie("admin-edit-user", "admin-edit-user");
@@ -766,5 +781,70 @@ describe("admin store and user management", () => {
     });
   });
 
+
+  it("loja aparece no dashboard somente enquanto existe conferente ativo", async () => {
+    const cookie = await adminCookie("admin-visibility", "admin-visibility");
+    const created = await jsonRequest("/api/admin/stores", "POST", cookie, {
+      codigo: "F151",
+      nome: "Loja Visibilidade",
+    });
+    expect(created.status).toBe(201);
+    const store = (await created.json()) as { id: string };
+
+    async function isVisible() {
+      const response = await exports.default.fetch(
+        new Request("https://example.com/api/admin/stores", {
+          headers: { Cookie: cookie },
+        }),
+      );
+      expect(response.status).toBe(200);
+      const stores = (await response.json()) as Array<{
+        id: string;
+        ativo: boolean;
+        temConferenteAtivo: boolean;
+      }>;
+      return stores.find((item) => item.id === store.id);
+    }
+
+    expect(await isVisible()).toMatchObject({
+      ativo: true,
+      temConferenteAtivo: false,
+    });
+
+    const accounts = [];
+    for (const suffix of ["a", "b"]) {
+      const response = await jsonRequest("/api/admin/users", "POST", cookie, {
+        nome: `Conferente ${suffix}`,
+        login: `conferente-f151-${suffix}`,
+        senha: password,
+        papel: "conferente",
+        lojaId: store.id,
+      });
+      expect(response.status).toBe(201);
+      accounts.push((await response.json()) as { id: string });
+    }
+
+    expect((await isVisible())?.temConferenteAtivo).toBe(true);
+    expect((await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: accounts[0].id,
+      ativo: false,
+    })).status).toBe(200);
+    expect((await isVisible())?.temConferenteAtivo).toBe(true);
+
+    expect((await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: accounts[1].id,
+      ativo: false,
+    })).status).toBe(200);
+    expect(await isVisible()).toMatchObject({
+      ativo: true,
+      temConferenteAtivo: false,
+    });
+
+    expect((await jsonRequest("/api/admin/users", "PATCH", cookie, {
+      id: accounts[0].id,
+      ativo: true,
+    })).status).toBe(200);
+    expect((await isVisible())?.temConferenteAtivo).toBe(true);
+  });
 
 });

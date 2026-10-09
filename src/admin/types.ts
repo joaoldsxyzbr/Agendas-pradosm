@@ -12,6 +12,7 @@ export type AdminStore = {
   codigo: string;
   nome: string;
   ativo: boolean;
+  temConferenteAtivo?: boolean;
   criadoEm?: string;
   atualizadoEm?: string;
 };

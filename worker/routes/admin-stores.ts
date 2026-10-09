@@ -20,6 +20,7 @@ function storeJson(store: StoreRecord) {
     codigo: store.codigo,
     nome: store.nome,
     ativo: store.ativo === 1,
+    temConferenteAtivo: store.tem_conferente_ativo === 1,
     criadoEm: store.criado_em,
     atualizadoEm: store.atualizado_em,
   };

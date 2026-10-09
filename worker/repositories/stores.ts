@@ -4,13 +4,17 @@ export type StoreRecord = {
   codigo: string;
   nome: string;
   ativo: number;
+  tem_conferente_ativo: number;
   excluido_em: string | null;
   criado_em: string;
   atualizado_em: string;
 };
 
 const STORE_COLUMNS =
-  "id, codigo, nome, ativo, excluido_em, criado_em, atualizado_em";
+  "id, codigo, nome, ativo, excluido_em, criado_em, atualizado_em, " +
+  "CASE WHEN EXISTS (SELECT 1 FROM usuarios u WHERE u.loja_id = lojas.id " +
+  "AND u.papel = 'conferente' AND u.ativo = 1 AND u.excluido_em IS NULL) " +
+  "THEN 1 ELSE 0 END AS tem_conferente_ativo";
 
 export async function listStores(db: D1Database): Promise<StoreRecord[]> {
   const result = await db

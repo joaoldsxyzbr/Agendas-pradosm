@@ -41,7 +41,6 @@ afterEach(() => {
 function renderDialog(overrides: Partial<{
   onClose: () => void;
   onSaved: (value: typeof user) => void;
-  onDeleted: (id: string) => void;
 }> = {}) {
   render(
     <UserEditDialog
@@ -49,7 +48,6 @@ function renderDialog(overrides: Partial<{
       stores={stores}
       onClose={overrides.onClose ?? vi.fn()}
       onSaved={overrides.onSaved ?? vi.fn()}
-      onDeleted={overrides.onDeleted ?? vi.fn()}
     />,
   );
 }
@@ -131,41 +129,41 @@ describe("gerenciamento de usuários", () => {
     );
   });
 
-  it("só exclui após confirmação explícita", async () => {
-    mockedApiFetch.mockResolvedValueOnce(undefined);
-    const onDeleted = vi.fn();
-    renderDialog({ onDeleted });
+  it("desativa com confirmação sem excluir o cadastro", async () => {
+    const onSaved = vi.fn();
+    mockedApiFetch.mockResolvedValueOnce({ ...user, ativo: false });
+    renderDialog({ onSaved });
 
-    fireEvent.click(screen.getByRole("button", { name: "Excluir usuário" }));
+    fireEvent.click(screen.getByRole("button", { name: "Desativar usuário" }));
     expect(mockedApiFetch).not.toHaveBeenCalled();
-    expect(screen.getByText("Excluir Conferente?")).toBeInTheDocument();
+    expect(screen.getByText("Desativar Conferente?")).toBeInTheDocument();
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Confirmar exclusão" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar desativação" }));
 
-    await waitFor(() =>
-      expect(mockedApiFetch).toHaveBeenCalledWith(
-        `/api/admin/users/${user.id}`,
-        { method: "DELETE" },
-      ),
-    );
-    expect(onDeleted).toHaveBeenCalledWith(user.id);
+    await waitFor(() => expect(mockedApiFetch).toHaveBeenCalledWith(
+      "/api/admin/users",
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ id: user.id, ativo: false }),
+      }),
+    ));
+    expect(onSaved).toHaveBeenCalledWith({ ...user, ativo: false });
+    expect(screen.queryByRole("button", { name: "Excluir usuário" })).not.toBeInTheDocument();
   });
 
-  it("remove o usuário da listagem logo após exclusão", async () => {
+  it("mantém o usuário na listagem e permite reativá-lo", async () => {
+    let current = { ...user };
     mockedApiFetch.mockImplementation((url, init = {}) => {
       if (url === "/api/admin/users" && !init.method) {
-        return Promise.resolve([user]) as ReturnType<typeof apiFetch>;
+        return Promise.resolve([current]) as ReturnType<typeof apiFetch>;
       }
       if (url === "/api/admin/stores" && !init.method) {
         return Promise.resolve(stores) as ReturnType<typeof apiFetch>;
       }
-      if (
-        url === `/api/admin/users/${user.id}` &&
-        init.method === "DELETE"
-      ) {
-        return Promise.resolve(undefined) as ReturnType<typeof apiFetch>;
+      if (url === "/api/admin/users" && init.method === "PATCH") {
+        const request = JSON.parse(String(init.body)) as { ativo: boolean };
+        current = { ...current, ativo: request.ativo };
+        return Promise.resolve(current) as ReturnType<typeof apiFetch>;
       }
       return Promise.reject(new Error("chamada inesperada"));
     });
@@ -174,14 +172,18 @@ describe("gerenciamento de usuários", () => {
 
     expect(await screen.findByText(user.login)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Editar" }));
-    fireEvent.click(screen.getByRole("button", { name: "Excluir usuário" }));
-    fireEvent.click(
-      screen.getByRole("button", { name: "Confirmar exclusão" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Desativar usuário" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar desativação" }));
 
-    await waitFor(() =>
-      expect(screen.queryByText(user.login)).not.toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText("Inativo")).toBeInTheDocument());
+    expect(screen.getByText(user.login)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Editar" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ativar usuário" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirmar ativação" }));
+
+    await waitFor(() => expect(screen.getByText("Ativo")).toBeInTheDocument());
+    expect(screen.getByText(user.login)).toBeInTheDocument();
   });
   it("usa uma única lista com papel e loja condicional", async () => {
     const admin = {

@@ -19,6 +19,15 @@ Sistema web para gestão diária das agendas de recebimento das lojas Prado Supe
 
 A autorização real é aplicada no Worker. A interface também oculta ações que o perfil não pode executar.
 
+### Ativação de usuários e visibilidade das lojas
+
+- O administrador pode **Desativar usuário** e **Ativar usuário** sem excluir cadastro, vínculo, senha ou histórico. A ação exige confirmação.
+- Um usuário desativado perde o acesso e as sessões anteriores são invalidadas; depois de reativado, entra novamente com o mesmo login e senha.
+- O dashboard administrativo e do visualizador mostra apenas lojas ativas que tenham pelo menos um conferente ativo. Se houver vários, a loja permanece visível enquanto um deles estiver ativo.
+- A importação CSV/PDF continua recebendo e preservando agendas de lojas cadastradas e ativas mesmo sem conferente ativo. Ao reativar o conferente, as agendas e histórico voltam a aparecer.
+- Usuários inativos continuam consultáveis na tela de cadastros. Desativar **usuário** não desativa a **loja**; a importação segue exigindo que a loja esteja ativa.
+
+
 ## Desenvolvimento local
 
 Pré-requisitos:
@@ -207,7 +216,7 @@ Os planos e especificações técnicas ficam em `docs/superpowers/`.
 - `SESSION_SECRET` é segredo de runtime e não deve ser versionado.
 - Cookies de sessão são `HttpOnly`, `SameSite=Strict` e seguros em HTTPS.
 - Sessões usam janela de 30 dias e são renovadas automaticamente durante o uso, no máximo uma vez por dia, evitando login diário sem criar uma credencial eterna.
-- Sessões são versionadas e são revogadas após troca de senha.
+- Sessões são versionadas e são revogadas após troca de senha ou mudança do status ativo/inativo do usuário.
 - Conferentes precisam estar ativos e ligados a uma loja ativa/não removida.
 - O login usa rate limiter com comportamento fail-closed.
 - Códigos de loja são canonicalizados e possuem unicidade case-insensitive.

@@ -9,7 +9,6 @@ type UserEditDialogProps = {
   stores: AdminStore[];
   onClose: () => void;
   onSaved: (user: AdminUser) => void;
-  onDeleted: (userId: string) => void;
 };
 
 export function UserEditDialog({
@@ -17,18 +16,15 @@ export function UserEditDialog({
   stores,
   onClose,
   onSaved,
-  onDeleted,
 }: UserEditDialogProps) {
   const [nome, setNome] = useState(user.nome);
   const [login, setLogin] = useState(user.login);
   const [papel, setPapel] = useState<UserRole>(user.papel);
   const [lojaId, setLojaId] = useState(user.lojaId ?? "");
-  const [ativo, setAtivo] = useState(user.ativo);
   const [senha, setSenha] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmToggle, setConfirmToggle] = useState(false);
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -45,7 +41,6 @@ export function UserEditDialog({
           login: login.trim(),
           papel,
           ...(papel === "conferente" ? { lojaId } : {}),
-          ativo,
           ...(senha ? { senha } : {}),
         }),
       });
@@ -61,22 +56,25 @@ export function UserEditDialog({
     }
   }
 
-  async function removeUser() {
-    setDeleting(true);
+  async function toggleUserStatus() {
+    setSaving(true);
     setMessage(null);
 
     try {
-      await apiFetch<void>(`/api/admin/users/${user.id}`, {
-        method: "DELETE",
+      const updated = await apiFetch<AdminUser>("/api/admin/users", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: user.id, ativo: !user.ativo }),
       });
-      onDeleted(user.id);
+      onSaved(updated);
     } catch (error) {
       setMessage(
         error instanceof ApiError
           ? error.message
-          : "Não foi possível excluir o usuário.",
+          : "Não foi possível alterar o acesso do usuário.",
       );
-      setDeleting(false);
+      setSaving(false);
+      setConfirmToggle(false);
     }
   }
 
@@ -97,7 +95,7 @@ export function UserEditDialog({
             className="ghost-button"
             type="button"
             onClick={onClose}
-            disabled={saving || deleting}
+            disabled={saving}
           >
             Fechar
           </button>
@@ -150,16 +148,6 @@ export function UserEditDialog({
                 </select>
               </label>
             ) : null}
-            <label>
-              <span>Status</span>
-              <select
-                value={ativo ? "ativo" : "inativo"}
-                onChange={(event) => setAtivo(event.target.value === "ativo")}
-              >
-                <option value="ativo">Ativo</option>
-                <option value="inativo">Inativo</option>
-              </select>
-            </label>
             <label className="modal-wide-field">
               <span>Nova senha (opcional)</span>
               <input
@@ -182,7 +170,7 @@ export function UserEditDialog({
             <button
               className="primary-button"
               type="submit"
-              disabled={saving || deleting}
+              disabled={saving}
             >
               {saving ? "Salvando..." : "Salvar alterações"}
             </button>
@@ -192,43 +180,57 @@ export function UserEditDialog({
         <AuditTrail entity="usuario" entityId={user.id} />
 
         <div className="modal-danger-zone">
-          {!confirmDelete ? (
+          {!confirmToggle ? (
             <>
               <div>
-                <strong>Excluir usuário</strong>
-                <span>Remove o acesso sem apagar o histórico de auditoria.</span>
+                <strong>{user.ativo ? "Desativar usuário" : "Ativar usuário"}</strong>
+                <span>
+                  {user.ativo
+                    ? "Bloqueia o acesso sem apagar agendas ou histórico."
+                    : "Restaura o acesso e a visibilidade da loja no dashboard."}
+                </span>
               </div>
               <button
-                className="danger-button"
+                className={user.ativo ? "danger-button" : "primary-button"}
                 type="button"
-                onClick={() => setConfirmDelete(true)}
-                disabled={saving || deleting}
+                onClick={() => setConfirmToggle(true)}
+                disabled={saving}
               >
-                Excluir usuário
+                {user.ativo ? "Desativar usuário" : "Ativar usuário"}
               </button>
             </>
           ) : (
             <>
               <div>
-                <strong>{`Excluir ${user.nome}?`}</strong>
-                <span>O usuário perderá o acesso imediatamente.</span>
+                <strong>
+                  {user.ativo ? `Desativar ${user.nome}?` : `Ativar ${user.nome}?`}
+                </strong>
+                <span>
+                  {user.ativo
+                    ? "O acesso será bloqueado, mas o usuário continuará cadastrado."
+                    : "O usuário poderá acessar novamente com sua senha atual."}
+                </span>
               </div>
               <div className="confirm-actions">
                 <button
                   className="ghost-button"
                   type="button"
-                  onClick={() => setConfirmDelete(false)}
-                  disabled={deleting}
+                  onClick={() => setConfirmToggle(false)}
+                  disabled={saving}
                 >
                   Cancelar
                 </button>
                 <button
-                  className="danger-button"
+                  className={user.ativo ? "danger-button" : "primary-button"}
                   type="button"
-                  onClick={() => void removeUser()}
-                  disabled={deleting}
+                  onClick={() => void toggleUserStatus()}
+                  disabled={saving}
                 >
-                  {deleting ? "Excluindo..." : "Confirmar exclusão"}
+                  {saving
+                    ? "Salvando..."
+                    : user.ativo
+                      ? "Confirmar desativação"
+                      : "Confirmar ativação"}
                 </button>
               </div>
             </>

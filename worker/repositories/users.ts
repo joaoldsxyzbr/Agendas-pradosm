@@ -207,8 +207,11 @@ export async function updateUser(
     ? await hashPassword(input.senha)
     : current.senha_hash;
   const now = new Date().toISOString();
+  // Trocar o status também invalida sessões anteriores, inclusive após reativação.
+  const statusChanged =
+    input.ativo !== undefined && input.ativo !== (current.ativo === 1);
   const sessionVersion =
-    current.session_version + (input.senha ? 1 : 0);
+    current.session_version + (input.senha || statusChanged ? 1 : 0);
 
   const statements: D1PreparedStatement[] = [
     db

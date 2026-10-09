@@ -101,6 +101,46 @@ async function importAgendaBatch(
 }
 
 describe("admin agenda import", () => {
+  it("importa agendas mesmo quando o único conferente da loja está desativado", async () => {
+    const cookie = await seedAdmin("admin-import-inactive-conf");
+    await seedStore("store-inactive-conf", "F152");
+    const userId = crypto.randomUUID();
+    await db
+      .prepare(
+        "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'conferente', 0, ?, ?)",
+      )
+      .bind(userId, "store-inactive-conf", "Conferente Inativo", "conferente-inativo-f152", passwordHash, now, now)
+      .run();
+
+    const batchResponse = await importAgendaBatch(cookie, [
+      payload("F152", [appointment("90000252")]),
+    ]);
+    expect(batchResponse.status).toBe(201);
+    expect(await batchResponse.json()).toMatchObject({
+      created: 1,
+      totalAgendas: 1,
+      totalAppointments: 1,
+    });
+
+    const saved = await db
+      .prepare("SELECT id FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24'")
+      .bind("store-inactive-conf")
+      .first<{ id: string }>();
+    expect(saved?.id).toBeTruthy();
+
+    const update = await request("/api/admin/users", cookie, {
+      method: "PATCH",
+      body: { id: userId, ativo: true },
+    });
+    expect(update.status).toBe(200);
+
+    const after = await db
+      .prepare("SELECT id FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24'")
+      .bind("store-inactive-conf")
+      .first<{ id: string }>();
+    expect(after?.id).toBe(saved?.id);
+  });
+
   it("importa 121 agendamentos de 9 lojas em uma única operação", async () => {
     const cookie = await seedAdmin("admin-import-bulk-121");
     const codes = ["CD", "F01", "F02", "F03", "F04", "F05", "F07", "F08", "F09"];
@@ -141,13 +181,13 @@ describe("admin agenda import", () => {
 
     const agendas = await db
       .prepare(
-        "SELECT COUNT(*) AS total FROM agendas WHERE data_agenda = '2026-09-24'",
+        "SELECT COUNT(*) AS total FROM agendas WHERE data_agenda = '2026-09-24' AND loja_id LIKE 'store-bulk-121-%'",
       )
       .first<{ total: number }>();
     expect(Number(agendas?.total ?? 0)).toBe(9);
 
     const appointments = await db
-      .prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE ativo = 1")
+      .prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE ativo = 1 AND agenda_id IN (SELECT id FROM agendas WHERE loja_id LIKE 'store-bulk-121-%')")
       .first<{ total: number }>();
     expect(Number(appointments?.total ?? 0)).toBe(121);
   });

@@ -98,12 +98,6 @@ export function UsersPage() {
     setMessage("Usuário atualizado com sucesso.");
   }
 
-  function userDeleted(userId: string) {
-    setUsers((current) => current.filter((item) => item.id !== userId));
-    setSelectedUser(null);
-    setMessage("Usuário excluído com sucesso.");
-  }
-
   const storeName = new Map(
     stores.map((store) => [store.id, `${store.codigo} - ${store.nome}`]),
   );
@@ -365,7 +359,6 @@ export function UsersPage() {
           stores={stores}
           onClose={() => setSelectedUser(null)}
           onSaved={userSaved}
-          onDeleted={userDeleted}
         />
       ) : null}
     </section>

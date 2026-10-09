@@ -49,7 +49,7 @@ describe("dashboard operacional", () => {
       </MemoryRouter>,
     );
 
-    await screen.findByText("Nenhuma loja ativa cadastrada.");
+    await screen.findByText("Nenhuma loja com conferente ativo.");
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/admin/agendas?date=2026-09-30",
       expect.objectContaining({ credentials: "include" }),
@@ -58,7 +58,7 @@ describe("dashboard operacional", () => {
     mockedTime.businessDate = "2026-10-01";
     window.dispatchEvent(new Event("focus"));
 
-    await screen.findByText("Nenhuma loja ativa cadastrada.");
+    await screen.findByText("Nenhuma loja com conferente ativo.");
     await vi.waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
         "/api/admin/agendas?date=2026-10-01",
@@ -564,6 +564,35 @@ describe("dashboard operacional", () => {
         credentials: "include",
       }),
     );
+  });
+
+  it("oculta lojas sem conferente ativo, mesmo com agenda importada", async () => {
+    const stores = [
+      { id: "s1", codigo: "F03", nome: "Loja ativa", ativo: true, temConferenteAtivo: true },
+      { id: "s2", codigo: "F04", nome: "Loja com usuário desativado", ativo: true, temConferenteAtivo: false },
+      { id: "s3", codigo: "F05", nome: "Loja desativada", ativo: false, temConferenteAtivo: true },
+    ];
+    const agendas = [
+      { id: "a2", storeCode: "F04", date: "2026-09-30", total: 3, recebido: 0,
+        aguardando: 3, naoChegou: 0, recusado: 0, semAgenda: 0 },
+    ];
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url === "/api/admin/stores") return json(stores);
+      if (url === "/api/admin/presence") return json([]);
+      if (url.startsWith("/api/admin/agendas?date=")) return json(agendas);
+      return new Response(null, { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<MemoryRouter><DashboardPage /></MemoryRouter>);
+
+    await screen.findByTestId("dashboard-store-F03");
+    expect(screen.queryByTestId("dashboard-store-F04")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("dashboard-store-F05")).not.toBeInTheDocument();
+    const summary = screen.getByLabelText("Situação do dia");
+    expect(
+      [...summary.querySelectorAll("strong")].map((value) => value.textContent),
+    ).toEqual(["1", "0", "0", "0", "1"]);
   });
 
 });

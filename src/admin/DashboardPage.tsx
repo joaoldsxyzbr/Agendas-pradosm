@@ -110,7 +110,7 @@ export function DashboardPage({
     ])
       .then(([storeData, agendaData]) => {
         if (!active) return;
-        setStores(storeData.filter((store) => store.ativo));
+        setStores(storeData.filter((store) => store.ativo && store.temConferenteAtivo !== false));
         setAgendas(agendaData);
       })
       .catch(() => {
@@ -128,6 +128,7 @@ export function DashboardPage({
   useEffect(() => {
     const refreshWhenVisible = () => {
       if (document.visibilityState === "visible") {
+        void refreshStores();
         void refreshAgendas({ silent: true });
 
         if (
@@ -158,6 +159,15 @@ export function DashboardPage({
   const presenceByStore = new Map(
     activePresences.map((presence) => [presence.storeId, presence]),
   );
+
+  async function refreshStores() {
+    try {
+      const data = await apiFetch<AdminStore[]>("/api/admin/stores");
+      setStores(data.filter((store) => store.ativo && store.temConferenteAtivo !== false));
+    } catch {
+      // Uma falha pontual mantém as lojas já carregadas.
+    }
+  }
 
   async function refreshPresence() {
     try {
@@ -247,6 +257,7 @@ export function DashboardPage({
             disabled={refreshing}
             onClick={() => {
               void refreshAgendas();
+              void refreshStores();
               void refreshPresence();
             }}
           >
@@ -454,7 +465,7 @@ export function DashboardPage({
                 </div>
               </div>
             ) : (
-              <div className="empty-panel">Nenhuma loja ativa cadastrada.</div>
+              <div className="empty-panel">Nenhuma loja com conferente ativo.</div>
             )}
           </section>
         </>
