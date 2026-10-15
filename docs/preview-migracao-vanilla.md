@@ -74,3 +74,14 @@
 ## Situação verificada
 
 Na branch inicial da migração (sincronizada com `main` no commit `7981580e`), a aplicação ainda usa React, TypeScript, Vite, Hono/Workers e D1. No histórico de `preview`, commit `5c2df5e`, há implementações prévias das observações e relatórios que servirão como referência. Este documento **não equivale a implementação nem validação**.
+
+## Isolamento Cloudflare do Worker dedicado (15/10/2026)
+
+- Novo Worker: `agendas-pradosm-preview`; branch de publicação: `preview`; raiz do GitHub: `/`.
+- Banco exclusivo: D1 `agendas-pradosm-preview` (ID `716cc88e-7da8-400e-b4be-edc4be0c9c03`). Checagem inicial confirmou esquema vazio; deve receber migrações **somente nele**, antes dos testes funcionais.
+- `wrangler.jsonc` da branch `preview` aponta o Worker e o banco para recursos isolados, sem cron e com realtime desativado.
+- Rate limiter com namespace `2026100101`, sem compartilhar namespace da produção.
+- Para publicar, o Worker precisa de segredo `SESSION_SECRET` próprio e forte, cadastrado como segredo Cloudflare (jamais versionado).
+- Fluxo esperado de build: `npm run verify:production` (gate de código legado até a migração concluída); deploy: `npm run deploy:cloudflare` (verifica migrações e publica).
+- O script de verificação local `scripts/check-deploy-flow.mjs` valida que a configuração de **preview** não aponta para produção.
+- Os comandos atuais de build (Vite/TypeScript) são temporários, até a migração para JS puro; não declarar a stack final concluída.

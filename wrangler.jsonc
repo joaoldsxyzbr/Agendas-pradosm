@@ -1,6 +1,6 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
-  "name": "agendas-pradosm",
+  "name": "agendas-pradosm-preview",
   "compatibility_date": "2026-09-24",
   "main": "./worker/index.ts",
   "assets": {
@@ -9,23 +9,18 @@
       "/api/*"
     ]
   },
-  "triggers": {
-    "crons": [
-      "5 3 * * *"
-    ]
-  },
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "agendas-prado",
-      "database_id": "0a7d7d8b-e033-4644-90d4-fbc9ddc64532",
+      "database_name": "agendas-pradosm-preview",
+      "database_id": "716cc88e-7da8-400e-b4be-edc4be0c9c03",
       "migrations_dir": "migrations"
     }
   ],
   "ratelimits": [
     {
       "name": "LOGIN_RATE_LIMITER",
-      "namespace_id": "2026092401",
+      "namespace_id": "2026100101",
       "simple": {
         "limit": 10,
         "period": 60
@@ -67,37 +62,6 @@
     }
   },
   "vars": {
-    "REALTIME_MODE": "on"
-  },
-  "previews": {
-    "vars": {
-      "REALTIME_MODE": "off"
-    },
-    "d1_databases": [
-      {
-        "binding": "DB",
-        "database_name": "agendas-pradosm-preview",
-        "database_id": "716cc88e-7da8-400e-b4be-edc4be0c9c03",
-        "migrations_dir": "migrations"
-      }
-    ],
-    "ratelimits": [
-      {
-        "name": "LOGIN_RATE_LIMITER",
-        "namespace_id": "2026100101",
-        "simple": {
-          "limit": 10,
-          "period": 60
-        }
-      }
-    ],
-    "durable_objects": {
-      "bindings": [
-        {
-          "name": "REALTIME_HUB",
-          "class_name": "RealtimeHub"
-        }
-      ]
-    }
+    "REALTIME_MODE": "off"
   }
 }

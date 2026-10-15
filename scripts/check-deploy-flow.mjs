@@ -33,8 +33,8 @@ assert.equal(
 
 assert.equal(
   wranglerConfig.name,
-  "agendas-pradosm",
-  "wrangler deve apontar para o Worker de produção",
+  "agendas-pradosm-preview",
+  "branch preview deve apontar apenas para seu Worker isolado",
 );
 
 assert.equal(
@@ -262,53 +262,33 @@ const loginLimiter = wranglerConfig.ratelimits?.find(
   (binding) => binding.name === "LOGIN_RATE_LIMITER",
 );
 assert.ok(loginLimiter, "produção deve ter rate limit dedicado ao login");
-assert.equal(loginLimiter.namespace_id, "2026092401");
+assert.equal(loginLimiter.namespace_id, "2026100101", "rate limit deve usar namespace isolado de preview");
 assert.deepEqual(loginLimiter.simple, { limit: 10, period: 60 });
 
-const productionDb = wranglerConfig.d1_databases?.find(
+const previewDb = wranglerConfig.d1_databases?.find(
   (binding) => binding.binding === "DB",
 );
-const previewDb = wranglerConfig.previews?.d1_databases?.find(
-  (binding) => binding.binding === "DB",
-);
-assert.ok(previewDb, "Preview deve possuir binding D1 próprio");
+assert.ok(previewDb, "Worker preview deve possuir binding D1");
 assert.equal(previewDb.database_name, "agendas-pradosm-preview");
 assert.equal(
   previewDb.database_id,
   "716cc88e-7da8-400e-b4be-edc4be0c9c03",
-  "Preview deve usar exclusivamente o D1 isolado",
+  "Worker preview deve usar somente D1 isolado",
 );
 assert.notEqual(
   previewDb.database_id,
-  productionDb?.database_id,
-  "Preview nunca pode compartilhar o D1 de produção",
+  "0a7d7d8b-e033-4644-90d4-fbc9ddc64532",
+  "Worker preview nunca deve acessar o banco de produção",
 );
-
-const previewLoginLimiter = wranglerConfig.previews?.ratelimits?.find(
-  (binding) => binding.name === "LOGIN_RATE_LIMITER",
-);
-assert.ok(previewLoginLimiter, "Preview deve ter rate limit próprio");
-assert.equal(previewLoginLimiter.namespace_id, "2026100101");
-assert.notEqual(
-  previewLoginLimiter.namespace_id,
-  loginLimiter.namespace_id,
-  "Preview nunca pode compartilhar o namespace de rate limit da produção",
-);
-assert.deepEqual(previewLoginLimiter.simple, { limit: 10, period: 60 });
-assert.equal(
-  wranglerConfig.previews?.vars?.REALTIME_MODE,
-  "off",
-  "Preview deve manter realtime desligado por padrão",
-);
+assert.deepEqual(loginLimiter.simple, { limit: 10, period: 60 });
+assert.notEqual(loginLimiter.namespace_id, "2026092401");
+assert.equal(wranglerConfig.triggers, undefined, "Worker preview não pode executar cron de produção");
+assert.equal(wranglerConfig.vars?.REALTIME_MODE, "off", "Realtime preview desativado até validação");
+assert.equal(wranglerConfig.previews, undefined, "Este Worker já é dedicado à branch preview");
 assert.deepEqual(
-  wranglerConfig.previews?.durable_objects?.bindings,
+  wranglerConfig.durable_objects?.bindings,
   [{ name: "REALTIME_HUB", class_name: "RealtimeHub" }],
-  "Preview deve declarar o binding do Durable Object para evitar erro 1101",
-);
-assert.equal(
-  wranglerConfig.previews?.triggers,
-  undefined,
-  "Preview não deve declarar cron de produção",
+  "Binding DO necessário para evitar falha 1101 na migração",
 );
 
 assert.equal(
