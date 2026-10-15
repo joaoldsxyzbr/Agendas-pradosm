@@ -29,6 +29,8 @@ jobs:
       - name: Validate JavaScript, HTML and CSS preview
         run: |
           node --check public/vanilla/app.js
+          node --check public/vanilla/live.js
+          test -s public/vanilla/live.html
           test -s public/vanilla/index.html
           test -s public/vanilla/styles.css
 
