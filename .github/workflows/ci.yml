@@ -134,5 +134,10 @@ jobs:
           git add worker shared public/vanilla
           if ! git diff --cached --quiet; then
             git commit -m "refactor(preview): gerar fontes JavaScript do Worker e utilitários"
+            git fetch origin preview
+            if [ "$(git rev-parse HEAD^)" != "$(git rev-parse origin/preview)" ]; then
+              echo "A preview avançou durante a geração; a execução mais nova fará a conversão."
+              exit 0
+            fi
             git push origin HEAD:preview
           fi
