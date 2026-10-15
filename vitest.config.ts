@@ -14,6 +14,8 @@ export default defineConfig({
           bindings: {
             TEST_MIGRATIONS: migrations,
             SESSION_SECRET: "agenda-prado-test-session-secret",
+            // Exercita o canal realtime apenas no Miniflare; o Worker preview mantém modo off.
+            REALTIME_MODE: "on",
           },
         },
       };
