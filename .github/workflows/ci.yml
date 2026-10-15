@@ -55,7 +55,6 @@ jobs:
 
   codeql:
     name: CodeQL JavaScript
-    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -90,6 +89,7 @@ jobs:
 
   verify:
     name: verify
+    if: always()
     needs: [quality, codeql]
     runs-on: ubuntu-latest
     steps:
