@@ -39,12 +39,19 @@ export function StatusActions({
 }) {
   const [saving, setSaving] = useState<AppointmentStatus | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reasonOpen, setReasonOpen] = useState(false);
+  const [reason, setReason] = useState("");
 
-  async function changeStatus(nextStatus: AppointmentStatus) {
+  async function changeStatus(nextStatus: AppointmentStatus, observation?: string) {
     if (saving) return;
 
     const requestedStatus =
       nextStatus === status ? "aguardando" : nextStatus;
+
+    if (requestedStatus === "nao_chegou" && !observation) {
+      setReasonOpen(true);
+      return;
+    }
 
     setSaving(nextStatus);
     setError(null);
@@ -55,10 +62,12 @@ export function StatusActions({
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ status: requestedStatus }),
+          body: JSON.stringify({ status: requestedStatus, ...(observation ? { observation } : {}) }),
         },
       );
       onChanged(updated);
+      setReasonOpen(false);
+      setReason("");
     } catch (caught) {
       setError(
         caught instanceof ApiError
@@ -103,6 +112,30 @@ export function StatusActions({
         <p className="inline-error" role="alert">
           {error}
         </p>
+      ) : null}
+      {reasonOpen ? (
+        <div className="modal-backdrop">
+          <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="receipt-reason-heading">
+            <h2 id="receipt-reason-heading">Motivo do não recebimento</h2>
+            <p>Informe a justificativa antes de marcar como não recebido.</p>
+            <form className="modal-form" onSubmit={(event) => {
+              event.preventDefault();
+              void changeStatus("nao_chegou", reason.trim());
+            }}>
+              <label>
+                <span>Observação (obrigatória)</span>
+                <textarea autoFocus required maxLength={240} rows={4} value={reason}
+                  onChange={(event) => setReason(event.target.value)} />
+              </label>
+              <small>{reason.length}/240 caracteres</small>
+              <div className="modal-actions">
+                <button className="ghost-button" type="button"
+                  onClick={() => { setReasonOpen(false); setReason(""); }}>Cancelar</button>
+                <button className="primary-button" type="submit" disabled={saving !== null || !reason.trim()}>Salvar motivo</button>
+              </div>
+            </form>
+          </section>
+        </div>
       ) : null}
     </div>
   );

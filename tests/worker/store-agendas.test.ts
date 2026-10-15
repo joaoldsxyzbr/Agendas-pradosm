@@ -710,10 +710,10 @@ describe("store agenda workflow", () => {
     const missed = await request(
       "/api/store/appointments/appt-status-a/status",
       cookie,
-      { method: "PATCH", body: { status: "nao_chegou" } },
+      { method: "PATCH", body: { status: "nao_chegou", observation: "Fornecedor não compareceu." } },
     );
     expect(missed.status).toBe(200);
-    expect(await missed.json()).toMatchObject({ status: "nao_chegou" });
+    expect(await missed.json()).toMatchObject({ status: "nao_chegou", observation: "Fornecedor não compareceu." });
 
     const history = await db
       .prepare(
