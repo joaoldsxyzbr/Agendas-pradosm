@@ -95,3 +95,9 @@ Na branch inicial da migração (sincronizada com `main` no commit `7981580e`), 
 - Credenciais de senha dessas contas são inválidas por projeto; somente o endpoint de demonstração restrito ao Worker de preview permite acessá-las.
 - A `main` não possui essas variáveis, portanto não habilita o acesso rápido mesmo se o código for posteriormente revisado para promoção. Não promover sem remover/verificar o recurso conforme política.
 - A implementação no login React/TypeScript é **temporária** enquanto o restante da interface ainda não foi migrado para JavaScript puro. O acesso rápido deve ser portado para o login HTML/JS definitivo.
+
+## Testes da interface nativa (15/10/2026)
+
+- A rota de testes `/vanilla/live.html` usa módulos JS, HTML e CSS e conversa com a API do Worker e o D1 isolado.
+- `tests/e2e/native-ui.spec.js` cobre login rápido dos três perfis, relatórios, acesso do visualizador e conferência.
+- A rota principal `/login` e o build legado ainda dependem de React/Vite/TypeScript até a migração final. Não publicar o novo shell como padrão antes da aprovação de todos os fluxos E2E.
