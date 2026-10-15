@@ -271,7 +271,11 @@
       state.date = d.toISOString().slice(0, 10); navigate();
     };
     $("#conf-prev").onclick = () => step(-1); $("#conf-next").onclick = () => step(1);
-    $("#conf-print")?.addEventListener("click", () => window.print());
+    $("#conf-print")?.addEventListener("click", () => asyncAction(async () => {
+      if (!ag) return;
+      const pdf=await import("./exportAgendaPdf.js");
+      pdf.downloadAgendaPdf(ag, items);
+    }));
     $("#conf-add")?.addEventListener("click", () => manualDialog(null));
     $("#conf-complete")?.addEventListener("click", () => asyncAction(async () => {
       if (!confirm("Concluir os recebimentos deste dia?")) return;
@@ -414,10 +418,52 @@
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 }
-  async function showImport() {
-    root.innerHTML = heading("Operação", "Importar agendas", "Importação em lote com validação antes de gravar.") +
-      `<section class="card"><div class="card-header"><h2>Importação CSV / PDF</h2></div><p class="section-help">Parser com validações do sistema antigo está sendo portado para JavaScript modular. Até concluir, utilize a tela de importação atual, sem misturar dados de produção.</p></section>`;
-  }
+  async function showImport(){
+  root.innerHTML=heading("Operação", "Importar agendas", "Analise o arquivo antes de confirmar a importação no D1 de testes.")+
+    `<div class="card"><div class="card-header"><div><h2>Arquivo de agendas</h2><p>Validação e conferência antes de gravar</p></div></div>
+      <div style="padding:22px"><label class="field">Selecione CSV ou PDF<input id="import-file" type="file" accept=".csv,text/csv,.pdf,application/pdf"></label></div>
+    </div><div id="import-preview"></div>`;
+  $("#import-file").onchange=async e=>{
+    const file=e.target.files?.[0];
+    if(!file)return;
+    const target=$("#import-preview");
+    target.innerHTML='<div class="loading" role="status">Lendo arquivo e verificando os registros…</div>';
+    if(file.size>10*1024*1024){target.innerHTML='<div class="alert">O arquivo excede 10 MB.</div>';return}
+    try{
+      const tools=await import("./parseAgendaBatch.js");
+      const pdf=file.name.toLowerCase().endsWith(".pdf")||file.type==="application/pdf";
+      if(!pdf&&!file.name.toLowerCase().endsWith(".csv")&&file.type!=="text/csv")throw Error("Selecione um CSV ou PDF.");
+      const text=pdf?await (await import("./extractPdfText.js")).extractPdfText(file):await file.text();
+      const preview=pdf?tools.parseAgendaPdfText(text):tools.parseAgendaCsv(text);
+      const all=preview.agendas.flatMap(x=>x.appointments.map(ap=>({storeCode:x.storeCode,appointment:ap})));
+      target.innerHTML=stats([["Lojas",preview.agendas.length,"Unidades reconhecidas"],["Registros",preview.totalAppointments,"Agendamentos"],["Erros",preview.blockingErrors.length,"Bloqueios"],["Avisos",preview.warnings.length,"A revisar"]])+
+        (preview.blockingErrors.length?`<div class="alert" role="alert"><strong>Corrija antes de importar:</strong><ul>${preview.blockingErrors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"")+
+        (preview.warnings.length?`<div class="alert"><strong>Avisos:</strong><ul>${preview.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"")+
+        panel("Prévia do arquivo",`${all.length} linhas identificadas`,table(["Loja","Horário","Protocolo","Fornecedor","Itens","Volumes","Tipo"],all.slice(0,200).map(x=>`<tr><td>${esc(x.storeCode)}</td><td>${esc(x.appointment.startTime)}</td><td>${esc(x.appointment.protocol)}</td><td>${esc(x.appointment.supplier)}</td><td>${fmt(x.appointment.items)}</td><td>${fmt(x.appointment.volumes)}</td><td>${esc(x.appointment.type)}</td></tr>`)))+
+        `<button class="primary" id="import-confirm" ${preview.blockingErrors.length||!preview.agendas.length?"disabled":""}>Confirmar importação</button>`;
+      $("#import-confirm").onclick=()=>asyncAction(async ()=>{
+        const agendas=preview.agendas.map(agenda=>({
+          storeCode:agenda.storeCode,
+          date:agenda.date,
+          originalFileName:file.name,
+          appointments:agenda.appointments.map(({status,...data})=>data),
+        }));
+        if(agendas.some(a=>!a.storeCode||!a.date)||!agendas.length)throw Error("Verifique a data e as lojas do arquivo.");
+        let result;
+        try{result=await json("POST","/api/admin/agendas/import/bulk",{agendas})}
+        catch(error){
+          if(error.status!==409)throw error;
+          if(!confirm("Já existem agendas para algumas lojas e datas. Substituir mantendo as conferências preservadas?"))return;
+          result=await json("POST","/api/admin/agendas/import/bulk",{agendas:agendas.map(x=>({...x,replace:true}))});
+        }
+        tell(`${result.totalAgendas} agendas e ${result.totalAppointments} agendamentos importados.`);
+        target.innerHTML='<div class="alert">Importação concluída. Consulte o painel ou o histórico.</div>';
+      });
+    }catch(error){
+      target.innerHTML=`<div class="alert" role="alert">${esc(error.message||"Não foi possível interpretar o arquivo.")}</div>`;
+    }
+  };
+}
   window.addEventListener("hashchange", () => navigate());
   $("#menu-toggle").onclick = () => {
     const on = shell.classList.toggle("nav-open");
