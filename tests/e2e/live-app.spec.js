@@ -73,7 +73,7 @@ test("menu mobile abre e navega na aplicação principal", async ({ page }) => {
   await expect(menu).toBeVisible();
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  await page.getByRole("link", { name: /Conferente/ }).click();
-  await expect(page.getByRole("heading", { name: "Conferência de recebimentos" })).toBeVisible();
+  await page.getByRole("link", { name: /Relatórios/ }).click();
+  await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "false");
 });
