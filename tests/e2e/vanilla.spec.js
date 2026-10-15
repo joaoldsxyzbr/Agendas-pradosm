@@ -13,7 +13,7 @@ test("prévia vanilla apresenta navegação, indicadores e relatórios sem API",
   await expect(page.getByRole("heading", { name: "Ocorrências e justificativas" })).toBeVisible();
   await page.getByRole("combobox", { name: "Loja" }).selectOption("003");
   await expect(page.getByText("Cooperativa Litoral")).not.toBeVisible();
-  await expect(page.getByText("Logística Vale do Itajaí")).toBeVisible();
+  await expect(page.getByText("Logística Vale do Itajaí").first()).toBeVisible();
   expect(apiCalls).toEqual([]);
 });
 
