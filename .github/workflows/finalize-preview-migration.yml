@@ -1,8 +1,7 @@
 name: Finalize preview migration
 
 on:
-  push:
-    branches: [preview]
+  workflow_dispatch:
 
 permissions:
   contents: write
