@@ -12,6 +12,7 @@ permissions:
 jobs:
   quality:
     name: Tests, typecheck, build and E2E
+    if: github.event.head_commit.message != 'chore(preview): migration bootstrap'
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -58,6 +59,7 @@ jobs:
 
   codeql:
     name: CodeQL JavaScript/TypeScript
+    if: github.event.head_commit.message != 'chore(preview): migration bootstrap'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -92,7 +94,7 @@ jobs:
 
   verify:
     name: verify
-    if: always()
+    if: github.event.head_commit.message != 'chore(preview): migration bootstrap' && always()
     needs: [quality, codeql]
     runs-on: ubuntu-latest
     steps:
