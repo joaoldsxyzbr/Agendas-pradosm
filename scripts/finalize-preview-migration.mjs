@@ -539,8 +539,8 @@ if (!wranglerAssetTest.includes('"directory": "./public"')) throw new Error("Ass
 
 rmSync("node_modules", { recursive: true, force: true });
 rmSync("package-lock.json", { force: true });
-run("npm", ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"]);
-run("npm", ["ci"]);
+run("npm", ["install", "--package-lock-only", "--ignore-scripts", "--legacy-peer-deps", "--no-audit", "--no-fund"]);
+run("npm", ["ci", "--legacy-peer-deps"]);
 run("npm", ["run", "check:javascript"]);
 run("npm", ["run", "test:design"]);
 run("npm", ["run", "test:deploy-flow"]);
