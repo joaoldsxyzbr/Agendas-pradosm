@@ -141,13 +141,13 @@
     root.classList.remove("auth-main");
     $(".account-name strong").textContent = state.user.nome || "Usuário";
     $(".account-name small").textContent = statusLabel(state.user.papel);
-    $$(".sidebar-nav [data-view-link]").forEach(a => {
+    $(".sidebar-nav a[data-view-link]").forEach(a => {
       const admin = state.user.papel === "admin";
       const viewer = state.user.papel === "visualizador";
       const view = a.dataset.viewLink;
       a.hidden = (view === "conferente" && state.user.papel !== "conferente") ||
         (view !== "conferente" && state.user.papel === "conferente") ||
-        ((view === "lojas" || view === "usuarios" || view === "importar" || view === "historico") && !admin) ||
+        ((view === "lojas" || view === "usuarios" || view === "historico") && !admin) ||
         (view === "relatorios" && !admin && !viewer);
     });
   };
@@ -166,7 +166,7 @@
     if (!(next in pageTitles)) next = "recebimento";
     state.view = next;
     $("#breadcrumb").textContent = pageTitles[next];
-    $$(".sidebar-nav [data-view-link]").forEach(a => {
+    $(".sidebar-nav a[data-view-link]").forEach(a => {
       a.classList.toggle("active", a.dataset.viewLink === next);
       if (a.dataset.viewLink === next) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
@@ -581,7 +581,7 @@
   $(".preview-chip").textContent = "PREVIEW · D1 ISOLADO";
   const oldBottom = $(".sidebar-bottom p"); if (oldBottom) oldBottom.textContent = "Ambiente exclusivo de testes. Nenhum dado de produção é utilizado.";
   const menu = $(".sidebar-nav");
-  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><button class="nav-action" type="button" data-view-link="importar" data-open-import><span aria-hidden="true">↥</span>Importação</button><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
+  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
   $("#sidebar-logout").onclick = () => asyncAction(async () => {
     await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null; location.hash = ""; await makeLogin();
   });

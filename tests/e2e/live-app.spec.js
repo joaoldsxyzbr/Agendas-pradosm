@@ -77,22 +77,27 @@ test("conferente salva motivo obrigatório e volta o status para aguardando", as
   await expect(page.getByText(reason)).toHaveCount(0);
 });
 
-test("menu mobile abre e navega na aplicação principal", async ({ page }) => {
+test("menu mobile mantém navegação limpa e importar abre popup", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await enterDemo(page, "Administrador");
   const menu = page.getByRole("button", { name: "Abrir navegação" });
   await expect(menu).toBeVisible();
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
-  const importButton = page.getByRole("button", { name: "Importação" });
+  await expect(page.getByRole("button", { name: "Importação" })).toHaveCount(0);
+  await menu.click();
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+
+  const importButton = page.getByRole("button", { name: "Importar agenda" });
+  const importUrl = page.url();
   await importButton.click();
   const importDialog = page.getByRole("dialog", { name: "Importar agenda" });
   await expect(importDialog).toBeVisible();
-  await expect(page).toHaveURL(/#recebimento$/);
+  await expect(page).toHaveURL(importUrl);
   await page.keyboard.press("Escape");
   await expect(importDialog).toHaveCount(0);
-  await expect(menu).toHaveAttribute("aria-expanded", "false");
-  await expect(menu).toBeFocused();
+  await expect(importButton).toBeFocused();
+
   await menu.click();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();

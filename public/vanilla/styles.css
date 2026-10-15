@@ -41,9 +41,6 @@ a { color: inherit; text-decoration: none }
 .sidebar-nav a:hover { background: #1c2936; color: white }
 .sidebar-nav a.active { background: var(--accent-tint); color: #d4e9fa; font-weight: 700; box-shadow: inset 3px 0 var(--accent) }
 .sidebar-nav a.active span { color: #b3d6ef }
-.sidebar-nav .nav-action { width:100%; display:flex; align-items:center; gap:13px; padding:11px 14px; border:0; border-radius:9px; background:transparent; color:#b0bfcd; text-align:left; font-size:13px; transition:background .15s ease; cursor:pointer }
-.sidebar-nav .nav-action span { width:18px; color:#8ca3b5; font-size:17px; text-align:center }
-.sidebar-nav .nav-action:hover { background:#1c2936; color:white }
 .sidebar-bottom { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--stroke-soft); color: var(--subtle); font-size: 11px }
 .sidebar-bottom p { margin: 9px 0 0 }
 .mock-indicator { display: flex; gap: 8px; align-items:center; color: #afc5ce; font-weight: 700 }
@@ -202,7 +199,7 @@ body.dialog-open { overflow:hidden }
   .import-dialog-actions { padding:13px 16px }
   .import-dialog-actions button { flex:1 }
 }
-@media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a,.sidebar-nav .nav-action { transition:none } }
+@media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a { transition:none } }
 
 .unauthenticated { grid-template-columns:1fr }
 .unauthenticated .sidebar,.unauthenticated .topbar,.unauthenticated .footer { display:none }
