@@ -10,16 +10,8 @@ permissions:
   contents: read
 
 jobs:
-  bootstrap:
-    name: Migration bootstrap
-    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'chore(preview): migration bootstrap' }}
-    runs-on: ubuntu-latest
-    steps:
-      - run: echo "Preview migration bootstrap; full validation runs after finalization."
-
   quality:
-    name: Tests, typecheck, build and E2E
-    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap' }}
+    name: Tests, JavaScript checks, build and E2E
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -32,14 +24,13 @@ jobs:
           cache: npm
 
       - name: Install
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
-      - name: Validate JavaScript, HTML and CSS preview
+      - name: Validate HTML, CSS and JavaScript
         run: |
-          node --check public/vanilla/app.js
-          node --check public/vanilla/live.js
-          test -s public/vanilla/live.html
-          test -s public/vanilla/index.html
+          node scripts/check-javascript.mjs
+          test -s public/index.html
+          test -s public/vanilla/live.js
           test -s public/vanilla/styles.css
 
       - name: Audit production dependencies
@@ -48,12 +39,10 @@ jobs:
       - name: Test
         run: npm test
 
-      - name: Typecheck
-        run: npm run typecheck
+      - name: Check JavaScript
+        run: npm run check:javascript
 
       - name: Build
-        env:
-          VITE_PREVIEW_MOCKS: "off"
         run: npm run build
 
       - name: Install Playwright Chromium
@@ -65,7 +54,7 @@ jobs:
         run: npm run test:e2e:ci
 
   codeql:
-    name: CodeQL JavaScript/TypeScript
+    name: CodeQL JavaScript
     if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -81,7 +70,7 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
-          languages: javascript-typescript
+          languages: javascript
           queries: security-extended
 
       - name: Analyze without Code Scanning upload
@@ -101,7 +90,6 @@ jobs:
 
   verify:
     name: verify
-    if: ${{ always() && (github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap') }}
     needs: [quality, codeql]
     runs-on: ubuntu-latest
     steps:

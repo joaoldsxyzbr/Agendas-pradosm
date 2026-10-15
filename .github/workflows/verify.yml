@@ -22,7 +22,7 @@ jobs:
         run: |
           set +e
           stage="npm ci"
-          npm ci
+          npm ci --legacy-peer-deps
           code=$?
 
           if [ "$code" -eq 0 ]; then
@@ -44,8 +44,8 @@ jobs:
           fi
 
           if [ "$code" -eq 0 ]; then
-            stage="typecheck"
-            npm run typecheck 2>&1 | tee /tmp/verify.log
+            stage="JavaScript validation"
+            npm run check:javascript 2>&1 | tee /tmp/verify.log
             code=${PIPESTATUS[0]}
           fi
 
@@ -58,7 +58,7 @@ jobs:
           description="$stage passed"
           if [ "$code" -ne 0 ]; then
             description="$stage failed"
-            if grep -Eqi "worker/index\.ts|Could not resolve.*worker|entry.*worker" /tmp/verify.log 2>/dev/null; then
+            if grep -Eqi "worker/index\.js|Could not resolve.*worker|entry.*worker" /tmp/verify.log 2>/dev/null; then
               description="RED: Worker entry missing"
             fi
           fi

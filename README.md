@@ -34,7 +34,7 @@ Pré-requisitos: Node.js 22, npm e Wrangler (autenticado somente para recursos r
 Instale as dependências:
 
 ```bash
-npm ci
+npm ci --legacy-peer-deps
 ```
 
 Crie um arquivo local .dev.vars com SESSION_SECRET=defina-um-segredo-local-longo-e-aleatorio. Arquivos .dev.vars* e .env* são ignorados e não devem ser versionados.

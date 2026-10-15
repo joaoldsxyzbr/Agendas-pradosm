@@ -1,39 +1,20 @@
-name: Convert Worker to JavaScript (Preview)
+name: Check native JavaScript sources
+
 on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-
-concurrency:
-  group: preview-worker-source-migration
-  cancel-in-progress: false
+  contents: read
 
 jobs:
-  convert:
-    if: github.ref == 'refs/heads/preview'
+  check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          ref: preview
-          persist-credentials: true
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-      - name: Install dependencies
-        run: npm ci
-      - name: Generate JavaScript modules
-        run: node scripts/convert-worker-preview.mjs
-      - name: Confirm JavaScript source syntax
-        run: find worker shared -name '*.js' -print0 | xargs -0 -n1 node --check
-      - name: Commit conversion only on preview
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add worker shared
-          if ! git diff --cached --quiet; then
-            git commit -m "refactor(preview): gerar módulos Worker em JavaScript"
-            git push origin HEAD:preview
-          fi
+          node-version: 22
+      - name: Install
+        run: npm ci --legacy-peer-deps
+      - name: Check JavaScript sources
+        run: npm run check:javascript
