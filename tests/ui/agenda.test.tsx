@@ -127,10 +127,12 @@ describe("TodayPage", () => {
       expect(dateButton).toHaveTextContent("01/10/2026"),
     );
 
-    const todayCalls = fetchMock.mock.calls.filter(
-      (call) => String(call[0]) === "/api/store/today",
-    );
-    expect(todayCalls).toHaveLength(2);
+    await waitFor(() => {
+      const todayCalls = fetchMock.mock.calls.filter(
+        (call) => String(call[0]) === "/api/store/today",
+      );
+      expect(todayCalls).toHaveLength(2);
+    });
   });
 
   it("mostra os comandos da agenda no cabeçalho operacional integrado", async () => {
