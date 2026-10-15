@@ -1,0 +1,68 @@
+# Migração da preview: JavaScript puro + HTML + CSS + Cloudflare D1
+
+**Status:** planejamento e levantamento concluídos; migração funcional não iniciada.
+**Escopo:** exclusivamente a branch `preview` de `joaoldsxyzbr/Agendas-pradosm`.
+**Produção:** `main` não pode ser alterada sem validação na preview e autorização expressa.
+
+## Decisão de stack (15/10/2026)
+
+- **Interface:** HTML sem JSX, CSS nativo e módulos JavaScript (ES Modules), sem React e sem Vite.
+- **Backend:** JavaScript nativo em Cloudflare Workers para APIs autenticadas, validação e acesso ao D1.
+- **Persistência:** Cloudflare D1 e SQL. Nunca usar banco de produção nos testes.
+- **Ferramentas:** Wrangler é ferramenta de publicação e administração do Worker, não framework de interface. Node.js pode executar verificações locais, mas não é servidor de produção.
+- **Não utilizar:** TypeScript, React, Vite, Python ou C# sem necessidade. Python e C# continuam permitidos pela preferência geral, mas não são necessários nesta migração.
+- Manter dependências apenas quando comprovadamente necessárias (p. ex., leitura de PDF); não criar serviços ou runtimes extras para usar linguagens.
+- A branch poderá conter implementação antiga **durante a transição**, mas o resultado final deve ser executado somente com a nova stack. Nunca declarar a migração concluída enquanto JSX, React, Vite ou TypeScript continuarem necessários para executar, testar ou publicar a aplicação.
+
+## Funcionalidades obrigatórias
+
+1. Login, sessões seguras, encerramento de sessão, papéis admin/visualizador/conferente e isolamento por loja.
+2. Dashboard administrativo, presença e eventos de atualização em tempo real, troca de data, reabertura e conclusão de agenda.
+3. Importação CSV/PDF de agendas, fornecedores manuais, ajustes administrativos, histórico e auditoria.
+4. **Observações do conferente:** ao selecionar `Não recebido`, exigir motivo de até 240 caracteres; exibir coluna `Obs.`, permitir edição do motivo, preservar auditoria, limpar motivo corrente ao voltar ao status diferente, não inventar motivos. Administrador em modo de edição segue a mesma regra. Preservar alternância do status ao clicar novamente.
+5. **Relatórios Gerenciais:** acesso somente leitura a admin e visualizador (não conferente), filtro de datas inclusivo (até 93 dias) e por loja, comparação com período anterior de igual duração, indicadores e tabelas por data e loja, ranking de fornecedores não recebidos, ocorrências com motivo e exportação CSV segura para planilhas.
+6. PDF da agenda, inclusive texto longo de fornecedores/observações quando aplicável.
+7. Responsividade em desktop e celular; interface operacional rápida para conferente.
+
+## Diretrizes de visual empresarial
+
+- Padrão visual único entre administrador, visualizador e conferente, com tema escuro como padrão e contraste acessível.
+- Navegação enxuta, hierarquia tipográfica nítida, espaçamento consistente, alinhamentos de tabelas e controles, densidade adequada à operação.
+- Filtros acessíveis, indicadores explicativos, estados de carregamento/erro/vazio, retorno visível ao salvar, diálogos claros e confirmação apenas para ações de risco.
+- Não sacrificar legibilidade em telas pequenas e não usar cores como único sinal de status.
+- Testar visual com dados **mockados e isolados da produção**.
+
+## Plano de entrega e critérios de aceite
+
+### Fase A — Base da nova aplicação (preview)
+- Criar entrada HTML, CSS corporativo e módulos JavaScript sem React/Vite.
+- Reproduzir layout e navegação com mocks de preview; preservar contrato dos endpoints.
+- Manter tudo isolado da produção.
+
+### Fase B — Backend e integrações
+- Portar APIs e regras atuais de TypeScript para JavaScript sem regressão de autenticação, permissões, importação, transações, auditoria e realtime.
+- Preservar o esquema D1; migration nova somente aditiva, aplicada **apenas no D1 de preview** depois de validação.
+- Não copiar nem expor dados reais na preview.
+
+### Fase C — Funcionalidades e acabamento
+- Portar operações dos perfis e fluxos de importação, PDF, histórico, administração e agenda.
+- Restaurar observações e relatórios a partir das implementações do histórico Git **como referência**, sem sobrescrever correções mais recentes da main.
+- Unificar visual profissional e cobertura mobile.
+
+### Fase D — Qualidade e publicação de teste
+- Verificar ausência de dependência de React/Vite/TypeScript no código executado.
+- Testes unitários, de API, autenticação/permissões, isolamento D1, E2E e acessibilidade.
+- CI obrigatório verde, deploy da preview confirmado, smoke de todos os perfis, importação, alterações de status, motivos, PDF e relatórios.
+- Somente após validação do usuário preparar promoção da preview para a main. **Não promover automaticamente**.
+
+## Riscos e medidas
+
+- **Reescrita ampla:** migrar por módulos para evitar perder funcionalidades e regressões.
+- **Segurança:** autorização sempre no Worker; nenhuma decisão sensível somente no navegador; inputs validados no servidor; consultas parametrizadas.
+- **Dados:** manter D1 como fonte da verdade; evitar migrations destrutivas e jamais apontar preview ao D1 de produção.
+- **Deploy:** não substituir o fluxo atual até existir um novo caminho testado e reproduzível.
+- **CI:** atualizar os testes junto com cada módulo portado, sem desativar verificações para forçar aprovação.
+
+## Situação verificada
+
+Na branch inicial da migração (sincronizada com `main` no commit `7981580e`), a aplicação ainda usa React, TypeScript, Vite, Hono/Workers e D1. No histórico de `preview`, commit `5c2df5e`, há implementações prévias das observações e relatórios que servirão como referência. Este documento **não equivale a implementação nem validação**.
