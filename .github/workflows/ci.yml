@@ -10,9 +10,16 @@ permissions:
   contents: read
 
 jobs:
+  bootstrap:
+    name: Migration bootstrap
+    if: ${{ github.event_name == 'push' && github.event.head_commit.message == 'chore(preview): migration bootstrap' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Preview migration bootstrap; full validation runs after finalization."
+
   quality:
     name: Tests, typecheck, build and E2E
-    if: github.event.head_commit.message != 'chore(preview): migration bootstrap'
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -59,7 +66,7 @@ jobs:
 
   codeql:
     name: CodeQL JavaScript/TypeScript
-    if: github.event.head_commit.message != 'chore(preview): migration bootstrap'
+    if: ${{ github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -94,7 +101,7 @@ jobs:
 
   verify:
     name: verify
-    if: github.event.head_commit.message != 'chore(preview): migration bootstrap' && always()
+    if: ${{ always() && (github.event_name != 'push' || github.event.head_commit.message != 'chore(preview): migration bootstrap') }}
     needs: [quality, codeql]
     runs-on: ubuntu-latest
     steps:
@@ -106,40 +113,3 @@ jobs:
           test "$QUALITY_RESULT" = "success"
           test "$CODEQL_RESULT" = "success"
 
-  convert-preview-sources:
-    name: Convert worker modules to JavaScript (preview only)
-    if: github.ref == 'refs/heads/preview' && github.event_name == 'push'
-    needs: [verify]
-    permissions:
-      contents: write
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: 22
-          cache: npm
-      - name: Install
-        run: npm ci
-      - name: Convert to JavaScript
-        run: node scripts/convert-worker-preview.mjs
-      - name: Validate generated JavaScript
-        run: |
-          find worker shared -name '*.js' -print0 | xargs -0 -n1 node --check
-          node --check public/vanilla/parseAgendaBatch.js
-          node --check public/vanilla/parseAgendaText.js
-          node --check public/vanilla/exportAgendaPdf.js
-      - name: Commit to preview without creating branches
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add worker shared public/vanilla
-          if ! git diff --cached --quiet; then
-            git commit -m "refactor(preview): gerar fontes JavaScript do Worker e utilitários"
-            git fetch origin preview
-            if [ "$(git rev-parse HEAD^)" != "$(git rev-parse origin/preview)" ]; then
-              echo "A preview avançou durante a geração; a execução mais nova fará a conversão."
-              exit 0
-            fi
-            git push origin HEAD:preview
-          fi
