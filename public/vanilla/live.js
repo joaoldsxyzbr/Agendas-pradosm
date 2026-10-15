@@ -1,0 +1,372 @@
+(function nativeApp() {
+  "use strict";
+  const $ = (selector, root = document) => root.querySelector(selector);
+  const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+  const root = $("#main");
+  const shell = $(".app-shell");
+  const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  const state = { user: null, view: "recebimento", date: dateToday(), search: "", store: "", reportStore: "", agendas: [], stores: [], users: [], storeAgenda: null, detail: null, history: [], busy: false, edit: false };
+  const pageTitles = { recebimento: "Recebimento", relatorios: "Relatórios gerenciais", conferente: "Conferente", lojas: "Lojas", usuarios: "Usuários", historico: "Histórico", importar: "Importação" };
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const fmt = (n) => new Intl.NumberFormat("pt-BR").format(Number(n || 0));
+  const dt = (d) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : d || "—");
+  const statusLabel = s => ({ aguardando: "Aguardando", recebido: "Recebido", nao_chegou: "Não recebido", recusado: "Recusado", ativo: "Ativo", inativo: "Inativo" }[s] || s || "—");
+  const badge = s => `<span class="status ${esc(s)}">${esc(statusLabel(s))}</span>`;
+  const heading = (area, title, hint, actions = "") => `<div class="page-heading"><div><p class="eyebrow">${esc(area)}</p><h1>${esc(title)}</h1><p class="heading-note">${esc(hint)}</p></div><div class="page-actions">${actions}</div></div>`;
+  const panel = (title, description, contents) => `<section class="card"><div class="card-header"><div><h2>${esc(title)}</h2><p>${esc(description)}</p></div></div>${contents}</section>`;
+  const stats = (values) => `<div class="stats">${values.map((x, i) => `<div class="stat" style="--stat-tone:${["var(--accent)", "var(--positive)", "var(--negative)", "var(--warning)"][i % 4]}"><span class="stat-label">${esc(x[0])}</span><strong class="stat-value">${esc(x[1])}</strong><small class="stat-foot">${esc(x[2])}</small></div>`).join("")}</div>`;
+  const table = (headers, rows, empty = "Nenhum registro encontrado.") => `<div class="table-scroll"><table><thead><tr>${headers.map(h => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${rows.join("") || `<tr><td colspan="${headers.length}" class="empty">${esc(empty)}</td></tr>`}</tbody></table></div>`;
+  const storeOpts = (selected = "", all = true) => `${all ? `<option value="">Todas as lojas</option>` : `<option value="">Selecione a loja</option>`}${state.stores.map(s => `<option value="${esc(s.codigo)}" ${selected === s.codigo ? "selected" : ""}>${esc(s.codigo)} · ${esc(s.nome)}</option>`).join("")}`;
+  const api = async (url, options = {}) => {
+    const res = await fetch(url, { credentials: "include", ...options });
+    if (!res.ok) {
+      let body;
+      try { body = await res.json(); } catch { /* error without JSON */ }
+      const err = new Error(body?.message || `Erro de comunicação (${res.status})`);
+      err.status = res.status; err.code = body?.error;
+      throw err;
+    }
+    return res.status === 204 ? null : res.json();
+  };
+  const json = (method, url, body) => api(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const tell = (message, error = false) => {
+    const host = $("#toast-host");
+    host.textContent = message;
+    host.className = error ? "toast toast-error" : "toast";
+    host.setAttribute("role", error ? "alert" : "status");
+  };
+  const setBusy = (yes) => { state.busy = yes; $$("button", root).forEach(b => { if (b.dataset.action) b.disabled = yes; }); };
+  const asyncAction = async (job, msg = "") => {
+    if (state.busy) return;
+    try { setBusy(true); await job(); if (msg) tell(msg); }
+    catch (e) { tell(e.message || "Não foi possível concluir.", true); }
+    finally { setBusy(false); }
+  };
+  const modal = (title, body, submit, onSubmit) => {
+    const host = $("#dialog-host");
+    host.innerHTML = `<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title">${esc(title)}</h2><form id="modal-form">${body}<div class="dialog-actions"><button class="secondary" type="button" id="modal-cancel">Cancelar</button><button class="primary" type="submit">${esc(submit)}</button></div></form></section></div>`;
+    const close = () => { host.replaceChildren(); document.removeEventListener("keydown", onKey); };
+    const onKey = e => { if (e.key === "Escape") close(); };
+    document.addEventListener("keydown", onKey);
+    $("#modal-cancel").onclick = close;
+    $(".dialog-backdrop", host).addEventListener("click", e => { if (e.target.classList.contains("dialog-backdrop")) close(); });
+    $("#modal-form").onsubmit = e => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.currentTarget));
+      asyncAction(async () => { await onSubmit(data); close(); }, "");
+    };
+    $("input,select,textarea", host)?.focus();
+    return { close, host };
+  };
+  const field = (label, name, value = "", required = true, kind = "text") => `<label class="field">${esc(label)}<input name="${esc(name)}" type="${esc(kind)}" value="${esc(value)}" ${required ? "required" : ""}></label>`;
+  const makeLogin = async () => {
+    shell.classList.add("unauthenticated");
+    $(".sidebar").hidden = true;
+    $(".topbar").hidden = true;
+    $(".footer").hidden = true;
+    root.classList.add("auth-main");
+    state.user = null;
+    const d = await api("/api/auth/demo-status").catch(() => ({ available: false }));
+    root.innerHTML = `<section class="auth-card"><span class="brand-mark" aria-hidden="true">P</span><p class="eyebrow">Agenda Prado · Ambiente de testes</p><h1>Entrar</h1><p class="heading-note">Acesse a operação com sua conta.</p>
+      <form id="login-form" class="auth-form">
+        ${field("Login", "login", "", true)}
+        <label class="field">Senha<input name="senha" type="password" required autocomplete="current-password"></label>
+        <button class="primary" type="submit">Entrar</button>
+      </form>
+      ${d.available ? `<div class="auth-divider">ACESSO RÁPIDO DE TESTES</div><div class="auth-roles">
+        <button class="secondary role-choice" data-demo="admin">Administrador <span aria-hidden="true">→</span></button>
+        <button class="secondary role-choice" data-demo="visualizador">Visualizador <span aria-hidden="true">→</span></button>
+        <button class="secondary role-choice" data-demo="conferente">Conferente <span aria-hidden="true">→</span></button>
+        </div><p class="data-note">Contas fictícias. Não usa dados da produção.</p>` : ""}
+    </section>`;
+    $("#login-form").onsubmit = e => {
+      e.preventDefault();
+      const f = Object.fromEntries(new FormData(e.currentTarget));
+      asyncAction(async () => { state.user = await json("POST", "/api/auth/login", f); location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento"; await navigate(); });
+    };
+    $$("[data-demo]").forEach(button => {
+      button.onclick = () => asyncAction(async () => {
+        state.user = await json("POST", "/api/auth/demo-login", { papel: button.dataset.demo });
+        location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento";
+        await navigate();
+      });
+    });
+  };
+  const restoreShell = () => {
+    shell.classList.remove("unauthenticated");
+    $(".sidebar").hidden = false; $(".topbar").hidden = false; $(".footer").hidden = false;
+    root.classList.remove("auth-main");
+    $(".account-name strong").textContent = state.user.nome || "Usuário";
+    $(".account-name small").textContent = statusLabel(state.user.papel);
+    $$(".sidebar-nav a").forEach(a => {
+      const admin = state.user.papel === "admin";
+      const viewer = state.user.papel === "visualizador";
+      const view = a.dataset.viewLink;
+      a.hidden = (view === "conferente" && state.user.papel !== "conferente") ||
+        (view !== "conferente" && state.user.papel === "conferente") ||
+        ((view === "lojas" || view === "usuarios" || view === "importar" || view === "historico") && !admin) ||
+        (view === "relatorios" && !admin && !viewer);
+    });
+  };
+  const navigate = async () => {
+    if (!state.user) { await makeLogin(); return; }
+    restoreShell();
+    const role = state.user.papel;
+    let next = location.hash.slice(1) || (role === "conferente" ? "conferente" : "recebimento");
+    if (role === "conferente") next = "conferente";
+    if (role === "visualizador" && !["recebimento", "relatorios"].includes(next)) next = "recebimento";
+    if (!(next in pageTitles)) next = "recebimento";
+    state.view = next;
+    $("#breadcrumb").textContent = pageTitles[next];
+    $$(".sidebar-nav a").forEach(a => {
+      a.classList.toggle("active", a.dataset.viewLink === next);
+      if (a.dataset.viewLink === next) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
+    });
+    shell.classList.remove("nav-open");
+    $("#menu-toggle").setAttribute("aria-expanded", "false");
+    root.innerHTML = `<div class="loading" role="status">Carregando informações…</div>`;
+    try {
+      const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers, historico: showHistory, importar: showImport };
+      await pages[next]();
+    } catch (e) {
+      root.innerHTML = heading("Agenda Prado", "Não foi possível carregar", e.message || "Verifique sua conexão.") + `<button class="secondary" id="retry">Tentar novamente</button>`;
+      $("#retry").onclick = () => navigate();
+    }
+  };
+  async function loadStores() { state.stores = await api("/api/admin/stores"); return state.stores; }
+  async function showDashboard() {
+    const [stores, agendas, presence] = await Promise.all([
+      loadStores(),
+      api(`/api/admin/agendas?date=${encodeURIComponent(state.date)}`),
+      api("/api/admin/presence").catch(() => []),
+    ]);
+    state.agendas = agendas;
+    const map = new Map(agendas.map(x => [x.storeCode, x]));
+    const online = new Map(presence.map(x => [x.storeId, x.status]));
+    const filtered = stores.filter(s => s.ativo && s.temConferenteAtivo !== false && (!state.store || state.store === s.codigo));
+    const active = filtered.map(s => ({ ...s, ag: map.get(s.codigo) }));
+    const totals = active.reduce((a, s) => {
+      const ag = s.ag;
+      a.total += ag?.total || 0; a.received += ag?.recebido || 0;
+      a.missed += (ag?.naoChegou || 0) + (ag?.recusado || 0);
+      a.pending += ag?.aguardando || 0;
+      return a;
+    }, { total: 0, received: 0, missed: 0, pending: 0 });
+    root.innerHTML = heading("Painel administrativo", "Recebimento", `Resumo operacional de ${dt(state.date)} · ${state.user.papel === "visualizador" ? "Somente consulta" : "Gestão"}`, state.user.papel === "admin" ? `<a class="primary" href="#importar">Importar agenda</a>` : "") +
+      stats([["Agendamentos", totals.total, "Total programado"], ["Recebidos", totals.received, "Confirmados"], ["Não recebidos", totals.missed, "Ocorrências"], ["Aguardando", totals.pending, "Pendentes"]]) +
+      `<div class="toolbar"><div><h2>Operação por loja</h2><p>Acompanhamento diário em uma única visualização</p></div><div class="filters-inline"><label class="field">Data<input type="date" id="dash-date" value="${esc(state.date)}"></label><label class="field">Loja<select id="dash-store">${storeOpts(state.store)}</select></label><button class="secondary" id="dash-refresh">Atualizar</button></div></div>` +
+      panel("Unidades", "Apenas lojas ativas com conferente ativo", table(["Presença", "Loja", "Agenda", "Total", "Recebidos", "Pendentes", "Situação", "Ação"], active.map(s => `<tr>
+        <td>${badge(online.get(s.id) || "offline")}</td><td class="cell-primary">${esc(s.codigo)} · ${esc(s.nome)}</td>
+        <td>${s.ag ? "Importada" : "Sem agenda"}</td><td>${fmt(s.ag?.total)}</td>
+        <td>${fmt(s.ag?.recebido)}</td><td>${fmt((s.ag?.aguardando || 0) + (s.ag?.naoChegou || 0))}</td>
+        <td>${s.ag ? badge(s.ag.dayStatus === "concluido" ? "recebido" : "aguardando") : "—"}</td>
+        <td>${s.ag ? `<button class="mini-button" data-detail="${esc(s.ag.id)}">Ver agenda</button>` : "—"}</td>
+        </tr>`)));
+    $("#dash-date").onchange = e => { state.date = e.target.value; navigate(); };
+    $("#dash-store").onchange = e => { state.store = e.target.value; navigate(); };
+    $("#dash-refresh").onclick = navigate;
+    $$("[data-detail]").forEach(b => b.onclick = () => openAgenda(b.dataset.detail));
+  }
+  const updateStatus = async (id, status, apiBase) => {
+    await json("PATCH", `${apiBase}/${encodeURIComponent(id)}/status`, { status });
+    await navigate();
+    tell("Status salvo no D1 de testes.");
+  };
+  const listAppointments = (items, apiBase, editable) => table(
+    ["Horário", "Fornecedor", "Protocolo", "Status", "Trocas", "Observações", editable ? "Ações" : "Detalhes"],
+    items.map(a => `<tr><td>${esc(a.startTime || "—")}</td><td class="cell-primary">${esc(a.supplier)}</td><td>${esc(a.protocol)}</td><td>${badge(a.status)}</td>
+      <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(a.supplier)}" data-exchange="${esc(a.id)}" ${a.hasExchanges ? "checked" : ""}>` : (a.hasExchanges ? "Sim" : "Não")}</td>
+      <td class="detail-line">${esc(a.observation || "—")}</td>
+      <td>${editable ? `<div class="inline-actions"><button class="mini-button" data-status="${esc(a.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button><button class="mini-button" data-status="${esc(a.id)}" data-next="nao_chegou" title="Não recebido ou Aguardando">✕</button>${a.origin === "manual" ? `<button class="mini-button" data-manual-edit="${esc(a.id)}">Editar</button><button class="mini-button" data-manual-remove="${esc(a.id)}">Excluir</button>` : ""}</div>` : "—"}</td></tr>`)
+  );
+  const bindAppointments = (items, base) => {
+    $$("[data-status]").forEach(button => button.onclick = () => {
+      const a = items.find(x => x.id === button.dataset.status);
+      if (!a) return;
+      const desired = a.status === button.dataset.next ? "aguardando" : button.dataset.next;
+      asyncAction(() => updateStatus(a.id, desired, base));
+    });
+    $$("[data-exchange]").forEach(input => input.onchange = e => asyncAction(async () => {
+      await json("PATCH", `${base}/${encodeURIComponent(input.dataset.exchange)}/exchanges`, { hasExchanges: e.target.checked });
+      tell("Trocas atualizadas."); await navigate();
+    }));
+    $$("[data-manual-edit]").forEach(button => button.onclick = () => {
+      const a = items.find(x => x.id === button.dataset.manualEdit);
+      manualDialog(a);
+    });
+    $$("[data-manual-remove]").forEach(button => button.onclick = () => asyncAction(async () => {
+      const a = items.find(x => x.id === button.dataset.manualRemove);
+      if (!a || !confirm(`Excluir o fornecedor ${a.supplier}?`)) return;
+      await api(`${base}/${encodeURIComponent(a.id)}/manual`, { method: "DELETE" });
+      await navigate(); tell("Fornecedor removido.");
+    }));
+  };
+  const openAgenda = async id => {
+    const data = await api(`/api/admin/agendas/${encodeURIComponent(id)}`);
+    state.detail = data;
+    state.edit = false;
+    await showAgendaDetail();
+  };
+  const showAgendaDetail = async () => {
+    const { agenda, appointments } = state.detail;
+    const editable = state.user.papel === "admin" && state.edit && agenda.dayStatus !== "concluido";
+    const body = heading("Agenda da loja", `${agenda.storeCode} · ${agenda.storeName}`, `Data: ${dt(agenda.date)} · ${statusLabel(agenda.dayStatus)}`,
+      `${state.user.papel === "admin" ? `<button class="secondary" id="edit-agenda">${state.edit ? "Sair da edição" : "Modo editar"}</button>` : ""}
+       <button class="secondary" id="agenda-back">Fechar</button>`) +
+      (state.user.papel === "admin" && agenda.dayStatus === "concluido" ? `<button class="secondary" id="reopen">Reabrir agenda</button>` : "") +
+      (editable ? `<div class="toolbar"><button class="secondary" id="add-to-agenda">Adicionar fornecedor sem agenda</button></div>` : "") +
+      panel("Agendamentos", `${fmt(appointments.length)} fornecedores`, listAppointments(appointments, "/api/admin/appointments", editable));
+    root.innerHTML = body;
+    $("#agenda-back").onclick = () => navigate();
+    $("#edit-agenda")?.addEventListener("click", () => { state.edit = !state.edit; showAgendaDetail(); });
+    $("#reopen")?.addEventListener("click", () => asyncAction(async () => {
+      if (!confirm("Reabrir a agenda desta loja?")) return;
+      await json("PATCH", `/api/admin/agendas/${agenda.id}/status`, { status: "aberto" });
+      state.detail = await api(`/api/admin/agendas/${agenda.id}`);
+      state.edit = true;
+      await showAgendaDetail();
+    }, "Agenda reaberta."));
+    $("#add-to-agenda")?.addEventListener("click", () => manualDialog(null, agenda.id));
+    if (editable) bindAppointments(appointments, "/api/admin/appointments");
+  };
+  const manualDialog = (a, adminAgendaId = null) => {
+    const edit = Boolean(a);
+    const admin = state.user.papel === "admin";
+    const rootUrl = admin ? "/api/admin" : "/api/store";
+    const target = edit ? `${rootUrl}/appointments/${encodeURIComponent(a.id)}/manual`
+      : admin ? `${rootUrl}/agendas/${encodeURIComponent(adminAgendaId)}/manual`
+        : `${rootUrl}/agenda/${encodeURIComponent(state.date)}/manual`;
+    modal(edit ? "Editar fornecedor" : "Fornecedor sem agenda", field("Fornecedor", "supplier", a?.supplier || ""), "Salvar", async data => {
+      await json(edit ? "PATCH" : "POST", target, { supplier: data.supplier.trim() });
+      if (admin && state.detail) {
+        state.detail = await api(`/api/admin/agendas/${encodeURIComponent(state.detail.agenda.id)}`);
+        await showAgendaDetail();
+      } else await navigate();
+      tell("Fornecedor atualizado.");
+    });
+  };
+  async function showConferente() {
+    const today = dateToday();
+    const data = await api(state.date === today ? "/api/store/today" : `/api/store/history/${encodeURIComponent(state.date)}`);
+    state.storeAgenda = data;
+    const ag = data.agenda, items = data.appointments || [];
+    const editable = ag?.dayStatus === "aberto";
+    root.innerHTML = heading("Operação de loja", "Conferência de recebimentos", `${state.user.lojaCodigo || ""} · ${state.user.lojaNome || ""} · ${dt(state.date)}`,
+      `<button class="secondary" id="conf-prev">‹</button><label class="field">Dia<input type="date" id="conf-date" value="${esc(state.date)}"></label><button class="secondary" id="conf-next">›</button>`) +
+      stats([["Total", items.length, "Agendamentos"], ["Recebidos", items.filter(x => x.status === "recebido").length, "Confirmados"], ["Não recebidos", items.filter(x => x.status === "nao_chegou").length, "Ocorrências"], ["Aguardando", items.filter(x => x.status === "aguardando").length, "Pendentes"]]) +
+      (ag ? `<div class="toolbar"><div><h2>${esc(ag.storeName)}</h2><p>${esc(ag.dayStatus === "concluido" ? "Dia concluído" : "Dia aberto para conferência")}</p></div><div class="filters-inline">${editable ? `<button class="secondary" id="conf-add">Fornecedor sem agenda</button><button class="primary" id="conf-complete">Concluir dia</button>` : ""}<button class="secondary" id="conf-print">Imprimir / PDF</button></div></div>` : "") +
+      (ag ? panel("Agenda de recebimento", `${items.length} registros`, listAppointments(items, "/api/store/appointments", editable)) :
+        `<div class="empty">Nenhuma agenda para esta data.</div>`);
+    $("#conf-date").onchange = e => { state.date = e.target.value; navigate(); };
+    const step = diff => {
+      const d = new Date(`${state.date}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + diff);
+      state.date = d.toISOString().slice(0, 10); navigate();
+    };
+    $("#conf-prev").onclick = () => step(-1); $("#conf-next").onclick = () => step(1);
+    $("#conf-print")?.addEventListener("click", () => window.print());
+    $("#conf-add")?.addEventListener("click", () => manualDialog(null));
+    $("#conf-complete")?.addEventListener("click", () => asyncAction(async () => {
+      if (!confirm("Concluir os recebimentos deste dia?")) return;
+      await api(`/api/store/agenda/${encodeURIComponent(state.date)}/complete`, { method: "POST" });
+      await navigate(); tell("Dia concluído.");
+    }));
+    if (editable) bindAppointments(items, "/api/store/appointments");
+  }
+  async function showStores() {
+    await loadStores();
+    root.innerHTML = heading("Cadastros", "Lojas", "Administração das unidades e vínculos de conferentes.",
+      `<button class="primary" id="new-store">Nova loja</button>`) +
+      panel("Lojas cadastradas", `${state.stores.length} registros`, table(["Código", "Nome", "Situação", "Ação"],
+        state.stores.map(s => `<tr><td class="cell-primary">${esc(s.codigo)}</td><td>${esc(s.nome)}</td><td>${badge(s.ativo ? "ativo" : "inativo")}</td>
+          <td><button class="mini-button" data-edit-store="${esc(s.id)}">Editar</button></td></tr>`)));
+    $("#new-store").onclick = () => storeDialog();
+    $$("[data-edit-store]").forEach(b => b.onclick = () => storeDialog(state.stores.find(x => x.id === b.dataset.editStore)));
+  }
+  const storeDialog = (store = null) => {
+    const body = field("Código", "codigo", store?.codigo || "") + field("Nome", "nome", store?.nome || "") +
+      (store ? `<label class="field">Situação<select name="ativo"><option value="true" ${store.ativo ? "selected" : ""}>Ativa</option><option value="false" ${store.ativo ? "" : "selected"}>Inativa</option></select></label>` : "");
+    const form = modal(store ? "Editar loja" : "Nova loja", body, "Salvar", async data => {
+      await json(store ? "PATCH" : "POST", "/api/admin/stores", {
+        ...(store ? { id: store.id } : {}), codigo: data.codigo.trim().toUpperCase(), nome: data.nome.trim(),
+        ...(store ? { ativo: data.ativo === "true" } : {}),
+      });
+      await navigate(); tell("Loja salva.");
+    });
+    return form;
+  };
+  async function showUsers() {
+    const [users] = await Promise.all([api("/api/admin/users"), loadStores()]);
+    state.users = users;
+    root.innerHTML = heading("Cadastros", "Usuários", "Controle de acesso e permissões, sem apagar o histórico.", `<button class="primary" id="new-user">Novo usuário</button>`) +
+      panel("Usuários cadastrados", `${users.length} registros`, table(["Nome", "Login", "Perfil", "Loja", "Situação", "Ação"],
+        users.map(u => `<tr><td class="cell-primary">${esc(u.nome)}</td><td>${esc(u.login)}</td><td>${esc(statusLabel(u.papel))}</td>
+          <td>${esc(state.stores.find(s => s.id === u.lojaId)?.nome || "—")}</td><td>${badge(u.ativo ? "ativo" : "inativo")}</td>
+          <td><button class="mini-button" data-edit-user="${esc(u.id)}">Editar</button></td></tr>`)));
+    $("#new-user").onclick = () => userDialog();
+    $$("[data-edit-user]").forEach(b => b.onclick = () => userDialog(users.find(x => x.id === b.dataset.editUser)));
+  }
+  const userDialog = (user = null) => {
+    const roles = [["conferente", "Conferente"], ["visualizador", "Visualizador"], ["admin", "Administrador"]];
+    const body = field("Nome", "nome", user?.nome || "") + field("Login", "login", user?.login || "") +
+      `<label class="field">Perfil<select name="papel" id="role-selector">${roles.map(([id, name]) => `<option value="${id}" ${id === (user?.papel || "conferente") ? "selected" : ""}>${name}</option>`).join("")}</select></label>
+      <label class="field" id="store-selector">Loja<select name="lojaId"><option value="">Selecione</option>${state.stores.map(s => `<option value="${esc(s.id)}" ${s.id === user?.lojaId ? "selected" : ""}>${esc(s.codigo)} · ${esc(s.nome)}</option>`).join("")}</select></label>
+      <label class="field">${user ? "Nova senha (opcional)" : "Senha (mínimo 12 caracteres)"}<input name="senha" type="password" autocomplete="new-password" minlength="12" ${user ? "" : "required"}></label>
+      ${user ? `<label class="field">Acesso<select name="ativo"><option value="true" ${user.ativo ? "selected" : ""}>Ativo</option><option value="false" ${user.ativo ? "" : "selected"}>Desativado</option></select></label>` : ""}`;
+    const dialog = modal(user ? "Editar usuário" : "Novo usuário", body, "Salvar", async data => {
+      if (data.papel === "conferente" && !data.lojaId) throw new Error("Selecione uma loja para o conferente.");
+      await json(user ? "PATCH" : "POST", "/api/admin/users", {
+        ...(user ? { id: user.id } : {}),
+        nome: data.nome.trim(), login: data.login.trim(), papel: data.papel,
+        ...(data.papel === "conferente" ? { lojaId: data.lojaId } : {}),
+        ...(data.senha ? { senha: data.senha } : {}),
+        ...(user ? { ativo: data.ativo === "true" } : {}),
+      });
+      await navigate(); tell("Usuário atualizado.");
+    });
+    const role = $("#role-selector", dialog.host);
+    const setRole = () => $("#store-selector", dialog.host).hidden = role.value !== "conferente";
+    role.onchange = setRole; setRole();
+  };
+  async function showHistory() {
+    await loadStores();
+    const params = new URLSearchParams();
+    if (state.store) params.set("storeCode", state.store);
+    if (state.date) params.set("date", state.date);
+    const agendas = await api(`/api/admin/agendas?${params}`);
+    root.innerHTML = heading("Registros", "Histórico de agendas", "Consulte uma agenda e seus eventos para auditoria.") +
+      `<div class="filter-panel filters-inline"><label class="field">Data<input type="date" id="hist-date" value="${esc(state.date)}"></label><label class="field">Loja<select id="hist-store">${storeOpts(state.store)}</select></label><button id="hist-all" class="secondary">Todas as datas</button></div>` +
+      panel("Agendas", `${agendas.length} registros`, table(["Data", "Loja", "Total", "Aguardando", "Recebidos", "Situação", "Detalhes"], agendas.map(ag =>
+        `<tr><td>${dt(ag.date)}</td><td>${esc(ag.storeCode)} · ${esc(ag.storeName)}</td><td>${fmt(ag.total)}</td><td>${fmt(ag.aguardando)}</td><td>${fmt(ag.recebido)}</td><td>${badge(ag.dayStatus)}</td><td><button class="mini-button" data-detail="${esc(ag.id)}">Ver</button></td></tr>`)));
+    $("#hist-date").onchange = e => { state.date = e.target.value; navigate(); };
+    $("#hist-store").onchange = e => { state.store = e.target.value; navigate(); };
+    $("#hist-all").onclick = () => { state.date = ""; navigate(); };
+    $$("[data-detail]").forEach(b => b.onclick = () => openAgenda(b.dataset.detail));
+  }
+  async function showReports() {
+    root.innerHTML = heading("Indicadores", "Relatórios gerenciais", "Indicadores e histórico por período e loja.") +
+      `<section class="card"><div class="card-header"><h2>Relatório em migração</h2></div><p class="section-help">Esta tela usa a API do Worker. Os indicadores por período estão sendo migrados junto com as observações.</p></section>`;
+  }
+  async function showImport() {
+    root.innerHTML = heading("Operação", "Importar agendas", "Importação em lote com validação antes de gravar.") +
+      `<section class="card"><div class="card-header"><h2>Importação CSV / PDF</h2></div><p class="section-help">Parser com validações do sistema antigo está sendo portado para JavaScript modular. Até concluir, utilize a tela de importação atual, sem misturar dados de produção.</p></section>`;
+  }
+  window.addEventListener("hashchange", () => navigate());
+  $("#menu-toggle").onclick = () => {
+    const on = shell.classList.toggle("nav-open");
+    $("#menu-toggle").setAttribute("aria-expanded", String(on));
+  };
+  const footer = $(".footer");
+  if (footer) footer.textContent = "Agenda Prado · Worker Preview · D1 fictício";
+  $(".preview-chip").textContent = "PREVIEW · D1 ISOLADO";
+  const oldBottom = $(".sidebar-bottom p"); if (oldBottom) oldBottom.textContent = "Ambiente exclusivo de testes. Nenhum dado de produção é utilizado.";
+  const menu = $(".sidebar-nav");
+  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><a href="#importar" data-view-link="importar">Importação</a><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
+  $("#sidebar-logout").onclick = () => asyncAction(async () => {
+    await api("/api/auth/logout", { method: "POST" }); state.user = null; location.hash = ""; await makeLogin();
+  });
+  (async () => {
+    try { state.user = await api("/api/auth/me"); }
+    catch (e) { if (e.status !== 401) tell("Serviço temporariamente indisponível.", true); }
+    await navigate();
+  })();
+})();

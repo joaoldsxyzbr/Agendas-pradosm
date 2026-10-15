@@ -181,3 +181,18 @@ tbody tr:hover { background:#1b2735 }
   .footer { padding:15px }
 }
 @media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a { transition:none } }
+
+.unauthenticated { grid-template-columns:1fr }
+.unauthenticated .sidebar,.unauthenticated .topbar,.unauthenticated .footer { display:none }
+.auth-main { width:100%;display:grid;place-items:center;min-height:100vh;padding:24px }
+.auth-card {display:grid;gap:17px;background:var(--panel);border:1px solid var(--stroke);border-radius:14px;padding:34px;width:min(430px,100%);box-shadow:var(--shadow)}
+.auth-card h1 {margin:0;font-size:29px}
+.auth-form,.auth-roles {display:grid;gap:12px}
+.auth-form button {margin-top:5px}
+.auth-divider {margin-top:7px;border-top:1px solid var(--stroke);padding-top:16px;color:var(--muted);font-size:11px;letter-spacing:.08em;font-weight:700;text-align:center}
+.role-choice {justify-content:space-between;text-align:left}
+.sidebar-logout {margin-top:20px}
+.toast {position:fixed;bottom:20px;right:20px;background:#2d455a;padding:12px 17px;border-radius:8px;box-shadow:var(--shadow)}
+.toast-error {background:#663738}
+.sidebar-nav [hidden] {display:none}
+@media print { .sidebar,.topbar,.footer,.page-actions,.filters-inline,.inline-actions,.toolbar button,.toast {display:none!important} .app-shell {display:block}.main {padding:0;background:#fff;color:#111} .card {border:1px solid #aaa;box-shadow:none} }
