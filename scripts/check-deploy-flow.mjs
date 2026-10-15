@@ -21,7 +21,7 @@ const wranglerConfig = JSON.parse(
 
 assert.equal(
   productionVerify,
-  "npm test && npm run typecheck && npm run build",
+  "npm test && npm run check:javascript && npm run build",
   "gate de produção deve executar testes, typecheck e build",
 );
 
@@ -220,9 +220,8 @@ assert.equal(
   "CI não deve executar um segundo build antes do Playwright",
 );
 for (const path of [
-  "../playwright.config.ts",
-  "../tests/e2e/login-accessibility.spec.ts",
-  "../tests/e2e/roles.spec.ts",
+  "../playwright.config.js",
+  "../tests/e2e/live-app.spec.js",
   "../tests/e2e/seed.sql",
 ]) {
   assert.equal(
@@ -306,7 +305,7 @@ assert.ok(
 );
 
 const indexHtml = readFileSync(
-  new URL("../index.html", import.meta.url),
+  new URL("../public/index.html", import.meta.url),
   "utf8",
 );
 assert.ok(
@@ -348,4 +347,16 @@ for (const header of [
   );
 }
 
-console.log("Fluxo nativo Cloudflare e hardening de produção validados.");
+assert.equal(packageJson.scripts?.typecheck, undefined, "o projeto não deve manter o compilador TypeScript");
+assert.equal(packageJson.scripts?.dev, "wrangler dev --local", "a aplicação deve ser servida por Wrangler");
+assert.equal(wranglerConfig.assets?.directory, "./public", "Cloudflare deve servir os assets de public/");
+const declaredDependencies = { ...packageJson.dependencies, ...packageJson.devDependencies };
+for (const dependency of ["react", "react-dom", "react-router-dom", "@vitejs/plugin-react", "@cloudflare/vite-plugin", "typescript", "vite"]) {
+  assert.equal(Object.hasOwn(declaredDependencies, dependency), false, "dependência legada ainda declarada: " + dependency);
+}
+const converterWorkflow = readFileSync(new URL("../.github/workflows/convert-worker-preview.yml", import.meta.url), "utf8");
+assert.ok(!converterWorkflow.includes("scripts/convert-worker-preview.mjs"), "conversão TS não pode permanecer no CI");
+const nativeIndex = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+assert.ok(nativeIndex.includes("/vanilla/live.js"), "entrada principal deve carregar a aplicação conectada à API");
+assert.ok(nativeIndex.includes("/vanilla/styles.css"), "entrada principal deve carregar os estilos nativos");
+console.log("Fluxo HTML/JavaScript Cloudflare e hardening de produção validados.");

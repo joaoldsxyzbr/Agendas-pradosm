@@ -4,7 +4,7 @@ import { mkdirSync } from "node:fs";
 // Empacotamento mínimo da biblioteca WASM, sem React e sem código inline.
 mkdirSync("public/vanilla", { recursive: true });
 buildSync({
-  entryPoints: ["src/import/extractPdfText.ts"],
+  entryPoints: ["src/import/extractPdfText.js"],
   outfile: "public/vanilla/extractPdfText.js",
   platform: "browser",
   format: "esm",

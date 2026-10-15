@@ -4,12 +4,11 @@ Sistema web para gestão diária das agendas de recebimento das lojas Prado Supe
 
 ## Stack
 
-- React 19 + TypeScript + Vite
-- Hono em Cloudflare Workers
-- Cloudflare D1
-- Zod
-- Vitest
-- Playwright + axe para E2E e acessibilidade
+- HTML, CSS e JavaScript ES modules para a interface.
+- Hono em Cloudflare Workers para a API.
+- Cloudflare D1 isolado por ambiente.
+- Zod para validação de dados.
+- Playwright e Vitest para testes; Vite não é usado como servidor ou empacotador da aplicação.
 
 ## Perfis de acesso
 
@@ -30,11 +29,7 @@ A autorização real é aplicada no Worker. A interface também oculta ações q
 
 ## Desenvolvimento local
 
-Pré-requisitos:
-
-- Node.js 22 ou compatível com o CI;
-- npm;
-- Wrangler autenticado somente quando for necessário acessar recursos remotos.
+Pré-requisitos: Node.js 22, npm e Wrangler (autenticado somente para recursos remotos).
 
 Instale as dependências:
 
@@ -42,43 +37,25 @@ Instale as dependências:
 npm ci
 ```
 
-Crie um arquivo local `.dev.vars`:
+Crie um arquivo local .dev.vars com SESSION_SECRET=defina-um-segredo-local-longo-e-aleatorio. Arquivos .dev.vars* e .env* são ignorados e não devem ser versionados.
 
-```text
-SESSION_SECRET=defina-um-segredo-local-longo-e-aleatorio
-```
-
-Arquivos `.dev.vars*` e `.env*` são ignorados pelo Git e não devem ser versionados.
-
-Prepare o D1 local:
-
-```bash
-npx wrangler d1 migrations apply DB --local
-```
-
-Inicie a aplicação:
-
-```bash
-npm run dev
-```
-
-Por padrão, Wrangler e o plugin Vite da Cloudflare usam `.wrangler/state` para o estado local. Esse diretório também é ignorado pelo Git.
+Prepare o D1 local com npx wrangler d1 migrations apply DB --local.
+Inicie a aplicação HTML/JavaScript e o Worker com npm run dev.
+Wrangler serve os assets estáticos de public/ e o Worker local usando .wrangler/state.
 
 ## Comandos principais
 
 | Comando | Função |
 | --- | --- |
-| `npm run dev` | Ambiente local com Vite + Worker |
-| `npm test` | Testes Worker/UI e guards do projeto |
-| `npm run test:worker` | Testes do Worker e D1 local |
-| `npm run test:ui` | Testes da interface |
-| `npm run test:e2e` | Build + D1 local isolado + Playwright Chromium + axe |
-| `npm run typecheck` | TypeScript sem emissão |
-| `npm run build` | Build de produção |
-| `npm run verify:production` | Testes + typecheck + build |
-| `npm run check:migrations` | Bloqueia migrations novas classificadas como destrutivas |
-| `npm run deploy` | Verifica, aplica migrations remotas e publica o Worker |
-| `npm run bootstrap-admin` | Bootstrap administrativo de emergência, somente break-glass |
+| npm run dev | Interface estática e Worker local pelo Wrangler |
+| npm test | Testes do Worker, parser e guards do projeto |
+| npm run test:e2e | Build + D1 local isolado + Playwright Chromium + axe |
+| npm run check:javascript | Sintaxe JS e ausência de fontes TypeScript |
+| npm run build | Extrator PDF e validação do Worker/assets |
+| npm run verify:production | Testes + sintaxe JavaScript + build |
+| npm run check:migrations | Bloqueia migrations destrutivas sem aprovação |
+| npm run deploy | Verifica, aplica migrations remotas e publica pelo Wrangler |
+| npm run bootstrap-admin | Bootstrap administrativo de emergência, somente break-glass |
 
 ## D1 e migrations
 

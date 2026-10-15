@@ -1,8 +1,0 @@
-{
-  "extends": "../tsconfig.json",
-  "compilerOptions": {
-    "moduleResolution": "Bundler",
-    "types": ["@cloudflare/vitest-plugin/types"]
-  },
-  "include": ["./**/*.ts", "./**/*.tsx", "../worker-configuration.d.ts"]
-}

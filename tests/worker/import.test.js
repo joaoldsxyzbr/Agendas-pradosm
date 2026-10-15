@@ -1,0 +1,828 @@
+import { env, exports } from "cloudflare:workers";
+import { describe, expect, it } from "vitest";
+import { createSessionToken } from "../../worker/lib/session";
+import { businessDate } from "../../worker/lib/time";
+const db = env.DB;
+const sessionSecret = "agenda-prado-test-session-secret";
+const passwordHash = "pbkdf2_sha256$100000$AAECAwQFBgcICQoLDA0ODw==$AYxgQLgLfLPsbb0egTJrnCsUalhEK5g5ZPOz/f7bl64=";
+const now = "2026-09-24T12:00:00.000Z";
+async function seedAdmin(id) {
+  await db.prepare(
+    "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, NULL, ?, ?, ?, 'admin', 1, ?, ?)"
+  ).bind(id, `Admin ${id}`, `login-${id}`, passwordHash, now, now).run();
+  const token = await createSessionToken(id, 1, sessionSecret);
+  return `agenda_session=${token}`;
+}
+async function seedStore(id, code) {
+  await db.prepare(
+    "INSERT INTO lojas (id, codigo, nome, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, 1, ?, ?)"
+  ).bind(id, code, `Loja ${code}`, now, now).run();
+}
+function appointment(protocol, supplier = "FORNECEDOR TESTE LTDA") {
+  return {
+    protocol,
+    startTime: "08:00",
+    endTime: "08:10",
+    supplier,
+    items: 10,
+    volumes: 5,
+    pallets: 1,
+    cargaBatida: null,
+    type: "Pedido",
+    nfe: [],
+    orders: ["50001"],
+    status: "recebido"
+  };
+}
+function payload(storeCode, appointments = [appointment("90000001")], extra = {}) {
+  return {
+    storeCode,
+    date: "2026-09-24",
+    originalFileName: "agenda-f99.pdf",
+    appointments,
+    ...extra
+  };
+}
+async function request(url, cookie, init = {}) {
+  return exports.default.fetch(
+    new Request(`https://example.com${url}`, {
+      method: init.method ?? "GET",
+      headers: {
+        Cookie: cookie,
+        ...init.body === void 0 ? {} : { "Content-Type": "application/json" }
+      },
+      body: init.body === void 0 ? void 0 : JSON.stringify(init.body)
+    })
+  );
+}
+async function importAgenda(cookie, body) {
+  return request("/api/admin/agendas/import", cookie, {
+    method: "POST",
+    body
+  });
+}
+async function importAgendaBatch(cookie, agendas) {
+  return request("/api/admin/agendas/import/bulk", cookie, {
+    method: "POST",
+    body: { agendas }
+  });
+}
+describe("admin agenda import", () => {
+  it("importa agendas mesmo quando o \xFAnico conferente da loja est\xE1 desativado", async () => {
+    const cookie = await seedAdmin("admin-import-inactive-conf");
+    await seedStore("store-inactive-conf", "F152");
+    const userId = crypto.randomUUID();
+    await db.prepare(
+      "INSERT INTO usuarios (id, loja_id, nome, login, senha_hash, papel, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, 'conferente', 0, ?, ?)"
+    ).bind(userId, "store-inactive-conf", "Conferente Inativo", "conferente-inativo-f152", passwordHash, now, now).run();
+    const batchResponse = await importAgendaBatch(cookie, [
+      payload("F152", [appointment("90000252")])
+    ]);
+    expect(batchResponse.status).toBe(201);
+    expect(await batchResponse.json()).toMatchObject({
+      created: 1,
+      totalAgendas: 1,
+      totalAppointments: 1
+    });
+    const saved = await db.prepare("SELECT id FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24'").bind("store-inactive-conf").first();
+    expect(saved?.id).toBeTruthy();
+    const update = await request("/api/admin/users", cookie, {
+      method: "PATCH",
+      body: { id: userId, ativo: true }
+    });
+    expect(update.status).toBe(200);
+    const after = await db.prepare("SELECT id FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24'").bind("store-inactive-conf").first();
+    expect(after?.id).toBe(saved?.id);
+  });
+  it("importa 121 agendamentos de 9 lojas em uma \xFAnica opera\xE7\xE3o", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-121");
+    const codes = ["CD", "F01", "F02", "F03", "F04", "F05", "F07", "F08", "F09"];
+    for (const code of codes) {
+      await seedStore(`store-bulk-121-${code}`, code);
+    }
+    const grouped = /* @__PURE__ */ new Map();
+    for (const code of codes) grouped.set(code, []);
+    for (let index = 0; index < 121; index += 1) {
+      const code = codes[index % codes.length];
+      grouped.get(code).push(
+        appointment(
+          String(91e6 + index),
+          `FORNECEDOR SINTETICO ${index + 1}`
+        )
+      );
+    }
+    const response = await importAgendaBatch(
+      cookie,
+      codes.map(
+        (code) => payload(code, grouped.get(code), {
+          originalFileName: "agendas-todas.csv"
+        })
+      )
+    );
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      totalAgendas: 9,
+      totalAppointments: 121,
+      created: 9,
+      replaced: 0
+    });
+    const agendas = await db.prepare(
+      "SELECT COUNT(*) AS total FROM agendas WHERE data_agenda = '2026-09-24' AND loja_id LIKE 'store-bulk-121-%'"
+    ).first();
+    expect(Number(agendas?.total ?? 0)).toBe(9);
+    const appointments = await db.prepare("SELECT COUNT(*) AS total FROM agendamentos WHERE ativo = 1 AND agenda_id IN (SELECT id FROM agendas WHERE loja_id LIKE 'store-bulk-121-%')").first();
+    expect(Number(appointments?.total ?? 0)).toBe(121);
+  });
+  it("rejeita lote acima do or\xE7amento seguro antes de consultar lojas", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-limit");
+    const many = (offset, total) => Array.from(
+      { length: total },
+      (_, index) => appointment(String(offset + index), `FORNECEDOR ${offset + index}`)
+    );
+    const response = await importAgendaBatch(cookie, [
+      payload("F79", many(96e6, 351), {
+        originalFileName: "agendas-todas.csv"
+      }),
+      payload("F80", many(97e6, 350), {
+        originalFileName: "agendas-todas.csv"
+      })
+    ]);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      error: "REQUISICAO_INVALIDA"
+    });
+  });
+  it("bloqueia o lote inteiro quando uma das lojas n\xE3o est\xE1 cadastrada", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-missing");
+    await seedStore("store-import-bulk-known", "F71");
+    const response = await importAgendaBatch(cookie, [
+      payload("F71", [appointment("92000001")], {
+        originalFileName: "agendas-todas.csv"
+      }),
+      payload("F72", [appointment("92000002")], {
+        originalFileName: "agendas-todas.csv"
+      })
+    ]);
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: "LOJAS_NAO_ENCONTRADAS",
+      stores: ["F72"]
+    });
+    const agendas = await db.prepare(
+      "SELECT COUNT(*) AS total FROM agendas WHERE loja_id = 'store-import-bulk-known'"
+    ).first();
+    expect(Number(agendas?.total ?? 0)).toBe(0);
+  });
+  it("n\xE3o grava lojas novas quando existe conflito em outra loja do lote", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-conflict");
+    await seedStore("store-import-bulk-conflict-a", "F73");
+    await seedStore("store-import-bulk-conflict-b", "F74");
+    expect(
+      (await importAgenda(
+        cookie,
+        payload("F73", [appointment("93000001")])
+      )).status
+    ).toBe(201);
+    const response = await importAgendaBatch(cookie, [
+      payload("F73", [appointment("93000001", "ATUALIZADO")], {
+        originalFileName: "agendas-todas.csv"
+      }),
+      payload("F74", [appointment("93000002")], {
+        originalFileName: "agendas-todas.csv"
+      })
+    ]);
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({
+      error: "AGENDAS_JA_EXISTEM"
+    });
+    const newStoreAgenda = await db.prepare(
+      "SELECT COUNT(*) AS total FROM agendas WHERE loja_id = 'store-import-bulk-conflict-b'"
+    ).first();
+    expect(Number(newStoreAgenda?.total ?? 0)).toBe(0);
+  });
+  it("substitui\xE7\xE3o em lote preserva status existente e cria as demais lojas", async () => {
+    const adminId = "admin-import-bulk-replace";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-import-bulk-replace-a", "F75");
+    await seedStore("store-import-bulk-replace-b", "F76");
+    const first = await importAgenda(
+      cookie,
+      payload("F75", [appointment("94000001", "FORNECEDOR ORIGINAL")])
+    );
+    expect(first.status).toBe(201);
+    const firstBody = await first.json();
+    const existing = firstBody.appointments[0];
+    await db.prepare("UPDATE agendamentos SET status = 'recebido' WHERE id = ?").bind(existing.id).run();
+    const response = await importAgendaBatch(cookie, [
+      payload("F75", [appointment("94000001", "FORNECEDOR ATUALIZADO")], {
+        replace: true,
+        originalFileName: "agendas-todas.csv"
+      }),
+      payload("F76", [appointment("94000002", "FORNECEDOR NOVO")], {
+        replace: true,
+        originalFileName: "agendas-todas.csv"
+      })
+    ]);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      totalAgendas: 2,
+      created: 1,
+      replaced: 1
+    });
+    const kept = await db.prepare(
+      "SELECT fornecedor, status, ativo FROM agendamentos WHERE id = ?"
+    ).bind(existing.id).first();
+    expect(kept).toEqual({
+      fornecedor: "FORNECEDOR ATUALIZADO",
+      status: "recebido",
+      ativo: 1
+    });
+  });
+  it("falha em qualquer loja faz rollback do lote completo", async () => {
+    const cookie = await seedAdmin("admin-import-bulk-atomic");
+    await seedStore("store-import-bulk-atomic-a", "F77");
+    await seedStore("store-import-bulk-atomic-b", "F78");
+    await db.prepare(
+      "CREATE TRIGGER fail_bulk_import BEFORE INSERT ON agendamentos WHEN NEW.fornecedor = 'FORCAR_FALHA' BEGIN SELECT RAISE(ABORT, 'forced bulk failure'); END"
+    ).run();
+    const response = await importAgendaBatch(cookie, [
+      payload("F77", [appointment("95000001", "FORNECEDOR OK")], {
+        originalFileName: "agendas-todas.csv"
+      }),
+      payload("F78", [appointment("95000002", "FORCAR_FALHA")], {
+        originalFileName: "agendas-todas.csv"
+      })
+    ]);
+    expect(response.status).toBe(500);
+    const agendas = await db.prepare(
+      "SELECT COUNT(*) AS total FROM agendas WHERE loja_id IN ('store-import-bulk-atomic-a', 'store-import-bulk-atomic-b')"
+    ).first();
+    expect(Number(agendas?.total ?? 0)).toBe(0);
+    const appointments = await db.prepare(
+      "SELECT COUNT(*) AS total FROM agendamentos WHERE protocolo IN ('95000001', '95000002')"
+    ).first();
+    expect(Number(appointments?.total ?? 0)).toBe(0);
+  });
+  it("retorna 422 quando a loja n\xE3o existe", async () => {
+    const cookie = await seedAdmin("admin-import-missing-store");
+    const response = await importAgenda(cookie, payload("F61"));
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({
+      error: "LOJA_NAO_ENCONTRADA"
+    });
+  });
+  it("rejeita payload sem agendamentos e nome de arquivo com caminho", async () => {
+    const cookie = await seedAdmin("admin-import-invalid");
+    await seedStore("store-import-invalid", "F62");
+    const empty = await importAgenda(cookie, payload("F62", []));
+    expect(empty.status).toBe(400);
+    const pathName = await importAgenda(
+      cookie,
+      payload("F62", [appointment("90000002")], {
+        originalFileName: "../agenda.pdf"
+      })
+    );
+    expect(pathName.status).toBe(400);
+  });
+  it("primeira importa\xE7\xE3o cria a agenda e ignora status enviado pelo frontend", async () => {
+    const cookie = await seedAdmin("admin-import-first");
+    await seedStore("store-import-first", "F63");
+    const response = await importAgenda(cookie, payload("F63"));
+    expect(response.status).toBe(201);
+    const body = await response.json();
+    expect(body.agenda).toMatchObject({
+      storeCode: "F63",
+      date: "2026-09-24"
+    });
+    expect(body.appointments).toEqual([
+      expect.objectContaining({
+        protocol: "90000001",
+        status: "aguardando",
+        ativo: true
+      })
+    ]);
+  });
+  it("aceita c\xF3digo composto de unidade como CD DOCA 01", async () => {
+    const cookie = await seedAdmin("admin-import-cd-doca");
+    await seedStore("store-import-cd-doca", "CD DOCA 01");
+    const response = await importAgenda(cookie, payload("CD DOCA 01"));
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({
+      agenda: { storeCode: "CD DOCA 01", date: "2026-09-24" }
+    });
+  });
+  it("n\xE3o duplica a mesma loja e data sem replace expl\xEDcito", async () => {
+    const cookie = await seedAdmin("admin-import-duplicate");
+    await seedStore("store-import-duplicate", "F64");
+    expect((await importAgenda(cookie, payload("F64"))).status).toBe(201);
+    const duplicate = await importAgenda(cookie, payload("F64"));
+    expect(duplicate.status).toBe(409);
+    expect(await duplicate.json()).toMatchObject({
+      error: "AGENDA_JA_EXISTE"
+    });
+  });
+  it("replace preserva status e hist\xF3rico, adiciona novos e desativa removidos", async () => {
+    const adminId = "admin-import-replace";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-import-replace", "F65");
+    const first = await importAgenda(
+      cookie,
+      payload("F65", [
+        appointment("90000101", "FORNECEDOR UM"),
+        appointment("90000102", "FORNECEDOR DOIS")
+      ])
+    );
+    expect(first.status).toBe(201);
+    const firstBody = await first.json();
+    const kept = firstBody.appointments.find(
+      (item) => item.protocol === "90000101"
+    );
+    await db.prepare(
+      "UPDATE agendamentos SET status = 'recebido' WHERE id = ?"
+    ).bind(kept.id).run();
+    await db.prepare(
+      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, 'aguardando', 'recebido', ?)"
+    ).bind("history-replace-1", kept.id, adminId, now).run();
+    const replaced = await importAgenda(
+      cookie,
+      payload(
+        "F65",
+        [
+          appointment("90000101", "FORNECEDOR UM ATUALIZADO"),
+          appointment("90000103", "FORNECEDOR TRES")
+        ],
+        { replace: true, originalFileName: "agenda-f65-revisada.pdf" }
+      )
+    );
+    expect(replaced.status).toBe(200);
+    const body = await replaced.json();
+    expect(body.appointments).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: kept.id,
+          protocol: "90000101",
+          supplier: "FORNECEDOR UM ATUALIZADO",
+          status: "recebido",
+          ativo: true
+        }),
+        expect.objectContaining({
+          protocol: "90000103",
+          status: "aguardando",
+          ativo: true
+        })
+      ])
+    );
+    const removed = await db.prepare(
+      "SELECT ativo FROM agendamentos WHERE protocolo = '90000102' LIMIT 1"
+    ).first();
+    expect(removed?.ativo).toBe(0);
+    const history = await db.prepare(
+      "SELECT COUNT(*) AS total FROM historico_status WHERE agendamento_id = ?"
+    ).bind(kept.id).first();
+    expect(history?.total).toBe(1);
+  });
+  it("replace preserva fornecedor manual mesmo se ele n\xE3o existir no PDF", async () => {
+    const cookie = await seedAdmin("admin-import-manual");
+    await seedStore("store-import-manual", "F68");
+    const first = await importAgenda(
+      cookie,
+      payload("F68", [appointment("90000201", "FORNECEDOR IMPORTADO")])
+    );
+    expect(first.status).toBe(201);
+    const firstBody = await first.json();
+    await db.prepare(
+      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:30', '12:30', ?, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)"
+    ).bind(
+      "appt-manual-preserved",
+      firstBody.agenda.id,
+      "manual:appt-manual-preserved",
+      "FORNECEDOR MANUAL",
+      now,
+      now
+    ).run();
+    const replaced = await importAgenda(
+      cookie,
+      payload(
+        "F68",
+        [appointment("90000202", "NOVO FORNECEDOR IMPORTADO")],
+        { replace: true, originalFileName: "agenda-f68-revisada.pdf" }
+      )
+    );
+    expect(replaced.status).toBe(200);
+    const manual = await db.prepare(
+      "SELECT ativo, origem, fornecedor FROM agendamentos WHERE id = ?"
+    ).bind("appt-manual-preserved").first();
+    expect(manual).toEqual({
+      ativo: 1,
+      origem: "manual",
+      fornecedor: "FORNECEDOR MANUAL"
+    });
+  });
+  it("falha no batch n\xE3o deixa substitui\xE7\xE3o parcial", async () => {
+    const cookie = await seedAdmin("admin-import-atomic");
+    await seedStore("store-import-atomic", "F66");
+    const first = await importAgenda(
+      cookie,
+      payload("F66", [
+        appointment("90000201", "ORIGINAL UM"),
+        appointment("90000202", "ORIGINAL DOIS")
+      ])
+    );
+    expect(first.status).toBe(201);
+    await db.prepare(
+      "CREATE TRIGGER fail_replace BEFORE UPDATE OF fornecedor ON agendamentos WHEN NEW.fornecedor = 'FORCAR_FALHA' BEGIN SELECT RAISE(ABORT, 'forced failure'); END"
+    ).run();
+    const failed = await importAgenda(
+      cookie,
+      payload(
+        "F66",
+        [
+          appointment("90000201", "FORCAR_FALHA"),
+          appointment("90000203", "NOVO TRES")
+        ],
+        { replace: true, originalFileName: "arquivo-novo.pdf" }
+      )
+    );
+    expect(failed.status).toBe(500);
+    const agenda = await db.prepare(
+      "SELECT arquivo_original FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24'"
+    ).bind("store-import-atomic").first();
+    expect(agenda?.arquivo_original).toBe("agenda-f99.pdf");
+    const rows = await db.prepare(
+      "SELECT protocolo, fornecedor, ativo FROM agendamentos WHERE agenda_id = (SELECT id FROM agendas WHERE loja_id = ? AND data_agenda = '2026-09-24') ORDER BY protocolo"
+    ).bind("store-import-atomic").all();
+    expect(rows.results).toEqual([
+      { protocolo: "90000201", fornecedor: "ORIGINAL UM", ativo: 1 },
+      { protocolo: "90000202", fornecedor: "ORIGINAL DOIS", ativo: 1 }
+    ]);
+  });
+  it("resumo de hoje conta fornecedores sem agenda separadamente", async () => {
+    const adminId = "admin-dashboard-manual";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-dashboard-manual", "F69");
+    const today = businessDate(/* @__PURE__ */ new Date());
+    await db.prepare(
+      "INSERT INTO agendas (id, loja_id, data_agenda, arquivo_original, criado_por, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?)"
+    ).bind(
+      "agenda-dashboard-manual",
+      "store-dashboard-manual",
+      today,
+      "agenda-dashboard.pdf",
+      adminId,
+      now,
+      now
+    ).run();
+    await db.batch([
+      db.prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '08:00', '08:10', ?, 'Pedido', '[]', '[]', 'recebido', 'importado', 1, ?, ?)"
+      ).bind(
+        "appt-dashboard-imported",
+        "agenda-dashboard-manual",
+        "90000301",
+        "FORNECEDOR IMPORTADO",
+        now,
+        now
+      ),
+      db.prepare(
+        "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '09:30', '09:30', ?, 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)"
+      ).bind(
+        "appt-dashboard-manual",
+        "agenda-dashboard-manual",
+        "manual:dashboard",
+        "FORNECEDOR SEM AGENDA",
+        now,
+        now
+      )
+    ]);
+    const response = await request("/api/admin/agendas/today", cookie);
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          storeCode: "F69",
+          total: 2,
+          aguardando: 1,
+          recebido: 1,
+          semAgenda: 1
+        })
+      ])
+    );
+  });
+  it("admin reabre um dia conclu\xEDdo e registra o evento", async () => {
+    const adminId = "admin-reopen-day";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-reopen-day", "F70");
+    const imported = await importAgenda(cookie, payload("F70"));
+    const importedBody = await imported.json();
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    const response = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "aberto" } }
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: importedBody.agenda.id,
+      dayStatus: "aberto",
+      completedAt: null,
+      completedBy: null
+    });
+    const history = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/history`,
+      cookie
+    );
+    expect(await history.json()).toEqual([
+      expect.objectContaining({
+        action: "reaberto",
+        user: expect.objectContaining({ id: adminId })
+      })
+    ]);
+  });
+  it("admin corrige dia conclu\xEDdo sem reabrir e registra ajuste", async () => {
+    const adminId = "admin-edit-closed";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-edit-closed", "F88");
+    const imported = await importAgenda(cookie, payload("F88"));
+    const importedBody = await imported.json();
+    const appointmentId = importedBody.appointments[0].id;
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    const status = await request(
+      `/api/admin/appointments/${appointmentId}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "recebido" } }
+    );
+    expect(status.status).toBe(200);
+    expect(await status.json()).toMatchObject({ status: "recebido" });
+    const exchanges = await request(
+      `/api/admin/appointments/${appointmentId}/exchanges`,
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } }
+    );
+    expect(exchanges.status).toBe(200);
+    expect(await exchanges.json()).toMatchObject({ hasExchanges: true });
+    const agenda = await db.prepare("SELECT status_dia FROM agendas WHERE id = ?").bind(importedBody.agenda.id).first();
+    expect(agenda?.status_dia).toBe("concluido");
+    const events = await db.prepare(
+      "SELECT acao FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid"
+    ).bind(importedBody.agenda.id).all();
+    expect(events.results.map((item) => item.acao)).toEqual([
+      "ajuste_admin",
+      "ajuste_admin"
+    ]);
+  });
+  it("admin adiciona fornecedor sem agenda e registra ajuste em dia conclu\xEDdo", async () => {
+    const adminId = "admin-manual-create";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-create", "F92");
+    const imported = await importAgenda(cookie, payload("F92"));
+    const importedBody = await imported.json();
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    const created = await request(
+      `/api/admin/agendas/${importedBody.agenda.id}/manual`,
+      cookie,
+      { method: "POST", body: { supplier: "FORNECEDOR EXTRA ADM" } }
+    );
+    expect(created.status).toBe(201);
+    const createdBody = await created.json();
+    expect(createdBody).toMatchObject({
+      supplier: "FORNECEDOR EXTRA ADM",
+      status: "aguardando",
+      origin: "manual"
+    });
+    const stored = await db.prepare(
+      "SELECT fornecedor, status, origem, ativo FROM agendamentos WHERE id = ?"
+    ).bind(createdBody.id).first();
+    expect(stored).toEqual({
+      fornecedor: "FORNECEDOR EXTRA ADM",
+      status: "aguardando",
+      origem: "manual",
+      ativo: 1
+    });
+    const appointmentAudit = await db.prepare(
+      "SELECT acao FROM auditoria WHERE agendamento_id = ? ORDER BY criado_em ASC, rowid ASC"
+    ).bind(createdBody.id).all();
+    expect(appointmentAudit.results.map((item) => item.acao)).toContain(
+      "fornecedor_manual_criado"
+    );
+    const agendaHistory = await db.prepare(
+      "SELECT acao, detalhes FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid"
+    ).bind(importedBody.agenda.id).all();
+    expect(agendaHistory.results).toEqual([
+      expect.objectContaining({
+        acao: "ajuste_admin",
+        detalhes: expect.stringContaining("FORNECEDOR EXTRA ADM")
+      })
+    ]);
+  });
+  it("admin edita e remove fornecedor manual mesmo em dia conclu\xEDdo", async () => {
+    const adminId = "admin-manual-edit";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-admin", "F93");
+    const imported = await importAgenda(cookie, payload("F93"));
+    const importedBody = await imported.json();
+    const manualId = "manual-admin-edit";
+    await db.prepare(
+      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:00', '12:00', 'MANUAL ERRADO', 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)"
+    ).bind(manualId, importedBody.agenda.id, `manual:${manualId}`, now, now).run();
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    const edited = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "PATCH", body: { supplier: "MANUAL CORRETO" } }
+    );
+    expect(edited.status).toBe(200);
+    expect(await edited.json()).toMatchObject({ supplier: "MANUAL CORRETO" });
+    const removed = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "DELETE" }
+    );
+    expect(removed.status).toBe(204);
+    const stored = await db.prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?").bind(manualId).first();
+    expect(stored).toEqual({ fornecedor: "MANUAL CORRETO", ativo: 0 });
+    const audit = await db.prepare(
+      "SELECT acao FROM auditoria WHERE agendamento_id = ? ORDER BY criado_em ASC, rowid ASC"
+    ).bind(manualId).all();
+    expect(audit.results.map((item) => item.acao)).toEqual([
+      "fornecedor_manual_editado",
+      "fornecedor_manual_removido"
+    ]);
+    const agendaHistory = await db.prepare(
+      "SELECT acao FROM historico_agenda WHERE agenda_id = ? ORDER BY alterado_em, rowid"
+    ).bind(importedBody.agenda.id).all();
+    expect(agendaHistory.results.map((item) => item.acao)).toEqual([
+      "ajuste_admin",
+      "ajuste_admin"
+    ]);
+  });
+  it("admin consulta agenda hist\xF3rica e hist\xF3rico de status", async () => {
+    const adminId = "admin-import-history";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-import-history", "F67");
+    const imported = await importAgenda(cookie, payload("F67"));
+    expect(imported.status).toBe(201);
+    const importedBody = await imported.json();
+    const appointmentId = importedBody.appointments[0].id;
+    await db.prepare(
+      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, 'aguardando', 'recebido', ?)"
+    ).bind("history-query-1", appointmentId, adminId, now).run();
+    const list = await request(
+      "/api/admin/agendas?date=2026-09-24&storeCode=F67",
+      cookie
+    );
+    expect(list.status).toBe(200);
+    const agendas = await list.json();
+    expect(agendas).toHaveLength(1);
+    expect(agendas[0].storeCode).toBe("F67");
+    const detail = await request(
+      `/api/admin/agendas/${agendas[0].id}`,
+      cookie
+    );
+    expect(detail.status).toBe(200);
+    const history = await request(
+      `/api/admin/appointments/${appointmentId}/history`,
+      cookie
+    );
+    expect(history.status).toBe(200);
+    expect(await history.json()).toEqual([
+      expect.objectContaining({
+        statusAnterior: "aguardando",
+        statusNovo: "recebido",
+        usuario: expect.objectContaining({ id: adminId })
+      })
+    ]);
+  });
+  it("audita importa\xE7\xE3o, substitui\xE7\xE3o e mudan\xE7as operacionais", async () => {
+    const adminId = "admin-audit-flow";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-audit-flow", "F94");
+    const first = await importAgenda(cookie, payload("F94"));
+    expect(first.status).toBe(201);
+    const firstBody = await first.json();
+    const replaced = await importAgenda(
+      cookie,
+      payload("F94", [appointment("99000001", "FORNECEDOR AUDITADO")], {
+        replace: true,
+        originalFileName: "agenda-auditada.pdf"
+      })
+    );
+    expect(replaced.status).toBe(200);
+    const replacedBody = await replaced.json();
+    const appointmentId = replacedBody.appointments[0].id;
+    expect(
+      (await request(
+        `/api/admin/appointments/${appointmentId}/status`,
+        cookie,
+        { method: "PATCH", body: { status: "recebido" } }
+      )).status
+    ).toBe(200);
+    expect(
+      (await request(
+        `/api/admin/appointments/${appointmentId}/exchanges`,
+        cookie,
+        { method: "PATCH", body: { hasExchanges: true } }
+      )).status
+    ).toBe(200);
+    expect(
+      (await request(
+        `/api/admin/agendas/${firstBody.agenda.id}/status`,
+        cookie,
+        { method: "PATCH", body: { status: "concluido" } }
+      )).status
+    ).toBe(200);
+    expect(
+      (await request(
+        `/api/admin/agendas/${firstBody.agenda.id}/status`,
+        cookie,
+        { method: "PATCH", body: { status: "aberto" } }
+      )).status
+    ).toBe(200);
+    const audit = await db.prepare(
+      "SELECT acao FROM auditoria WHERE agenda_id = ? ORDER BY criado_em ASC, rowid ASC"
+    ).bind(firstBody.agenda.id).all();
+    expect(audit.results.map((item) => item.acao)).toEqual(
+      expect.arrayContaining([
+        "agenda_importada",
+        "agenda_substituida",
+        "status_alterado",
+        "trocas_alteradas",
+        "dia_concluido",
+        "dia_reaberto"
+      ])
+    );
+  });
+  it("rollbacka status e trocas se o ajuste administrativo do dia concluido falhar", async () => {
+    const adminId = "admin-closed-atomic";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-closed-atomic", "F96");
+    const imported = await importAgenda(cookie, payload("F96"));
+    const importedBody = await imported.json();
+    const appointmentId = importedBody.appointments[0].id;
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    await db.prepare(
+      "CREATE TRIGGER fail_admin_adjustment BEFORE INSERT ON historico_agenda WHEN NEW.acao = 'ajuste_admin' BEGIN SELECT RAISE(ABORT, 'forced admin adjustment failure'); END"
+    ).run();
+    const status = await request(
+      `/api/admin/appointments/${appointmentId}/status`,
+      cookie,
+      { method: "PATCH", body: { status: "recebido" } }
+    );
+    expect(status.status).toBe(500);
+    const afterStatus = await db.prepare("SELECT status FROM agendamentos WHERE id = ?").bind(appointmentId).first();
+    expect(afterStatus?.status).toBe("aguardando");
+    const statusHistory = await db.prepare("SELECT COUNT(*) AS total FROM historico_status WHERE agendamento_id = ?").bind(appointmentId).first();
+    expect(Number(statusHistory?.total ?? 0)).toBe(0);
+    const exchanges = await request(
+      `/api/admin/appointments/${appointmentId}/exchanges`,
+      cookie,
+      { method: "PATCH", body: { hasExchanges: true } }
+    );
+    expect(exchanges.status).toBe(500);
+    const afterExchanges = await db.prepare("SELECT trocas FROM agendamentos WHERE id = ?").bind(appointmentId).first();
+    expect(afterExchanges?.trocas).toBe(0);
+  });
+  it("rollbacka edicao e remocao manual se o ajuste administrativo falhar", async () => {
+    const adminId = "admin-manual-atomic";
+    const cookie = await seedAdmin(adminId);
+    await seedStore("store-manual-atomic", "F97");
+    const imported = await importAgenda(cookie, payload("F97"));
+    const importedBody = await imported.json();
+    const manualId = "manual-admin-atomic";
+    await db.prepare(
+      "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, '12:00', '12:00', 'MANUAL ORIGINAL', 'Sem agenda', '[]', '[]', 'aguardando', 'manual', 1, ?, ?)"
+    ).bind(manualId, importedBody.agenda.id, `manual:${manualId}`, now, now).run();
+    await db.prepare(
+      "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ? WHERE id = ?"
+    ).bind(now, adminId, importedBody.agenda.id).run();
+    await db.prepare(
+      "CREATE TRIGGER fail_manual_admin_adjustment BEFORE INSERT ON historico_agenda WHEN NEW.acao = 'ajuste_admin' BEGIN SELECT RAISE(ABORT, 'forced manual admin adjustment failure'); END"
+    ).run();
+    const edited = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "PATCH", body: { supplier: "MANUAL ALTERADO" } }
+    );
+    expect(edited.status).toBe(500);
+    const afterEdit = await db.prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?").bind(manualId).first();
+    expect(afterEdit).toEqual({ fornecedor: "MANUAL ORIGINAL", ativo: 1 });
+    const removed = await request(
+      `/api/admin/appointments/${manualId}/manual`,
+      cookie,
+      { method: "DELETE" }
+    );
+    expect(removed.status).toBe(500);
+    const afterDelete = await db.prepare("SELECT fornecedor, ativo FROM agendamentos WHERE id = ?").bind(manualId).first();
+    expect(afterDelete).toEqual({ fornecedor: "MANUAL ORIGINAL", ativo: 1 });
+  });
+});

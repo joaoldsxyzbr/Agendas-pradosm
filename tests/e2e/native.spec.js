@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 test("JavaScript puro: painel e navegação após login rápido", async ({ page }) => {
-  await page.goto("/vanilla/live.html");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "Entrar" })).toBeVisible();
   await page.getByRole("button", { name: /Administrador/ }).click();
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
@@ -12,7 +12,7 @@ test("JavaScript puro: painel e navegação após login rápido", async ({ page 
 });
 
 test("JavaScript puro: conferente vê dados reais do D1 fictício", async ({ page }) => {
-  await page.goto("/vanilla/live.html");
+  await page.goto("/");
   await page.getByRole("button", { name: /Conferente/ }).click();
   await expect(page.getByRole("heading", { name: "Conferência de recebimentos" })).toBeVisible();
   await expect(page.getByText("Loja Demonstração").first()).toBeVisible();
@@ -20,7 +20,7 @@ test("JavaScript puro: conferente vê dados reais do D1 fictício", async ({ pag
 });
 
 test("JavaScript puro: visualizador não acessa cadastros", async ({ page }) => {
-  await page.goto("/vanilla/live.html");
+  await page.goto("/");
   await page.getByRole("button", { name: /Visualizador/ }).click();
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
@@ -28,7 +28,7 @@ test("JavaScript puro: visualizador não acessa cadastros", async ({ page }) => 
 });
 
 test("JavaScript puro: relatórios gerenciais consultam D1 por período", async ({ page }) => {
-  await page.goto("/vanilla/live.html");
+  await page.goto("/");
   await page.getByRole("button", { name: /Visualizador/ }).click();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
