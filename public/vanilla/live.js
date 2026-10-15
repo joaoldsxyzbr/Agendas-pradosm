@@ -6,6 +6,48 @@
   const shell = $(".app-shell");
   const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const state = { user: null, view: "recebimento", date: dateToday(), search: "", store: "", reportStore: "", agendas: [], stores: [], users: [], storeAgenda: null, detail: null, history: [], busy: false, edit: false };
+  let realtimeSocket = null;
+  let realtimeTimer = null;
+  let refreshScheduled = null;
+  const sendPresence = () => {
+    if (realtimeSocket?.readyState !== WebSocket.OPEN || state.user?.papel !== "conferente") return;
+    realtimeSocket.send(JSON.stringify({ version: 1, type: "presence.set", status: document.hidden ? "away" : "online" }));
+  };
+  const closeRealtime = () => {
+    if (realtimeTimer) clearInterval(realtimeTimer);
+    if (refreshScheduled) clearTimeout(refreshScheduled);
+    realtimeTimer = null;
+    refreshScheduled = null;
+    realtimeSocket?.close(1000, "sessão encerrada");
+    realtimeSocket = null;
+  };
+  const liveRefresh = () => {
+    if (document.hidden || !state.user || state.busy || $("#dialog-host")?.children.length) return;
+    if (!["conferente", "recebimento", "relatorios"].includes(state.view)) return;
+    clearTimeout(refreshScheduled);
+    refreshScheduled = setTimeout(() => void navigate(), 450);
+  };
+  const connectRealtime = async () => {
+    closeRealtime();
+    if (!state.user) return;
+    // Fallback apenas na preview; quando o ambiente habilitar WebSocket, usa eventos de imediato.
+    realtimeTimer = setInterval(liveRefresh, 30000);
+    const status = await api("/api/realtime/config").catch(() => ({ mode: "off" }));
+    if (status.mode !== "on" || !state.user) return;
+    const url = new URL("/api/realtime", location.href);
+    url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    const ws = new WebSocket(url);
+    realtimeSocket = ws;
+    ws.addEventListener("message", e => {
+      let event;
+      try { event = JSON.parse(e.data); } catch { if (e.data === "ping") ws.send("pong"); return; }
+      if (event.version !== 1) return;
+      if (event.type === "realtime.ready") sendPresence();
+      if (event.type === "agenda.changed" || event.type === "presence.changed") liveRefresh();
+    });
+    ws.addEventListener("open", sendPresence);
+    document.addEventListener("visibilitychange", sendPresence);
+  };
   const pageTitles = { recebimento: "Recebimento", relatorios: "Relatórios gerenciais", conferente: "Conferente", lojas: "Lojas", usuarios: "Usuários", historico: "Histórico", importar: "Importação" };
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n) => new Intl.NumberFormat("pt-BR").format(Number(n || 0));
@@ -82,11 +124,12 @@
     $("#login-form").onsubmit = e => {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(e.currentTarget));
-      asyncAction(async () => { state.user = await json("POST", "/api/auth/login", f); location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento"; await navigate(); });
+      asyncAction(async () => { state.user = await json("POST", "/api/auth/login", f); void connectRealtime(); location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento"; await navigate(); });
     };
     $$("[data-demo]").forEach(button => {
       button.onclick = () => asyncAction(async () => {
         state.user = await json("POST", "/api/auth/demo-login", { papel: button.dataset.demo });
+        void connectRealtime();
         location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento";
         await navigate();
       });
@@ -476,10 +519,10 @@
   const menu = $(".sidebar-nav");
   menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><a href="#importar" data-view-link="importar">Importação</a><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
   $("#sidebar-logout").onclick = () => asyncAction(async () => {
-    await api("/api/auth/logout", { method: "POST" }); state.user = null; location.hash = ""; await makeLogin();
+    await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null; location.hash = ""; await makeLogin();
   });
   (async () => {
-    try { state.user = await api("/api/auth/me"); }
+    try { state.user = await api("/api/auth/me"); if (state.user) void connectRealtime(); }
     catch (e) { if (e.status !== 401) tell("Serviço temporariamente indisponível.", true); }
     await navigate();
   })();
