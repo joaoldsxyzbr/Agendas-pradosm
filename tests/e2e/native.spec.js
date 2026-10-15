@@ -8,7 +8,7 @@ test("JavaScript puro: painel e navegação após login rápido", async ({ page 
   await page.getByRole("link", { name: /Lojas/ }).click();
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Usuários/ }).click();
-  await expect(page.getByRole("heading", { name: "Usuários" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Usuários", exact: true })).toBeVisible();
 });
 
 test("JavaScript puro: conferente vê dados reais do D1 fictício", async ({ page }) => {
