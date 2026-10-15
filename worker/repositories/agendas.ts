@@ -55,6 +55,7 @@ export type AppointmentRecord = {
   nfe: string;
   pedidos: string;
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
+  observacao: string | null;
   trocas: number;
   origem: "importado" | "manual";
   ativo: number;
@@ -76,7 +77,7 @@ const AGENDA_COLUMNS =
   "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, criado_em, atualizado_em";
 
 const APPOINTMENT_COLUMNS =
-  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, origem, ativo, criado_em, atualizado_em";
+  "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, observacao, trocas, origem, ativo, criado_em, atualizado_em";
 
 export async function findStoreByCode(
   db: D1Database,
@@ -894,63 +895,57 @@ export async function changeAppointmentStatus(
   userId: string,
   status: AppointmentRecord["status"],
   adminAdjustmentDetails?: string,
+  observation?: string | null,
 ): Promise<AppointmentRecord> {
-  if (appointment.status === status) return appointment;
+  const nextObservation = status === "nao_chegou" ? observation?.trim() || null : null;
+  if (status === "nao_chegou" && (!nextObservation || nextObservation.length > 240)) {
+    throw new Error("Informe o motivo do não recebimento (até 240 caracteres).");
+  }
+
+  if (appointment.status === status && appointment.observacao === nextObservation) {
+    return appointment;
+  }
 
   const agenda = await findAgendaById(db, appointment.agenda_id);
   if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
 
   const now = new Date().toISOString();
-  const historyId = crypto.randomUUID();
-
+  const statusChanged = appointment.status !== status;
   const statements: D1PreparedStatement[] = [
-    db
-      .prepare(
-        "UPDATE agendamentos SET status = ?, atualizado_em = ? WHERE id = ?",
-      )
-      .bind(status, now, appointment.id),
-    db
-      .prepare(
-        "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, ?, ?, ?)",
-      )
-      .bind(
-        historyId,
-        appointment.id,
-        userId,
-        appointment.status,
-        status,
-        now,
-      ),
-    auditStatement(db, {
-      userId,
-      action: "status_alterado",
-      entity: "agendamento",
-      entityId: appointment.id,
-      storeId: agenda.loja_id,
-      agendaId: agenda.id,
-      appointmentId: appointment.id,
-      before: { status: appointment.status },
-      after: { status },
-      details: "Status do recebimento alterado.",
-      createdAt: now,
-    }),
+    db.prepare(
+      "UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ?",
+    ).bind(status, nextObservation, now, appointment.id),
   ];
-  const adjustment = agendaAdminAdjustmentStatement(
-    db,
-    agenda,
+
+  if (statusChanged) {
+    statements.push(db.prepare(
+      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, ?, ?, ?)",
+    ).bind(crypto.randomUUID(), appointment.id, userId, appointment.status, status, now));
+  }
+
+  statements.push(auditStatement(db, {
     userId,
-    adminAdjustmentDetails,
-    now,
+    action: statusChanged ? "status_alterado" : "observacao_alterada",
+    entity: "agendamento",
+    entityId: appointment.id,
+    storeId: agenda.loja_id,
+    agendaId: agenda.id,
+    appointmentId: appointment.id,
+    before: { status: appointment.status, observation: appointment.observacao },
+    after: { status, observation: nextObservation },
+    details: statusChanged ? "Status do recebimento alterado." : "Motivo do não recebimento atualizado.",
+    createdAt: now,
+  }));
+
+  const adjustment = agendaAdminAdjustmentStatement(
+    db, agenda, userId, adminAdjustmentDetails, now,
   );
   if (adjustment) statements.push(adjustment);
 
   await db.batch(statements);
 
   const updated = await findAppointmentById(db, appointment.id);
-  if (!updated) {
-    throw new Error("Agendamento atualizado não pôde ser relido.");
-  }
-
+  if (!updated) throw new Error("Agendamento atualizado não pôde ser relido.");
   return updated;
 }
 

@@ -59,6 +59,7 @@ function appointmentJson(appointment: AppointmentRecord) {
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    observation: appointment.observacao,
     hasExchanges: appointment.trocas === 1,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
@@ -506,6 +507,7 @@ adminAgendaRoutes.post("/:id/manual", async (c) => {
       agenda.status_dia === "concluido"
         ? `Fornecedor manual ${parsed.data.supplier} adicionado pelo administrador.`
         : undefined,
+      parsed.data.observation,
     );
 
     await publishAgendaChanged(c.env, {
@@ -543,6 +545,11 @@ adminAgendaRoutes.get("/:id", async (c) => {
 
 const AdminAppointmentStatusInput = z.object({
   status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
+  observation: z.string().trim().min(1).max(240).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.status === "nao_chegou" && !data.observation) {
+    ctx.addIssue({ code: "custom", path: ["observation"], message: "Informe o motivo." });
+  }
 });
 
 const AdminAppointmentExchangesInput = z.object({
@@ -684,7 +691,8 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
 
   try {
     const user = c.get("authUser");
-    const changed = appointment.status !== parsed.data.status;
+    const changed = appointment.status !== parsed.data.status ||
+      appointment.observacao !== (parsed.data.status === "nao_chegou" ? parsed.data.observation?.trim() || null : null);
     const updated = await changeAppointmentStatus(
       c.env.DB,
       appointment,

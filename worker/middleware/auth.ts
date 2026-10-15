@@ -109,6 +109,8 @@ export const restrictDashboardViewer = createMiddleware<AppEnv>(
       path === "/api/admin/stores" ||
       path === "/api/admin/agendas" ||
       path === "/api/admin/presence" ||
+      path === "/api/admin/reports" ||
+      path === "/api/admin/reports/occurrences" ||
       /^\/api\/admin\/agendas\/[^/]+$/.test(path);
 
     if (!allowed) {

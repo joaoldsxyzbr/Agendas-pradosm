@@ -28,6 +28,11 @@ export const storeAppointmentRoutes = new Hono<AppEnv>();
 
 const ChangeStatusInput = z.object({
   status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
+  observation: z.string().trim().min(1).max(240).nullable().optional(),
+}).superRefine((data, ctx) => {
+  if (data.status === "nao_chegou" && !data.observation) {
+    ctx.addIssue({ code: "custom", path: ["observation"], message: "Informe o motivo." });
+  }
 });
 
 const ChangeExchangesInput = z.object({
@@ -91,6 +96,7 @@ function appointmentJson(appointment: AppointmentRecord) {
     nfe: parseStringArray(appointment.nfe),
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
+    observation: appointment.observacao,
     hasExchanges: appointment.trocas === 1,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1,
@@ -586,6 +592,8 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
       appointment,
       user.id,
       parsed.data.status,
+      undefined,
+      parsed.data.observation,
     );
 
     await publishAgendaChanged(c.env, {

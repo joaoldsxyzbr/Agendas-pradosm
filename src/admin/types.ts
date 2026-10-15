@@ -58,6 +58,7 @@ export type AdminAppointment = {
   nfe: string[];
   orders: string[];
   status: "aguardando" | "recebido" | "nao_chegou" | "recusado";
+  observation?: string | null;
   hasExchanges: boolean;
   origin?: "imported" | "manual";
   ativo: boolean;
