@@ -32,6 +32,6 @@ test("conferente usa a agenda da loja fictícia", async ({ page }) => {
   await page.goto("/vanilla/live.html");
   await page.getByRole("button", { name: /Conferente/ }).click();
   await expect(page.getByRole("heading", { name: "Conferência de recebimentos" })).toBeVisible();
-  await expect(page.getByText("Loja Demonstração")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Loja Demonstração" })).toBeVisible();
   await expect(page.getByRole("link", { name: /Relatórios/ })).toBeHidden();
 });
