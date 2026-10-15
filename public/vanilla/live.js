@@ -141,7 +141,7 @@
     root.classList.remove("auth-main");
     $(".account-name strong").textContent = state.user.nome || "Usuário";
     $(".account-name small").textContent = statusLabel(state.user.papel);
-    $(".sidebar-nav a[data-view-link]").forEach(a => {
+    $$(".sidebar-nav a[data-view-link]").forEach(a => {
       const admin = state.user.papel === "admin";
       const viewer = state.user.papel === "visualizador";
       const view = a.dataset.viewLink;
@@ -166,7 +166,7 @@
     if (!(next in pageTitles)) next = "recebimento";
     state.view = next;
     $("#breadcrumb").textContent = pageTitles[next];
-    $(".sidebar-nav a[data-view-link]").forEach(a => {
+    $$(".sidebar-nav a[data-view-link]").forEach(a => {
       a.classList.toggle("active", a.dataset.viewLink === next);
       if (a.dataset.viewLink === next) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
