@@ -537,6 +537,8 @@ for (const path of [
 const wranglerAssetTest = readFileSync("wrangler.jsonc", "utf8");
 if (!wranglerAssetTest.includes('"directory": "./public"')) throw new Error("Assets do Wrangler não apontam para public/.");
 
+rmSync("node_modules", { recursive: true, force: true });
+rmSync("package-lock.json", { force: true });
 run("npm", ["install", "--package-lock-only", "--ignore-scripts", "--no-audit", "--no-fund"]);
 run("npm", ["ci"]);
 run("npm", ["run", "check:javascript"]);
