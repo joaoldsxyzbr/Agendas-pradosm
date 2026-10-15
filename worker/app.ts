@@ -50,6 +50,7 @@ app.get("/api/health", async (c) => {
   }
 });
 app.use("/api/auth/bootstrap-register", validateMutationOrigin);
+app.use("/api/auth/demo-login", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
 
 app.use("/api/realtime", requireAuth);

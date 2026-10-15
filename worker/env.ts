@@ -10,6 +10,8 @@ export type WorkerEnv = {
   LOGIN_RATE_LIMITER?: LoginRateLimiter;
   REALTIME_HUB: DurableObjectNamespace;
   REALTIME_MODE?: string;
+  PREVIEW_DEMO_LOGIN?: string;
+  PREVIEW_DEPLOYMENT?: string;
 };
 
 export type AppEnv = {

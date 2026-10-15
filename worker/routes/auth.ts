@@ -19,6 +19,26 @@ import {
 
 const COOKIE_NAME = "agenda_session";
 
+// Acesso demonstrativo é permitido apenas no Worker explicitamente configurado
+// para preview, com contas fictícias existentes no D1 isolado.
+const DEMO_USERS = {
+  admin: "demo-admin",
+  visualizador: "demo-visualizador",
+  conferente: "demo-conferente",
+} as const;
+
+const DemoLoginInput = z.object({
+  papel: z.enum(["admin", "visualizador", "conferente"]),
+});
+
+function isPreviewDemoEnabled(env: AppEnv["Bindings"]) {
+  return (
+    env.PREVIEW_DEMO_LOGIN === "on" &&
+    env.PREVIEW_DEPLOYMENT === "agendas-pradosm-preview"
+  );
+}
+
+
 const LoginInput = z.object({
   login: z.string().min(1).max(100),
   senha: z.string().min(8).max(200),
@@ -52,6 +72,70 @@ function isDuplicateLogin(error: unknown) {
 }
 
 export const authRoutes = new Hono<AppEnv>();
+
+authRoutes.get("/demo-status", (c) =>
+  c.json({ available: isPreviewDemoEnabled(c.env) }),
+);
+
+authRoutes.post("/demo-login", async (c) => {
+  if (!isPreviewDemoEnabled(c.env)) return c.notFound();
+
+  const parsed = DemoLoginInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) {
+    return c.json({ error: "REQUISICAO_INVALIDA", message: "Perfil inválido." }, 400);
+  }
+
+  const role = parsed.data.papel;
+  const limit = await checkLoginRateLimit(
+    c.env.LOGIN_RATE_LIMITER,
+    `preview-demo-${role}`,
+    c.req.header("CF-Connecting-IP"),
+  );
+
+  if (limit === "unavailable") {
+    c.header("Retry-After", "60");
+    return c.json({ error: "AUTENTICACAO_TEMPORARIAMENTE_INDISPONIVEL" }, 503);
+  }
+  if (limit === "limited") {
+    c.header("Retry-After", "60");
+    return c.json({ error: "MUITAS_TENTATIVAS" }, 429);
+  }
+
+  const user = await findUserByLogin(c.env.DB, DEMO_USERS[role]);
+  if (!user || user.ativo !== 1 || user.papel !== role) {
+    return c.json({ error: "CONTA_DEMONSTRACAO_INDISPONIVEL" }, 503);
+  }
+
+  const store =
+    role === "conferente" && user.loja_id
+      ? await findActiveStoreById(c.env.DB, user.loja_id)
+      : null;
+  if (role === "conferente" && !store) {
+    return c.json({ error: "CONTA_DEMONSTRACAO_INDISPONIVEL" }, 503);
+  }
+
+  const token = await createSessionToken(
+    user.id,
+    user.session_version,
+    c.env.SESSION_SECRET,
+  );
+  setCookie(c, COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: new URL(c.req.url).protocol === "https:",
+    sameSite: "Strict",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  });
+
+  return c.json({
+    id: user.id,
+    nome: user.nome,
+    papel: user.papel,
+    lojaId: user.loja_id,
+    lojaCodigo: store?.codigo ?? null,
+    lojaNome: store?.nome ?? null,
+  });
+});
 
 authRoutes.get("/bootstrap-status", async (c) => {
   return c.json({ available: !(await hasAdmin(c.env.DB)) });

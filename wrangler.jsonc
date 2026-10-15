@@ -62,6 +62,8 @@
     }
   },
   "vars": {
-    "REALTIME_MODE": "off"
+    "REALTIME_MODE": "off",
+    "PREVIEW_DEMO_LOGIN": "on",
+    "PREVIEW_DEPLOYMENT": "agendas-pradosm-preview"
   }
 }

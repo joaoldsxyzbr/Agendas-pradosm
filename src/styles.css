@@ -2477,3 +2477,20 @@ td {
 .admin-agenda-preview .agenda-metrics > .agenda-metric strong {
   color: inherit;
 }
+
+/* Acesso rápido exclusivo do ambiente de testes. */
+.quick-login { display: grid; gap: .85rem; }
+.quick-login-divider { display: flex; align-items: center; gap: .8rem; color: var(--color-text-muted); font-size: .72rem; font-weight: 700; letter-spacing: .055em; text-transform: uppercase; }
+.quick-login-divider::before, .quick-login-divider::after { content: ""; height: 1px; background: var(--color-border); flex: 1; }
+.quick-login-header { display: grid; gap: .15rem; }
+.quick-login-header h2 { margin: 0; color: var(--color-text-strong); font-size: .95rem; letter-spacing: -.012em; }
+.quick-login-header p, .quick-login-notice { margin: 0; color: var(--color-text-muted); font-size: .76rem; line-height: 1.45; }
+.quick-login-options { display: grid; gap: .48rem; }
+.quick-login-option { width: 100%; min-height: 57px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: .65rem .85rem; border: 1px solid var(--color-border); border-radius: 9px; color: var(--color-text); background: var(--color-surface); transition: border-color 150ms ease, background 150ms ease; }
+.quick-login-option:hover:not(:disabled) { border-color: var(--color-primary); background: var(--color-surface-muted); }
+.quick-login-option:disabled { opacity: .64; cursor: wait; }
+.quick-login-option-copy { display: grid; gap: 1px; }
+.quick-login-option-copy strong { font-size: .83rem; font-weight: 750; }
+.quick-login-option-copy small { color: var(--color-text-muted); font-size: .73rem; }
+.quick-login-arrow { display: grid; place-items: center; border-radius: 6px; width: 27px; height: 27px; background: var(--color-surface-muted); color: var(--color-primary); font-weight: 800; font-size: 1rem; }
+.quick-login-notice { text-align: center; }

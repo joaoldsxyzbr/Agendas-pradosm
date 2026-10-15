@@ -85,3 +85,13 @@ Na branch inicial da migração (sincronizada com `main` no commit `7981580e`), 
 - Fluxo esperado de build: `npm run verify:production` (gate de código legado até a migração concluída); deploy: `npm run deploy:cloudflare` (verifica migrações e publica).
 - O script de verificação local `scripts/check-deploy-flow.mjs` valida que a configuração de **preview** não aponta para produção.
 - Os comandos atuais de build (Vite/TypeScript) são temporários, até a migração para JS puro; não declarar a stack final concluída.
+
+## Login rápido de testes (15/10/2026)
+
+- Somente o Worker `agendas-pradosm-preview` habilita `PREVIEW_DEMO_LOGIN=on` e `PREVIEW_DEPLOYMENT=agendas-pradosm-preview`.
+- A tela `/login` verifica `GET /api/auth/demo-status` e mostra três acessos rápidos: Administrador, Visualizador e Conferente.
+- `POST /api/auth/demo-login` valida a origem, impõe limite de tentativas e usa as sessões existentes; não recebe senha de demonstração nem aceita escolha arbitrária de usuário.
+- Dados são fictícios e ficam no D1 exclusivo de preview. O script versionado `scripts/seed-preview-demo.sql` cria apenas as três contas fictícias e uma loja com uma agenda de exemplo do dia; pode ser reaplicado.
+- Credenciais de senha dessas contas são inválidas por projeto; somente o endpoint de demonstração restrito ao Worker de preview permite acessá-las.
+- A `main` não possui essas variáveis, portanto não habilita o acesso rápido mesmo se o código for posteriormente revisado para promoção. Não promover sem remover/verificar o recurso conforme política.
+- A implementação no login React/TypeScript é **temporária** enquanto o restante da interface ainda não foi migrado para JavaScript puro. O acesso rápido deve ser portado para o login HTML/JS definitivo.

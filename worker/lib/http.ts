@@ -18,7 +18,8 @@ function isMutationOriginProtectedPath(path: string) {
   return (
     path.startsWith("/api/admin/") ||
     path.startsWith("/api/store/") ||
-    path === "/api/auth/bootstrap-register"
+    path === "/api/auth/bootstrap-register" ||
+    path === "/api/auth/demo-login"
   );
 }
 

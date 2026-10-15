@@ -14,6 +14,7 @@ type AuthContextValue = {
   user: AuthUser | null;
   loading: boolean;
   login: (login: string, senha: string) => Promise<AuthUser>;
+  demoLogin: (role: AuthUser["papel"]) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
 };
@@ -52,6 +53,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return authenticated;
   }, []);
 
+  const demoLogin = useCallback(async (papel: AuthUser["papel"]) => {
+    const authenticated = await apiFetch<AuthUser>("/api/auth/demo-login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ papel }),
+    });
+    setUser(authenticated);
+    return authenticated;
+  }, []);
+
   const logout = useCallback(async () => {
     try {
       await apiFetch<void>("/api/auth/logout", { method: "POST" });
@@ -61,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, loading, login, logout, refresh }),
+    () => ({ user, loading, login, demoLogin, logout, refresh }),
     [user, loading, login, logout, refresh],
   );
 

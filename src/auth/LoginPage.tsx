@@ -8,12 +8,14 @@ type BootstrapStatus = {
 };
 
 export function LoginPage() {
-  const { user, loading, login } = useAuth();
+  const { user, loading, login, demoLogin } = useAuth();
   const navigate = useNavigate();
   const [loginValue, setLoginValue] = useState("");
   const [senha, setSenha] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [demoAvailable, setDemoAvailable] = useState(false);
+  const [demoSubmitting, setDemoSubmitting] = useState<string | null>(null);
 
   const [bootstrapAvailable, setBootstrapAvailable] = useState(false);
   const [bootstrapMode, setBootstrapMode] = useState(false);
@@ -29,6 +31,14 @@ export function LoginPage() {
     if (loading || user) return;
 
     let active = true;
+    apiFetch<{ available: boolean }>("/api/auth/demo-status")
+      .then((status) => {
+        if (active) setDemoAvailable(status.available);
+      })
+      .catch(() => {
+        if (active) setDemoAvailable(false);
+      });
+
     apiFetch<BootstrapStatus>("/api/auth/bootstrap-status")
       .then((status) => {
         if (active) setBootstrapAvailable(status.available);
@@ -75,6 +85,21 @@ export function LoginPage() {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function enterDemo(role: "admin" | "visualizador" | "conferente") {
+    setDemoSubmitting(role);
+    setError(null);
+    try {
+      const authenticated = await demoLogin(role);
+      navigate(authenticated.papel === "conferente" ? "/app" : "/admin", {
+        replace: true,
+      });
+    } catch {
+      setError("Não foi possível entrar na demonstração. Tente novamente.");
+    } finally {
+      setDemoSubmitting(null);
     }
   }
 
@@ -275,6 +300,40 @@ export function LoginPage() {
                 {submitting ? "Entrando..." : "Entrar"}
               </button>
             </form>
+
+            {demoAvailable ? (
+              <section className="quick-login" aria-labelledby="quick-login-title">
+                <div className="quick-login-divider"><span>Ambiente de testes</span></div>
+                <div className="quick-login-header">
+                  <h2 id="quick-login-title">Acesso rápido</h2>
+                  <p>Escolha um perfil para testar, sem informar senha.</p>
+                </div>
+                <div className="quick-login-options">
+                  {([
+                    ["admin", "Administrador", "Gerenciar a operação"],
+                    ["visualizador", "Visualizador", "Consultar indicadores"],
+                    ["conferente", "Conferente", "Receber agendamentos"],
+                  ] as const).map(([role, title, subtitle]) => (
+                    <button
+                      key={role}
+                      type="button"
+                      className="quick-login-option"
+                      onClick={() => void enterDemo(role)}
+                      disabled={submitting || demoSubmitting !== null}
+                    >
+                      <span className="quick-login-option-copy">
+                        <strong>{title}</strong>
+                        <small>{subtitle}</small>
+                      </span>
+                      <span className="quick-login-arrow" aria-hidden="true">
+                        {demoSubmitting === role ? "…" : "→"}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="quick-login-notice">Contas fictícias · Banco de testes isolado</p>
+              </section>
+            ) : null}
 
             {bootstrapAvailable ? (
               <button

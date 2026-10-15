@@ -37,6 +37,16 @@ runWrangler([
   "--yes",
 ]);
 
+runWrangler([
+  "d1",
+  "execute",
+  "DB",
+  "--local",
+  "--file",
+  "scripts/seed-preview-demo.sql",
+  "--yes",
+]);
+
 function businessDate() {
   const parts = new Intl.DateTimeFormat("en-US", {
     timeZone: "America/Sao_Paulo",
