@@ -453,6 +453,10 @@ describe("TodayPage", () => {
     expect(recebidoButton).toHaveAttribute("title", "Marcar como recebido");
 
     fireEvent.click(naoRecebidoButton);
+    fireEvent.change(within(card).getByRole("textbox", { name: /Observação/ }), {
+      target: { value: "Fornecedor não compareceu." },
+    });
+    fireEvent.click(within(card).getByRole("button", { name: "Salvar motivo" }));
     expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
 
     fireEvent.click(naoRecebidoButton);
@@ -462,6 +466,10 @@ describe("TodayPage", () => {
     expect(await within(card).findByText("Recebido", { selector: ".store-status" })).toBeInTheDocument();
 
     fireEvent.click(naoRecebidoButton);
+    fireEvent.change(within(card).getByRole("textbox", { name: /Observação/ }), {
+      target: { value: "Entrega reagendada." },
+    });
+    fireEvent.click(within(card).getByRole("button", { name: "Salvar motivo" }));
     expect(await within(card).findByText("Não recebido", { selector: ".store-status" })).toBeInTheDocument();
 
     const calls = fetchMock.mock.calls.filter((call) =>
@@ -531,6 +539,10 @@ describe("TodayPage", () => {
 
     const card = await screen.findByTestId("agenda-mobile-card");
     fireEvent.click(within(card).getByRole("button", { name: "Não recebido" }));
+    fireEvent.change(within(card).getByRole("textbox", { name: /Observação/ }), {
+      target: { value: "Fornecedor ausente." },
+    });
+    fireEvent.click(within(card).getByRole("button", { name: "Salvar motivo" }));
 
     expect(
       await within(card).findByText("O status não foi alterado."),
