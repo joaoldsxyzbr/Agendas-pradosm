@@ -1,6 +1,6 @@
 # Migração da preview: JavaScript puro + HTML + CSS + Cloudflare D1
 
-**Status:** planejamento e levantamento concluídos; migração funcional não iniciada.
+**Status:** fase A iniciada: protótipo visual estático em HTML/CSS/JavaScript criado; migração funcional e integração ao D1 ainda pendentes.
 **Escopo:** exclusivamente a branch `preview` de `joaoldsxyzbr/Agendas-pradosm`.
 **Produção:** `main` não pode ser alterada sem validação na preview e autorização expressa.
 
@@ -62,6 +62,14 @@
 - **Dados:** manter D1 como fonte da verdade; evitar migrations destrutivas e jamais apontar preview ao D1 de produção.
 - **Deploy:** não substituir o fluxo atual até existir um novo caminho testado e reproduzível.
 - **CI:** atualizar os testes junto com cada módulo portado, sem desativar verificações para forçar aprovação.
+
+## Entrega inicial da fase A (15/10/2026)
+
+- Interface empresarial com modo escuro, navegação lateral e responsiva, áreas Recebimento, Relatórios, Conferente, Lojas e Usuários, em `public/vanilla/index.html`, `public/vanilla/styles.css` e `public/vanilla/app.js`.
+- Prévia isolada: informações fictícias em memória, sem consultas ou gravações no D1, sem React, JSX ou Vite no protótipo.
+- Fluxo demonstrativo do conferente para alterar status, exigir/editar observação e retornar a Aguardando; relatórios demonstrativos, filtros e CSV local.
+- Testes de sintaxe adicionados ao CI e testes E2E da prévia em `tests/e2e/vanilla.spec.js`.
+- **Atenção:** a aplicação principal, o build e o backend ainda utilizam a stack anterior até a conclusão das fases B–D. O protótipo não substitui as telas reais, nem demonstra funcionamento com o banco. Não promover a main.
 
 ## Situação verificada
 
