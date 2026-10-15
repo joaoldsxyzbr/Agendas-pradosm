@@ -110,7 +110,7 @@ packageJson.devDependencies = {
   "@axe-core/playwright": packageJson.devDependencies["@axe-core/playwright"],
   "@cloudflare/vitest-plugin": packageJson.devDependencies["@cloudflare/vitest-plugin"],
   "@playwright/test": packageJson.devDependencies["@playwright/test"],
-  esbuild: "^0.25.0",
+  esbuild: "^0.28.1",
   jsdom: packageJson.devDependencies.jsdom,
   vitest: packageJson.devDependencies.vitest,
   wrangler: packageJson.devDependencies.wrangler,
