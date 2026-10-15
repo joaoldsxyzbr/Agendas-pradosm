@@ -19,17 +19,12 @@ test("JavaScript puro: conferente vê dados reais do D1 fictício", async ({ pag
   await expect(page.getByText("Distribuidora Exemplo")).toBeVisible();
 });
 
-test("JavaScript puro: visualizador não acessa cadastros", async ({ page }) => {
+test("JavaScript puro: visualizador consulta relatórios sem acessar cadastros", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: /Visualizador/ }).click();
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Lojas" })).toHaveCount(0);
-});
-
-test("JavaScript puro: relatórios gerenciais consultam D1 por período", async ({ page }) => {
-  await page.goto("/");
-  await page.getByRole("button", { name: /Visualizador/ }).click();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
