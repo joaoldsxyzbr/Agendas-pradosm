@@ -8,7 +8,7 @@
     "test": "npm run test:worker && npm run test:ui && npm run test:design && npm run test:deploy-flow && npm run test:bootstrap-admin",
     "test:watch": "vitest",
     "typecheck": "tsc -b --noEmit",
-    "build": "vite build",
+    "build": "node scripts/build-pdf-preview.mjs && vite build",
     "verify:production": "npm test && npm run typecheck && npm run build",
     "check:migrations": "node scripts/check-migration-safety.mjs",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
