@@ -184,7 +184,15 @@
       const a = items.find(x => x.id === button.dataset.status);
       if (!a) return;
       const desired = a.status === button.dataset.next ? "aguardando" : button.dataset.next;
-      asyncAction(() => updateStatus(a.id, desired, base));
+      if(desired==="nao_chegou"){
+        modal("Motivo do não recebimento",
+          '<label class="field">Observação obrigatória<textarea name="observation" required maxlength="240" rows="4" placeholder="Descreva o motivo"></textarea></label>',
+          "Salvar",async data=>{
+            if(!data.observation.trim())throw Error("Informe o motivo.");
+            await json("PATCH",`${base}/${encodeURIComponent(a.id)}/status`,{status:desired,observation:data.observation.trim()});
+            await navigate();tell("Motivo salvo no D1 de testes.");
+          });
+      } else asyncAction(()=>updateStatus(a.id,desired,base));
     });
     $$("[data-exchange]").forEach(input => input.onchange = e => asyncAction(async () => {
       await json("PATCH", `${base}/${encodeURIComponent(input.dataset.exchange)}/exchanges`, { hasExchanges: e.target.checked });
@@ -342,10 +350,70 @@
     $("#hist-all").onclick = () => { state.date = ""; navigate(); };
     $$("[data-detail]").forEach(b => b.onclick = () => openAgenda(b.dataset.detail));
   }
-  async function showReports() {
-    root.innerHTML = heading("Indicadores", "Relatórios gerenciais", "Indicadores e histórico por período e loja.") +
-      `<section class="card"><div class="card-header"><h2>Relatório em migração</h2></div><p class="section-help">Esta tela usa a API do Worker. Os indicadores por período estão sendo migrados junto com as observações.</p></section>`;
+  async function showReports(){
+  await loadStores();
+  if(!state.reportEnd)state.reportEnd=dateToday();
+  if(!state.reportStart){const d=new Date(state.reportEnd+"T00:00:00Z");d.setUTCDate(d.getUTCDate()-29);state.reportStart=d.toISOString().slice(0,10)}
+  const range=(start,end)=>{
+    const q=new URLSearchParams({start,end});
+    if(state.reportStore)q.set("storeCode",state.reportStore);
+    return q.toString();
+  };
+  const days=(Date.parse(state.reportEnd+"T00:00:00Z")-Date.parse(state.reportStart+"T00:00:00Z"))/86400000+1;
+  if(days<1||days>93)throw Error("Selecione um período válido de até 93 dias.");
+  const previousEnd=new Date(state.reportStart+"T00:00:00Z");previousEnd.setUTCDate(previousEnd.getUTCDate()-1);
+  const previousStart=new Date(previousEnd);previousStart.setUTCDate(previousStart.getUTCDate()-days+1);
+  const [report,earlier,occurrences]=await Promise.all([
+    api("/api/admin/reports?"+range(state.reportStart,state.reportEnd)),
+    state.reportCompare?api("/api/admin/reports?"+range(previousStart.toISOString().slice(0,10),previousEnd.toISOString().slice(0,10))):Promise.resolve(null),
+    api("/api/admin/reports/occurrences?"+range(state.reportStart,state.reportEnd)+"&limit=100&offset="+(state.reportOffset||0)),
+  ]);
+  const totals=rows=>rows.reduce((a,x)=>{
+    for(const k of ["total","recebido","naoChegou","aguardando","recusado"])a[k]+=x[k]||0;
+    if(x.dayStatus==="aberto")a.open++;
+    return a;
+  },{total:0,recebido:0,naoChegou:0,aguardando:0,recusado:0,open:0});
+  const t=totals(report.rows),p=totals(earlier?.rows||[]);
+  const rate=x=>x.total?x.recebido/x.total*100:0;
+  const delta=(rate(t)-rate(p)).toFixed(1).replace(".",",");
+  const groups=new Map();
+  for(const row of report.rows){
+    const x=groups.get(row.storeCode)||{name:row.storeName,total:0,recebido:0,naoChegou:0};
+    x.total+=row.total;x.recebido+=row.recebido;x.naoChegou+=row.naoChegou;
+    groups.set(row.storeCode,x);
   }
+  root.innerHTML=heading("Indicadores de gestão","Relatórios gerenciais",`${dt(state.reportStart)} a ${dt(state.reportEnd)}`,'<button class="secondary" id="report-csv">Exportar CSV</button>')+
+    `<form class="filter-panel" id="report-form"><div class="filter-grid">
+      <label class="field">De<input name="start" type="date" value="${esc(state.reportStart)}" required></label>
+      <label class="field">Até<input name="end" type="date" value="${esc(state.reportEnd)}" required></label>
+      <label class="field wide">Loja<select name="storeCode">${storeOpts(state.reportStore)}</select></label>
+      <label class="checkbox-line"><input name="compare" type="checkbox" ${state.reportCompare?"checked":""}> Comparar com período anterior</label>
+      <button class="primary" type="submit">Aplicar filtros</button></div></form>`+
+    stats([["Agendamentos",fmt(t.total),`${report.rows.length} agendas no período`],["Recebidos",fmt(t.recebido),rate(t).toFixed(1).replace(".",",")+"%"],["Não recebidos",fmt(t.naoChegou),"Ocorrências"],["Aguardando",fmt(t.aguardando),`${t.open} agendas em aberto`]])+
+    (earlier?`<div class="alert">Período anterior: ${fmt(p.total)} agendamentos · Variação na taxa de recebimento: <strong>${rate(t)>=rate(p)?"+":""}${delta} p.p.</strong></div>`:"")+
+    `<div class="grid-2">`+
+    panel("Por loja","Taxas e volumes por unidade",table(["Loja","Total","Recebidos","Não recebidos","Taxa"],[...groups].map(([code,x])=>`<tr><td class="cell-primary">${esc(code)} · ${esc(x.name)}</td><td>${fmt(x.total)}</td><td>${fmt(x.recebido)}</td><td>${fmt(x.naoChegou)}</td><td>${rate(x).toFixed(1).replace(".",",")}%</td></tr>`)))+
+    panel("Fornecedores com ocorrências","Ranking de não recebidos",`<div class="ranking">${report.suppliers.map((x,i)=>`<div class="ranking-item"><span class="ranking-order">${i+1}</span><span class="ranking-name">${esc(x.supplier)}</span><span class="ranking-count">${x.naoChegou}</span></div>`).join("")||'<div class="empty">Sem ocorrências.</div>'}</div>`)+`</div>`+
+    panel("Por data","Distribuição dos recebimentos",table(["Data","Loja","Total","Recebidos","Não recebidos","Aguardando"],report.rows.map(x=>`<tr><td>${dt(x.date)}</td><td>${esc(x.storeName)}</td><td>${fmt(x.total)}</td><td>${fmt(x.recebido)}</td><td>${fmt(x.naoChegou)}</td><td>${fmt(x.aguardando)}</td></tr>`)))+
+    panel("Ocorrências e observações",`${fmt(occurrences.total)} registros`,table(["Dia","Loja","Fornecedor","Protocolo","Motivo"],occurrences.rows.map(x=>`<tr><td>${dt(x.date)}</td><td>${esc(x.storeName)}</td><td class="cell-primary">${esc(x.supplier)}</td><td>${esc(x.protocol)}</td><td class="detail-line">${esc(x.observation||"Motivo não registrado")}</td></tr>`))+
+      `<div class="dialog-actions" style="padding:12px 20px"><button class="secondary" id="report-prev" ${(state.reportOffset||0)===0?"disabled":""}>Anterior</button><button class="secondary" id="report-next" ${(state.reportOffset||0)+100>=occurrences.total?"disabled":""}>Próxima</button></div>`);
+  $("#report-form").onsubmit=e=>{
+    e.preventDefault();const f=new FormData(e.currentTarget);
+    const days=(Date.parse(f.get("end")+"T00:00:00Z")-Date.parse(f.get("start")+"T00:00:00Z"))/86400000+1;
+    if(days<1||days>93){tell("Selecione um período de até 93 dias.",true);return}
+    state.reportStart=f.get("start");state.reportEnd=f.get("end");state.reportStore=f.get("storeCode");state.reportCompare=f.has("compare");state.reportOffset=0;navigate();
+  };
+  $("#report-prev").onclick=()=>{state.reportOffset=Math.max(0,(state.reportOffset||0)-100);navigate()};
+  $("#report-next").onclick=()=>{state.reportOffset=(state.reportOffset||0)+100;navigate()};
+  $("#report-csv").onclick=()=>{
+    const rows=[["Data","Loja","Total","Recebidos","Não recebidos","Aguardando"],...report.rows.map(x=>[x.date,x.storeCode,x.total,x.recebido,x.naoChegou,x.aguardando])];
+    const safeCell=v=>{let s=String(v??"");if(/^[\s\u0000-\u001f]*[=+\-@]/.test(s))s="'"+s;return `"${s.replace(/"/g,'""')}"`};
+    const data="\uFEFF"+rows.map(r=>r.map(safeCell).join(";")).join("\r\n");
+    const url=URL.createObjectURL(new Blob([data],{type:"text/csv;charset=utf-8"}));
+    const a=document.createElement("a");a.href=url;a.download="relatorio-agenda-prado.csv";a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
+}
   async function showImport() {
     root.innerHTML = heading("Operação", "Importar agendas", "Importação em lote com validação antes de gravar.") +
       `<section class="card"><div class="card-header"><h2>Importação CSV / PDF</h2></div><p class="section-help">Parser com validações do sistema antigo está sendo portado para JavaScript modular. Até concluir, utilize a tela de importação atual, sem misturar dados de produção.</p></section>`;
