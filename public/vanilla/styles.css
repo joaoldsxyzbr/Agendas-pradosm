@@ -41,6 +41,9 @@ a { color: inherit; text-decoration: none }
 .sidebar-nav a:hover { background: #1c2936; color: white }
 .sidebar-nav a.active { background: var(--accent-tint); color: #d4e9fa; font-weight: 700; box-shadow: inset 3px 0 var(--accent) }
 .sidebar-nav a.active span { color: #b3d6ef }
+.sidebar-nav .nav-action { width:100%; display:flex; align-items:center; gap:13px; padding:11px 14px; border:0; border-radius:9px; background:transparent; color:#b0bfcd; text-align:left; font-size:13px; transition:background .15s ease; cursor:pointer }
+.sidebar-nav .nav-action span { width:18px; color:#8ca3b5; font-size:17px; text-align:center }
+.sidebar-nav .nav-action:hover { background:#1c2936; color:white }
 .sidebar-bottom { margin-top: auto; padding: 16px 12px 0; border-top: 1px solid var(--stroke-soft); color: var(--subtle); font-size: 11px }
 .sidebar-bottom p { margin: 9px 0 0 }
 .mock-indicator { display: flex; gap: 8px; align-items:center; color: #afc5ce; font-weight: 700 }
@@ -146,6 +149,20 @@ tbody tr:hover { background:#1b2735 }
 .dialog p { margin:0 0 19px; color:var(--muted); font-size:12px }
 .dialog form { display:grid; gap:12px }
 .dialog-actions { display:flex; justify-content:flex-end; gap:8px; margin-top:8px }
+body.dialog-open { overflow:hidden }
+.dialog.import-dialog { width:min(1080px,100%); max-height:min(90vh,900px); display:flex; flex-direction:column; padding:0; overflow:hidden }
+.import-dialog-header { display:flex; justify-content:space-between; align-items:flex-start; gap:20px; padding:24px 28px; border-bottom:1px solid var(--stroke) }
+.import-dialog-header .eyebrow { margin:0 0 6px }
+.import-dialog-header h2 { margin:0 }
+.dialog .import-dialog-note { margin:8px 0 0; color:var(--muted); font-size:12px }
+.import-dialog-content { min-height:0; overflow:auto; padding:24px 28px }
+.import-dialog-content > .field { max-width:680px }
+.import-dialog-content .data-note { margin:10px 0 0 }
+#import-preview:not(:empty) { margin-top:22px }
+#import-preview .stats { margin-bottom:18px }
+#import-preview .card { margin-bottom:0 }
+#import-preview .table-scroll { max-height:280px }
+.import-dialog-actions { margin:0; padding:16px 28px; border-top:1px solid var(--stroke); background:var(--panel-alt) }
 .count { color:var(--muted); font-size:11px; text-align:right }
 #toast-host { position:fixed; bottom:18px; right:18px; z-index:60 }
 .toast { background:#27394b; border:1px solid #58718b; color:#f0f5fc; padding:11px 17px; border-radius:8px; font-size:12px; box-shadow:var(--shadow) }
@@ -179,8 +196,13 @@ tbody tr:hover { background:#1b2735 }
   .card-header { padding:16px 14px }
   th,td { padding:11px 13px }
   .footer { padding:15px }
+  .dialog-backdrop { padding:8px }
+  .dialog.import-dialog { max-height:min(94vh,900px) }
+  .import-dialog-header,.import-dialog-content { padding:18px 16px }
+  .import-dialog-actions { padding:13px 16px }
+  .import-dialog-actions button { flex:1 }
 }
-@media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a { transition:none } }
+@media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a,.sidebar-nav .nav-action { transition:none } }
 
 .unauthenticated { grid-template-columns:1fr }
 .unauthenticated .sidebar,.unauthenticated .topbar,.unauthenticated .footer { display:none }

@@ -27,6 +27,17 @@ test("entrada principal usa o app conectado à API e mantém acessibilidade no l
 test("administrador percorre recebimento, relatórios e cadastros", async ({ page }) => {
   await enterDemo(page, "Administrador");
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
+  const importUrl = page.url();
+  const importButton = page.getByRole("button", { name: "Importar agenda" });
+  await importButton.click();
+  const importDialog = page.getByRole("dialog", { name: "Importar agenda" });
+  await expect(importDialog).toBeVisible();
+  await expect(importDialog.getByLabel("Arquivo de agenda")).toBeVisible();
+  await expect(page).toHaveURL(importUrl);
+  await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
+  await importDialog.getByRole("button", { name: "Cancelar" }).click();
+  await expect(importDialog).toHaveCount(0);
+  await expect(importButton).toBeFocused();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
@@ -73,6 +84,16 @@ test("menu mobile abre e navega na aplicação principal", async ({ page }) => {
   await expect(menu).toBeVisible();
   await menu.click();
   await expect(menu).toHaveAttribute("aria-expanded", "true");
+  const importButton = page.getByRole("button", { name: "Importação" });
+  await importButton.click();
+  const importDialog = page.getByRole("dialog", { name: "Importar agenda" });
+  await expect(importDialog).toBeVisible();
+  await expect(page).toHaveURL(/#recebimento$/);
+  await page.keyboard.press("Escape");
+  await expect(importDialog).toHaveCount(0);
+  await expect(menu).toHaveAttribute("aria-expanded", "false");
+  await expect(menu).toBeFocused();
+  await menu.click();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(menu).toHaveAttribute("aria-expanded", "false");

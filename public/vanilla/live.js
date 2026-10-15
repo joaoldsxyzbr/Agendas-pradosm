@@ -48,7 +48,7 @@
     ws.addEventListener("open", sendPresence);
     document.addEventListener("visibilitychange", sendPresence);
   };
-  const pageTitles = { recebimento: "Recebimento", relatorios: "Relatórios gerenciais", conferente: "Conferente", lojas: "Lojas", usuarios: "Usuários", historico: "Histórico", importar: "Importação" };
+  const pageTitles = { recebimento: "Recebimento", relatorios: "Relatórios gerenciais", conferente: "Conferente", lojas: "Lojas", usuarios: "Usuários", historico: "Histórico" };
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n) => new Intl.NumberFormat("pt-BR").format(Number(n || 0));
   const dt = (d) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : d || "—");
@@ -77,7 +77,7 @@
     host.className = error ? "toast toast-error" : "toast";
     host.setAttribute("role", error ? "alert" : "status");
   };
-  const setBusy = (yes) => { state.busy = yes; $$("button", root).forEach(b => { if (b.dataset.action) b.disabled = yes; }); };
+  const setBusy = (yes) => { state.busy = yes; [...$$("button[data-action]", root), ...$$("button", $("#dialog-host"))].forEach(b => { b.disabled = yes; }); };
   const asyncAction = async (job, msg = "") => {
     if (state.busy) return;
     try { setBusy(true); await job(); if (msg) tell(msg); }
@@ -141,7 +141,7 @@
     root.classList.remove("auth-main");
     $(".account-name strong").textContent = state.user.nome || "Usuário";
     $(".account-name small").textContent = statusLabel(state.user.papel);
-    $$(".sidebar-nav a").forEach(a => {
+    $$(".sidebar-nav [data-view-link]").forEach(a => {
       const admin = state.user.papel === "admin";
       const viewer = state.user.papel === "visualizador";
       const view = a.dataset.viewLink;
@@ -156,12 +156,17 @@
     restoreShell();
     const role = state.user.papel;
     let next = location.hash.slice(1) || (role === "conferente" ? "conferente" : "recebimento");
+    const openImportAfterRoute = next === "importar" && role === "admin";
+    if (next === "importar") {
+      next = role === "conferente" ? "conferente" : "recebimento";
+      history.replaceState(null, "", `${location.pathname}${location.search}#${next}`);
+    }
     if (role === "conferente") next = "conferente";
     if (role === "visualizador" && !["recebimento", "relatorios"].includes(next)) next = "recebimento";
     if (!(next in pageTitles)) next = "recebimento";
     state.view = next;
     $("#breadcrumb").textContent = pageTitles[next];
-    $$(".sidebar-nav a").forEach(a => {
+    $$(".sidebar-nav [data-view-link]").forEach(a => {
       a.classList.toggle("active", a.dataset.viewLink === next);
       if (a.dataset.viewLink === next) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current");
     });
@@ -169,8 +174,9 @@
     $("#menu-toggle").setAttribute("aria-expanded", "false");
     root.innerHTML = `<div class="loading" role="status">Carregando informações…</div>`;
     try {
-      const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers, historico: showHistory, importar: showImport };
+      const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers, historico: showHistory };
       await pages[next]();
+      if (openImportAfterRoute) openImportDialog();
     } catch (e) {
       root.innerHTML = heading("Agenda Prado", "Não foi possível carregar", e.message || "Verifique sua conexão.") + `<button class="secondary" id="retry">Tentar novamente</button>`;
       $("#retry").onclick = () => navigate();
@@ -195,7 +201,7 @@
       a.pending += ag?.aguardando || 0;
       return a;
     }, { total: 0, received: 0, missed: 0, pending: 0 });
-    root.innerHTML = heading("Painel administrativo", "Recebimento", `Resumo operacional de ${dt(state.date)} · ${state.user.papel === "visualizador" ? "Somente consulta" : "Gestão"}`, state.user.papel === "admin" ? `<a class="primary" href="#importar">Importar agenda</a>` : "") +
+    root.innerHTML = heading("Painel administrativo", "Recebimento", `Resumo operacional de ${dt(state.date)} · ${state.user.papel === "visualizador" ? "Somente consulta" : "Gestão"}`, state.user.papel === "admin" ? `<button class="primary" type="button" data-open-import>Importar agenda</button>` : "") +
       stats([["Agendamentos", totals.total, "Total programado"], ["Recebidos", totals.received, "Confirmados"], ["Não recebidos", totals.missed, "Ocorrências"], ["Aguardando", totals.pending, "Pendentes"]]) +
       `<div class="toolbar"><div><h2>Operação por loja</h2><p>Acompanhamento diário em uma única visualização</p></div><div class="filters-inline"><label class="field">Data<input type="date" id="dash-date" value="${esc(state.date)}"></label><label class="field">Loja<select id="dash-store">${storeOpts(state.store)}</select></label><button class="secondary" id="dash-refresh">Atualizar</button></div></div>` +
       panel("Unidades", "Apenas lojas ativas com conferente ativo", table(["Presença", "Loja", "Agenda", "Total", "Recebidos", "Pendentes", "Situação", "Ação"], active.map(s => `<tr>
@@ -461,52 +467,110 @@
     setTimeout(()=>URL.revokeObjectURL(url),1000);
   };
 }
-  async function showImport(){
-  root.innerHTML=heading("Operação", "Importar agendas", "Analise o arquivo antes de confirmar a importação no D1 de testes.")+
-    `<div class="card"><div class="card-header"><div><h2>Arquivo de agendas</h2><p>Validação e conferência antes de gravar</p></div></div>
-      <div style="padding:22px"><label class="field">Selecione CSV ou PDF<input id="import-file" type="file" accept=".csv,text/csv,.pdf,application/pdf"></label></div>
-    </div><div id="import-preview"></div>`;
-  $("#import-file").onchange=async e=>{
-    const file=e.target.files?.[0];
-    if(!file)return;
-    const target=$("#import-preview");
-    target.innerHTML='<div class="loading" role="status">Lendo arquivo e verificando os registros…</div>';
-    if(file.size>10*1024*1024){target.innerHTML='<div class="alert">O arquivo excede 10 MB.</div>';return}
-    try{
-      const tools=await import("./parseAgendaBatch.js");
-      const pdf=file.name.toLowerCase().endsWith(".pdf")||file.type==="application/pdf";
-      if(!pdf&&!file.name.toLowerCase().endsWith(".csv")&&file.type!=="text/csv")throw Error("Selecione um CSV ou PDF.");
-      const text=pdf?await (await import("./extractPdfText.js")).extractPdfText(file):await file.text();
-      const preview=pdf?tools.parseAgendaPdfText(text):tools.parseAgendaCsv(text);
-      const all=preview.agendas.flatMap(x=>x.appointments.map(ap=>({storeCode:x.storeCode,appointment:ap})));
-      target.innerHTML=stats([["Lojas",preview.agendas.length,"Unidades reconhecidas"],["Registros",preview.totalAppointments,"Agendamentos"],["Erros",preview.blockingErrors.length,"Bloqueios"],["Avisos",preview.warnings.length,"A revisar"]])+
-        (preview.blockingErrors.length?`<div class="alert" role="alert"><strong>Corrija antes de importar:</strong><ul>${preview.blockingErrors.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"")+
-        (preview.warnings.length?`<div class="alert"><strong>Avisos:</strong><ul>${preview.warnings.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`:"")+
-        panel("Prévia do arquivo",`${all.length} linhas identificadas`,table(["Loja","Horário","Protocolo","Fornecedor","Itens","Volumes","Tipo"],all.slice(0,200).map(x=>`<tr><td>${esc(x.storeCode)}</td><td>${esc(x.appointment.startTime)}</td><td>${esc(x.appointment.protocol)}</td><td>${esc(x.appointment.supplier)}</td><td>${fmt(x.appointment.items)}</td><td>${fmt(x.appointment.volumes)}</td><td>${esc(x.appointment.type)}</td></tr>`)))+
-        `<button class="primary" id="import-confirm" ${preview.blockingErrors.length||!preview.agendas.length?"disabled":""}>Confirmar importação</button>`;
-      $("#import-confirm").onclick=()=>asyncAction(async ()=>{
-        const agendas=preview.agendas.map(agenda=>({
-          storeCode:agenda.storeCode,
-          date:agenda.date,
-          originalFileName:file.name,
-          appointments:agenda.appointments.map(({status,...data})=>data),
-        }));
-        if(agendas.some(a=>!a.storeCode||!a.date)||!agendas.length)throw Error("Verifique a data e as lojas do arquivo.");
-        let result;
-        try{result=await json("POST","/api/admin/agendas/import/bulk",{agendas})}
-        catch(error){
-          if(error.status!==409)throw error;
-          if(!confirm("Já existem agendas para algumas lojas e datas. Substituir mantendo as conferências preservadas?"))return;
-          result=await json("POST","/api/admin/agendas/import/bulk",{agendas:agendas.map(x=>({...x,replace:true}))});
-        }
-        tell(`${result.totalAgendas} agendas e ${result.totalAppointments} agendamentos importados.`);
-        target.innerHTML='<div class="alert">Importação concluída. Consulte o painel ou o histórico.</div>';
-      });
-    }catch(error){
-      target.innerHTML=`<div class="alert" role="alert">${esc(error.message||"Não foi possível interpretar o arquivo.")}</div>`;
-    }
-  };
-}
+  function openImportDialog(opener = document.activeElement) {
+    if (state.user?.papel !== "admin" || state.busy || $("#dialog-host").children.length) return;
+    const returnFocus = opener.closest?.(".sidebar") && shell.classList.contains("nav-open") ? $("#menu-toggle") : opener;
+    shell.classList.remove("nav-open");
+    $("#menu-toggle").setAttribute("aria-expanded", "false");
+    const host = $("#dialog-host");
+    host.innerHTML = `<div class="dialog-backdrop"><section class="dialog import-dialog" role="dialog" aria-modal="true" aria-labelledby="import-dialog-title" tabindex="-1">
+      <header class="import-dialog-header">
+        <div><p class="eyebrow">Operação</p><h2 id="import-dialog-title">Importar agenda</h2><p class="import-dialog-note">Selecione um arquivo CSV ou PDF e confira os registros antes de gravar.</p></div>
+        <button class="icon-button" id="import-close" type="button" aria-label="Fechar importação">×</button>
+      </header>
+      <div class="import-dialog-content">
+        <label class="field">Arquivo de agenda<input id="import-file" type="file" accept=".csv,text/csv,.pdf,application/pdf"></label>
+        <p class="data-note">CSV ou PDF de até 10 MB. Os dados serão gravados apenas no banco isolado da preview.</p>
+        <div id="import-preview"></div>
+      </div>
+      <div class="dialog-actions import-dialog-actions">
+        <button class="secondary" type="button" id="import-cancel">Cancelar</button>
+        <button class="primary" type="button" id="import-confirm" disabled>Confirmar importação</button>
+      </div>
+    </section></div>`;
+    const dialog = $(".import-dialog", host);
+    const close = () => {
+      host.replaceChildren();
+      document.body.classList.remove("dialog-open");
+      document.removeEventListener("keydown", onKey);
+      returnFocus?.focus?.();
+    };
+    const onKey = e => {
+      if (e.key === "Escape") { e.preventDefault(); close(); return; }
+      if (e.key !== "Tab") return;
+      const items = $$("button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])", dialog);
+      if (!items.length) return;
+      const first = items[0], last = items.at(-1);
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    document.body.classList.add("dialog-open");
+    document.addEventListener("keydown", onKey);
+    $("#import-close", host).onclick = close;
+    $("#import-cancel", host).onclick = close;
+    $(".dialog-backdrop", host).addEventListener("click", e => { if (e.target === e.currentTarget) close(); });
+    const fileInput = $("#import-file", host);
+    const target = $("#import-preview", host);
+    const confirmButton = $("#import-confirm", host);
+    let pendingAgendas = null;
+    fileInput.focus();
+
+    fileInput.onchange = async e => {
+      const file = e.currentTarget.files?.[0];
+      if (!file) return;
+      pendingAgendas = null;
+      confirmButton.disabled = true;
+      target.innerHTML = '<div class="loading" role="status">Lendo arquivo e verificando os registros…</div>';
+      if (file.size > 10 * 1024 * 1024) { target.innerHTML = '<div class="alert" role="alert">O arquivo excede 10 MB.</div>'; return; }
+      try {
+        const tools = await import("./parseAgendaBatch.js");
+        const pdf = file.name.toLowerCase().endsWith(".pdf") || file.type === "application/pdf";
+        if (!pdf && !file.name.toLowerCase().endsWith(".csv") && file.type !== "text/csv") throw Error("Selecione um CSV ou PDF.");
+        const text = pdf ? await (await import("./extractPdfText.js")).extractPdfText(file) : await file.text();
+        const preview = pdf ? tools.parseAgendaPdfText(text) : tools.parseAgendaCsv(text);
+        const all = preview.agendas.flatMap(x => x.appointments.map(ap => ({ storeCode: x.storeCode, appointment: ap })));
+        pendingAgendas = preview.agendas;
+        target.innerHTML = stats([["Lojas", preview.agendas.length, "Unidades reconhecidas"], ["Registros", preview.totalAppointments, "Agendamentos"], ["Erros", preview.blockingErrors.length, "Bloqueios"], ["Avisos", preview.warnings.length, "A revisar"]]) +
+          (preview.blockingErrors.length ? `<div class="alert" role="alert"><strong>Corrija antes de importar:</strong><ul>${preview.blockingErrors.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "") +
+          (preview.warnings.length ? `<div class="alert"><strong>Avisos:</strong><ul>${preview.warnings.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "") +
+          panel("Prévia do arquivo", `${all.length} linhas identificadas`, table(["Loja", "Horário", "Protocolo", "Fornecedor", "Itens", "Volumes", "Tipo"], all.slice(0, 200).map(x => `<tr><td>${esc(x.storeCode)}</td><td>${esc(x.appointment.startTime)}</td><td>${esc(x.appointment.protocol)}</td><td>${esc(x.appointment.supplier)}</td><td>${fmt(x.appointment.items)}</td><td>${fmt(x.appointment.volumes)}</td><td>${esc(x.appointment.type)}</td></tr>`)));
+        confirmButton.disabled = preview.blockingErrors.length > 0 || !preview.agendas.length;
+      } catch (error) {
+        pendingAgendas = null;
+        target.innerHTML = `<div class="alert" role="alert">${esc(error.message || "Não foi possível interpretar o arquivo.")}</div>`;
+      }
+    };
+
+    confirmButton.onclick = () => asyncAction(async () => {
+      if (!pendingAgendas?.length) throw Error("Selecione um arquivo válido antes de confirmar.");
+      const file = fileInput.files?.[0];
+      const agendas = pendingAgendas.map(agenda => ({
+        storeCode: agenda.storeCode,
+        date: agenda.date,
+        originalFileName: file?.name || "",
+        appointments: agenda.appointments.map(({ status, ...data }) => data),
+      }));
+      if (agendas.some(a => !a.storeCode || !a.date) || !agendas.length) throw Error("Verifique a data e as lojas do arquivo.");
+      let result;
+      try { result = await json("POST", "/api/admin/agendas/import/bulk", { agendas }); }
+      catch (error) {
+        if (error.status !== 409) throw error;
+        if (!confirm("Já existem agendas para algumas lojas e datas. Substituir mantendo as conferências preservadas?")) return;
+        result = await json("POST", "/api/admin/agendas/import/bulk", { agendas: agendas.map(x => ({ ...x, replace: true })) });
+      }
+      const message = `${result.totalAgendas} agendas e ${result.totalAppointments} agendamentos importados.`;
+      close();
+      await navigate();
+      root.focus();
+      tell(message);
+    });
+  }
+  document.addEventListener("click", e => {
+    const trigger = e.target.closest?.("[data-open-import]");
+    if (!trigger || trigger.disabled) return;
+    e.preventDefault();
+    openImportDialog(trigger);
+  });
   window.addEventListener("hashchange", () => navigate());
   $("#menu-toggle").onclick = () => {
     const on = shell.classList.toggle("nav-open");
@@ -517,7 +581,7 @@
   $(".preview-chip").textContent = "PREVIEW · D1 ISOLADO";
   const oldBottom = $(".sidebar-bottom p"); if (oldBottom) oldBottom.textContent = "Ambiente exclusivo de testes. Nenhum dado de produção é utilizado.";
   const menu = $(".sidebar-nav");
-  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><a href="#importar" data-view-link="importar">Importação</a><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
+  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><button class="nav-action" type="button" data-view-link="importar" data-open-import><span aria-hidden="true">↥</span>Importação</button><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
   $("#sidebar-logout").onclick = () => asyncAction(async () => {
     await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null; location.hash = ""; await makeLogin();
   });
