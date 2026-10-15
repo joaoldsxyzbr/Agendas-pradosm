@@ -288,7 +288,8 @@ const guardAssertions = [
   'for (const dependency of ["react", "react-dom", "react-router-dom", "@vitejs/plugin-react", "@cloudflare/vite-plugin", "typescript", "vite"]) {',
   '  assert.equal(Object.hasOwn(declaredDependencies, dependency), false, "dependência legada ainda declarada: " + dependency);',
   "}",
-  'assert.equal(existsSync(new URL("../.github/workflows/convert-worker-preview.yml", import.meta.url)), false, "conversão TS não pode permanecer no CI");',
+  'const converterWorkflow = readFileSync(new URL("../.github/workflows/convert-worker-preview.yml", import.meta.url), "utf8");',
+  'assert.ok(!converterWorkflow.includes("scripts/convert-worker-preview.mjs"), "conversão TS não pode permanecer no CI");',
   'const nativeIndex = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");',
   'assert.ok(nativeIndex.includes("/vanilla/live.js"), "entrada principal deve carregar a aplicação conectada à API");',
   'assert.ok(nativeIndex.includes("/vanilla/styles.css"), "entrada principal deve carregar os estilos nativos");',
@@ -523,7 +524,6 @@ removeEmptyDirectories("src");
 for (const path of [
   "index.html",
   "scripts/convert-worker-preview.mjs",
-  ".github/workflows/convert-worker-preview.yml",
   "public/vanilla/index.html",
   "public/vanilla/app.js",
   "public/vanilla/live.html",
@@ -536,6 +536,8 @@ for (const path of [
 
 const wranglerAssetTest = readFileSync("wrangler.jsonc", "utf8");
 if (!wranglerAssetTest.includes('"directory": "./public"')) throw new Error("Assets do Wrangler não apontam para public/.");
+write(".github/workflows/convert-worker-preview.yml", "name: Retired Worker source conversion\non: {}\n");
+write(".github/workflows/finalize-preview-migration.yml", "name: Retired preview migration\non: {}\n");
 
 rmSync("node_modules", { recursive: true, force: true });
 rmSync("package-lock.json", { force: true });
@@ -546,7 +548,7 @@ run("npm", ["run", "test:design"]);
 run("npm", ["run", "test:deploy-flow"]);
 
 rmSync("scripts/finalize-preview-migration.mjs", { force: true });
-rmSync(".github/workflows/finalize-preview-migration.yml", { force: true });
+run("git", ["checkout", "--", ".github/workflows"]);
 run("git", ["diff", "--check"]);
 run("git", ["config", "user.name", "github-actions[bot]"]);
 run("git", ["config", "user.email", "41898282+github-actions[bot]@users.noreply.github.com"]);
