@@ -6,7 +6,7 @@ test("JavaScript puro: painel e navegação após login rápido", async ({ page 
   await page.getByRole("button", { name: /Administrador/ }).click();
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
   await page.getByRole("link", { name: /Lojas/ }).click();
-  await expect(page.getByRole("heading", { name: "Lojas" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Usuários/ }).click();
   await expect(page.getByRole("heading", { name: "Usuários" })).toBeVisible();
 });
