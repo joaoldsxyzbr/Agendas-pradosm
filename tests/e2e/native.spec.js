@@ -26,3 +26,13 @@ test("JavaScript puro: visualizador não acessa cadastros", async ({ page }) => 
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
   await expect(page.getByRole("link", { name: "Lojas" })).toHaveCount(0);
 });
+
+test("JavaScript puro: relatórios gerenciais consultam D1 por período", async ({ page }) => {
+  await page.goto("/vanilla/live.html");
+  await page.getByRole("button", { name: /Visualizador/ }).click();
+  await page.getByRole("link", { name: /Relatórios/ }).click();
+  await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Ocorrências e observações" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Exportar CSV" })).toBeVisible();
+});
