@@ -507,7 +507,6 @@ adminAgendaRoutes.post("/:id/manual", async (c) => {
       agenda.status_dia === "concluido"
         ? `Fornecedor manual ${parsed.data.supplier} adicionado pelo administrador.`
         : undefined,
-      parsed.data.observation,
     );
 
     await publishAgendaChanged(c.env, {
@@ -701,6 +700,7 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
       changed
         ? `Status alterado de ${appointment.status} para ${parsed.data.status}.`
         : undefined,
+      parsed.data.observation,
     );
 
     await publishAgendaChanged(c.env, {
