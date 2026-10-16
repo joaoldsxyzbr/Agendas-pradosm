@@ -1,0 +1,80 @@
+/* Recebimento: acabamento operacional denso, sem alterar telas de outros perfis */
+.sidebar { padding-top:22px; padding-bottom:16px }
+.brand { margin-bottom:36px }
+.sidebar-nav { display:flex; flex-direction:column; flex:1; gap:4px }
+.sidebar-nav a { min-height:43px; padding:10px 12px; font-weight:560 }
+.sidebar-nav a.active { background:#29374b; border-color:#374b67; box-shadow:inset 2px 0 var(--accent) }
+.sidebar-logout { margin-top:auto; width:100%; background:transparent; border-color:var(--stroke-soft); color:var(--muted) }
+.sidebar-logout:hover { color:var(--text) }
+.topbar { height:66px; min-height:66px; padding-left:30px; padding-right:30px }
+.topbar-breadcrumb { font-size:12px }
+.account { gap:10px }
+.main { padding:29px 30px 58px }
+.dashboard-page .page-heading { margin-bottom:22px; align-items:center }
+.dashboard-page .eyebrow { margin-bottom:6px; font-size:10px; letter-spacing:.09em }
+.dashboard-page h1 { font-size:28px; font-weight:735 }
+.dashboard-page .heading-note { margin-top:6px; font-size:12px }
+.dashboard-page .page-actions .primary { min-height:39px; padding:9px 16px }
+.dashboard-page .stats { gap:12px; margin-bottom:26px }
+.dashboard-page .stat { min-height:106px; padding:16px 18px; border-color:#393e47; border-radius:10px; background:#20242b; transition:border-color .15s ease }
+.dashboard-page .stat:hover { border-color:#4b5665 }
+.dashboard-page .stat-label { gap:10px; font-size:12px; font-weight:610; color:#bec6d2 }
+.dashboard-page .stat-label::before { content:""; width:7px; height:7px; flex-shrink:0; border-radius:50%; background:var(--stat-tone) }
+.dashboard-page .stat-value { margin-top:9px; font-size:29px; font-weight:735; letter-spacing:-.04em }
+.dashboard-page .stat-foot { margin-top:5px; font-size:11px; color:#a3acb9 }
+.dashboard-page .toolbar { margin-bottom:12px; gap:18px }
+.dashboard-page .toolbar h2 { font-size:16px; font-weight:690 }
+.dashboard-page .toolbar p { margin-top:2px; font-size:11px; color:var(--subtle) }
+.dashboard-page .filters-inline { gap:8px }
+.dashboard-page .filters-inline .field { gap:5px; font-size:11px; font-weight:620 }
+.dashboard-page .filters-inline .field input,
+.dashboard-page .filters-inline .field select { min-height:36px; padding:7px 10px; background:#1e2229 }
+.dashboard-page .filters-inline #dash-date { min-width:155px }
+.dashboard-page .filters-inline #dash-store { min-width:195px; max-width:240px }
+.dashboard-page .filters-inline .secondary { min-height:36px; padding:7px 13px }
+.dashboard-page .card { border-color:#393f49; border-radius:10px }
+.dashboard-page .card-header { padding:14px 18px; background:#21252b }
+.dashboard-page .card-header h2 { font-size:14px }
+.dashboard-page .card-header p { font-size:11px; margin-top:3px }
+.dashboard-page table { min-width:1020px; font-variant-numeric:tabular-nums }
+.dashboard-page th { background:#262b33; padding:10px 12px; font-size:11px; font-weight:655; color:#b6becc }
+.dashboard-page td { padding:12px; font-size:12px; color:#d9dfe7 }
+.dashboard-page th:nth-child(n+4):nth-child(-n+7) { text-align:right }
+.dashboard-page td.cell-primary { font-size:12px; font-weight:680; color:var(--text) }
+.dashboard-page .agenda-mark { color:#c6d1df; font-size:11px; white-space:nowrap }
+.dashboard-page .mini-button { min-height:32px; background:#2d3541; border-color:#465365; padding:6px 11px }
+.dashboard-page .mini-button:hover { background:#354357; border-color:#6c86a6 }
+.dashboard-page .status { padding:4px 8px; font-size:10px; border-radius:6px }
+.dashboard-page .status.aberto { color:#bcd7fa; background:#263548; border-color:#455d7c }
+.dashboard-page .status.concluido { color:#a5e4c4; background:#243a32; border-color:#3c6252 }
+@media (max-width:1150px) {
+  .main { padding:26px 24px 54px }
+  .dashboard-page .stats { gap:10px }
+  .dashboard-page .toolbar { align-items:flex-start }
+}
+@media (max-width:720px) {
+  .sidebar { padding-top:22px }
+  .topbar { height:64px; min-height:64px; padding:0 16px }
+  .main { padding:22px 14px 48px }
+  .dashboard-page .page-heading { align-items:flex-start; gap:12px; margin-bottom:18px }
+  .dashboard-page .page-actions .primary { width:100% }
+  .dashboard-page .stats { gap:8px; margin-bottom:20px }
+  .dashboard-page .stat { min-height:99px; padding:13px 12px }
+  .dashboard-page .stat-value { font-size:25px; margin-top:9px }
+  .dashboard-page .stat-foot { font-size:10px }
+  .dashboard-page .toolbar { display:block }
+  .dashboard-page .toolbar > div:first-child { margin-bottom:12px }
+  .dashboard-page .filters-inline { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:9px }
+  .dashboard-page .filters-inline .field { min-width:0 }
+  .dashboard-page .filters-inline #dash-date,
+  .dashboard-page .filters-inline #dash-store { min-width:0; max-width:none }
+  .dashboard-page .filters-inline .secondary { grid-column:1/-1 }
+  .dashboard-page .card-header { padding:13px 14px }
+  .dashboard-page td,.dashboard-page th { padding:10px 12px }
+}
+@media (prefers-reduced-motion:reduce) {
+  .dashboard-page .stat { transition:none }
+}
+@media print {
+  .dashboard-page .stat,.dashboard-page .card,.dashboard-page th,.dashboard-page td { background:#fff; color:#111; border-color:#bbb }
+}

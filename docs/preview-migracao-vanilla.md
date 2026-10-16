@@ -2,7 +2,7 @@
 
 ## Estado
 
-A branch preview usa a aplicação HTML/CSS/JavaScript servida diretamente pelo Cloudflare Worker. A entrada publicada é public/index.html; ela carrega public/vanilla/live.js e public/vanilla/styles.css. O Wrangler serve os assets de public/ e mantém a API no Worker.
+A branch preview usa a aplicação HTML/CSS/JavaScript servida diretamente pelo Cloudflare Worker. A entrada publicada é public/index.html; ela carrega `public/vanilla/live.js` e CSS nativo dividido por responsabilidades. Os módulos de cada tela estão em `public/vanilla/pages/` e os popups compartilhados em `public/vanilla/features/`. Consulte `docs/ARQUITETURA.md`. O Wrangler serve os assets de public/ e mantém a API no Worker.
 
 A interface principal é a versão conectada às APIs e ao D1 exclusivo da preview. A demonstração antiga em memória foi retirada para que não haja dois caminhos de entrada. O backend executável e os testes do Worker usam módulos JavaScript. React, Vite como servidor/build e TypeScript foram retirados do projeto executável. Vitest continua na suíte de testes e usa Vite internamente como infraestrutura do runner.
 

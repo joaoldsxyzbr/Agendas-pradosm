@@ -6,7 +6,7 @@ Sistema web de gestão das agendas de recebimento das lojas Prado Supermercados.
 
 | Pasta | Responsabilidade |
 | --- | --- |
-| `public/` | Interface HTML, CSS e JavaScript puro |
+| `public/` | Interface HTML, CSS e JavaScript puro (telas em `public/vanilla/pages/`) |
 | `worker/` | Backend Cloudflare Workers e APIs |
 | `src/` | Fontes auxiliares de importação e exportação |
 | `shared/` | Funções e contratos compartilhados |

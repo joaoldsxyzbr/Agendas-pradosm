@@ -56,3 +56,38 @@ Fluxo obrigatório: **preview → validar → main**. A `main` só muda após va
 - [Recuperação do D1](operations/data-recovery.md)
 
 **Alteração documental nesta etapa:** as responsabilidades foram centralizadas e o README foi simplificado; os diretórios e os caminhos técnicos foram mantidos. Não equivale a uma migração física das pastas nem à eliminação de arquivos ainda não verificados.
+
+## Organização da interface na `preview` — 16/10/2026
+
+```text
+public/
+  index.html                     Entrada HTML
+  vanilla/
+    live.js                      Sessão, login, navegação, realtime
+    pages/
+      recebimento.js             Tela de Recebimento
+      conferente.js              Tela do Conferente
+      lojas.js                   Tela de Lojas
+      usuarios.js                Tela de Usuários
+      relatorios.js              Tela de Relatórios
+    features/
+      agenda.js                  Popup de agenda, status e fornecedores
+      importacao.js              Popup de importação CSV/PDF
+    reports.js                   Cálculos dos relatórios
+    parseAgendaBatch.js          Importador CSV/lotes
+    parseAgendaText.js           Importador PDF/texto
+    extractPdfText.js            Extrator gerado de PDF
+    exportAgendaPdf.js           PDF da agenda
+    styles.css                   Estilos compartilhados
+    styles/
+      recebimento.css            Refinamentos de Recebimento
+      relatorios.css             Gráficos e tabelas de Relatórios
+```
+
+Cada página deve ser alterada preferencialmente em `pages/`, e cada fluxo compartilhado em `features/`. Todos os módulos são **ES modules nativos** e os três CSS são carregados na ordem original de cascata (base, recebimento, relatórios). `src/` contém fontes necessárias ao build do PDF; não se deve apagar arquivos gerados ou workflows sem verificar referências.
+
+A tela antiga de Histórico, que já havia sido removida do menu, saiu do **código ativo**. Os dados históricos no D1 permanecem intactos. Não foi possível excluir fisicamente workflows legados via MCP GitHub atual (sem operação de exclusão).
+
+Correções: datas sem agenda não derrubam o conferente; resposta atrasada não substitui navegação nova; presença HTTP funciona com realtime desligado; filtros são zerados ao retornar ao login; atualização automática respeita filtros do relatório em edição.
+
+Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e testes completos continuam para a finalização.
