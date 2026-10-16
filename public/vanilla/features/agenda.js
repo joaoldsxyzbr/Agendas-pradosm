@@ -16,6 +16,9 @@ export function createAgendaController(ctx) {
       <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(item.supplier)}" data-exchange="${esc(item.id)}" ${item.hasExchanges ? "checked" : ""}>` : (item.hasExchanges ? "Sim" : "Não")}</td>
       <td class="detail-line">${esc(item.observation || "—")}</td>
       <td><div class="inline-actions"><button class="mini-button" type="button" data-appointment-detail="${esc(item.id)}">Detalhes</button>
+        ${editable ? `<select class="status-select" data-status-select="${esc(item.id)}" aria-label="Status de ${esc(item.supplier)}">
+          ${[["aguardando","Aguardando"],["recebido","Recebido"],["nao_chegou","Não recebido"],["recusado","Recusado"]].map(([value,label])=>
+            `<option value="${value}" ${item.status===value?"selected":""}>${label}</option>`).join("")}</select>` : ""}
         ${editable ? `<button class="mini-button" data-status="${esc(item.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button>
           <button class="mini-button" data-status="${esc(item.id)}" data-next="nao_chegou" title="Não recebido ou Aguardando">✕</button>
           ${item.origin === "manual" ? `<button class="mini-button" data-manual-edit="${esc(item.id)}">Editar</button><button class="mini-button" data-manual-remove="${esc(item.id)}">Excluir</button>` : ""}` : ""}
@@ -71,6 +74,22 @@ export function createAgendaController(ctx) {
           });
       } else asyncAction(()=>updateStatus(a.id,desired,base));
     });
+    $$("[data-status-select]").forEach(select => select.onchange = e => {
+      const item = items.find(a => a.id === select.dataset.statusSelect);
+      if (!item) return;
+      const desired = e.target.value;
+      if (desired === item.status) return;
+      if (desired === "nao_chegou") {
+        modal("Motivo do não recebimento",
+          '<label class="field">Observação obrigatória<textarea name="observation" required maxlength="240" rows="4" placeholder="Descreva o motivo"></textarea></label>',
+          "Salvar", async data => {
+            if (!data.observation.trim()) throw Error("Informe o motivo.");
+            await json("PATCH", `${base}/${encodeURIComponent(item.id)}/status`, {status:desired,observation:data.observation.trim()});
+            if (!await refreshDetailDialog()) await navigate();
+            tell("Status e motivo atualizados.");
+          });
+      } else asyncAction(() => updateStatus(item.id, desired, base));
+    });
     $$("[data-exchange]").forEach(input => input.onchange = e => asyncAction(async () => {
       await json("PATCH", `${base}/${encodeURIComponent(input.dataset.exchange)}/exchanges`, { hasExchanges: e.target.checked });
       tell("Trocas atualizadas."); if (!await refreshDetailDialog()) await navigate();
@@ -96,11 +115,12 @@ export function createAgendaController(ctx) {
   };
   const showAgendaDetail = async () => {
     const { agenda, appointments } = state.detail;
-    const editable = state.user.papel === "admin" && state.edit && agenda.dayStatus !== "concluido";
+    const editable = state.user.papel === "admin" && state.edit;
     const body = heading("Agenda da loja", `${agenda.storeCode} · ${agenda.storeName}`, `Data: ${dt(agenda.date)} · ${statusLabel(agenda.dayStatus)}`,
       `${state.user.papel === "admin" ? `<button class="secondary" id="edit-agenda">${state.edit ? "Sair da edição" : "Modo editar"}</button>` : ""}
        <button class="icon-button" id="agenda-back" type="button" aria-label="Fechar agenda">×</button>`) +
       (state.user.papel === "admin" && agenda.dayStatus === "concluido" ? `<button class="secondary" id="reopen">Reabrir agenda</button>` : "") +
+      (editable && agenda.dayStatus === "concluido" ? `<p class="alert">Modo editar em agenda concluída: os ajustes ficam registrados no histórico.</p>` : "") +
       (editable ? `<div class="toolbar"><button class="secondary" id="add-to-agenda">Adicionar fornecedor sem agenda</button></div>` : "") +
       `<div class="appointment-toolbar"><label class="field search">Pesquisar fornecedor ou protocolo
         <input type="search" id="agenda-search" value="${esc(state.detailSearch || "")}" placeholder="Pesquisar fornecedor ou protocolo"></label>

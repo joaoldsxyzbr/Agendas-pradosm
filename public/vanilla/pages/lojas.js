@@ -18,12 +18,22 @@ export async function showStores(ctx){
  render();
 }
 function storeDialog(ctx,store=null){
- const {field,modal,json,navigate,tell}=ctx;
+ const {field,modal,json,navigate,tell,api,asyncAction,$}=ctx;
  const body=field("Código","codigo",store?.codigo||"")+field("Nome","nome",store?.nome||"")+
- (store?`<label class="field">Situação<select name="ativo"><option value="true" ${store.ativo?"selected":""}>Ativa</option><option value="false" ${store.ativo?"":"selected"}>Inativa</option></select></label>`:"")+(store?auditMarkup():"");
+ (store?`<label class="field">Situação<select name="ativo"><option value="true" ${store.ativo?"selected":""}>Ativa</option><option value="false" ${store.ativo?"":"selected"}>Inativa</option></select></label>`:"")+(store?auditMarkup():"")+
+ (store?`<section class="store-danger"><div><strong>Excluir loja</strong><small>Preserva agendas e histórico. Bloqueado se houver usuários vinculados.</small></div><button type="button" class="secondary" id="delete-store">Excluir loja</button></section>`:"");
  const d=modal(store?"Editar loja":"Nova loja",body,"Salvar",async data=>{
   await json(store?"PATCH":"POST","/api/admin/stores",{...(store?{id:store.id}:{}),codigo:data.codigo.trim().toUpperCase(),nome:data.nome.trim(),...(store?{ativo:data.ativo==="true"}:{})});
   await navigate();tell("Loja salva.");
  });
- if(store)bindAudit(ctx,d.host,"loja",store.id);
+ if(store) {
+   bindAudit(ctx,d.host,"loja",store.id);
+   $("#delete-store",d.host).onclick=()=>asyncAction(async()=>{
+     if(!confirm(`Excluir a loja ${store.codigo} · ${store.nome}? A operação não apaga agendas nem histórico.`))return;
+     await api("/api/admin/stores/"+encodeURIComponent(store.id),{method:"DELETE"});
+     d.close();
+     await navigate();
+     tell("Loja excluída do cadastro; histórico preservado.");
+   });
+ }
 }

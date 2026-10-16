@@ -109,3 +109,11 @@ Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e test
 - Os dados são carregados pelas APIs existentes `/api/store/appointments/:id`, `/api/admin/appointments/:id/history` e `/api/admin/agendas/:id/history`. Visualizador mantém acesso somente às informações permitidas; nenhuma permissão foi ampliada.
 - Pesquisa filtra apenas os itens visíveis, preservando a agenda real e os controles. Fluxos existentes de status/fornecedores continuam com as rotas já usadas.
 - Sem React, TypeScript nem build frontend; sem alterações no Worker, D1 e `main`. Rodar bateria completa somente na validação final.
+
+
+## Ajustes finais de paridade — 16/10/2026
+
+- O painel Recebimento também tem navegação por dia anterior/próximo e retorno rápido para Hoje, mantendo o filtro de loja.
+- A edição de loja recuperou a exclusão controlada do cadastro, usando `DELETE /api/admin/stores/:id`, que preserva registros e bloqueia a operação enquanto há usuários vinculados.
+- Na agenda concluída, o administrador pode entrar em **Modo editar** e ajustar status inclusive recusado, com motivo obrigatório para não recebido. A API atual registra as alterações para auditoria. Essa possibilidade substitui a necessidade de recriar a antiga aba de Histórico.
+- UI segue HTML, CSS e JS puro; nenhuma alteração em `main`, D1 ou backend.

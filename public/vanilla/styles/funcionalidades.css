@@ -37,3 +37,9 @@
 .document-fields strong { font-size:12px }
 .document-fields p { color:var(--muted);font-size:12px;margin:4px 0 0;overflow-wrap:anywhere }
 @media(max-width:720px) {.catalog-filters .field,.catalog-filters .field.wide { flex:1 1 100% }.appointment-toolbar .field { flex:1 1 100%;max-width:none }.document-fields { grid-template-columns:1fr }.appointment-detail { padding:14px }}
+
+.store-danger { margin-top:12px;border:1px solid #604349;border-radius:8px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap }
+.store-danger strong,.store-danger small { display:block }
+.store-danger strong {font-size:12px}.store-danger small {color:var(--muted);font-size:11px}
+.store-danger button {color:#f4bab8;border-color:#8e5559;background:#433035}
+.status-select {border:1px solid var(--stroke);border-radius:6px;background:var(--control);color:var(--text);font-size:11px;padding:5px;max-width:145px}
