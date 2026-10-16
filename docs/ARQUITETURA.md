@@ -91,3 +91,12 @@ A tela antiga de Histórico, que já havia sido removida do menu, saiu do **cód
 Correções: datas sem agenda não derrubam o conferente; resposta atrasada não substitui navegação nova; presença HTTP funciona com realtime desligado; filtros são zerados ao retornar ao login; atualização automática respeita filtros do relatório em edição.
 
 Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e testes completos continuam para a finalização.
+
+## Recuperação de recursos de cadastros — 16/10/2026
+
+- Lojas: busca por código/nome e filtro por situação, com contagem filtrada.
+- Usuários: busca por nome/login/loja, filtros por perfil e situação.
+- Auditoria no próprio modal de edição de lojas/usuários, usando a API já existente `/api/admin/audit`, com carregamento sob demanda.
+- Os filtros são mantidos na sessão e resetados ao sair. Código reutilizável em `public/vanilla/features/filtros.js` e `features/auditoria.js`.
+- CSS compartilhado desses controles em `public/vanilla/styles/funcionalidades.css`.
+- `main`, Worker e D1 não alterados; validação final completa será realizada quando a versão estiver pronta.
