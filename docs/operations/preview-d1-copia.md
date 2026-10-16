@@ -56,3 +56,17 @@ Reproduzir **volume, datas, status, relacionamentos e índices** do D1 da produ�
 - **Migrações:** já há 17 registros correspondentes à preview no banco copiado. Não usar seeds destrutivos nem importar backups da produção sobre o D1 copiado.
 - **Publicação:** a alteração do arquivo do GitHub não garante que o Worker já usa a nova binding. Verificar separadamente o recurso ativo na Cloudflare e testar login rápido, agendas, relatórios e autenticação dos três perfis.
 - **Privacidade:** cópia pseudonimizada, não publicamente anônima. Preservar permissões de acesso, auditoria e restrições.
+
+## Estado da publicação na Cloudflare — diagnóstico de 16/10/2026
+
+**Configuração GitHub: concluída; conexão ativa no Worker: pendente.**
+
+- `wrangler.jsonc` e `wrangler.preview-migrations.jsonc` da **preview** já apontam para `agendas-pradosm-preview-copia`.
+- O D1 copiado tem 144 agendas, 2.253 agendamentos e as três contas exclusivas `demo-*` habilitadas para login rápido do ambiente de testes.
+- O endpoint Cloudflare **GET** `/accounts/{account_id}/workers/scripts/agendas-pradosm-preview/settings` foi consultado após o commit: ainda informa a binding `DB` com UUID do antigo banco mock `716cc88e-7da8-400e-b4be-edc4be0c9c03`.
+- Tentativas de `PATCH` na API Cloudflare foram rejeitadas pelo executor MCP depois do início da operação. A consulta de leitura posterior confirmou que o vínculo não foi alterado e as oito bindings originais permanecem presentes; por segurança, não repetir gravações sem diagnóstico.
+- O CI GitHub Actions desse commit terminou com **falha**. Não se deve presumir implantação automática bem-sucedida.
+
+**Para concluir a troca ativa:** publicar pelo fluxo de Workers Builds/Wrangler do projeto, **apenas** no Worker `agendas-pradosm-preview`, após corrigir o mecanismo de publicação, ou alterar a binding `DB` nas configurações do Worker via painel Cloudflare para o D1 `agendas-pradosm-preview-copia`. Não alterar nomes ou segredos das outras bindings. Em seguida, consultar novamente `/settings` e confirmar UUID `6b2c7fec-5fbf-4db7-a0c4-d51860799c29`; testar as três contas demo e os relatórios.
+
+**Reversão segura:** configurar novamente o banco mock anterior na binding da preview; não modificar a `main` nem o D1 de produção.
