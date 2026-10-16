@@ -138,3 +138,9 @@ Foi criado um terceiro banco D1, **`agendas-pradosm-preview-copia`**, a partir d
 - Procedimentos, diferenças e validações: [Operação da cópia isolada do D1](operations/preview-d1-copia.md).
 
 Promover ou ligar o Worker `preview` ao banco copiado exige testar autenticação de demonstração, validar os dados e garantir que só há escrita na cópia. O banco da produção jamais deve ser vinculado ao Worker de testes.
+
+## D1 de dados operacionais de teste — 16/10/2026
+
+A branch `preview` passou a configurar o D1 `agendas-pradosm-preview-copia` (`6b2c7fec-5fbf-4db7-a0c4-d51860799c29`), cópia pseudonimizada do banco produtivo. O D1 mock anterior foi preservado; a branch `main` e seu banco real não foram modificados. Três contas exclusivas de demonstração permitem acesso rápido com os papéis admin, visualizador e conferente.
+
+Detalhes, verificação de integridade, reverter binding e cuidados com a publicação: [Cópia D1 da preview](operations/preview-d1-copia.md). Configuração no GitHub e publicação efetiva na Cloudflare devem ser validadas separadamente.

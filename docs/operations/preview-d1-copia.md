@@ -9,8 +9,8 @@ Reproduzir **volume, datas, status, relacionamentos e índices** do D1 da produ�
 | Papel | D1 | UUID | Estado |
 | --- | --- | --- | --- |
 | Produção (somente leitura) | `agendas-pradosm` | `0a7d7d8b-e033-4644-90d4-fbc9ddc64532` | Intacto |
-| Preview existente (mock) | `agendas-pradosm-preview` | `716cc88e-7da8-400e-b4be-edc4be0c9c03` | Intacto e ainda vinculado ao Worker |
-| Cópia para validar | `agendas-pradosm-preview-copia` | `6b2c7fec-5fbf-4db7-a0c4-d51860799c29` | Criado e validado; **não vinculado ao Worker** |
+| Preview existente (mock) | `agendas-pradosm-preview` | `716cc88e-7da8-400e-b4be-edc4be0c9c03` | Intacto; preservado para retorno, não utilizado na nova configuração |
+| Cópia para validar | `agendas-pradosm-preview-copia` | `6b2c7fec-5fbf-4db7-a0c4-d51860799c29` | Criado e validado; configurado como D1 da branch `preview` |
 
 **Atenção:** a cópia não é sincronizada automaticamente e não é um backup de recuperação operacional. Não contém credenciais utilizáveis de produção. Deve ser tratada como dado corporativo de teste e manter acesso restrito à conta Cloudflare autorizada.
 
@@ -47,14 +47,12 @@ Reproduzir **volume, datas, status, relacionamentos e índices** do D1 da produ�
 - Contagens de nomes originais, credenciais originais, fornecedores originais, nomes de arquivos originais, audit logs brutos e presença original nas categorias verificadas: **0**.
 - A leitura final da produção permaneceu com as mesmas quantidades, sem operações de escrita.
 
-## Antes de usar a cópia na aplicação
+## Ativação da cópia na preview — 16/10/2026
 
-O Worker `preview` **continua apontando para o D1 mock original**. Não apontar para a produção. Antes de mudar qualquer configuração:
-
-1. Preparar contas e hashes de senha **exclusivos para teste** no D1 copiado; os usuários pseudonimizados não conseguem autenticar usando senhas reais. Garantir o login rápido dos três perfis apenas no ambiente de testes.
-2. Confirmar compatibilidade de Worker/API e da migração 17, sem rodar seed destrutivo no banco copiado.
-3. Testar importação, recebimento, relatórios, auditoria e permissões com dados da cópia e verificar se nenhum comando escreve no D1 da produção.
-4. Revisar `wrangler.jsonc` apenas na branch `preview`, com autorização para troca de binding. A branch `main` e sua conexão de produção permanecem intocadas.
-5. Manter o banco mock disponível para testes independentes e não versionar dados corporativos, dump SQL, segredos nem credenciais no GitHub.
-
-Para atualização futura da cópia, escolher processo controlado de novo snapshot e pseudonimização; **não** executar `wrangler d1 export` na produção sem avaliar impacto operacional.
+- **GitHub:** `wrangler.jsonc` (`DB`) e `wrangler.preview-migrations.jsonc` (`PREVIEW_DB`) agora usam `agendas-pradosm-preview-copia` (`6b2c7fec-5fbf-4db7-a0c4-d51860799c29`). O nome do Worker, segredo da sessão e todas as outras bindings são preservados.
+- **Login rápido:** contas adicionais exclusivas de testes criadas na cópia: `demo-admin`, `demo-visualizador` e `demo-conferente`. Estão ativas, possuem IDs próprios, credenciais de login normal inutilizáveis e o conferente usa uma loja ativa com agendas. As 11 contas pseudonimizadas anteriores permanecem sem senhas utilizáveis.
+- **Base antiga:** `agendas-pradosm-preview` permanece intacta, disponível para restauração da configuração original (basta retornar o UUID e nome antigos nas configurações).
+- **Dados reais:** o Worker **jamais deve ser vinculado** ao D1 original de produção. Todas as gravações operacionais de testes podem modificar a cópia, nunca a produção.
+- **Migrações:** já há 17 registros correspondentes à preview no banco copiado. Não usar seeds destrutivos nem importar backups da produção sobre o D1 copiado.
+- **Publicação:** a alteração do arquivo do GitHub não garante que o Worker já usa a nova binding. Verificar separadamente o recurso ativo na Cloudflare e testar login rápido, agendas, relatórios e autenticação dos três perfis.
+- **Privacidade:** cópia pseudonimizada, não publicamente anônima. Preservar permissões de acesso, auditoria e restrições.

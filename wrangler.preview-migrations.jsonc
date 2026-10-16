@@ -5,8 +5,8 @@
   "d1_databases": [
     {
       "binding": "PREVIEW_DB",
-      "database_name": "agendas-pradosm-preview",
-      "database_id": "716cc88e-7da8-400e-b4be-edc4be0c9c03",
+      "database_name": "agendas-pradosm-preview-copia",
+      "database_id": "6b2c7fec-5fbf-4db7-a0c4-d51860799c29",
       "migrations_dir": "migrations"
     }
   ]
