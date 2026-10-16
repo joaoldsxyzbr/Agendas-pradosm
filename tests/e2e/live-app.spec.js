@@ -41,6 +41,13 @@ test("administrador percorre recebimento, relatórios e cadastros", async ({ pag
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
+  await expect(page.locator(".report-page .stat")).toHaveCount(6);
+  await expect(page.getByRole("heading", { name: "Evolução diária" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Comparativo por loja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fornecedores com ocorrências" })).toBeVisible();
+  await expect(page.locator('#report-form input[name="compare"]')).toBeChecked();
+  await expect(page.getByRole("columnheader", { name: "Recusados" }).first()).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Sem agenda" }).first()).toBeVisible();
   await page.getByRole("link", { name: /Lojas/ }).click();
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Usuários/ }).click();
