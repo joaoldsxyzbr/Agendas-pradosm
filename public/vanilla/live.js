@@ -581,7 +581,7 @@
   $(".preview-chip").textContent = "PREVIEW · D1 ISOLADO";
   const oldBottom = $(".sidebar-bottom p"); if (oldBottom) oldBottom.textContent = "Ambiente exclusivo de testes. Nenhum dado de produção é utilizado.";
   const menu = $(".sidebar-nav");
-  menu.insertAdjacentHTML("beforeend", `<a href="#historico" data-view-link="historico">Histórico</a><button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
+  menu.insertAdjacentHTML("beforeend", `<button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
   $("#sidebar-logout").onclick = () => asyncAction(async () => {
     await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null; location.hash = ""; await makeLogin();
   });
