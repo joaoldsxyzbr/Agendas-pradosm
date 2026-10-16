@@ -127,3 +127,14 @@ Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e test
 - **Versões e distribuição:** `package.json` e `package-lock.json` fixam exatamente os dois pacotes e verificam integridade SHA-512. `scripts/build-vendor.mjs` copia Chart.js UMD, SVGs e licenças de `node_modules` para `public/vanilla/vendor/` no `npm ci` (`prepare`) e no `npm run build`. A pasta gerada é ignorada pelo Git; a publicação exige execução correta da instalação. Nenhum CDN é solicitado pelo navegador.
 - **Não adotadas agora:** Tabulator (tabelas nativas já suficientes), Papa Parse (parsing CSV empresarial próprio e validado; migrar sem comparar fixtures reais pode alterar agendas). Manter Hono, Zod, LiteParse WASM e JavaScript nativo.
 - **Segurança:** sem mudança de Worker, D1, migrations nem `main`. Confirmar build, navegador e deploy antes de autorizar produção; não confundir commit com publicação.
+
+## Cópia isolada do D1 de produção para validações — 16/10/2026
+
+Foi criado um terceiro banco D1, **`agendas-pradosm-preview-copia`**, a partir de leituras da produção, com pseudonimização seletiva de dados sensíveis. O D1 real e o D1 mock atual da `preview` continuam intactos. Nenhuma variável do Worker ou vínculo do D1 foi alterado.
+
+- Banco de produção: `agendas-pradosm` (somente origem de leitura).
+- Banco mock da preview: `agendas-pradosm-preview` (continua ligado ao Worker e não foi substituído).
+- Banco da cópia: `agendas-pradosm-preview-copia` (banco independente, **não vinculado à aplicação** nesta etapa).
+- Procedimentos, diferenças e validações: [Operação da cópia isolada do D1](operations/preview-d1-copia.md).
+
+Promover ou ligar o Worker `preview` ao banco copiado exige testar autenticação de demonstração, validar os dados e garantir que só há escrita na cópia. O banco da produção jamais deve ser vinculado ao Worker de testes.
