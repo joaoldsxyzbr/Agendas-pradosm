@@ -1,4 +1,4 @@
-import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, exportReportCsv } from "./reports.js?v=relatorios-20261016";
+import { sumReportRows, reportRate, groupDailyReport, groupStoreReport } from "./reports.js?v=relatorios-20261016";
 
 (function nativeApp() {
   "use strict";
@@ -557,7 +557,7 @@ import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, exportRe
       : "";
     root.innerHTML =
       `<div class="report-page">` +
-      heading("Indicadores de gestão", "Relatórios gerenciais", `${dt(state.reportStart)} a ${dt(state.reportEnd)} · ${fmt(total.agendas)} agendas`, `<button class="secondary" id="report-csv">Exportar CSV</button>`) +
+      heading("Indicadores de gestão", "Relatórios gerenciais", `${dt(state.reportStart)} a ${dt(state.reportEnd)} · ${fmt(total.agendas)} agendas`) +
       `<form class="filter-panel" id="report-form"><div class="filter-grid">
         <label class="field">De<input name="start" type="date" value="${esc(state.reportStart)}" required></label>
         <label class="field">Até<input name="end" type="date" value="${esc(state.reportEnd)}" required></label>
@@ -626,15 +626,6 @@ import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, exportRe
     $("#report-next").onclick = () => {
       state.reportOffset = (state.reportOffset || 0) + 50;
       navigate();
-    };
-    $("#report-csv").onclick = () => {
-      const blob = new Blob([exportReportCsv(report.rows)], { type: "text/csv;charset=utf-8" });
-      const url = URL.createObjectURL(blob);
-      const anchor = document.createElement("a");
-      anchor.href = url;
-      anchor.download = "relatorio-agenda-prado.csv";
-      anchor.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
   }
   function openImportDialog(opener = document.activeElement) {

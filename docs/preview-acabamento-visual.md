@@ -33,8 +33,14 @@ Visualizar os perfis fictícios admin, visualizador e conferente; relatórios, l
 - Recuperados os **seis KPIs** da antiga preview: agendamentos, recebidos, não recebidos, taxa de recebimento, aguardando e recusados.
 - Recuperada a **evolução diária empilhada** com os quatro status e a **comparação por loja** com taxa, barras e quantidades.
 - Ranking de fornecedores com barras proporcionais, comparação com período anterior ativada inicialmente e aviso de agendas em aberto.
-- Mantidas e enriquecidas tabelas por loja, por data, observações e paginação de ocorrências; CSV agora exporta dez campos, incluindo situação, recusados e sem agenda.
+- Mantidas e enriquecidas tabelas por loja, por data, observações e paginação de ocorrências.
 - A API existente já fornece esses valores: **nenhuma alteração de API, Worker, dados ou migração D1**.
-- Agregação e CSV extraídos para `public/vanilla/reports.js` (ES Module nativo), com testes em `tests/ui/reports.test.js`.
+- Agregações extraídas para `public/vanilla/reports.js` (ES Module nativo), com testes em `tests/ui/reports.test.js`.
 - Mantidos filtros por loja/data (máximo 93 dias), popups, autenticação e tema grafite.
 - Publicação na Cloudflare, resultado do CI e inspeção no navegador devem ser confirmados separadamente; não confundir commit com deploy.
+
+## Remoção da exportação dos relatórios — 16/10/2026
+
+- Por solicitação, removido o botão **Exportar CSV** exclusivamente da página Relatórios na `preview`.
+- Retirados o manipulador e a função de exportação sem uso, mantendo a importação CSV/PDF de agendas e todos os gráficos, filtros e tabelas de relatório.
+- Testes E2E alinhados à ausência do botão; entrada JS versionada para evitar cache antigo. Produção não alterada.

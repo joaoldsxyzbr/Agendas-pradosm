@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, exportReportCsv } from "../../public/vanilla/reports.js";
+import { sumReportRows, reportRate, groupDailyReport, groupStoreReport } from "../../public/vanilla/reports.js";
 
 const fixture = [
   { date: "2026-10-01", storeCode: "F01", storeName: "Centro", dayStatus: "concluido", total: 5, recebido: 2, naoChegou: 1, aguardando: 1, recusado: 1, semAgenda: 1 },
@@ -28,13 +28,4 @@ describe("relatórios em JavaScript puro", () => {
     ]);
   });
 
-  it("exporta dez campos e protege células contra fórmulas maliciosas", () => {
-    const csv = exportReportCsv([{ ...fixture[0], storeName: '=EXEC("alert")' }]);
-    expect(csv.startsWith("\uFEFF")).toBe(true);
-    expect(csv.split("\r\n")[0].split(";")).toHaveLength(10);
-    expect(csv).toContain('"Recusados";"Sem agenda"');
-    expect(csv).toContain("'=EXEC");
-    expect(csv).toContain('"Concluído"');
-    expect(exportReportCsv([]).split("\r\n")).toHaveLength(1);
-  });
 });

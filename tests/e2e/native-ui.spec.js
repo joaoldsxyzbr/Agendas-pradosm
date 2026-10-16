@@ -16,7 +16,7 @@ test("administrador consulta relatórios reais na interface nativa", async ({ pa
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Ocorrências e observações" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Exportar CSV" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Exportar CSV" })).toHaveCount(0);
 });
 
 test("visualizador permanece sem acesso aos cadastros", async ({ page }) => {

@@ -1,4 +1,4 @@
-// Agregações e exportação em JavaScript puro. Sem dependências de UI ou D1.
+// Agregações em JavaScript puro. Sem dependências de UI ou D1.
 export function sumReportRows(rows = []) {
   return rows.reduce((sum, row) => {
     for (const key of ["total", "recebido", "naoChegou", "aguardando", "recusado", "semAgenda"]) {
@@ -44,18 +44,3 @@ export function groupStoreReport(rows = []) {
   return [...grouped.values()].sort((a, b) => b.total - a.total || a.code.localeCompare(b.code));
 }
 
-export function exportReportCsv(rows) {
-  const headers = ["Data", "Loja", "Nome", "Situação do dia", "Total", "Recebidos", "Não recebidos", "Aguardando", "Recusados", "Sem agenda"];
-  const safeCell = (value) => {
-    let text = String(value ?? "");
-    if (/^[\s\u0000-\u001f]*[=+\-@]/.test(text)) text = "'" + text;
-    return '"' + text.replace(/"/g, '""') + '"';
-  };
-  const body = rows.map(row => [
-    row.date.split("-").reverse().join("/"),
-    row.storeCode, row.storeName,
-    row.dayStatus === "concluido" ? "Concluído" : "Aberto",
-    row.total, row.recebido, row.naoChegou, row.aguardando, row.recusado, row.semAgenda
-  ]);
-  return "\uFEFF" + [headers, ...body].map(row => row.map(safeCell).join(";")).join("\r\n");
-}
