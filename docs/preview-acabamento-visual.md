@@ -44,3 +44,10 @@ Visualizar os perfis fictícios admin, visualizador e conferente; relatórios, l
 - Por solicitação, removido o botão **Exportar CSV** exclusivamente da página Relatórios na `preview`.
 - Retirados o manipulador e a função de exportação sem uso, mantendo a importação CSV/PDF de agendas e todos os gráficos, filtros e tabelas de relatório.
 - Testes E2E alinhados à ausência do botão; entrada JS versionada para evitar cache antigo. Produção não alterada.
+
+## Avisos temporários — 16/10/2026
+
+- Todos os avisos da interface (`tell`, em `public/vanilla/live.js`) desaparecem automaticamente: **3 segundos** para sucesso e **5 segundos** para erro.
+- Um novo aviso cancela o temporizador anterior e reinicia o prazo, evitando que um alerta antigo esconda o atual.
+- O conteúdo e a classe do toast são removidos quando o prazo termina; layout, login, Worker, D1 e produção não foram modificados.
+- O arquivo de entrada recebeu versão para evitar carregar JavaScript em cache após a publicação na `preview`.

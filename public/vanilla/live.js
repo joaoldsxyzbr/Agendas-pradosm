@@ -106,11 +106,19 @@ import { openImportDialog } from "./features/importacao.js";
     return res.status === 204 ? null : res.json();
   };
   const json = (method, url, body) => api(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let toastTimer = null;
   const tell = (message, error = false) => {
     const host = $("#toast-host");
+    clearTimeout(toastTimer);
     host.textContent = message;
     host.className = error ? "toast toast-error" : "toast";
     host.setAttribute("role", error ? "alert" : "status");
+    toastTimer = setTimeout(() => {
+      host.textContent = "";
+      host.className = "";
+      host.setAttribute("role", "status");
+      toastTimer = null;
+    }, error ? 5000 : 3000);
   };
   const setBusy = (yes) => { state.busy = yes; [...$$("button[data-action]", root), ...$$("button", $("#dialog-host"))].forEach(b => { b.disabled = yes; }); };
   const asyncAction = async (job, msg = "") => {
