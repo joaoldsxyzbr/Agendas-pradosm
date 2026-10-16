@@ -117,3 +117,5 @@ Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e test
 - A edição de loja recuperou a exclusão controlada do cadastro, usando `DELETE /api/admin/stores/:id`, que preserva registros e bloqueia a operação enquanto há usuários vinculados.
 - Na agenda concluída, o administrador pode entrar em **Modo editar** e ajustar status inclusive recusado, com motivo obrigatório para não recebido. A API atual registra as alterações para auditoria. Essa possibilidade substitui a necessidade de recriar a antiga aba de Histórico.
 - UI segue HTML, CSS e JS puro; nenhuma alteração em `main`, D1 ou backend.
+
+- O seletor avançado de status da agenda concluída é exclusivo do administrador; o conferente mantém os botões operacionais de recebimento e não recebimento.

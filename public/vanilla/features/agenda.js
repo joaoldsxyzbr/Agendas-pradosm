@@ -16,7 +16,7 @@ export function createAgendaController(ctx) {
       <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(item.supplier)}" data-exchange="${esc(item.id)}" ${item.hasExchanges ? "checked" : ""}>` : (item.hasExchanges ? "Sim" : "Não")}</td>
       <td class="detail-line">${esc(item.observation || "—")}</td>
       <td><div class="inline-actions"><button class="mini-button" type="button" data-appointment-detail="${esc(item.id)}">Detalhes</button>
-        ${editable ? `<select class="status-select" data-status-select="${esc(item.id)}" aria-label="Status de ${esc(item.supplier)}">
+        ${editable && apiBase.startsWith("/api/admin") ? `<select class="status-select" data-status-select="${esc(item.id)}" aria-label="Status de ${esc(item.supplier)}">
           ${[["aguardando","Aguardando"],["recebido","Recebido"],["nao_chegou","Não recebido"],["recusado","Recusado"]].map(([value,label])=>
             `<option value="${value}" ${item.status===value?"selected":""}>${label}</option>`).join("")}</select>` : ""}
         ${editable ? `<button class="mini-button" data-status="${esc(item.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button>
