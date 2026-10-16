@@ -246,3 +246,7 @@ button:not(:disabled):active {transform:translateY(1px)}
   .stat-value,.stat-label,th,td {color:#111}
   th,td {background:#fff}
 }
+
+/* Os ícones locais Lucide são monocromáticos e mantêm contraste no tema escuro. */
+.sidebar-nav .nav-icon { display:block;width:18px;height:18px;filter:brightness(0) invert(.72) }
+.sidebar-nav a:hover .nav-icon,.sidebar-nav a.active .nav-icon { filter:brightness(0) invert(.98) }

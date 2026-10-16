@@ -227,6 +227,8 @@ import { openImportDialog } from "./features/importacao.js";
     });
     shell.classList.remove("nav-open");
     $("#menu-toggle").setAttribute("aria-expanded", "false");
+    state.reportChart?.destroy?.();
+    state.reportChart = null;
     root.innerHTML = `<div class="loading" role="status">Carregando informações…</div>`;
     try {
       const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers };

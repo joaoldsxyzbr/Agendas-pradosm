@@ -86,3 +86,10 @@
   .report-page .report-chart-scroll { overflow:visible }
   .report-page .report-chart-track { width:100% }
 }
+
+/* Chart.js sobre Canvas, com gráfico HTML/CSS preservado como fallback. */
+.report-page .report-chart-canvas { position:relative;height:255px;padding:14px 20px 18px }
+.report-page .report-chart-canvas canvas { width:100%!important;height:100%!important }
+.report-page [hidden] { display:none!important }
+@media(max-width:720px) { .report-page .report-chart-canvas {height:210px;padding:12px 10px 15px} }
+@media print { .report-page .report-chart-canvas {display:none!important} .report-page [data-report-native-chart] {display:block!important} }

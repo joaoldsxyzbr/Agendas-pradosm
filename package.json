@@ -8,7 +8,7 @@
     "test": "npm run test:worker && npm run test:parser && npm run test:design && npm run test:deploy-flow && npm run test:bootstrap-admin",
     "test:watch": "vitest --config vitest.config.js",
     "check:javascript": "node scripts/check-javascript.mjs",
-    "build": "node scripts/build-pdf-preview.mjs && wrangler deploy --dry-run --var SESSION_SECRET:agenda-prado-build-secret",
+    "build": "node scripts/build-vendor.mjs && node scripts/build-pdf-preview.mjs && wrangler deploy --dry-run --var SESSION_SECRET:agenda-prado-build-secret",
     "verify:production": "npm test && npm run check:javascript && npm run build",
     "check:migrations": "node scripts/check-migration-safety.mjs",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
@@ -21,11 +21,14 @@
     "test:e2e": "npm run build && npm run test:e2e:prepare && playwright test",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
     "test:e2e:ci": "npm run test:e2e:prepare && playwright test",
-    "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy"
+    "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "prepare": "node scripts/build-vendor.mjs"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
+    "chart.js": "4.5.1",
     "hono": "^4.9.8",
+    "lucide-static": "1.57.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {

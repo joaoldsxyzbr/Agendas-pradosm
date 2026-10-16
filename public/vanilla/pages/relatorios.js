@@ -108,7 +108,8 @@ export async function showReports(ctx) {
       ]) +
       comparison + openNote +
       `<div class="report-analytics-grid">` +
-        `<div class="report-evolution">${panel("Evolução diária", "Agendamentos por status em cada dia do período", legend + chart)}</div>` +
+        `<div class="report-evolution">${panel("Evolução diária", "Agendamentos por status em cada dia do período",
+          legend + `<div class="report-chart-canvas" data-report-canvas hidden><canvas id="report-chart" role="img" aria-label="Evolução diária por status; consulte a tabela Por data para os valores."></canvas></div><div data-report-native-chart>${chart}</div>`)}</div>` +
         `<div>${panel("Comparativo por loja", "Taxa de recebimento e volumes por unidade", storeBars)}</div>` +
         `<div>${panel("Fornecedores com ocorrências", "Ranking de não recebidos", supplierBars)}</div>` +
       `</div>` +
@@ -136,6 +137,47 @@ export async function showReports(ctx) {
           <div class="inline-actions"><button class="secondary" id="report-prev" ${(state.reportOffset || 0) === 0 ? "disabled" : ""}>Anterior</button>
           <button class="secondary" id="report-next" ${(state.reportOffset || 0) + 50 >= occurrences.total ? "disabled" : ""}>Próxima</button></div></div>`) +
       `</div>`;
+    // Biblioteca opcional na renderização: fallback CSS preservado se os assets não estiverem disponíveis.
+    if (daily.length && typeof globalThis.Chart === "function") {
+      const frame = $("[data-report-canvas]");
+      try {
+        frame.hidden = false;
+        const barColors = ["#91d8b8", "#f2aaa8", "#ebc486", "#c2a4e2"];
+        const keys = ["recebido", "naoChegou", "aguardando", "recusado"];
+        const names = ["Recebidos", "Não recebidos", "Aguardando", "Recusados"];
+        state.reportChart = new globalThis.Chart($("#report-chart"), {
+          type: "bar",
+          data: {
+            labels: daily.map(day => dt(day.date)),
+            datasets: keys.map((key, i) => ({
+              label: names[i], data: daily.map(day => day[key]),
+              backgroundColor: barColors[i], borderWidth: 0, borderRadius: 2,
+              maxBarThickness: 38, stack: "recebimentos"
+            }))
+          },
+          options: {
+            responsive: true, maintainAspectRatio: false, animation: false,
+            interaction: { mode: "index", intersect: false },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: {
+                footer: rows => "Total: " + fmt(rows.reduce((sum, item) => sum + item.parsed.y, 0))
+              } }
+            },
+            scales: {
+              x: { stacked: true, ticks: { color: "#bac0ca", autoSkip: true, maxRotation: 0, maxTicksLimit: 14 }, grid: { display: false } },
+              y: { stacked: true, beginAtZero: true, ticks: { color: "#bac0ca", precision: 0 }, grid: { color: "#353942" } }
+            }
+          }
+        });
+        $("[data-report-native-chart]").hidden = true;
+      } catch(error) {
+        state.reportChart?.destroy?.();
+        state.reportChart = null;
+        frame.hidden = true;
+        console.warn("Chart.js não disponível: gráfico HTML preservado.", error);
+      }
+    }
     const reportForm = $("#report-form");
     const markDirty = () => { reportForm.dataset.dirty = "true"; };
     reportForm.addEventListener("input", markDirty);

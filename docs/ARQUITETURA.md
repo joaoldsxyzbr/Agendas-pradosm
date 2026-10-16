@@ -119,3 +119,11 @@ Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e test
 - UI segue HTML, CSS e JS puro; nenhuma alteração em `main`, D1 ou backend.
 
 - O seletor avançado de status da agenda concluída é exclusivo do administrador; o conferente mantém os botões operacionais de recebimento e não recebimento.
+
+## Bibliotecas selecionadas para a preview — 16/10/2026
+
+- **Chart.js 4.5.1 (MIT):** visualização interativa empilhada da evolução diária nos Relatórios, usando dados e agrupamentos já existentes. Gráfico HTML/CSS permanece como fallback e para impressão; tabelas de dados continuam disponíveis.
+- **Lucide Static 1.57.0 (ISC):** cinco SVGs oficiais na navegação, um para cada tela, sem carregar a coleção completa no navegador.
+- **Versões e distribuição:** `package.json` e `package-lock.json` fixam exatamente os dois pacotes e verificam integridade SHA-512. `scripts/build-vendor.mjs` copia Chart.js UMD, SVGs e licenças de `node_modules` para `public/vanilla/vendor/` no `npm ci` (`prepare`) e no `npm run build`. A pasta gerada é ignorada pelo Git; a publicação exige execução correta da instalação. Nenhum CDN é solicitado pelo navegador.
+- **Não adotadas agora:** Tabulator (tabelas nativas já suficientes), Papa Parse (parsing CSV empresarial próprio e validado; migrar sem comparar fixtures reais pode alterar agendas). Manter Hono, Zod, LiteParse WASM e JavaScript nativo.
+- **Segurança:** sem mudança de Worker, D1, migrations nem `main`. Confirmar build, navegador e deploy antes de autorizar produção; não confundir commit com publicação.
