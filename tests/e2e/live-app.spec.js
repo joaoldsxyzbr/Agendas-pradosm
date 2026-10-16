@@ -47,6 +47,16 @@ test("administrador percorre recebimento, relatórios e cadastros", async ({ pag
   await expect(page.getByRole("heading", { name: "Usuários", exact: true })).toBeVisible();
 });
 
+test("painel de recebimento diferencia ocorrências de agendamentos aguardando", async ({ page }) => {
+  await enterDemo(page, "Administrador");
+  await expect(page.locator(".dashboard-page .stat")).toHaveCount(4);
+  await expect(page.getByRole("columnheader", { name: "Não recebidos" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Aguardando" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "Pendentes" })).toHaveCount(0);
+  await expect(page.locator("#dash-date")).toBeVisible();
+  await expect(page.locator("#dash-store")).toBeVisible();
+});
+
 test("visualizador consulta relatórios sem ver cadastros", async ({ page }) => {
   await enterDemo(page, "Visualizador");
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();

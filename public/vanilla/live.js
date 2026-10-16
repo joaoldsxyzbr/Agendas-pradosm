@@ -52,7 +52,7 @@
   const esc = (v) => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
   const fmt = (n) => new Intl.NumberFormat("pt-BR").format(Number(n || 0));
   const dt = (d) => (d && /^\d{4}-\d{2}-\d{2}$/.test(d) ? d.split("-").reverse().join("/") : d || "—");
-  const statusLabel = s => ({ aguardando: "Aguardando", recebido: "Recebido", nao_chegou: "Não recebido", recusado: "Recusado", ativo: "Ativo", inativo: "Inativo" }[s] || s || "—");
+  const statusLabel = s => ({ aguardando: "Aguardando", recebido: "Recebido", nao_chegou: "Não recebido", recusado: "Recusado", aberto: "Em andamento", concluido: "Concluída", ativo: "Ativo", inativo: "Inativo" }[s] || s || "—");
   const badge = s => `<span class="status ${esc(s)}">${esc(statusLabel(s))}</span>`;
   const heading = (area, title, hint, actions = "") => `<div class="page-heading"><div><p class="eyebrow">${esc(area)}</p><h1>${esc(title)}</h1><p class="heading-note">${esc(hint)}</p></div><div class="page-actions">${actions}</div></div>`;
   const panel = (title, description, contents) => `<section class="card"><div class="card-header"><div><h2>${esc(title)}</h2><p>${esc(description)}</p></div></div>${contents}</section>`;
@@ -202,16 +202,18 @@
       a.pending += ag?.aguardando || 0;
       return a;
     }, { total: 0, received: 0, missed: 0, pending: 0 });
-    root.innerHTML = heading("Painel administrativo", "Recebimento", `Resumo operacional de ${dt(state.date)} · ${state.user.papel === "visualizador" ? "Somente consulta" : "Gestão"}`, state.user.papel === "admin" ? `<button class="primary" type="button" data-open-import>Importar agenda</button>` : "") +
+    root.innerHTML = `<div class="dashboard-page">` + heading("Painel administrativo", "Recebimento", `Resumo operacional de ${dt(state.date)} · ${state.user.papel === "visualizador" ? "Somente consulta" : "Gestão"}`, state.user.papel === "admin" ? `<button class="primary" type="button" data-open-import>Importar agenda</button>` : "") +
       stats([["Agendamentos", totals.total, "Total programado"], ["Recebidos", totals.received, "Confirmados"], ["Não recebidos", totals.missed, "Ocorrências"], ["Aguardando", totals.pending, "Pendentes"]]) +
       `<div class="toolbar"><div><h2>Operação por loja</h2><p>Acompanhamento diário em uma única visualização</p></div><div class="filters-inline"><label class="field">Data<input type="date" id="dash-date" value="${esc(state.date)}"></label><label class="field">Loja<select id="dash-store">${storeOpts(state.store)}</select></label><button class="secondary" id="dash-refresh">Atualizar</button></div></div>` +
-      panel("Unidades", "Apenas lojas ativas com conferente ativo", table(["Presença", "Loja", "Agenda", "Total", "Recebidos", "Pendentes", "Situação", "Ação"], active.map(s => `<tr>
+      panel("Unidades", "Lojas ativas com conferente ativo", table(["Presença", "Loja", "Agenda", "Total", "Recebidos", "Não recebidos", "Aguardando", "Situação", "Ação"], active.map(s => `<tr>
         <td>${badge(online.get(s.id) || "offline")}</td><td class="cell-primary">${esc(s.codigo)} · ${esc(s.nome)}</td>
-        <td>${s.ag ? "Importada" : "Sem agenda"}</td><td>${fmt(s.ag?.total)}</td>
-        <td>${fmt(s.ag?.recebido)}</td><td>${fmt((s.ag?.aguardando || 0) + (s.ag?.naoChegou || 0))}</td>
-        <td>${s.ag ? badge(s.ag.dayStatus === "concluido" ? "recebido" : "aguardando") : "—"}</td>
+        <td><span class="agenda-mark">${s.ag ? "Importada" : "Sem agenda"}</span></td>
+        <td class="numeric">${fmt(s.ag?.total)}</td><td class="numeric">${fmt(s.ag?.recebido)}</td>
+        <td class="numeric">${fmt((s.ag?.naoChegou || 0) + (s.ag?.recusado || 0))}</td>
+        <td class="numeric">${fmt(s.ag?.aguardando)}</td>
+        <td>${s.ag ? badge(s.ag.dayStatus === "concluido" ? "concluido" : "aberto") : "—"}</td>
         <td>${s.ag ? `<button class="mini-button" data-detail="${esc(s.ag.id)}">Ver agenda</button>` : "—"}</td>
-        </tr>`)));
+        </tr>`))) + `</div>`;
     $("#dash-date").onchange = e => { state.date = e.target.value; navigate(); };
     $("#dash-store").onchange = e => { state.store = e.target.value; navigate(); };
     $("#dash-refresh").onclick = navigate;
