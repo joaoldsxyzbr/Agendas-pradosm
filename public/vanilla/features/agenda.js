@@ -1,3 +1,6 @@
+import { filterAppointments } from "./filtros.js";
+import { renderHistory } from "./auditoria.js";
+
 // Detalhes, estados e edição de agendas.
 export function createAgendaController(ctx) {
   const { state, root, $, $$, esc, dt, fmt, badge, table, heading, panel, field, statusLabel, modal, json, api, asyncAction, navigate, tell } = ctx;
@@ -7,12 +10,51 @@ export function createAgendaController(ctx) {
     tell("Status salvo no D1 de testes.");
   };
   const listAppointments = (items, apiBase, editable) => table(
-    ["Horário", "Fornecedor", "Protocolo", "Status", "Trocas", "Observações", editable ? "Ações" : "Detalhes"],
-    items.map(a => `<tr><td>${esc(a.startTime || "—")}</td><td class="cell-primary">${esc(a.supplier)}</td><td>${esc(a.protocol)}</td><td>${badge(a.status)}</td>
-      <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(a.supplier)}" data-exchange="${esc(a.id)}" ${a.hasExchanges ? "checked" : ""}>` : (a.hasExchanges ? "Sim" : "Não")}</td>
-      <td class="detail-line">${esc(a.observation || "—")}</td>
-      <td>${editable ? `<div class="inline-actions"><button class="mini-button" data-status="${esc(a.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button><button class="mini-button" data-status="${esc(a.id)}" data-next="nao_chegou" title="Não recebido ou Aguardando">✕</button>${a.origin === "manual" ? `<button class="mini-button" data-manual-edit="${esc(a.id)}">Editar</button><button class="mini-button" data-manual-remove="${esc(a.id)}">Excluir</button>` : ""}</div>` : "—"}</td></tr>`)
+    ["Horário", "Fornecedor", "Protocolo", "Status", "Trocas", "Observações", "Ações"],
+    items.map(item => `<tr><td>${esc(item.startTime || "—")}</td><td class="cell-primary">${esc(item.supplier)}</td>
+      <td>${esc(item.protocol)}</td><td>${badge(item.status)}</td>
+      <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(item.supplier)}" data-exchange="${esc(item.id)}" ${item.hasExchanges ? "checked" : ""}>` : (item.hasExchanges ? "Sim" : "Não")}</td>
+      <td class="detail-line">${esc(item.observation || "—")}</td>
+      <td><div class="inline-actions"><button class="mini-button" type="button" data-appointment-detail="${esc(item.id)}">Detalhes</button>
+        ${editable ? `<button class="mini-button" data-status="${esc(item.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button>
+          <button class="mini-button" data-status="${esc(item.id)}" data-next="nao_chegou" title="Não recebido ou Aguardando">✕</button>
+          ${item.origin === "manual" ? `<button class="mini-button" data-manual-edit="${esc(item.id)}">Editar</button><button class="mini-button" data-manual-remove="${esc(item.id)}">Excluir</button>` : ""}` : ""}
+      </div></td></tr>`)
   );
+  const bindAppointmentDetails = (items, apiBase, scope = root) => {
+    const host = $("#appointment-details", scope);
+    if (!host) return;
+    $$("[data-appointment-detail]", scope).forEach(button => button.onclick = async () => {
+      const item = items.find(a => a.id === button.dataset.appointmentDetail);
+      if (!item) return;
+      const requestToken = state.appointmentDetailSeq = (state.appointmentDetailSeq || 0) + 1;
+      host.innerHTML = '<p class="loading" role="status">Carregando detalhes…</p>';
+      try {
+        const store = apiBase.startsWith("/api/store");
+        const detail = store ? await api(`/api/store/appointments/${encodeURIComponent(item.id)}`) : item;
+        const history = store ? detail.history : state.user?.papel === "visualizador" ? [] :
+          await api(`/api/admin/appointments/${encodeURIComponent(item.id)}/history`);
+        if (state.appointmentDetailSeq !== requestToken || !host.isConnected) return;
+        const fields = [["Horário", [detail.startTime, detail.endTime].filter(Boolean).join(" – ")],
+          ["Protocolo", detail.protocol], ["Status", statusLabel(detail.status)], ["Tipo", detail.type],
+          ["Itens", detail.items], ["Volumes", detail.volumes], ["Paletes", detail.pallets],
+          ["Carga batida", detail.cargaBatida], ["Trocas", detail.hasExchanges ? "Sim" : "Não"],
+          ["Observação", detail.observation]];
+        host.innerHTML = `<section class="appointment-detail" aria-label="Detalhes do agendamento">
+          <div class="detail-heading"><div><h3>${esc(detail.supplier)}</h3><small>Detalhes do fornecedor e histórico de status</small></div>
+            <button type="button" class="secondary" data-detail-close>Fechar</button></div>
+          <dl class="appointment-detail-grid">${fields.map(([label,value])=>
+            `<div><dt>${esc(label)}</dt><dd>${esc(value === null || value === undefined || value === "" ? "—" : value)}</dd></div>`).join("")}</dl>
+          <div class="document-fields"><div><strong>NF-e</strong><p>${(detail.nfe || []).map(esc).join(", ") || "Nenhuma NF-e"}</p></div>
+          <div><strong>Pedidos</strong><p>${(detail.orders || []).map(esc).join(", ") || "Nenhum pedido"}</p></div></div>
+          <h4>Histórico de status</h4>${renderHistory(history, esc, "status")}</section>`;
+        $("[data-detail-close]", host).onclick = () => { state.appointmentDetailSeq++; host.replaceChildren(); };
+      } catch (error) {
+        if (state.appointmentDetailSeq === requestToken && host.isConnected)
+          host.innerHTML = `<p role="alert" class="history-error">${esc(error.message || "Não foi possível consultar o histórico.")}</p>`;
+      }
+    });
+  };
   const bindAppointments = (items, base) => {
     $$("[data-status]").forEach(button => button.onclick = () => {
       const a = items.find(x => x.id === button.dataset.status);
@@ -48,6 +90,7 @@ export function createAgendaController(ctx) {
     const data = await api("/api/admin/agendas/" + encodeURIComponent(id));
     state.detail = data;
     state.edit = false;
+    state.detailSearch = "";
     state.detailOpener = opener;
     await showAgendaDetail();
   };
@@ -59,7 +102,12 @@ export function createAgendaController(ctx) {
        <button class="icon-button" id="agenda-back" type="button" aria-label="Fechar agenda">×</button>`) +
       (state.user.papel === "admin" && agenda.dayStatus === "concluido" ? `<button class="secondary" id="reopen">Reabrir agenda</button>` : "") +
       (editable ? `<div class="toolbar"><button class="secondary" id="add-to-agenda">Adicionar fornecedor sem agenda</button></div>` : "") +
-      panel("Agendamentos", `${fmt(appointments.length)} fornecedores`, listAppointments(appointments, "/api/admin/appointments", editable));
+      `<div class="appointment-toolbar"><label class="field search">Pesquisar fornecedor ou protocolo
+        <input type="search" id="agenda-search" value="${esc(state.detailSearch || "")}" placeholder="Pesquisar fornecedor ou protocolo"></label>
+        ${state.user.papel === "admin" ? `<button type="button" class="secondary" id="agenda-history-toggle" aria-expanded="false">Ver histórico do dia</button>` : ""}</div>` +
+      `<div id="agenda-history-content" class="agenda-history-box" hidden></div>` +
+      panel("Agendamentos", `${fmt(appointments.length)} fornecedores`,
+        `<div id="agenda-table-host"></div><div id="appointment-details"></div>`);
 
     const host = $("#dialog-host");
     const focusId = document.activeElement?.id;
@@ -118,7 +166,37 @@ export function createAgendaController(ctx) {
       await showAgendaDetail();
     }, "Agenda reaberta."));
     $("#add-to-agenda", content)?.addEventListener("click", () => manualDialog(null, agenda.id));
-    if (editable) bindAppointments(appointments, "/api/admin/appointments");
+    const renderFiltered = () => {
+      const filtered = filterAppointments(appointments, state.detailSearch || "");
+      $("#agenda-table-host", content).innerHTML = listAppointments(filtered, "/api/admin/appointments", editable);
+      if (editable) bindAppointments(filtered, "/api/admin/appointments");
+      bindAppointmentDetails(filtered, "/api/admin/appointments", content);
+    };
+    $("#agenda-search", content).oninput = event => {
+      state.detailSearch = event.target.value;
+      state.appointmentDetailSeq = (state.appointmentDetailSeq || 0) + 1;
+      $("#appointment-details", content).replaceChildren();
+      renderFiltered();
+    };
+    renderFiltered();
+    const dayButton = $("#agenda-history-toggle", content);
+    const dayBox = $("#agenda-history-content", content);
+    if (dayButton) dayButton.onclick = async () => {
+      dayBox.hidden = !dayBox.hidden;
+      dayButton.textContent = dayBox.hidden ? "Ver histórico do dia" : "Ocultar histórico do dia";
+      dayButton.setAttribute("aria-expanded", String(!dayBox.hidden));
+      if (dayBox.hidden || dayBox.dataset.loaded === "true") return;
+      dayBox.innerHTML = '<p class="loading" role="status">Carregando histórico…</p>';
+      dayButton.disabled = true;
+      try {
+        const rows = await api(`/api/admin/agendas/${encodeURIComponent(agenda.id)}/history`);
+        if (!dayBox.isConnected) return;
+        dayBox.innerHTML = renderHistory(rows, esc);
+        dayBox.dataset.loaded = "true";
+      } catch(error) {
+        if (dayBox.isConnected) dayBox.innerHTML = `<p class="history-error" role="alert">${esc(error.message || "Não foi possível carregar o histórico.")}</p>`;
+      } finally { dayButton.disabled = false; }
+    };
     if (firstOpen) dialog.focus();
     else if (focusId) {
       const focusTarget = $("#" + focusId, host);
@@ -150,5 +228,5 @@ export function createAgendaController(ctx) {
       tell("Fornecedor atualizado.");
     });
   };
-  return { openAgenda, refreshDetailDialog, manualDialog, listAppointments, bindAppointments };
+  return { openAgenda, refreshDetailDialog, manualDialog, listAppointments, bindAppointments, bindAppointmentDetails };
 }

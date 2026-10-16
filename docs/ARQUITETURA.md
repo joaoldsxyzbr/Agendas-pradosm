@@ -100,3 +100,12 @@ Nenhuma alteração em `main`, Worker, D1 ou migrations. CI, publicação e test
 - Os filtros são mantidos na sessão e resetados ao sair. Código reutilizável em `public/vanilla/features/filtros.js` e `features/auditoria.js`.
 - CSS compartilhado desses controles em `public/vanilla/styles/funcionalidades.css`.
 - `main`, Worker e D1 não alterados; validação final completa será realizada quando a versão estiver pronta.
+
+
+## Recuperação de funções das agendas — 16/10/2026
+
+- Conferente: pesquisa por fornecedor/protocolo, atalho `Hoje`, detalhes do agendamento com horário, itens, volumes, paletes, NF-e, pedidos e histórico de status.
+- Popup administrativo da agenda: pesquisa por fornecedor/protocolo, detalhes consultáveis mesmo sem modo editar, histórico individual de status e histórico do dia (apenas administrador).
+- Os dados são carregados pelas APIs existentes `/api/store/appointments/:id`, `/api/admin/appointments/:id/history` e `/api/admin/agendas/:id/history`. Visualizador mantém acesso somente às informações permitidas; nenhuma permissão foi ampliada.
+- Pesquisa filtra apenas os itens visíveis, preservando a agenda real e os controles. Fluxos existentes de status/fornecedores continuam com as rotas já usadas.
+- Sem React, TypeScript nem build frontend; sem alterações no Worker, D1 e `main`. Rodar bateria completa somente na validação final.
