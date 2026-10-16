@@ -159,6 +159,10 @@ body.dialog-open { overflow:hidden }
 #import-preview .stats { margin-bottom:18px }
 #import-preview .card { margin-bottom:0 }
 #import-preview .table-scroll { max-height:280px }
+.agenda-dialog-content { min-height:0; overflow:auto; padding:24px 28px }
+.agenda-dialog-content .page-heading { margin-bottom:20px }
+.agenda-dialog-content .card { margin-bottom:0 }
+.agenda-dialog-content .table-scroll { max-height:min(52vh,560px) }
 .import-dialog-actions { margin:0; padding:16px 28px; border-top:1px solid var(--stroke); background:var(--panel-alt) }
 .count { color:var(--muted); font-size:11px; text-align:right }
 #toast-host { position:fixed; bottom:18px; right:18px; z-index:60 }
@@ -198,6 +202,9 @@ body.dialog-open { overflow:hidden }
   .import-dialog-header,.import-dialog-content { padding:18px 16px }
   .import-dialog-actions { padding:13px 16px }
   .import-dialog-actions button { flex:1 }
+  .agenda-dialog-content { padding:18px 16px }
+  .agenda-dialog-content .page-heading { flex-direction:row; align-items:flex-start }
+  .agenda-dialog-content .page-actions { width:auto }
 }
 @media (prefers-reduced-motion:reduce) { .sidebar,.sidebar-nav a { transition:none } }
 

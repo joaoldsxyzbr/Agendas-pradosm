@@ -5,7 +5,7 @@
   const root = $("#main");
   const shell = $(".app-shell");
   const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
-  const state = { user: null, view: "recebimento", date: dateToday(), search: "", store: "", reportStore: "", agendas: [], stores: [], users: [], storeAgenda: null, detail: null, history: [], busy: false, edit: false };
+  const state = { user: null, view: "recebimento", date: dateToday(), search: "", store: "", reportStore: "", agendas: [], stores: [], users: [], storeAgenda: null, detail: null, detailDialogClose: null, detailOpener: null, history: [], busy: false, edit: false };
   let realtimeSocket = null;
   let realtimeTimer = null;
   let refreshScheduled = null;
@@ -85,9 +85,10 @@
     finally { setBusy(false); }
   };
   const modal = (title, body, submit, onSubmit) => {
-    const host = $("#dialog-host");
+    const rootHost = $("#dialog-host");
+    const host = $(".agenda-dialog", rootHost) ? $("#agenda-form-host", rootHost) : rootHost;
     host.innerHTML = `<div class="dialog-backdrop"><section class="dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title"><h2 id="modal-title">${esc(title)}</h2><form id="modal-form">${body}<div class="dialog-actions"><button class="secondary" type="button" id="modal-cancel">Cancelar</button><button class="primary" type="submit">${esc(submit)}</button></div></form></section></div>`;
-    const close = () => { host.replaceChildren(); document.removeEventListener("keydown", onKey); };
+    const close = () => { host.replaceChildren(); document.removeEventListener("keydown", onKey); $(".agenda-dialog", rootHost)?.focus(); };
     const onKey = e => { if (e.key === "Escape") close(); };
     document.addEventListener("keydown", onKey);
     $("#modal-cancel").onclick = close;
@@ -214,11 +215,11 @@
     $("#dash-date").onchange = e => { state.date = e.target.value; navigate(); };
     $("#dash-store").onchange = e => { state.store = e.target.value; navigate(); };
     $("#dash-refresh").onclick = navigate;
-    $$("[data-detail]").forEach(b => b.onclick = () => openAgenda(b.dataset.detail));
+    $$("[data-detail]").forEach(b => b.onclick = () => asyncAction(() => openAgenda(b.dataset.detail, b)));
   }
   const updateStatus = async (id, status, apiBase) => {
     await json("PATCH", `${apiBase}/${encodeURIComponent(id)}/status`, { status });
-    await navigate();
+    if (!await refreshDetailDialog()) await navigate();
     tell("Status salvo no D1 de testes.");
   };
   const listAppointments = (items, apiBase, editable) => table(
@@ -239,13 +240,14 @@
           "Salvar",async data=>{
             if(!data.observation.trim())throw Error("Informe o motivo.");
             await json("PATCH",`${base}/${encodeURIComponent(a.id)}/status`,{status:desired,observation:data.observation.trim()});
-            await navigate();tell("Motivo salvo no D1 de testes.");
+            if (!await refreshDetailDialog()) await navigate();
+            tell("Motivo salvo no D1 de testes.");
           });
       } else asyncAction(()=>updateStatus(a.id,desired,base));
     });
     $$("[data-exchange]").forEach(input => input.onchange = e => asyncAction(async () => {
       await json("PATCH", `${base}/${encodeURIComponent(input.dataset.exchange)}/exchanges`, { hasExchanges: e.target.checked });
-      tell("Trocas atualizadas."); await navigate();
+      tell("Trocas atualizadas."); if (!await refreshDetailDialog()) await navigate();
     }));
     $$("[data-manual-edit]").forEach(button => button.onclick = () => {
       const a = items.find(x => x.id === button.dataset.manualEdit);
@@ -255,13 +257,14 @@
       const a = items.find(x => x.id === button.dataset.manualRemove);
       if (!a || !confirm(`Excluir o fornecedor ${a.supplier}?`)) return;
       await api(`${base}/${encodeURIComponent(a.id)}/manual`, { method: "DELETE" });
-      await navigate(); tell("Fornecedor removido.");
+      if (!await refreshDetailDialog()) await navigate(); tell("Fornecedor removido.");
     }));
   };
-  const openAgenda = async id => {
-    const data = await api(`/api/admin/agendas/${encodeURIComponent(id)}`);
+  const openAgenda = async (id, opener = document.activeElement) => {
+    const data = await api("/api/admin/agendas/" + encodeURIComponent(id));
     state.detail = data;
     state.edit = false;
+    state.detailOpener = opener;
     await showAgendaDetail();
   };
   const showAgendaDetail = async () => {
@@ -269,23 +272,84 @@
     const editable = state.user.papel === "admin" && state.edit && agenda.dayStatus !== "concluido";
     const body = heading("Agenda da loja", `${agenda.storeCode} · ${agenda.storeName}`, `Data: ${dt(agenda.date)} · ${statusLabel(agenda.dayStatus)}`,
       `${state.user.papel === "admin" ? `<button class="secondary" id="edit-agenda">${state.edit ? "Sair da edição" : "Modo editar"}</button>` : ""}
-       <button class="secondary" id="agenda-back">Fechar</button>`) +
+       <button class="icon-button" id="agenda-back" type="button" aria-label="Fechar agenda">×</button>`) +
       (state.user.papel === "admin" && agenda.dayStatus === "concluido" ? `<button class="secondary" id="reopen">Reabrir agenda</button>` : "") +
       (editable ? `<div class="toolbar"><button class="secondary" id="add-to-agenda">Adicionar fornecedor sem agenda</button></div>` : "") +
       panel("Agendamentos", `${fmt(appointments.length)} fornecedores`, listAppointments(appointments, "/api/admin/appointments", editable));
-    root.innerHTML = body;
-    $("#agenda-back").onclick = () => navigate();
-    $("#edit-agenda")?.addEventListener("click", () => { state.edit = !state.edit; showAgendaDetail(); });
-    $("#reopen")?.addEventListener("click", () => asyncAction(async () => {
+
+    const host = $("#dialog-host");
+    const focusId = document.activeElement?.id;
+    let dialog = $(".agenda-dialog", host);
+    const firstOpen = !dialog;
+    if (firstOpen) {
+      const opener = state.detailOpener || document.activeElement;
+      host.innerHTML = '<div class="dialog-backdrop" id="agenda-dialog-backdrop"><section class="dialog import-dialog agenda-dialog" role="dialog" aria-modal="true" tabindex="-1"><div class="import-dialog-content agenda-dialog-content" id="agenda-dialog-content"></div></section></div><div id="agenda-form-host"></div>';
+      dialog = $(".agenda-dialog", host);
+      const close = () => {
+        host.replaceChildren();
+        document.body.classList.remove("dialog-open");
+        document.removeEventListener("keydown", onKey);
+        state.detailDialogClose = null;
+        state.detail = null;
+        state.detailOpener = null;
+        state.edit = false;
+        opener?.focus?.();
+      };
+      const onKey = e => {
+        const nested = $("#agenda-form-host", host);
+        if (e.key === "Escape") {
+          if (nested?.children.length) return;
+          e.preventDefault();
+          close();
+          return;
+        }
+        if (e.key !== "Tab" || nested?.children.length) return;
+        const items = $$("button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled])", dialog);
+        if (!items.length) return;
+        const first = items[0], last = items.at(-1);
+        if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      };
+      state.detailDialogClose = close;
+      document.body.classList.add("dialog-open");
+      document.addEventListener("keydown", onKey);
+      $("#agenda-dialog-backdrop", host).addEventListener("click", e => {
+        if (e.target === e.currentTarget && !$("#agenda-form-host", host)?.children.length) close();
+      });
+    }
+    const content = $("#agenda-dialog-content", host);
+    content.innerHTML = body;
+    const title = $("h1", content);
+    if (title) {
+      title.id = "agenda-dialog-title";
+      dialog.setAttribute("aria-labelledby", title.id);
+    }
+    $("#agenda-back", content).onclick = () => state.detailDialogClose?.();
+    $("#edit-agenda", content)?.addEventListener("click", () => { state.edit = !state.edit; showAgendaDetail(); });
+    $("#reopen", content)?.addEventListener("click", () => asyncAction(async () => {
       if (!confirm("Reabrir a agenda desta loja?")) return;
-      await json("PATCH", `/api/admin/agendas/${agenda.id}/status`, { status: "aberto" });
-      state.detail = await api(`/api/admin/agendas/${agenda.id}`);
+      await json("PATCH", "/api/admin/agendas/" + encodeURIComponent(agenda.id) + "/status", { status: "aberto" });
+      state.detail = await api("/api/admin/agendas/" + encodeURIComponent(agenda.id));
       state.edit = true;
       await showAgendaDetail();
     }, "Agenda reaberta."));
-    $("#add-to-agenda")?.addEventListener("click", () => manualDialog(null, agenda.id));
+    $("#add-to-agenda", content)?.addEventListener("click", () => manualDialog(null, agenda.id));
     if (editable) bindAppointments(appointments, "/api/admin/appointments");
+    if (firstOpen) dialog.focus();
+    else if (focusId) {
+      const focusTarget = $("#" + focusId, host);
+      if (focusTarget) focusTarget.focus();
+      else dialog.focus();
+    } else dialog.focus();
   };
+  async function refreshDetailDialog() {
+    const agendaId = state.detail?.agenda?.id;
+    if (!agendaId || !$(".agenda-dialog", $("#dialog-host"))) return false;
+    state.detail = await api("/api/admin/agendas/" + encodeURIComponent(agendaId));
+    await showAgendaDetail();
+    return true;
+  }
+
   const manualDialog = (a, adminAgendaId = null) => {
     const edit = Boolean(a);
     const admin = state.user.papel === "admin";
@@ -401,7 +465,7 @@
     $("#hist-date").onchange = e => { state.date = e.target.value; navigate(); };
     $("#hist-store").onchange = e => { state.store = e.target.value; navigate(); };
     $("#hist-all").onclick = () => { state.date = ""; navigate(); };
-    $$("[data-detail]").forEach(b => b.onclick = () => openAgenda(b.dataset.detail));
+    $$("[data-detail]").forEach(b => b.onclick = () => asyncAction(() => openAgenda(b.dataset.detail, b)));
   }
   async function showReports(){
   await loadStores();
