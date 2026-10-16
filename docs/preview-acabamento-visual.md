@@ -1,29 +1,19 @@
-# Acabamento visual empresarial — preview
+# Visual Prado Enterprise — preview
 
-Data: 15/10/2026 · Escopo: `preview` · **`main` não alterada**.
+**Escopo:** somente branch `preview`, 15/10/2026. Sem alterações à `main`.
 
-## Objetivo
+## Direção
+Layout aprovado mantido, com acabamento inspirado nos princípios de sobriedade do Linear e densidade operacional do IBM Carbon. Identidade própria, sem copiar componentes.
 
-Manter a navegação, organização das telas, fluxos de trabalho, popups e o frontend em **HTML, CSS e JavaScript puro**. Melhorar apenas o acabamento visual e a legibilidade do modo escuro.
+- Fundo grafite `#14161b`, cartões `#202329`, superfícies `#252930`.
+- Azul `#79afff` apenas em ações principais, foco e seleção.
+- Navegação e campos neutros, divisórias suaves, tipografia coerente.
+- KPIs sem barras decorativas coloridas; cores semânticas reservadas aos estados de operação.
+- Tabelas compactas, cabeçalhos discretos, modais e formulários consistentes.
+- CSS com versão explícita para evitar cache, suporte a responsividade, foco, impressão e movimento reduzido.
 
-## Decisões implementadas
+## Preservado
+HTML/CSS/JavaScript puro; sidebar e disposição das telas; popups; perfis e permissões; endpoints, Worker, D1, regras e dados.
 
-- Paleta única de superfícies escuras e tokens semânticos para contraste, bordas, texto e estados.
-- Menos sombras nos cartões padrão; hierarquia por cores de superfícies e bordas. Sombras elevadas apenas para diálogos e autenticação.
-- Navegação com ícones SVG locais, sem biblioteca de ícones, fontes externas ou dependências novas.
-- Títulos, tabelas, campos e valores destacados com tipografia mais legível.
-- Botões, campos, modais, avisos e status usando raios, contrastes e estados coerentes.
-- Feedback de foco visível, estado hover, movimento reduzido e regras móveis preservadas.
-- Identificação de **PREVIEW / D1 isolado** preservada.
-
-## Limites da alteração
-
-Nenhum fluxo de negócio, rota, banco, permissão, importação ou lógica JavaScript foi alterado. A disposição das telas e os breakpoints existentes foram preservados.
-
-## Validação recomendada antes de qualquer promoção
-
-1. Conferir com contas fictícias os perfis administrador, visualizador e conferente.
-2. Revisar visualmente a dashboard, os relatórios, lojas, usuários, recebimento e os modais de importação/agenda.
-3. Conferir contraste, estados dos botões, foco de teclado e rolagem das tabelas em desktop e celular.
-4. Executar os testes do projeto na branch `preview`.
-5. Publicar na `main` **somente após validação e autorização explícita**.
+## Validação manual pendente
+Visualizar os perfis fictícios admin, visualizador e conferente; relatórios, lojas e usuários; abrir popups de importação e agenda; avaliar desktop e celular; validar publicação da preview. CI e deploy devem ser reportados separadamente do commit. Produção exige autorização explícita.
