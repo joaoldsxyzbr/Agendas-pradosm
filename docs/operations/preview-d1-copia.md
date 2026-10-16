@@ -70,3 +70,9 @@ Reproduzir **volume, datas, status, relacionamentos e índices** do D1 da produ�
 **Para concluir a troca ativa:** publicar pelo fluxo de Workers Builds/Wrangler do projeto, **apenas** no Worker `agendas-pradosm-preview`, após corrigir o mecanismo de publicação, ou alterar a binding `DB` nas configurações do Worker via painel Cloudflare para o D1 `agendas-pradosm-preview-copia`. Não alterar nomes ou segredos das outras bindings. Em seguida, consultar novamente `/settings` e confirmar UUID `6b2c7fec-5fbf-4db7-a0c4-d51860799c29`; testar as três contas demo e os relatórios.
 
 **Reversão segura:** configurar novamente o banco mock anterior na binding da preview; não modificar a `main` nem o D1 de produção.
+
+## Ativação confirmada via plugin oficial Cloudflare — 16/10/2026
+
+A atualização da binding `DB` no Worker ativo `agendas-pradosm-preview` foi realizada com sucesso pela API Cloudflare (`PATCH /workers/scripts/{script_name}/settings`, HTTP 200), usando multipart e preservando `exports.RealtimeHub` como Durable Object com armazenamento SQLite. A ausência desse export havia causado o erro 100402 na primeira tentativa.
+
+Uma leitura posterior de `GET /settings` confirmou `DB = 6b2c7fec-5fbf-4db7-a0c4-d51860799c29`. Todas as oito bindings existentes permaneceram presentes, incluindo `SESSION_SECRET` (sem revelar ou substituir o segredo). Consulta de leitura ao D1 copiado confirmou 144 agendas, 2.253 agendamentos e três contas demo ativas. **A conexão ativa está corrigida; testes completos de interface e fluxos de negócio ainda não foram executados.** A `main` e o D1 de produção não foram modificados.
