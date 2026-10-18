@@ -21,7 +21,9 @@ jobs:
           cache: npm
       - name: Instalar dependências reproduzíveis
         run: npm ci --legacy-peer-deps
-      - name: Verificar contrato JavaScript migrado
+      - name: Verificar sintaxe e grafo de imports do backend migrado
+        run: node scripts/check-migracao-worker.mjs
+      - name: Verificar contratos JavaScript migrados
         run: node --test tests/migration/*.test.js
       - name: Garantir compatibilidade da aplicação original durante a migração
         run: npm run verify:production
