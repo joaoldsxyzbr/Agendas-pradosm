@@ -113,6 +113,7 @@ export function renderAgendaList(root, initialOptions = {}) {
   let sort = null;
   let disposed = false;
   const pending = new Set();
+  let headerSignature = null;
   const hasActions = () => Boolean(options.onOpen || (options.editable &&
     (options.onChanged || options.onEditManual || options.onDeleteManual)));
 
@@ -125,6 +126,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       sortHeader("status","Status",sort),hasActions() ? "<th>Ações</th>" : "", "<th>Trocas</th>"
     ].join("");
     // Preserva o container ao atualizar um único agendamento.
+    const signature = JSON.stringify({sort, hasActions:hasActions()});
     if (!root.querySelector("[data-agenda-desktop]")) {
       root.innerHTML = `<div class="agenda-desktop table-card ${hasActions() ? "has-actions" : "is-readonly"}"
         data-agenda-desktop><div class="table-scroll"><table><thead><tr data-agenda-header>${header}</tr></thead>
@@ -132,8 +134,9 @@ export function renderAgendaList(root, initialOptions = {}) {
         <div class="agenda-mobile" data-agenda-mobile></div>`;
     } else {
       const th = root.querySelector("[data-agenda-header]");
-      if (th.innerHTML !== header) th.innerHTML = header;
+      if (headerSignature !== signature) th.innerHTML = header;
     }
+    headerSignature = signature;
     const tbody = root.querySelector("[data-agenda-rows]");
     const mobile = root.querySelector("[data-agenda-mobile]");
     const desktopRows = new Map([...tbody.querySelectorAll("tr[data-appointment-id]")]
@@ -170,6 +173,7 @@ export function renderAgendaList(root, initialOptions = {}) {
     const item = items.find(item => item.id === id);
     if (!item) return;
     pending.add(id);
+    let failed = false;
     const controls = [...root.querySelectorAll("[data-appointment-id]")]
       .filter(row => row.dataset.appointmentId === id)
       .flatMap(row => [...row.querySelectorAll("button, input")]);
@@ -188,6 +192,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       items = items.map(x => x.id === id ? updated : x);
       options.onChanged?.(updated);
     } catch (error) {
+      failed = true;
       if (disposed) return;
       for (const row of root.querySelectorAll("[data-appointment-id]")) {
         if (row.dataset.appointmentId !== id) continue;
@@ -205,7 +210,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       pending.delete(id);
       if (!disposed) {
         controls.forEach(el => {if(el.isConnected)el.disabled=false;});
-        draw();
+        if (!failed) draw();
       }
     }
   };
