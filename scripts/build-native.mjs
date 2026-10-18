@@ -88,7 +88,7 @@ const css = ["styles.css", "store-desktop.css", "corporate.css", "cadastros-comp
   .map(name => '<link rel="stylesheet" href="/src/' + name + '">').join("\n    ");
 const mapJson = JSON.stringify(importMap);
 const mapHash = createHash("sha256").update(mapJson, "utf8").digest("base64");
-const scripts = '<script type="importmap">' + mapJson + '</script>\\n' +
+const scripts = '<script type="importmap">' + mapJson + '</script>\n' +
   '    <script type="module" src="/migration/frontend/entry.js"></script>';
 const nativeHtml = html.replace("</head>", "    " + css + "\n  </head>")
   .replace(originalEntry, scripts);
