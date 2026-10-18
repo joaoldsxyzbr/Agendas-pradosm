@@ -2,6 +2,7 @@ import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 const base = fileURLToPath(new URL("../", import.meta.url));
 const output = join(base, "dist");
@@ -85,11 +86,19 @@ const originalEntry = '<script type="module" src="/src/main.tsx"></script>';
 if (!html.includes(originalEntry)) throw Error("index.html original mudou. Revisar entrada manualmente.");
 const css = ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css"]
   .map(name => '<link rel="stylesheet" href="/src/' + name + '">').join("\n    ");
-const scripts = '<script type="importmap">' + JSON.stringify(importMap) + '</script>\n' +
+const mapJson = JSON.stringify(importMap);
+const mapHash = createHash("sha256").update(mapJson, "utf8").digest("base64");
+const scripts = '<script type="importmap">' + mapJson + '</script>\\n' +
   '    <script type="module" src="/migration/frontend/entry.js"></script>';
 const nativeHtml = html.replace("</head>", "    " + css + "\n  </head>")
   .replace(originalEntry, scripts);
 if (nativeHtml.includes(originalEntry)) throw Error("O React continuou como entrypoint.");
 await writeFile(to("index.html"), nativeHtml, "utf8");
+const security = await readFile(to("_headers"), "utf8");
+const needle = "script-src 'self' 'wasm-unsafe-eval';";
+if (!security.includes(needle)) throw Error("CSP de produção diferente. Revisão de segurança necessária.");
+const updatedSecurity = security.replace(needle,
+  "script-src 'self' 'wasm-unsafe-eval' 'sha256-" + mapHash + "';");
+await writeFile(to("_headers"), updatedSecurity, "utf8");
 const count = await verifyImports(output);
 console.log("Build nativo: " + count + " módulos JS conferidos, CSS original e PDF WASM.");
