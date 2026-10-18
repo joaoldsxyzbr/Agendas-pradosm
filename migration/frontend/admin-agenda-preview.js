@@ -72,11 +72,11 @@ export function openAdminAgendaPreview(root,{
     renderDetail();
     onAgendaChanged();
   };
-  const openManual=editing=>{
+  const openManual=(editing,startDelete=false)=>{
     if(!effectiveEditable()||!detail)return;
     manualClose?.();
     manualClose=openAdminManualDialog(root,{
-      editing,agendaId,request,
+      editing,startDelete,agendaId,request,
       onSaved:(saved,wasEditing)=>{
         if(!detail)return;
         detail={...detail,appointments:wasEditing
@@ -134,7 +134,7 @@ export function openAdminAgendaPreview(root,{
       highlightPositiveExchanges:true,
       onChanged:effectiveEditable()?appointmentChanged:null,
       onEditManual:effectiveEditable()?openManual:null,
-      onDeleteManual:effectiveEditable()?openManual:null
+      onDeleteManual:effectiveEditable()?item=>openManual(item,true):null
     };
     if(list)list.update(filtered,opts);
     else list=renderAgendaList(field("[data-preview-list]"),opts);
