@@ -5,13 +5,14 @@ import { showUsers } from "./pages/usuarios.js";
 import { showReports } from "./pages/relatorios.js";
 import { createAgendaController } from "./features/agenda.js";
 import { openImportDialog } from "./features/importacao.js";
-import { observeGet, hasViewChanged } from "./features/auto-refresh.js";
+import { observeGet, hasViewChanged, incrementalRoot } from "./features/auto-refresh.js";
 
 (function nativeApp() {
   "use strict";
   const $ = (selector, root = document) => root.querySelector(selector);
   const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
   const root = $("#main");
+  const smoothRoot = incrementalRoot(root);
   const shell = $(".app-shell");
   const dateToday = () => new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const state = { user: null, view: "recebimento", date: dateToday(), search: "", store: "", reportStore: "", agendas: [], stores: [], users: [], storeAgenda: null, detail: null, detailDialogClose: null, detailOpener: null, busy: false, edit: false };
@@ -42,6 +43,8 @@ import { observeGet, hasViewChanged } from "./features/auto-refresh.js";
   const canRefresh = () => {
     if (document.hidden || !state.user || state.busy || $("#dialog-host")?.children.length) return false;
     if (state.view === "relatorios" && $("#report-form")?.dataset.dirty === "true") return false;
+    // Detalhes abertos sao preservados até o usuario terminar de consultar.
+    if ($("#appointment-details")?.childElementCount) return false;
     // Nao descarte campos sendo editados nem interrompa leitura do usuario.
     if (root.contains(document.activeElement) &&
         document.activeElement.matches("input,textarea,select,[contenteditable='true']")) return false;
@@ -266,7 +269,7 @@ import { observeGet, hasViewChanged } from "./features/auto-refresh.js";
     const observedApi = observeGet(api, entry => requests.push(entry));
     try {
       const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers };
-      await pages[next]({ ...context, api: observedApi,
+      await pages[next]({ ...context, root: background ? smoothRoot : root, api: observedApi,
         loadStores: async () => { state.stores = await observedApi("/api/admin/stores"); return state.stores; },
         isCurrent: () => navigationToken === requestToken });
       if (navigationToken !== requestToken) return;

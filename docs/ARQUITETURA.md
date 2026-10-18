@@ -162,3 +162,15 @@ A `preview` passou a consultar as mesmas rotas de leitura em segundo plano a cad
 O processo ignora períodos em que há modal aberto, operação pendente, aba oculta, formulário de relatório alterado sem aplicar ou um campo de entrada ativo. Falhas de conexão deixam a visualização atual intacta. O login deixou de disparar simultaneamente `hashchange` e `navigate`. O gráfico gerencial só é destruído no momento da substituição real de conteúdo. Cobertura do comparador adicionada em `tests/ui/auto-refresh.test.js`, executada por `vitest.parser.config.js`.
 
 A atualização em segundo plano continua podendo substituir a parte principal da tela quando houve efetiva mudança de dados; melhorias incrementais de DOM podem ser feitas futuramente se uma mudança real ainda produzir sensação de salto. Branch `main` e D1 de produção não foram modificados. CI e publicação Cloudflare devem ser validados antes de considerar o ajuste disponível no site.
+## Paridade de atualização incremental com a main — 18/10/2026
+
+A `main` atualiza componentes e dados sem recriar a tela inteira. Para a `preview` em JavaScript puro, `public/vanilla/features/auto-refresh.js` implementa uma estratégia de **patch incremental de DOM** durante atualizações automáticas. As páginas mantêm suas funções de renderização e usam um `root` adaptado somente no modo de atualização em segundo plano.
+
+- Linhas de agendamentos e lojas têm identificadores estáveis para preservar as linhas existentes, mesmo em mudanças de ordem e inclusão/exclusão.
+- Textos, números, atributos e células alterados são atualizados sem substituir o contêiner da página nem elementos inalterados.
+- A atualização preserva scroll, nós estáveis, foco e botões existentes; os handlers são vinculados novamente pelo código normal de cada página.
+- Operações explícitas de navegação continuam usando o fluxo original. O agendamento de consultas de 30 segundos e a detecção de mudanças permanecem.
+- Detalhes expandidos e modais não são sobrescritos por atualização de fundo. Gráficos de relatório podem ser redesenhados quando os próprios dados mudam, mas a tela inteira não é substituída.
+- Cobertura em `tests/ui/auto-refresh.test.js` valida patch de contagem, inclusão, remoção, reordenação, handlers e foco.
+
+Exigir validação de CI/E2E e publicação do Worker da `preview` para testar em uso real. **A branch `main` e o D1 da produção não foram alterados**.

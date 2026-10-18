@@ -11,7 +11,7 @@ export function createAgendaController(ctx) {
   };
   const listAppointments = (items, apiBase, editable) => table(
     ["Horário", "Fornecedor", "Protocolo", "Tipo", "Status", "Ações", "Trocas", "Observações"],
-    [...items].sort((a,b) => String(a.startTime || "").localeCompare(String(b.startTime || "")) || String(a.protocol || "").localeCompare(String(b.protocol || ""))).map(item => `<tr><td>${esc(item.origin === "manual" || !item.endTime ? (item.startTime || "—") : `${item.startTime} - ${item.endTime}`)}</td><td class="cell-primary">${esc(item.supplier)}</td>
+    [...items].sort((a,b) => String(a.startTime || "").localeCompare(String(b.startTime || "")) || String(a.protocol || "").localeCompare(String(b.protocol || ""))).map(item => `<tr data-appointment-id="${esc(item.id)}"><td>${esc(item.origin === "manual" || !item.endTime ? (item.startTime || "—") : `${item.startTime} - ${item.endTime}`)}</td><td class="cell-primary">${esc(item.supplier)}</td>
       <td>${esc(item.protocol)}</td><td>${esc(item.type || "—")}</td><td>${badge(item.status)}</td>
       <td><div class="inline-actions"><button class="mini-button" type="button" data-appointment-detail="${esc(item.id)}">Detalhes</button>
         ${editable && apiBase.startsWith("/api/admin") ? `<select class="status-select" data-status-select="${esc(item.id)}" aria-label="Status de ${esc(item.supplier)}">
