@@ -22,7 +22,10 @@
     "preview": "vite preview",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
     "test:e2e:ci": "npm run test:e2e:prepare && playwright test",
-    "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy"
+    "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy",
+    "migracao:build": "node scripts/build-native.mjs",
+    "migracao:dev": "npm run migracao:build && wrangler dev --config wrangler.migracao.jsonc",
+    "migracao:test": "node scripts/check-migracao-worker.mjs && node scripts/check-migracao-frontend.mjs && node --test tests/migration/*.test.js"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
