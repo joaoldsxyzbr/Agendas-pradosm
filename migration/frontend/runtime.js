@@ -88,7 +88,12 @@ export function createVanillaRuntime({
     if (!button || !root.contains(button) || button.disabled) return;
     button.disabled = true;
     try {
-      if (auth.user?.papel === "conferente") await beforeLogout();
+      if (auth.user?.papel === "conferente") {
+        try { await beforeLogout(); } catch (err) {
+          console.warn("Não foi possível sinalizar a saída do conferente.", err);
+        }
+      }
+      // A queda do serviço de presença não pode impedir o encerramento da sessão.
       await auth.logout();
     } catch (err) {
       console.error("Falha ao sair", err);
