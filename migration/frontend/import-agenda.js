@@ -138,7 +138,7 @@ export function renderImportAgenda(root,{
     body.querySelector("[data-import-preview]").innerHTML=preview
       ?previewHtml(preview,file,submitting,replacePending):"";
   };
-  const close=()=>{if(submitting||disposed)return;disposed=true;selectionToken++;onClose();};
+  const close=(force=false)=>{if((submitting&&!force)||disposed)return;disposed=true;selectionToken++;onClose();};
   const changeFile=async event=>{
     const selected=event.target.files?.[0]??null;
     const token=++selectionToken;
@@ -175,7 +175,7 @@ export function renderImportAgenda(root,{
       success=true;
       message=`Importação concluída: ${countStoreLabel(response.totalAgendas)} e ${countAgendaLabel(response.totalAppointments)}.`;
       onImported();
-      if(modal)close();
+      if(modal)close(true);
     }catch(err){
       if(disposed)return;
       if(err instanceof ApiError&&err.status===409){
