@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import { createHash } from "node:crypto";
 
 const root = resolve(".");
 const dist = join(root, "dist");
@@ -31,6 +32,10 @@ const map = JSON.parse(mapMatch[1]);
 const pdf = map.imports?.["@llamaindex/liteparse-wasm"];
 if (!pdf || !pdf.startsWith("/vendor/liteparse/")) throw Error("Caminho PDF WASM inválido.");
 if (!existsSync(join(dist, pdf))) throw Error("Biblioteca PDF não foi copiada.");
+const expectedHash = createHash("sha256").update(mapMatch[1], "utf8").digest("base64");
+const policy = read("_headers");
+if (!policy.includes("'sha256-" + expectedHash + "'"))
+  throw Error("Importmap PDF foi bloqueado pela política CSP.");
 const file = read("src/import/extractPdfText.js");
 if (!file.includes('from "@llamaindex/liteparse-wasm"')) throw Error("Contrato de PDF mudou.");
 console.log("Build de migração: HTML, JS, CSS, Worker e PDF WASM presentes.");
