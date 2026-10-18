@@ -134,8 +134,8 @@ export function renderHistory(root, { request = apiFetch } = {}) {
   const updateAppointment = updated => {
     if (!detail) return;
     detail = { ...detail, appointments: detail.appointments.map(item => item.id === updated.id ? updated : item) };
-    const row = root.querySelector("[data-appointment-rows]")?.querySelector(
-      `[data-appointment-id="${CSS.escape(updated.id)}"]`);
+    const row = [...root.querySelectorAll("[data-appointment-id]")]
+      .find(candidate => candidate.dataset.appointmentId === updated.id);
     if (!row) { drawDetail(); return; }
     const temp = root.ownerDocument.createElement("template");
     temp.innerHTML = appointmentRow(updated, null);
