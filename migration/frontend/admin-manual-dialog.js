@@ -2,9 +2,9 @@ import { escapeHtml } from "./shell.js";
 
 // Ações administrativas só são abertas após entrar no modo de edição.
 export function openAdminManualDialog(root, {
-  editing=null, agendaId,request,onSaved=()=>{},onDeleted=()=>{}
+  editing=null, startDelete=false, agendaId,request,onSaved=()=>{},onDeleted=()=>{}
 }={}) {
-  let closed=false,busy=false,deleteConfirm=false,error="";
+  let closed=false,busy=false,deleteConfirm=Boolean(editing&&startDelete),error="";
   const backdrop=root.ownerDocument.createElement("div");
   backdrop.className="modal-backdrop";
   backdrop.setAttribute("role","presentation");
