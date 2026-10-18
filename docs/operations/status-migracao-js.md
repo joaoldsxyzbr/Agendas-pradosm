@@ -46,3 +46,20 @@ Cobertura de contrato acrescentada em `tests/migration/dashboard.test.js`, `user
 5. Homologar na `preview`; promoção a `main` somente após validação e autorização explícita.
 
 `main`, `preview`, Worker de produção e bases D1 não foram modificados nesta etapa.
+
+
+## Atualização de integração nativa e riscos (18/10/2026)
+
+Após as etapas 16–18, a branch também contém os módulos da tela de conferente, importação CSV/PDF, visualização administrativa em popup, mapa de páginas e inicialização de sessão, presença e WebSocket. São `migration/frontend/application.js`, `entry.js`, `pages.js` e os demais renderizadores.
+
+**Novo build nativo testável, sem alterar a produção:**
+- `npm run migracao:build` gera `dist/index.html` que carrega módulos JavaScript nativos sem `main.tsx` nem bundle Vite. O código preserva as quatro folhas CSS da `main`.
+- O pacote `@llamaindex/liteparse-wasm` é copiado para `dist/vendor/liteparse`, e um importmap aponta para a entrada ES Modules. O build inclui no `dist/_headers` um hash SHA-256 exclusivo para esse importmap; a política CSP de segurança é mantida.
+- `node scripts/check-migracao-build.mjs` inspeciona HTML/CSS, mapa PDF, arquivos e hash CSP; o workflow agora inclui essas etapas.
+- `npm run migracao:dev` usa **somente** `wrangler.migracao.jsonc` com nome distinto, banco D1 local sintético e realtime desligado. Não executar deploy remoto a partir desse arquivo.
+
+**Evidência atual:** os scripts e o entrypoint foram verificados quanto à sintaxe. Não houve execução completa do build com dependências instaladas, nem teste no navegador real, e não há validação D1 local concluída.
+
+**CI ainda bloqueado:** a execução GitHub Actions encerra em segundos e registra **0 ms de execução faturável**. A API de logs retorna HTTP 404. Isso aponta para falha antes dos testes, mas não revela causa confirmada. A causa precisa ser vista em GitHub Actions (mensagens de runner/restrições da conta/repositório), não presumida.
+
+**Falta antes da homologação:** executar build nativo + E2E completos, testar leitor PDF/WASM com CSP no navegador, simular permissões e ações com D1 isolado, revisar equivalência visual e corrigir as divergências encontradas. **A remoção final de React, TypeScript e Vite e a substituição dos entrypoints oficiais permanecem bloqueadas pela validação.** O ambiente produtivo `main` e a `preview` continuam intocados.
