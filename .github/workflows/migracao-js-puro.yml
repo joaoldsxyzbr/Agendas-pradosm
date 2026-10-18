@@ -23,6 +23,8 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Verificar sintaxe e grafo de imports do backend migrado
         run: node scripts/check-migracao-worker.mjs
+      - name: Verificar frontend nativo e caminhos ES Modules
+        run: node scripts/check-migracao-frontend.mjs
       - name: Verificar contratos JavaScript migrados
         run: node --test tests/migration/*.test.js
       - name: Garantir compatibilidade da aplicação original durante a migração
