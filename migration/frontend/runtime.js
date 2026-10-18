@@ -1,0 +1,123 @@
+import { apiFetch } from "./api.js";
+import { createAuthController } from "./session.js";
+import { applyTheme, readStoredTheme } from "./theme.js";
+import { resolveRoute } from "./routes.js";
+import { renderLogin } from "./login.js";
+import { adminShell, storeShell } from "./shell.js";
+
+// Estrutura de transição isolada: não é o entrypoint da aplicação em produção.
+// pageRenderers serão conectados APENAS após a migração de cada tela da main.
+export function createVanillaRuntime({
+  root,
+  pageRenderers = {},
+  request = apiFetch,
+  beforeLogout = async () => {},
+  win = window,
+  doc = document
+}) {
+  const auth = createAuthController({ request });
+  let cleanup = () => {};
+  let activePage = null;
+  let activeLayout = null;
+  let started = false;
+
+  const navigate = (path, { replace = false } = {}) => {
+    if (replace) win.history.replaceState(null, "", path);
+    else win.history.pushState(null, "", path);
+    render();
+  };
+
+  function render() {
+    cleanup();
+    cleanup = () => {};
+    const route = resolveRoute(win.location.pathname, auth.user);
+    if (route.redirect) {
+      if (route.redirect !== win.location.pathname) {
+        win.history.replaceState(null, "", route.redirect);
+        return render();
+      }
+      throw Error("Redirecionamento circular inesperado.");
+    }
+    if (route.view === "login") {
+      activePage = "login";
+      activeLayout = null;
+      cleanup = renderLogin(root, { auth, navigate, request });
+      return;
+    }
+    if (route.layout !== activeLayout) {
+      root.innerHTML = route.layout === "store"
+        ? storeShell(auth.user)
+        : adminShell(auth.user, win.location.pathname);
+      activeLayout = route.layout;
+    }
+    const outlet = root.querySelector("[data-page-outlet]");
+    if (!outlet) throw Error("Área da página não encontrada.");
+    for (const anchor of root.querySelectorAll(".admin-topnav .nav-link")) {
+      const active = anchor.getAttribute("href") === win.location.pathname;
+      anchor.classList.toggle("active", active);
+      if (active) anchor.setAttribute("aria-current", "page");
+      else anchor.removeAttribute("aria-current");
+    }
+    const renderer = pageRenderers[route.view];
+    if (typeof renderer !== "function") {
+      // Impede ativação prematura de uma interface incompleta.
+      throw Error("Página da main ainda não migrada: " + route.view);
+    }
+    if (route.view !== activePage) outlet.replaceChildren();
+    activePage = route.view;
+    const remove = renderer({
+      root: outlet, user: auth.user, readOnly: route.readOnly,
+      navigate, request, commandSlot: root.querySelector("[data-agenda-command-slot]")
+    });
+    if (typeof remove === "function") cleanup = remove;
+  }
+
+  const onPop = () => render();
+  const onLink = event => {
+    if (event.defaultPrevented || event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+    const anchor = event.target.closest?.("a[href]");
+    if (!anchor || !root.contains(anchor) || anchor.target || anchor.hasAttribute("download")) return;
+    const url = new URL(anchor.href);
+    if (url.origin !== win.location.origin) return;
+    if (url.pathname === win.location.pathname && url.search === win.location.search) return;
+    event.preventDefault();
+    navigate(url.pathname + url.search + url.hash);
+  };
+  const onLogout = async event => {
+    const button = event.target.closest?.("[data-logout]");
+    if (!button || !root.contains(button) || button.disabled) return;
+    button.disabled = true;
+    try {
+      if (auth.user?.papel === "conferente") await beforeLogout();
+      await auth.logout();
+    } catch (err) {
+      console.error("Falha ao sair", err);
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  };
+
+  return {
+    auth,
+    navigate,
+    async start() {
+      if (started) return;
+      started = true;
+      applyTheme(readStoredTheme(), doc);
+      win.addEventListener("popstate", onPop);
+      root.addEventListener("click", onLink);
+      root.addEventListener("click", onLogout);
+      await auth.refresh();
+      render();
+    },
+    stop() {
+      cleanup();
+      win.removeEventListener("popstate", onPop);
+      root.removeEventListener("click", onLink);
+      root.removeEventListener("click", onLogout);
+      started = false;
+      activePage = null;
+      activeLayout = null;
+    }
+  };
+}
