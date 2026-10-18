@@ -5,6 +5,7 @@ import { showUsers } from "./pages/usuarios.js";
 import { showReports } from "./pages/relatorios.js";
 import { createAgendaController } from "./features/agenda.js";
 import { openImportDialog } from "./features/importacao.js";
+import { observeGet, hasViewChanged } from "./features/auto-refresh.js";
 
 (function nativeApp() {
   "use strict";
@@ -20,6 +21,8 @@ import { openImportDialog } from "./features/importacao.js";
   let lastPresenceInteraction = 0;
   let realtimeTimer = null;
   let refreshScheduled = null;
+  let refreshInProgress = false;
+  let observedQueries = [];
   const sendPresence = () => {
     if (realtimeSocket?.readyState !== WebSocket.OPEN || state.user?.papel !== "conferente") return;
     realtimeSocket.send(JSON.stringify({ version: 1, type: "presence.set", status: document.hidden ? "away" : "online" }));
@@ -32,15 +35,37 @@ import { openImportDialog } from "./features/importacao.js";
     if (refreshScheduled) clearTimeout(refreshScheduled);
     realtimeTimer = null;
     refreshScheduled = null;
+    observedQueries = [];
     realtimeSocket?.close(1000, "sessão encerrada");
     realtimeSocket = null;
   };
+  const canRefresh = () => {
+    if (document.hidden || !state.user || state.busy || $("#dialog-host")?.children.length) return false;
+    if (state.view === "relatorios" && $("#report-form")?.dataset.dirty === "true") return false;
+    // Nao descarte campos sendo editados nem interrompa leitura do usuario.
+    if (root.contains(document.activeElement) &&
+        document.activeElement.matches("input,textarea,select,[contenteditable='true']")) return false;
+    return ["conferente", "recebimento", "relatorios"].includes(state.view);
+  };
+  const refreshIfChanged = async () => {
+    if (!canRefresh() || refreshInProgress || !observedQueries.length) return;
+    const token = navigationToken, view = state.view, snapshot = observedQueries;
+    refreshInProgress = true;
+    try {
+      if (await hasViewChanged(snapshot, api) &&
+          canRefresh() && navigationToken === token && state.view === view) {
+        await navigate({ background: true });
+      }
+    } catch {
+      // Erros temporarios nao apagam uma pagina carregada. A proxima consulta tenta de novo.
+    } finally {
+      refreshInProgress = false;
+    }
+  };
   const liveRefresh = () => {
-    if (document.hidden || !state.user || state.busy || $("#dialog-host")?.children.length) return;
-    if (state.view === "relatorios" && $("#report-form")?.dataset.dirty === "true") return;
-    if (!["conferente", "recebimento", "relatorios"].includes(state.view)) return;
+    if (!canRefresh()) return;
     clearTimeout(refreshScheduled);
-    refreshScheduled = setTimeout(() => void navigate(), 450);
+    refreshScheduled = setTimeout(() => void refreshIfChanged(), 450);
   };
   const connectRealtime = async () => {
     closeRealtime();
@@ -152,6 +177,13 @@ import { openImportDialog } from "./features/importacao.js";
     return { close, host };
   };
   const field = (label, name, value = "", required = true, kind = "text") => `<label class="field">${esc(label)}<input name="${esc(name)}" type="${esc(kind)}" value="${esc(value)}" ${required ? "required" : ""}></label>`;
+  const finishLogin = async () => {
+    void connectRealtime();
+    const target = state.user.papel === "conferente" ? "#conferente" : "#recebimento";
+    // Alterar o hash ja dispara hashchange; navegar tambem gerava duas renderizacoes.
+    if (location.hash === target) await navigate();
+    else location.hash = target;
+  };
   const makeLogin = async () => {
     const loginToken = ++navigationToken;
     resetScreenFilters();
@@ -178,14 +210,12 @@ import { openImportDialog } from "./features/importacao.js";
     $("#login-form").onsubmit = e => {
       e.preventDefault();
       const f = Object.fromEntries(new FormData(e.currentTarget));
-      asyncAction(async () => { state.user = await json("POST", "/api/auth/login", f); void connectRealtime(); location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento"; await navigate(); });
+      asyncAction(async () => { state.user = await json("POST", "/api/auth/login", f); await finishLogin(); });
     };
     $$("[data-demo]").forEach(button => {
       button.onclick = () => asyncAction(async () => {
         state.user = await json("POST", "/api/auth/demo-login", { papel: button.dataset.demo });
-        void connectRealtime();
-        location.hash = state.user.papel === "conferente" ? "conferente" : "recebimento";
-        await navigate();
+        await finishLogin();
       });
     });
   };
@@ -205,7 +235,7 @@ import { openImportDialog } from "./features/importacao.js";
         (view === "relatorios" && !admin && !viewer);
     });
   };
-  const navigate = async () => {
+  const navigate = async ({ background = false } = {}) => {
     const requestToken = ++navigationToken;
     if (!state.user) { await makeLogin(); return; }
     restoreShell();
@@ -227,16 +257,27 @@ import { openImportDialog } from "./features/importacao.js";
     });
     shell.classList.remove("nav-open");
     $("#menu-toggle").setAttribute("aria-expanded", "false");
-    state.reportChart?.destroy?.();
-    state.reportChart = null;
-    root.innerHTML = `<div class="loading" role="status">Carregando informações…</div>`;
+    if (!background) {
+      state.reportChart?.destroy?.();
+      state.reportChart = null;
+      root.innerHTML = `<div class="loading" role="status">Carregando informações…</div>`;
+    }
+    const requests = [];
+    const observedApi = observeGet(api, entry => requests.push(entry));
     try {
       const pages = { recebimento: showDashboard, relatorios: showReports, conferente: showConferente, lojas: showStores, usuarios: showUsers };
-      await pages[next]({ ...context, isCurrent: () => navigationToken === requestToken });
+      await pages[next]({ ...context, api: observedApi,
+        loadStores: async () => { state.stores = await observedApi("/api/admin/stores"); return state.stores; },
+        isCurrent: () => navigationToken === requestToken });
       if (navigationToken !== requestToken) return;
+      observedQueries = requests;
       if (openImportAfterRoute) openImportDialog(context);
     } catch (e) {
       if (navigationToken !== requestToken) return;
+      if (background) {
+        tell("Não foi possível atualizar. Os dados atuais foram mantidos.", true);
+        return;
+      }
       root.innerHTML = heading("Agenda Prado", "Não foi possível carregar", e.message || "Verifique sua conexão.") + `<button class="secondary" id="retry">Tentar novamente</button>`;
       $("#retry").onclick = () => navigate();
     }
@@ -272,7 +313,9 @@ import { openImportDialog } from "./features/importacao.js";
   const menu = $(".sidebar-nav");
   menu.insertAdjacentHTML("beforeend", `<button class="secondary sidebar-logout" id="sidebar-logout">Sair</button>`);
   $("#sidebar-logout").onclick = () => asyncAction(async () => {
-    await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null; location.hash = ""; await makeLogin();
+    await api("/api/auth/logout", { method: "POST" }); closeRealtime(); state.user = null;
+    history.replaceState(null, "", location.pathname + location.search);
+    await makeLogin();
   });
   (async () => {
     try { state.user = await api("/api/auth/me"); if (state.user) void connectRealtime(); }

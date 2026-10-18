@@ -155,3 +155,10 @@ A reconstrução da interface em JavaScript puro deve preservar a **ordem dos ca
 - **Sequência das agendas:** horário inicial crescente, desempate por protocolo, como ordem inicial na `main`.
 
 Testes E2E da branch `preview` passaram a conferir cabeçalhos e ordem nessas telas. As APIs, Worker, D1 e a branch `main` não são alterados. Exigir build/CI aprovados e validação visual antes de considerar a paridade concluída para publicação.
+## Atualização da UI sem piscar — 18/10/2026
+
+A `preview` passou a consultar as mesmas rotas de leitura em segundo plano a cada 30 segundos (fallback quando o WebSocket está desligado). `public/vanilla/features/auto-refresh.js` compara as respostas das consultas usadas pela tela atual e **somente re-renderiza quando os dados realmente mudam**. Uma consulta sem mudanças mantém o DOM, o scroll, o foco e a tela, sem exibir novamente `Carregando informações…`.
+
+O processo ignora períodos em que há modal aberto, operação pendente, aba oculta, formulário de relatório alterado sem aplicar ou um campo de entrada ativo. Falhas de conexão deixam a visualização atual intacta. O login deixou de disparar simultaneamente `hashchange` e `navigate`. O gráfico gerencial só é destruído no momento da substituição real de conteúdo. Cobertura do comparador adicionada em `tests/ui/auto-refresh.test.js`, executada por `vitest.parser.config.js`.
+
+A atualização em segundo plano continua podendo substituir a parte principal da tela quando houve efetiva mudança de dados; melhorias incrementais de DOM podem ser feitas futuramente se uma mudança real ainda produzir sensação de salto. Branch `main` e D1 de produção não foram modificados. CI e publicação Cloudflare devem ser validados antes de considerar o ajuste disponível no site.

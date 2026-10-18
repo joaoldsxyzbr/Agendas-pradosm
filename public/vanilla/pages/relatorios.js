@@ -89,6 +89,10 @@ export async function showReports(ctx) {
     const openNote = total.abertas > 0
       ? `<p class="report-open-note"><strong>${fmt(total.abertas)} ${total.abertas === 1 ? "agenda em aberto" : "agendas em aberto"}.</strong> Os indicadores podem mudar até o fechamento.</p>`
       : "";
+    // Destruir o grafico anterior apenas no momento de substituir o DOM,
+    // nao durante a consulta em segundo plano.
+    state.reportChart?.destroy?.();
+    state.reportChart = null;
     root.innerHTML =
       `<div class="report-page">` +
       heading("Indicadores de gestão", "Relatórios gerenciais", `${dt(state.reportStart)} a ${dt(state.reportEnd)} · ${fmt(total.agendas)} agendas`) +
