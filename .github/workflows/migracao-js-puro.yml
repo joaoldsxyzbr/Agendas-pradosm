@@ -1,0 +1,27 @@
+name: Migração JS puro — validação isolada
+
+on:
+  push:
+    branches: [migracao-js-puro]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  migracao:
+    name: Validar código original e módulos JS migrados
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Instalar dependências reproduzíveis
+        run: npm ci --legacy-peer-deps
+      - name: Verificar contrato JavaScript migrado
+        run: node --test tests/migration/*.test.js
+      - name: Garantir compatibilidade da aplicação original durante a migração
+        run: npm run verify:production
