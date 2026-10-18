@@ -12,10 +12,11 @@ export function createVanillaRuntime({
   pageRenderers = {},
   request = apiFetch,
   beforeLogout = async () => {},
+  onSessionChange = () => {},
   win = window,
   doc = document
 }) {
-  const auth = createAuthController({ request });
+  const auth = createAuthController({ request, onChange: onSessionChange });
   let cleanup = () => {};
   let activePage = null;
   let activeLayout = null;
