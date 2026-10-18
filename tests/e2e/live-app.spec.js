@@ -27,6 +27,7 @@ test("entrada principal usa o app conectado à API e mantém acessibilidade no l
 test("administrador percorre recebimento, relatórios e cadastros", async ({ page }) => {
   await enterDemo(page, "Administrador");
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
+  await expect(page.locator(".dashboard-page thead th")).toHaveText(["Presença", "Loja", "Agenda", "Andamento", "Pendências", "Situação", "Ações"]);
   const importUrl = page.url();
   const importButton = page.getByRole("button", { name: "Importar agenda" });
   await importButton.click();
@@ -52,6 +53,7 @@ test("administrador percorre recebimento, relatórios e cadastros", async ({ pag
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
   await page.getByRole("link", { name: /Usuários/ }).click();
   await expect(page.getByRole("heading", { name: "Usuários", exact: true })).toBeVisible();
+  await expect(page.locator("#users-list thead th")).toHaveText(["Nome", "Login", "Loja", "Perfil", "Situação", "Ação"]);
 });
 
 test("painel de recebimento diferencia ocorrências de agendamentos aguardando", async ({ page }) => {
@@ -78,6 +80,7 @@ test("visualizador consulta relatórios sem ver cadastros", async ({ page }) => 
 test("conferente salva motivo obrigatório e volta o status para aguardando", async ({ page }) => {
   await enterDemo(page, "Conferente");
   await expect(page.getByRole("heading", { name: "Conferência de recebimentos" })).toBeVisible();
+  await expect(page.locator("#conf-appointment-table thead th")).toHaveText(["Horário", "Fornecedor", "Protocolo", "Tipo", "Status", "Ações", "Trocas", "Observações"]);
   await expect(page.getByText("Loja Demonstração").first()).toBeVisible();
   await expect(page.getByText("Distribuidora Exemplo")).toBeVisible();
   await page.locator('button[data-status][data-next="nao_chegou"]').first().click();

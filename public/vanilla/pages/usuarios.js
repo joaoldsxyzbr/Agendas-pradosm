@@ -3,14 +3,14 @@ import { auditMarkup, bindAudit } from "../features/auditoria.js";
 export async function showUsers(ctx){
  const {state,root,$,$$,api,loadStores,heading,panel,table,badge,esc,statusLabel,isCurrent}=ctx;
  const [users]=await Promise.all([api("/api/admin/users"),loadStores()]);if(!isCurrent())return;state.users=users;
- const rows=items=>items.map(u=>`<tr><td class="cell-primary">${esc(u.nome)}</td><td>${esc(u.login)}</td><td>${esc(statusLabel(u.papel))}</td><td>${esc(state.stores.find(s=>s.id===u.lojaId)?.nome||"—")}</td><td>${badge(u.ativo?"ativo":"inativo")}</td><td><button class="mini-button" data-edit-user="${esc(u.id)}">Editar</button></td></tr>`);
+ const rows=items=>items.map(u=>`<tr><td class="cell-primary">${esc(u.nome)}</td><td>${esc(u.login)}</td><td>${esc(state.stores.find(s=>s.id===u.lojaId)?.nome||"—")}</td><td>${esc(statusLabel(u.papel))}</td><td>${badge(u.ativo?"ativo":"inativo")}</td><td><button class="mini-button" data-edit-user="${esc(u.id)}">Editar</button></td></tr>`);
  root.innerHTML=heading("Cadastros","Usuários","Controle de acesso e permissões, sem apagar o histórico.",'<button class="primary" id="new-user">Novo usuário</button>')+
  `<div class="filter-panel catalog-filters"><div class="filter-grid">
  <label class="field wide">Pesquisar usuário<input type="search" id="user-search" placeholder="Nome, login ou loja" value="${esc(state.userSearch||"")}"></label>
  <label class="field">Perfil<select id="user-role"><option value="todos">Todos</option><option value="admin">Administrador</option><option value="visualizador">Visualizador</option><option value="conferente">Conferente</option></select></label>
  <label class="field">Situação<select id="user-status"><option value="todos">Todos</option><option value="ativos">Ativos</option><option value="inativos">Inativos</option></select></label>
  <span id="user-count" class="catalog-count" aria-live="polite"></span></div></div>`+
- panel("Usuários cadastrados",`${users.length} registros`,`<div id="users-list">${table(["Nome","Login","Perfil","Loja","Situação","Ação"],[])}</div>`);
+ panel("Usuários cadastrados",`${users.length} registros`,`<div id="users-list">${table(["Nome","Login","Loja","Perfil","Situação","Ação"],[])}</div>`);
  $("#user-role").value=state.userRole||"todos";$("#user-status").value=state.userStatus||"todos";
  const render=()=>{const visible=filterUsers(users,state.stores,state.userSearch,state.userRole,state.userStatus);
   $("#users-list tbody").innerHTML=rows(visible).join("")||'<tr><td class="empty" colspan="6">Nenhum usuário corresponde aos filtros.</td></tr>';

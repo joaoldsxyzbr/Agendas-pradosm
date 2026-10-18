@@ -10,11 +10,9 @@ export function createAgendaController(ctx) {
     tell("Status salvo no D1 de testes.");
   };
   const listAppointments = (items, apiBase, editable) => table(
-    ["Horário", "Fornecedor", "Protocolo", "Status", "Trocas", "Observações", "Ações"],
-    items.map(item => `<tr><td>${esc(item.startTime || "—")}</td><td class="cell-primary">${esc(item.supplier)}</td>
-      <td>${esc(item.protocol)}</td><td>${badge(item.status)}</td>
-      <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(item.supplier)}" data-exchange="${esc(item.id)}" ${item.hasExchanges ? "checked" : ""}>` : (item.hasExchanges ? "Sim" : "Não")}</td>
-      <td class="detail-line">${esc(item.observation || "—")}</td>
+    ["Horário", "Fornecedor", "Protocolo", "Tipo", "Status", "Ações", "Trocas", "Observações"],
+    [...items].sort((a,b) => String(a.startTime || "").localeCompare(String(b.startTime || "")) || String(a.protocol || "").localeCompare(String(b.protocol || ""))).map(item => `<tr><td>${esc(item.origin === "manual" || !item.endTime ? (item.startTime || "—") : `${item.startTime} - ${item.endTime}`)}</td><td class="cell-primary">${esc(item.supplier)}</td>
+      <td>${esc(item.protocol)}</td><td>${esc(item.type || "—")}</td><td>${badge(item.status)}</td>
       <td><div class="inline-actions"><button class="mini-button" type="button" data-appointment-detail="${esc(item.id)}">Detalhes</button>
         ${editable && apiBase.startsWith("/api/admin") ? `<select class="status-select" data-status-select="${esc(item.id)}" aria-label="Status de ${esc(item.supplier)}">
           ${[["aguardando","Aguardando"],["recebido","Recebido"],["nao_chegou","Não recebido"],["recusado","Recusado"]].map(([value,label])=>
@@ -22,7 +20,10 @@ export function createAgendaController(ctx) {
         ${editable ? `<button class="mini-button" data-status="${esc(item.id)}" data-next="recebido" title="Recebido ou Aguardando">✓</button>
           <button class="mini-button" data-status="${esc(item.id)}" data-next="nao_chegou" title="Não recebido ou Aguardando">✕</button>
           ${item.origin === "manual" ? `<button class="mini-button" data-manual-edit="${esc(item.id)}">Editar</button><button class="mini-button" data-manual-remove="${esc(item.id)}">Excluir</button>` : ""}` : ""}
-      </div></td></tr>`)
+      </div></td>
+      <td>${editable ? `<input type="checkbox" aria-label="Trocas ${esc(item.supplier)}" data-exchange="${esc(item.id)}" ${item.hasExchanges ? "checked" : ""}>` : (item.hasExchanges ? "Sim" : "Não")}</td>
+      <td class="detail-line">${esc(item.observation || "—")}</td>
+      </tr>`)
   );
   const bindAppointmentDetails = (items, apiBase, scope = root) => {
     const host = $("#appointment-details", scope);

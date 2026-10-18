@@ -144,3 +144,14 @@ Promover ou ligar o Worker `preview` ao banco copiado exige testar autenticaçã
 A branch `preview` passou a configurar o D1 `agendas-pradosm-preview-copia` (`6b2c7fec-5fbf-4db7-a0c4-d51860799c29`), cópia pseudonimizada do banco produtivo. O D1 mock anterior foi preservado; a branch `main` e seu banco real não foram modificados. Três contas exclusivas de demonstração permitem acesso rápido com os papéis admin, visualizador e conferente.
 
 Detalhes, verificação de integridade, reverter binding e cuidados com a publicação: [Cópia D1 da preview](operations/preview-d1-copia.md). Configuração no GitHub e publicação efetiva na Cloudflare devem ser validadas separadamente.
+## Paridade de ordem operacional entre main e preview — 18/10/2026
+
+A reconstrução da interface em JavaScript puro deve preservar a **ordem dos campos e o agrupamento operacional** do sistema em produção, independentemente da evolução visual:
+
+- **Recebimento (admin e visualizador):** Presença → Loja → Agenda → Andamento (recebidos/total) → Pendências (aguardando, não recebidos, recusados e fornecedores sem agenda) → Situação → Ações. Os indicadores resumidos seguem visíveis nos cartões.
+- **Usuários:** Nome → Login → Loja → Perfil → Situação → Ação.
+- **Agenda do conferente e popup administrativo:** Horário → Fornecedor → Protocolo → Tipo → Status → Ações → Trocas. A coluna adicional **Observações**, necessária à preview, continua ao final; também permanece disponível nos detalhes.
+- **Lojas:** Código → Nome → Situação → Ação (já coincidia com a main).
+- **Sequência das agendas:** horário inicial crescente, desempate por protocolo, como ordem inicial na `main`.
+
+Testes E2E da branch `preview` passaram a conferir cabeçalhos e ordem nessas telas. As APIs, Worker, D1 e a branch `main` não são alterados. Exigir build/CI aprovados e validação visual antes de considerar a paridade concluída para publicação.

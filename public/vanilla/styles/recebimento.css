@@ -36,11 +36,15 @@
 .dashboard-page .card-header { padding:14px 18px; background:#21252b }
 .dashboard-page .card-header h2 { font-size:14px }
 .dashboard-page .card-header p { font-size:11px; margin-top:3px }
-.dashboard-page table { min-width:1020px; font-variant-numeric:tabular-nums }
+.dashboard-page table { min-width:940px; font-variant-numeric:tabular-nums }
 .dashboard-page th { background:#262b33; padding:10px 12px; font-size:11px; font-weight:655; color:#b6becc }
 .dashboard-page td { padding:12px; font-size:12px; color:#d9dfe7 }
-.dashboard-page th:nth-child(n+4):nth-child(-n+7) { text-align:right }
 .dashboard-page td.cell-primary { font-size:12px; font-weight:680; color:var(--text) }
+.dashboard-page .dashboard-progress { display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:105px }
+.dashboard-page .dashboard-progress strong { font-size:13px;color:var(--text);font-weight:720;white-space:nowrap }
+.dashboard-page .dashboard-progress small { color:var(--muted);font-size:11px }
+.dashboard-page .dashboard-pending { display:grid;gap:3px;min-width:142px;font-size:11px;line-height:1.45 }
+.dashboard-page .dashboard-no-agenda { color:var(--muted);font-size:11px }
 .dashboard-page .agenda-mark { color:#c6d1df; font-size:11px; white-space:nowrap }
 .dashboard-page .mini-button { min-height:32px; background:#2d3541; border-color:#465365; padding:6px 11px }
 .dashboard-page .mini-button:hover { background:#354357; border-color:#6c86a6 }
