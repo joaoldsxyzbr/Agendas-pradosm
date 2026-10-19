@@ -268,10 +268,10 @@ const previewDb = wranglerConfig.d1_databases?.find(
   (binding) => binding.binding === "DB",
 );
 assert.ok(previewDb, "Worker preview deve possuir binding D1");
-assert.equal(previewDb.database_name, "agendas-pradosm-preview");
+assert.equal(previewDb.database_name, "agendas-pradosm-preview-copia");
 assert.equal(
   previewDb.database_id,
-  "716cc88e-7da8-400e-b4be-edc4be0c9c03",
+  "6b2c7fec-5fbf-4db7-a0c4-d51860799c29",
   "Worker preview deve usar somente D1 isolado",
 );
 assert.notEqual(
