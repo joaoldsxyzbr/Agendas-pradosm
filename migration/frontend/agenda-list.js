@@ -137,8 +137,15 @@ export function renderAgendaList(root, initialOptions = {}) {
       if (headerSignature !== signature) th.innerHTML = header;
     }
     headerSignature = signature;
+    const container = root.querySelector("[data-agenda-desktop]");
+    const containerClass = "agenda-desktop table-card " + (hasActions() ? "has-actions" : "is-readonly");
+    if (container.className !== containerClass) container.className = containerClass;
     const tbody = root.querySelector("[data-agenda-rows]");
     const mobile = root.querySelector("[data-agenda-mobile]");
+    // Um estado vazio anterior não pode permanecer misturado aos novos agendamentos.
+    for (const placeholder of tbody.querySelectorAll("tr:not([data-appointment-id])")) {
+      placeholder.remove();
+    }
     const desktopRows = new Map([...tbody.querySelectorAll("tr[data-appointment-id]")]
       .map(row => [row.dataset.appointmentId, row]));
     const mobileRows = new Map([...mobile.querySelectorAll("article[data-appointment-id]")]
