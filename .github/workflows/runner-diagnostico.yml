@@ -1,7 +1,5 @@
 name: Diagnóstico mínimo do runner (migração)
 on:
-  push:
-    branches: [migracao-js-puro]
   workflow_dispatch:
 permissions:
   contents: read
