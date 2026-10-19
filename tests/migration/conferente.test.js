@@ -52,6 +52,8 @@ describe("Conferente nativo — contratos da main", () => {
     assert.match(row,/data-testid="agenda-desktop-row"/);
     assert.match(row,/data-status="recebido"/);
     assert.match(row,/data-exchanges="a"/);
+    assert.match(row,/data-edit-observation="a"/);
+    assert.match(row,/agenda-observation-cell/);
     assert.match(row,/&lt;script&gt;/);
     assert.equal(row.toLowerCase().includes("<script"), false);
     const list=files("../../migration/frontend/agenda-list.js");

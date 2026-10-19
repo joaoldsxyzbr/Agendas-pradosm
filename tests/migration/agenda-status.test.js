@@ -33,7 +33,7 @@ function fakeDb() {
   return database;
 }
 
-describe("Regras de status equivalentes à main, sem coluna observacao", () => {
+describe("Regras de status com observação e histórico", () => {
   it("não faz operações D1 quando status não muda", async () => {
     const db = fakeDb();
     const result = await changeAppointmentStatus(db, baseAppointment, "admin1", "aguardando");
@@ -48,12 +48,40 @@ describe("Regras de status equivalentes à main, sem coluna observacao", () => {
     assert.equal(db.batches.length, 1);
     assert.equal(db.batches[0].length, 3);
     const statusUpdate = db.statements.find(s => s.sql.startsWith("UPDATE agendamentos"));
-    assert.equal(statusUpdate.sql, "UPDATE agendamentos SET status = ?, atualizado_em = ? WHERE id = ?");
+    assert.equal(statusUpdate.sql, "UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ?");
+    assert.equal(statusUpdate.params[1], null);
     assert.equal(statusUpdate.params[0], "recebido");
     const history = db.statements.find(s => s.sql.includes("INSERT INTO historico_status"));
     assert.ok(history);
     const audit = db.statements.find(s => s.sql.includes("INSERT INTO auditoria"));
     assert.ok(audit);
-    assert.equal(JSON.stringify(db.statements).includes("observacao"), false);
+    assert.equal(JSON.stringify(db.statements).includes("observacao"), true);
+  });
+  it("bloqueia não recebido sem motivo e não altera o banco", async () => {
+    const db = fakeDb();
+    await assert.rejects(
+      changeAppointmentStatus(db, baseAppointment, "conf1", "nao_chegou"),
+      /Motivo obrigatório/
+    );
+    assert.equal(db.batches.length, 0);
+  });
+  it("salva o motivo em status, histórico e auditoria", async () => {
+    const db = fakeDb();
+    await changeAppointmentStatus(db, baseAppointment, "conf1", "nao_chegou", undefined, "Sem pedido");
+    const statusUpdate = db.statements.find(s => s.sql.startsWith("UPDATE agendamentos"));
+    const history = db.statements.find(s => s.sql.includes("INSERT INTO historico_status"));
+    assert.equal(statusUpdate.params[1], "Sem pedido");
+    assert.equal(history.params[5], "Sem pedido");
+    assert.equal(db.batches.length, 1);
+  });
+  it("limpa a observação atual sem perder o histórico anterior", async () => {
+    const db = fakeDb();
+    await changeAppointmentStatus(db, { ...baseAppointment, status: "nao_chegou", observacao: "Sem pedido" },
+      "conf1", "recebido");
+    const statusUpdate = db.statements.find(s => s.sql.startsWith("UPDATE agendamentos"));
+    const history = db.statements.find(s => s.sql.includes("INSERT INTO historico_status"));
+    assert.equal(statusUpdate.params[1], null);
+    assert.equal(history.params[3], "nao_chegou");
+    assert.equal(history.params[4], "recebido");
   });
 });

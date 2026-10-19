@@ -10,9 +10,9 @@ for (const name of ["admin-agendas", "store-agendas"]) {
     it("mantém todos os endpoints e métodos", () => {
       assert.deepEqual(endpoints(js), expected);
     });
-    it("usa somente os campos presentes no schema atual da produção", () => {
-      assert.doesNotMatch(js, /\bobservacao\b|\bobservation\b/);
-      assert.doesNotMatch(js, /Informe o motivo/);
+    it("exige motivo no não recebido e preserva os endpoints existentes", () => {
+      assert.match(js, /validateStatusObservation/);
+      assert.match(js, /\/:id\/observation/);
       assert.ok(js.includes("changeAppointmentStatus("));
       assert.ok(js.includes('status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"])'));
     });

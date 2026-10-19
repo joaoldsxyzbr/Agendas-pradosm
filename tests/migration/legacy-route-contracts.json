@@ -12,6 +12,7 @@
       ".get(\"/:id\"",
       ".patch(\"/:id/manual\"",
       ".delete(\"/:id/manual\"",
+      ".patch(\"/:id/observation\"",
       ".patch(\"/:id/status\"",
       ".patch(\"/:id/exchanges\"",
       ".get(\"/:id/history\""
@@ -27,6 +28,7 @@
       ".patch(\"/:id/manual\"",
       ".delete(\"/:id/manual\"",
       ".patch(\"/:id/exchanges\"",
+      ".patch(\"/:id/observation\"",
       ".patch(\"/:id/status\""
     ]
   },

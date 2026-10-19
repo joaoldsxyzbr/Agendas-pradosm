@@ -259,7 +259,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       </div>
       <p class="observation-dialog-supplier">${escapeHtml(item.supplier)}</p>
       <label class="observation-field">Motivo ${required ? "(obrigatório)" : "(opcional)"}
-        <select data-observation-reason required=${required}>
+        <select data-observation-reason ${required ? "required" : ""}>
           <option value="">${required ? "Selecione um motivo" : "Sem observação"}</option>
           ${OBSERVATION_REASONS.map(reason => `<option value="${escapeHtml(reason)}">${escapeHtml(reason)}</option>`).join("")}
           <option value="Outros">Outros (personalizado)</option>
