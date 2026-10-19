@@ -49,7 +49,7 @@ describe("Histórico da main em JavaScript puro", () => {
       "Ajuste administrativo", "Histórico de status"
     ]) assert.ok(src.includes(label), label);
     assert.match(src, /row\.replaceWith\(temp\.content\)/);
-    assert.match(src, /root\.querySelector\("\[data-appointment-rows\]"/);
+    assert.match(src, /root\.querySelectorAll\("\[data-appointment-id\]"/);
     assert.doesNotMatch(src, /PREVIEW_DEMO_LOGIN|observacao/);
   });
 });
