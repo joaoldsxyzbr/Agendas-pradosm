@@ -186,3 +186,12 @@ html[data-theme="dark"] :focus-visible{outline:2px solid #a9cbff;outline-offset:
   html[data-theme="dark"] .prado-admin.admin-shell{display:block}
   html[data-theme="dark"] .prado-workspace .app-content{padding:0}
 }
+/* O contêiner real da agenda é [data-agenda-view], não .agenda-desktop
+   diretamente; precisa ocupar ambas as colunas da grade do conferente. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .prado-store-visual .store-page > [data-agenda-view] {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+  }
+}
