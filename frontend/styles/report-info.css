@@ -1,0 +1,22 @@
+/* Ajuda contextual: mouse, foco de teclado e toque, sem biblioteca. */
+.manager-report .report-metric{position:relative;overflow:visible}
+.manager-report .report-metric-heading{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.manager-report .report-metric-heading>span{font-size:12px;font-weight:650;color:var(--color-text-muted,#bac0ca)}
+.manager-report .report-panel{overflow:visible}
+.manager-report .report-panel>header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-radius:9px 9px 0 0}
+.manager-report .report-panel>header>div{min-width:0}
+.manager-report .report-panel:hover,.manager-report .report-panel:focus-within,
+.manager-report .report-metric:hover,.manager-report .report-metric:focus-within{position:relative;z-index:5}
+.manager-report .report-info{position:relative;display:inline-flex;align-self:flex-start;flex:0 0 auto}
+.manager-report .report-info-button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:1px solid var(--color-border,#454a54);border-radius:50%;background:transparent;color:var(--color-text-muted,#bac0ca);font-size:12px;font-weight:700;line-height:1;cursor:help}
+.manager-report .report-info-button:hover,.manager-report .report-info-button:focus-visible,
+.manager-report .report-info-button[aria-expanded="true"]{background:var(--color-primary-soft,#293a53);border-color:var(--color-primary,#79afff);color:var(--color-primary-strong,#a9cbff)}
+.manager-report .report-info-button:focus-visible{outline:2px solid var(--color-primary-strong,#a9cbff);outline-offset:3px}
+.manager-report .report-info-tooltip{position:absolute;top:calc(100% + 8px);right:0;z-index:15;width:max-content;max-width:min(285px,calc(100vw - 36px));padding:10px 12px;border:1px solid #535c6b;border-radius:8px;background:#292f39;color:#f1f2f4;box-shadow:0 12px 28px rgba(0,0,0,.3);font-size:12px;font-weight:400;line-height:1.5;text-align:left;white-space:normal;opacity:0;visibility:hidden;pointer-events:none;transform:translateY(-3px)}
+.manager-report .report-info:hover .report-info-tooltip,
+.manager-report .report-info-button:focus-visible+.report-info-tooltip,
+.manager-report .report-info[data-open] .report-info-tooltip{opacity:1;visibility:visible;transform:translateY(0)}
+.manager-report .report-metric .report-info{position:static}
+.manager-report .report-metric .report-info-tooltip{top:43px;left:12px;right:12px;width:auto;max-width:none}
+@media (hover:none){.manager-report .report-info:hover:not([data-open]) .report-info-tooltip{opacity:0;visibility:hidden}}
+@media print{.manager-report .report-info{display:none!important}}
