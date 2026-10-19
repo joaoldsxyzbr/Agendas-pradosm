@@ -11,6 +11,7 @@ export function agendaDetailHtml(item) {
     ["Horário", `${item.startTime} - ${item.endTime}`],
     ["Protocolo", item.protocol], ["Fornecedor", item.supplier],
     ["Status", STATUS_LABELS[item.status] || item.status],
+    ["Obs.", display(item.observation)],
     ["Tipo", display(item.type)], ["Itens", display(item.items)],
     ["Volumes", display(item.volumes)], ["Paletes", display(item.pallets)],
     ["Carga batida", display(item.cargaBatida)]
@@ -30,7 +31,8 @@ export function agendaDetailHtml(item) {
       <h3>Histórico de alterações</h3>
       ${item.history?.length ? `<ul>${item.history.map(entry=>`<li>
         <strong>${esc(entry.statusAnterior)} → ${esc(entry.statusNovo)}</strong>
-        <span>${esc(entry.usuario?.nome)}</span></li>`).join("")}</ul>`
+        <span>${esc(entry.usuario?.nome)}</span>
+        ${entry.observation ? `<span>Obs.: ${esc(entry.observation)}</span>` : ""}</li>`).join("")}</ul>`
         : '<p>Nenhuma alteração de status registrada.</p>'}
     </section>`;
 }

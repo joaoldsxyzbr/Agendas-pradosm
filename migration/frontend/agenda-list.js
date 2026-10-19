@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
+import { OBSERVATION_REASONS, normalizeObservation, validateStatusObservation } from "../../shared/observations.js";
 
 export const STATUS_LABELS = Object.freeze({
   aguardando: "Aguardando", recebido: "Recebido",
@@ -66,6 +67,18 @@ function actions(item, { editable, onChanged, onEditManual, onDeleteManual, onOp
          data-open-appointment="${esc(item.id)}">Ver detalhes</button>` : "";
   return `<div class="agenda-row-actions">${controls}${edit}${del}${open}</div>`;
 }
+function observationCell(item, options) {
+  const text = item.observation ?? "";
+  const title = escapeHtml(text || "Sem observação");
+  if (options.editable && options.onChanged) {
+    return `<button class="agenda-observation-trigger" type="button" data-edit-observation="${escapeHtml(item.id)}"
+      title="${title}" aria-label="Observação de ${escapeHtml(item.supplier)}: ${title}">
+      ${text ? `<span class="agenda-observation-value">${escapeHtml(text)}</span>` : '<span class="agenda-observation-add">+ Obs.</span>'}
+    </button>`;
+  }
+  return text ? `<span class="agenda-observation-value" title="${title}">${escapeHtml(text)}</span>`
+    : '<span class="agenda-observation-empty">—</span>';
+}
 function exchanges(item, options) {
   if (options.editable && options.onChanged) {
     return `<div class="exchange-control"><input type="checkbox" aria-label="Trocas"
@@ -82,7 +95,8 @@ export function agendaRowHtml(item, options) {
     <td>${esc(appointmentTime(item))}</td><td title="${esc(item.supplier)}">${esc(item.supplier)}</td>
     <td>${esc(item.protocol)}</td><td>${esc(item.type ?? "-")}</td><td>${statusBadge(item)}</td>
     ${hasActions ? `<td class="table-action">${actions(item, options)}</td>` : ""}
-    <td class="exchange-cell">${exchanges(item,options)}</td></tr>`;
+    <td class="exchange-cell">${exchanges(item,options)}</td>
+    <td class="agenda-observation-cell">${observationCell(item,options)}</td></tr>`;
 }
 function mobileCard(item, options) {
   const esc = escapeHtml;
@@ -94,6 +108,7 @@ function mobileCard(item, options) {
     <div class="agenda-card-meta"><span>${esc(item.type ?? "Tipo não informado")}</span></div>
     ${statusBadge(item)}${hasActions ? actions(item,options) : ""}
     <div class="agenda-card-exchanges"><span>Trocas</span>${exchanges(item,options)}</div>
+    <div class="agenda-card-observation"><span>Obs.</span>${observationCell(item,options)}</div>
   </article>`;
 }
 function sortHeader(key, label, sort) {
@@ -113,6 +128,7 @@ export function renderAgendaList(root, initialOptions = {}) {
   let sort = null;
   let disposed = false;
   const pending = new Set();
+  let closeObservationDialog = null;
   let headerSignature = null;
   const hasActions = () => Boolean(options.onOpen || (options.editable &&
     (options.onChanged || options.onEditManual || options.onDeleteManual)));
@@ -123,7 +139,7 @@ export function renderAgendaList(root, initialOptions = {}) {
     const header = [
       sortHeader("time","Horário",sort),sortHeader("supplier","Fornecedor",sort),
       sortHeader("protocol","Protocolo",sort),sortHeader("type","Tipo",sort),
-      sortHeader("status","Status",sort),hasActions() ? "<th>Ações</th>" : "", "<th>Trocas</th>"
+      sortHeader("status","Status",sort),hasActions() ? "<th>Ações</th>" : "", "<th>Trocas</th>", "<th>Obs.</th>"
     ].join("");
     // Preserva o container ao atualizar um único agendamento.
     const signature = JSON.stringify({sort, hasActions:hasActions()});
@@ -172,7 +188,7 @@ export function renderAgendaList(root, initialOptions = {}) {
     for (const row of desktopRows.values()) row.remove();
     for (const row of mobileRows.values()) row.remove();
     if (!sorted.length) {
-      tbody.innerHTML = `<tr><td colspan="${hasActions()?7:6}" class="empty-cell">Nenhum agendamento nesta agenda.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="${hasActions()?8:7}" class="empty-cell">Nenhum agendamento nesta agenda.</td></tr>`;
     }
   };
   const action = async (id, kind, value, trigger) => {
@@ -186,10 +202,11 @@ export function renderAgendaList(root, initialOptions = {}) {
       .flatMap(row => [...row.querySelectorAll("button, input")]);
     controls.forEach(el => { el.disabled = true; });
     try {
-      const suffix = kind === "status" ? "status" : "exchanges";
+      const suffix = kind === "status" ? "status" : kind === "observation" ? "observation" : "exchanges";
       const body = kind === "status"
-        ? { status: requestedAgendaStatus(item.status,value) }
-        : { hasExchanges: value };
+        ? { status: requestedAgendaStatus(item.status,typeof value === "string" ? value : value.status),
+            observation: typeof value === "string" ? null : value.observation }
+        : kind === "observation" ? { observation: value } : { hasExchanges: value };
       const updated = await options.request(
         `${options.appointmentApiBase}/${encodeURIComponent(id)}/${suffix}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
@@ -198,6 +215,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       if (disposed) return;
       items = items.map(x => x.id === id ? updated : x);
       options.onChanged?.(updated);
+      return true;
     } catch (error) {
       failed = true;
       if (disposed) return;
@@ -207,12 +225,14 @@ export function renderAgendaList(root, initialOptions = {}) {
         if (el) {
           el.textContent = error instanceof ApiError ? error.message
             : kind === "status" ? "Não foi possível alterar o status."
-              : "Não foi possível alterar a marcação de trocas.";
+              : kind === "observation" ? "Não foi possível salvar a observação."
+                : "Não foi possível alterar a marcação de trocas.";
           el.hidden = false;
         }
         const input = row.querySelector('[data-exchanges]');
         if (input) input.checked = item.hasExchanges;
       }
+      return false;
     } finally {
       pending.delete(id);
       if (!disposed) {
@@ -220,6 +240,88 @@ export function renderAgendaList(root, initialOptions = {}) {
         if (!failed) draw();
       }
     }
+  };
+  const openObservationDialog = (item, status, trigger) => {
+    closeObservationDialog?.();
+    const required = status === "nao_chegou";
+    const current = item.observation ?? "";
+    const preset = OBSERVATION_REASONS.includes(current) ? current
+      : current.startsWith("Outros: ") ? "Outros" : "";
+    const custom = preset === "Outros" ? current.slice(8) : "";
+    const backdrop = root.ownerDocument.createElement("div");
+    backdrop.className = "modal-backdrop observation-modal-backdrop";
+    backdrop.innerHTML = `<form class="modal-card observation-dialog" role="dialog" aria-modal="true"
+      aria-labelledby="observation-dialog-title">
+      <div class="modal-heading">
+        <div><span class="eyebrow">Recebimento</span>
+          <h2 id="observation-dialog-title">${required ? "Motivo de não recebimento" : "Observação"}</h2></div>
+        <button class="ghost-button" type="button" data-observation-cancel aria-label="Fechar">Fechar</button>
+      </div>
+      <p class="observation-dialog-supplier">${escapeHtml(item.supplier)}</p>
+      <label class="observation-field">Motivo ${required ? "(obrigatório)" : "(opcional)"}
+        <select data-observation-reason required=${required}>
+          <option value="">${required ? "Selecione um motivo" : "Sem observação"}</option>
+          ${OBSERVATION_REASONS.map(reason => `<option value="${escapeHtml(reason)}">${escapeHtml(reason)}</option>`).join("")}
+          <option value="Outros">Outros (personalizado)</option>
+        </select>
+      </label>
+      <label class="observation-field" data-observation-custom-wrap hidden>Descreva o motivo
+        <textarea data-observation-custom maxlength="242" rows="3" placeholder="Descreva o motivo"></textarea>
+      </label>
+      <p class="form-error" data-observation-error role="alert" hidden></p>
+      <div class="observation-dialog-actions">
+        <button class="ghost-button" type="button" data-observation-cancel>Cancelar</button>
+        <button class="primary-button" type="submit" data-observation-save>Confirmar</button>
+      </div>
+    </form>`;
+    const select = backdrop.querySelector("[data-observation-reason]");
+    const textarea = backdrop.querySelector("[data-observation-custom]");
+    const customWrap = backdrop.querySelector("[data-observation-custom-wrap]");
+    const errorNode = backdrop.querySelector("[data-observation-error]");
+    const submit = backdrop.querySelector("[data-observation-save]");
+    select.value = preset;
+    textarea.value = custom;
+    const sync = () => {
+      customWrap.hidden = select.value !== "Outros";
+      textarea.required = select.value === "Outros";
+    };
+    sync();
+    select.addEventListener("change", sync);
+    const onKey = event => { if (event.key === "Escape") { event.preventDefault(); close(); } };
+    const close = () => {
+      backdrop.remove();
+      root.ownerDocument.removeEventListener("keydown", onKey);
+      if (closeObservationDialog === close) closeObservationDialog = null;
+      if (trigger?.isConnected) trigger.focus();
+    };
+    closeObservationDialog = close;
+    for (const button of backdrop.querySelectorAll("[data-observation-cancel]"))
+      button.addEventListener("click", close);
+    backdrop.addEventListener("click",event=>{if(event.target===backdrop)close();});
+    backdrop.addEventListener("submit",async event=>{
+      event.preventDefault();
+      errorNode.hidden=true;
+      let note;
+      try {
+        const input = select.value === "Outros" ? "Outros: " + textarea.value.trim() : select.value;
+        note = required ? validateStatusObservation(status,input) : normalizeObservation(input);
+      } catch (error) {
+        errorNode.textContent = error.message;
+        errorNode.hidden = false;
+        return;
+      }
+      submit.disabled = true;
+      const saved = await action(item.id,status ? "status" : "observation",
+        status ? {status,observation:note} : note,trigger);
+      if (saved) close();
+      else {
+        errorNode.textContent = "Não foi possível salvar. Tente novamente.";
+        errorNode.hidden=false;
+        submit.disabled=false;
+      }
+    });
+    root.ownerDocument.body.appendChild(backdrop);
+    select.focus();
   };
   const onClick = event => {
     const button = event.target.closest?.("button");
@@ -229,7 +331,16 @@ export function renderAgendaList(root, initialOptions = {}) {
     }
     const id = button.dataset.id;
     if (id && button.matches("[data-status]") && options.editable && options.onChanged) {
-      void action(id,"status",button.dataset.status,button);
+      const next = requestedAgendaStatus(items.find(x=>x.id===id)?.status,button.dataset.status);
+      if (next === "nao_chegou") {
+        const item = items.find(x=>x.id===id);
+        if (item) openObservationDialog(item,next,button);
+      } else void action(id,"status",button.dataset.status,button);
+      return;
+    }
+    if (button.matches("[data-edit-observation]") && options.editable && options.onChanged) {
+      const item = items.find(x=>x.id===button.dataset.editObservation);
+      if (item) openObservationDialog(item,null,button);
       return;
     }
     const appointment = items.find(x=>x.id===button.dataset.editManual ||
@@ -255,6 +366,7 @@ export function renderAgendaList(root, initialOptions = {}) {
     },
     destroy() {
       disposed = true;
+      closeObservationDialog?.();
       root.removeEventListener("click",onClick);
       root.removeEventListener("change",onChange);
     }
