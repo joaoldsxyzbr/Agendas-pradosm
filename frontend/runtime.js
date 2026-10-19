@@ -5,8 +5,8 @@ import { resolveRoute } from "./routes.js";
 import { renderLogin } from "./login.js";
 import { adminShell, storeShell } from "./shell.js";
 
-// Estrutura de transição isolada: não é o entrypoint da aplicação em produção.
-// pageRenderers serão conectados APENAS após a migração de cada tela da main.
+// Runtime nativo carregado pelo entrypoint de produção através de frontend/application.js.
+// Usa apenas os renderizadores registrados para cada rota e perfil.
 export function createVanillaRuntime({
   root,
   pageRenderers = {},

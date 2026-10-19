@@ -20,6 +20,23 @@ Referência oficial: https://developers.cloudflare.com/workers/ci-cd/builds/conf
 
 ## Previews de pull request
 
+### Diagnóstico de falha na autenticação da Preview (19/10/2026)
+
+Os PRs de auditoria #95 e #96 passaram no gate GitHub Actions `verify`, mas o Workers Builds da Preview retornou erro `Authentication error [10000]` / `Invalid access token [9109]` ao executar `npx wrangler preview`. O build do código e os testes passaram, portanto esse erro específico não comprova falha do Worker. A produção usa outra configuração de publicação.
+
+**Causa identificada e corrigida nos PRs #95 e #96:** atualizar `previews_base_config.build_token_uuid` altera o padrão para futuras Previews, mas as Previews já criadas mantêm `settings.build_token_uuid` próprio. As antigas continuavam usando o token anterior, embora a nova Preview do PR #97 publicasse com o token correto. A correção foi atualizar **somente** o `settings.build_token_uuid` das duas Previews afetadas; ambas então publicaram com sucesso, sem tocar no token da produção.
+
+Na próxima rotação, confira as configurações de cada Preview. A API de configuração do Worker admite `patch_existing_previews=true` para propagar mudanças globalmente; prefira a atualização individual via `PATCH /accounts/{account_id}/builds/workers/{script_tag}/previews/{preview_id}` para limitar o alcance da alteração.
+
+Procedimento seguro:
+1. No Worker `agendas-pradosm`, confirmar em **Builds → Configurações de build → Preview** o token **válido e de escopo de usuário**, com permissões exigidas pela Cloudflare para Workers e recursos da Preview. Revisar a autenticidade/validade do token real, não apenas o identificador selecionado.
+2. Reexecutar uma build da branch/commit do PR e examinar o **resultado da etapa de deploy**, não somente o sucesso do comando de build ou do check GitHub `verify`.
+3. Não substituir `wrangler preview` por `wrangler deploy`: a segunda opção publicaria o Worker de produção. Não suprimir checks, não inventar sucesso da Preview e não colocar tokens/segredos em commits, logs ou comentários.
+4. A Preview deve usar recursos isolados, sem apontar para o D1 da produção, e sua publicação deve ser confirmada separadamente do deploy da `main`.
+5. Se o erro persistir depois de confirmar a credencial, registrar logs redigidos e comparar com problemas conhecidos do `wrangler preview`; não reutilizar tokens alheios ao Worker nem ampliar permissões sem necessidade.
+
+Documentação Cloudflare: https://developers.cloudflare.com/workers/ci-cd/builds/configuration/#api-token e https://developers.cloudflare.com/workers/previews/get-started/.
+
 Desde 01/10/2026, os Workers Builds podem publicar Preview de pull requests usando o bloco `previews` do `wrangler.jsonc`. A Preview é deliberadamente separada da produção:
 
 - `DB` aponta para o D1 `agendas-pradosm-preview` (`716cc88e-7da8-400e-b4be-edc4be0c9c03`), nunca para o D1 de produção;
@@ -90,7 +107,7 @@ A `main` deve operar por pull request.
 
 O workflow **CI** publica um único gate obrigatório chamado `verify`. Esse gate só passa depois de:
 
-- testes, typecheck, build e E2E;
+- testes JavaScript e validação de importações, build nativo e E2E Playwright;
 - auditoria de dependências de produção;
 - análise CodeQL JavaScript/TypeScript.
 
@@ -247,11 +264,11 @@ Nunca usar esse script em testes automatizados contra o banco remoto.
 
 ## Decisões de manutenção da auditoria de 30/09/2026
 
-- A regra de data operacional de produção foi centralizada em `shared/time.ts` e reutilizada por Worker, ADM e conferente.
+- A regra de data operacional de produção está em `shared/time.js` e é reutilizada por Worker, ADM e conferente.
 - O preparo E2E mantém uma implementação independente da data como oráculo de integração entre runtime Node e aplicação; a regra de produção centralizada possui testes próprios de virada do dia.
 - A antiga `src/agenda/HistoryPage.tsx` foi removida porque não possuía rota utilizável. O redirect legado de `/app/history` para `/app` permanece para compatibilidade.
 - O axe agora cobre login, ADM, visualizador e conferente em E2E.
-- O CI compila o bundle uma única vez; a etapa Playwright usa `test:e2e:ci` e reaproveita esse build.
+- O CI executa `npm run build` e `npm run test:e2e` (com `playwright.config.js`); não existe script `test:e2e:ci` no `package.json` atual.
 - Stack traces de falhas **esperadas** em testes de rollback foram mantidos intencionalmente porque validam observabilidade dos caminhos de erro. Eles são ruído conhecido de teste, não erro de produção.
 
 
