@@ -34,7 +34,7 @@ describe("Histórico da main em JavaScript puro", () => {
     const src = read("../../migration/frontend/history.js");
     for (const endpoint of [
       "/api/admin/agendas/", "/api/admin/appointments/",
-      "/status", "/exchanges", "/history"
+      "/status", "/history", 'field === "status" ? { status: value } : { hasExchanges: value }'
     ]) assert.ok(src.includes(endpoint), endpoint);
     assert.match(src, /method: "PATCH"/);
     assert.match(src, /JSON\.stringify\(\{ status: "aberto" \}\)/);
