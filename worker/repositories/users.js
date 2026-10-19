@@ -119,7 +119,9 @@ async function updateUser(db, current, input, actorUserId) {
   const passwordHash = input.senha ? await hashPassword(input.senha) : current.senha_hash;
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const statusChanged = input.ativo !== void 0 && input.ativo !== (current.ativo === 1);
-  const sessionVersion = current.session_version + (input.senha || statusChanged ? 1 : 0);
+  // Mudanças de identidade ou permissão exigem uma nova autenticação.
+  const identityChanged = login !== current.login || papel !== current.papel || lojaId !== current.loja_id;
+  const sessionVersion = current.session_version + (input.senha || statusChanged || identityChanged ? 1 : 0);
   const statements = [
     db.prepare(
       "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, papel = ?, ativo = ?, session_version = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL"
