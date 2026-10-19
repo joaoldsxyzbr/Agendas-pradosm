@@ -44,8 +44,8 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric").filter({hasText:"Aguardando"})).toContainText("1");
-   await expect(page.locator(".report-metric").filter({hasText:"Sem conferência"})).toContainText("1");
+   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
+   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
    await expect(page.locator(".manager-report")).toContainText("Sem conferência");
    await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
    await expect(page.locator("[data-report-native-chart]")).toBeHidden();

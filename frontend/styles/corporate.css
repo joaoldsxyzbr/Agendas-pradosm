@@ -2519,3 +2519,14 @@ html[data-theme="dark"] .store-page .agenda-desktop .table-scroll {
     height: 18px;
   }
 }
+/* Evita que colunas fixas cubram as ações da tabela em telas estreitas. */
+@media (max-width: 900px) {
+  html[data-theme="dark"] .dashboard-operation-row td:nth-child(1),
+  html[data-theme="dark"] .dashboard-operation-row td:nth-child(2),
+  html[data-theme="dark"] .dashboard-operation-table th:nth-child(1),
+  html[data-theme="dark"] .dashboard-operation-table th:nth-child(2) {
+    position: static;
+    left: auto;
+    z-index: auto;
+  }
+}
