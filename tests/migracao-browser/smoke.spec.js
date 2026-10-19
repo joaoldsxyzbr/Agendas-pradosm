@@ -58,7 +58,7 @@ test("Conferente repete recebido e volta para aguardando",async({page})=>{
   await expect(page.getByText("Fornecedor Teste").first()).toBeVisible();
   await page.locator('[data-testid="agenda-desktop-row"] [data-status="recebido"]').click();
   await expect.poll(()=>changes.length).toBe(1);
-  expect(changes[0]).toEqual({status:"aguardando"});
+  expect(changes[0]).toEqual({status:"aguardando",observation:null});
   await expect(page.locator('[data-metric="aguardando"]')).toHaveText("1");
 });
 test("Importação rejeita arquivo não permitido antes de gravar",async({page})=>{
