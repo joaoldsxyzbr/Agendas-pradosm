@@ -10,3 +10,9 @@
 .prado-store-nav-symbol .prado-nav-icon{width:18px;height:18px}
 .report-info-button .report-info-icon{width:15px;height:15px;filter:brightness(0) invert(.8)}
 .report-info-button:is(:hover,:focus-visible,[aria-expanded="true"]) .report-info-icon{filter:brightness(0) invert(1)}
+/* Chart.js: canvas responsivo com rolagem horizontal quando necessário. */
+.manager-report .report-chart-canvas-scroll{width:100%;max-width:100%;padding:14px 16px 10px;overflow-x:auto}
+.manager-report .report-chart-canvas-scroll[hidden],.manager-report [data-report-native-chart][hidden]{display:none!important}
+.manager-report .report-chart-canvas{height:292px;min-width:520px;width:100%;position:relative}
+.manager-report .report-chart-canvas canvas{display:block;width:100%!important;height:100%!important}
+@media(max-width:720px){.manager-report .report-chart-canvas-scroll{padding:12px}.manager-report .report-chart-canvas{height:255px}}
