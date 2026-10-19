@@ -14,7 +14,9 @@ const required = [
   "src/agenda/exportAgendaPdf.js", "src/import/extractPdfText.js",
   "src/import/parseAgendaBatch.js", "src/import/parseAgendaText.js",
   "src/styles.css", "src/store-desktop.css", "src/corporate.css",
-  "src/cadastros-compactos.css", "shared/time.js", "theme-bootstrap.js"
+  "src/cadastros-compactos.css", "src/vendor-ui.css", "shared/time.js", "theme-bootstrap.js",
+  "vendor/chart.umd.min.js", "vendor/lucide/layout-dashboard.svg", "vendor/lucide/chart-no-axes-column-increasing.svg",
+  "vendor/lucide/store.svg", "vendor/lucide/users.svg", "vendor/lucide/clipboard-check.svg", "vendor/lucide/info.svg"
 ];
 for (const file of required) {
   if (!existsSync(join(dist, file))) throw Error("Asset JS nativo não gerado: " + file);
@@ -38,4 +40,9 @@ if (!policy.includes("'sha256-" + expectedHash + "'"))
   throw Error("Importmap PDF foi bloqueado pela política CSP.");
 const file = read("src/import/extractPdfText.js");
 if (!file.includes('from "@llamaindex/liteparse-wasm"')) throw Error("Contrato de PDF mudou.");
-console.log("Build de migração: HTML, JS, CSS, Worker e PDF WASM presentes.");
+if (!html.includes("/src/vendor-ui.css")) throw Error("CSS dos ícones Lucide ausente.");
+if (!read("migration/frontend/report-chart.js").includes("/vendor/chart.umd.min.js"))
+  throw Error("Gráfico Chart.js não aponta para recurso local.");
+const chart = read("vendor/chart.umd.min.js");
+if (!chart.includes("Chart.js")) throw Error("Artefato Chart.js inválido.");
+console.log("Build de migração: HTML, JS, CSS, PDF WASM, Chart.js e Lucide locais.");
