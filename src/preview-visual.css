@@ -1,0 +1,2 @@
+/* Base de identidade da preview. */
+html[data-theme="dark"] { --color-background: #14161b; }
