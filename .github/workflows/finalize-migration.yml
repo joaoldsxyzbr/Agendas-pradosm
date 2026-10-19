@@ -1,5 +1,7 @@
 name: Finalizar migracao JS puro (sem deploy)
 on:
+  push:
+    branches: [migracao-js-puro]
   workflow_dispatch:
 permissions:
   contents: write
