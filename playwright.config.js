@@ -6,7 +6,7 @@ export default defineConfig({
   reporter: process.env.CI ? "line" : "list",
   use: { baseURL, trace: "retain-on-failure" },
   webServer: {
-    command: "npm run build && npx wrangler dev --config wrangler.migracao.jsonc --ip 127.0.0.1 --port 8789",
+    command: "npm run build && npx wrangler dev --config wrangler.local.jsonc --ip 127.0.0.1 --port 8789",
     url: baseURL + "/login", reuseExistingServer: !process.env.CI, timeout: 120000,
     env: { SESSION_SECRET: "agendas-prado-migracao-e2e-somente-local" }
   },
