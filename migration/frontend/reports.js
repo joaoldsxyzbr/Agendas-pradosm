@@ -1,5 +1,6 @@
 import { apiFetch } from "./api.js";
 import { reportInfo, setupReportInfo } from "./report-info.js";
+import { mountReportChart } from "./report-chart.js";
 import { escapeHtml as esc } from "./shell.js";
 import { businessDate } from "../../shared/time.js";
 import { sumReportRows, reportRate, groupDailyReport, groupStoreReport } from "./report-model.js";
@@ -36,7 +37,10 @@ function chart(days) {
   return '<div class="report-legend">'+
     [["recebido","Recebidos"],["naoChegou","Não recebidos"],["aguardando","Aguardando"],["recusado","Recusados"]]
     .map(([k,t])=>'<span><i class="report-segment-'+k+'"></i>'+t+'</span>').join("")+'</div>'+
-    '<div class="report-chart-scroll"><div class="report-chart">'+bars+'</div></div>';
+    '<div class="report-chart-scroll" data-report-native-chart><div class="report-chart">'+bars+'</div></div>'+
+    '<div class="report-chart-canvas-scroll" data-report-chart-wrap hidden>'+
+      '<div class="report-chart-canvas"><canvas data-report-chart-canvas role="img" aria-label="Evolução diária de recebimentos por status. A tabela Por data apresenta os valores."></canvas></div>'+
+    '</div>';
 }
 const meter=(title,total,received,bad=false)=>'<div class="report-progress-item"><div><span>'+esc(title)+'</span>'+
   '<strong>'+esc(bad?num(received):pct(reportRate({total,recebido:received})))+'</strong></div>'+
@@ -45,6 +49,7 @@ const meter=(title,total,received,bad=false)=>'<div class="report-progress-item"
   (bad?"":'<small>'+num(received)+' de '+num(total)+' recebidos</small>')+'</div>';
 export function renderReports(root,{request=apiFetch}={}) {
   let closed=false,sequence=0,storePromise=null,stores=[],error="";
+  let disposeChart=()=>{};
   const disposeInfo=setupReportInfo(root);
   let settings={end:businessDate(),start:"",store:"",compare:true,offset:0};
   settings.start=shift(settings.end,-29);
@@ -70,7 +75,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
   };
-  function paintContent(report,previous,occurrences){
+  function paintContent(report,previous,occurrences,requestId){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows);
     const rate=x=>pct(reportRate(x));
     const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
@@ -104,9 +109,10 @@ export function renderReports(root,{request=apiFetch}={}) {
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Recusados","Sem agenda","Taxa"],byStore))+
       panel("Por data","Situação de cada agenda",table(["Data","Loja","Situação","Total","Recebidos","Não recebidos","Aguardando","Recusados","Sem agenda"],byDay))+
       panel("Ocorrências e observações","Motivos dos não recebimentos",table(["Data","Loja","Fornecedor","Protocolo","Motivo"],rows)+pager);
+    disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId);
   }
   async function load(){
-    const id=++sequence;error="";paintShell();
+    const id=++sequence;error="";disposeChart();disposeChart=()=>{};paintShell();
     try{
       if(!storePromise)storePromise=request("/api/admin/stores").catch(e=>{storePromise=null;throw e;});
       stores=await storePromise;
@@ -121,7 +127,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       ]);
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
-      paintContent(report,previous,occurrences);
+      paintContent(report,previous,occurrences,id);
     }catch(e){
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
@@ -150,5 +156,5 @@ export function renderReports(root,{request=apiFetch}={}) {
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
   void load();
-  return ()=>{closed=true;sequence++;disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
 }
