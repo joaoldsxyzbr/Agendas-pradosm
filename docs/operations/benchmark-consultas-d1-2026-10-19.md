@@ -11,6 +11,17 @@ A `main` utiliza `listAdminAgendas` e `listStoreAgendas` em `worker/repositories
 
 **Limitações:** SQLite no Node NÃO mede latência de rede, quota de CPU, execução remota ou índices internos da Cloudflare D1. Números locais não podem justificar por si só migrations, índices adicionais ou parâmetros de paginação em produção.
 
+### Diagnóstico manual reproduzível no GitHub Actions
+
+O workflow `.github/workflows/runner-diagnostico.yml` (`Diagnóstico operacional (manual)`) pode ser executado sob demanda na `main`. Ele realiza:
+
+- `npm run benchmark:agendas` e `npm run benchmark:password` com dados e senhas sintéticos, sem D1 nem secrets;
+- smoke HTTP **somente GET** à página inicial e ao arquivo `/frontend/entry.js` do Worker publicado;
+- smoke HTTP **somente GET** a `/api/auth/bootstrap-status` (espera JSON com chave `available`).
+
+O workflow não autentica usuários nem altera registros. Sucesso no HTTP comprova disponibilidade básica de asset e API pública, **não substitui teste manual de login, conferência, importação ou permissões**. Falhas externas de DNS, rede ou WAF devem ser diagnosticadas antes de interpretar como defeito do app.
+
+
 ## Critérios para uma mudança futura
 1. Medir `rows_read`, duração e volume retornado em Preview/D1 sintético, nos filtros comuns e no histórico completo.
 2. Verificar se a interface e os endpoints realmente precisam listar todas as agendas ao mesmo tempo.

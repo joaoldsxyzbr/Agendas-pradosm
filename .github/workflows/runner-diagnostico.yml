@@ -1,12 +1,42 @@
-name: Diagnóstico mínimo do runner (migração)
+name: Diagnóstico operacional (manual)
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
-  runner:
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
+  diagnostics:
+    name: Benchmarks sintéticos e smoke HTTP
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Confirmar execução do runner
-        run: echo RUNNER_EXECUTOU_COM_SUCESSO
+      - name: Obter código do GitHub
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Preparar Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Medir consultas com SQLite sintético (sem D1 remoto)
+        run: npm run benchmark:agendas
+      - name: Medir PBKDF2 com senhas sintéticas (sem usuários reais)
+        run: npm run benchmark:password
+      - name: Smoke HTTP público do Worker publicado (somente GET)
+        shell: bash
+        env:
+          APP_URL: https://agendas-pradosm.contato-24f.workers.dev
+        run: |
+          set -euo pipefail
+          html="$(mktemp)"
+          asset="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$html" "$asset" "$response"' EXIT
+          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/" > "$html"
+          grep -qi '<html' "$html"
+          grep -q 'frontend/entry.js' "$html"
+          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/frontend/entry.js" > "$asset"
+          grep -q 'createMigratedApplication' "$asset"
+          curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/auth/bootstrap-status" > "$response"
+          node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof x.available!=="boolean")process.exit(1)' "$response"
+          echo "Smoke HTTP de leitura: HTML, entry.js e bootstrap-status acessíveis."
