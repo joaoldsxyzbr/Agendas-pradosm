@@ -57,7 +57,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(data).toEqual({type:"bar",received:1,missed:0});
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
-   await expect(page.getByRole("heading", {name:"Por loja"})).toBeVisible();
+   await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
    await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
    const filter=page.locator("[data-report-filters]");
    await filter.locator('[name="store"]').selectOption("F01");
