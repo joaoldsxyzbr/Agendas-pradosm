@@ -85,6 +85,7 @@ test("Popup de agenda fica legível no celular",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await mockDashboard(page);
   await page.goto("/admin");
+  await page.locator(".dashboard-operation-table .table-scroll").evaluate(el => { el.scrollLeft = el.scrollWidth; });
   await page.locator('[data-agenda-id="agenda1"]').click();
   const modal=page.locator(".agenda-preview-modal");
   await expect(modal).toBeVisible();
