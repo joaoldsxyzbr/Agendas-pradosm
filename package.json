@@ -5,19 +5,17 @@
   "type": "module",
   "scripts": {
     "dev": "npm run build && wrangler dev --config wrangler.migracao.jsonc",
-    "build": "npm run migracao:build",
-    "test": "npm run migracao:test",
+    "build": "node scripts/build-native.mjs",
+    "test": "node scripts/check-migracao-worker.mjs && node scripts/check-migracao-frontend.mjs && node --test tests/unit/*.test.js",
     "preview": "npm run dev",
-    "migracao:build": "node scripts/build-native.mjs",
-    "migracao:test": "node scripts/check-migracao-worker.mjs && node scripts/check-migracao-frontend.mjs && node --test tests/migration/*.test.js",
-    "migracao:e2e": "playwright test --config playwright.migracao.config.js",
     "check:migrations": "node scripts/check-migration-safety.mjs",
     "test:design": "node scripts/check-design-system.mjs",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
     "verify:production": "npm run check:migrations && npm test && npm run test:design && npm run test:bootstrap-admin && npm run build && node scripts/check-migracao-build.mjs",
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
-    "deploy": "npm run verify:production && npm run deploy:cloudflare"
+    "deploy": "npm run verify:production && npm run deploy:cloudflare",
+    "test:e2e": "playwright test --config playwright.config.js"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
