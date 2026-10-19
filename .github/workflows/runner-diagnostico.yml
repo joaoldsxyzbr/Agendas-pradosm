@@ -1,0 +1,14 @@
+name: Diagnóstico mínimo do runner (migração)
+on:
+  push:
+    branches: [migracao-js-puro]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Confirmar execução do runner
+        run: echo RUNNER_EXECUTOU_COM_SUCESSO
