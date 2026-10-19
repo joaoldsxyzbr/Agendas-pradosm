@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { listAudit, parseAuditJson } from "../../worker/repositories/audit.js";
 import { listStores, findActiveStoreById, hasStoreUsers } from "../../worker/repositories/stores.js";
-import { listUsers, findUserByLogin, updateUser } from "../../worker/repositories/users.js";
+import { listUsers, findUserByLogin, updateUser, upgradeUserPasswordHash } from "../../worker/repositories/users.js";
 import { closePastOpenAgendas } from "../../worker/services/agenda-maintenance.js";
 import { publishAgendaChanged, revokeRealtimeUser } from "../../worker/services/realtime.js";
 
@@ -82,6 +82,28 @@ describe("Migração de repositórios e serviços JS", () => {
     assert.match(route, /user\.session_version !== current\.session_version/);
     assert.match(route, /revokeRealtimeUser\(c\.env, current\.id, "terminate"\)/);
     assert.doesNotMatch(route, /revokeRealtimeUser\(c\.env, current\.id, "refresh"\)/);
+  });
+  it("upgrade de hash não sobrescreve senha trocada simultaneamente", async () => {
+    const db = fakeDb();
+    const updated = await upgradeUserPasswordHash(db, "user1", "hash-antigo", "hash-novo");
+    assert.equal(updated, true);
+    assert.match(db.calls[0].sql, /WHERE id = \? AND senha_hash = \? AND excluido_em IS NULL/);
+    assert.equal(db.calls[0].values[0], "hash-novo");
+    assert.equal(db.calls[0].values[2], "user1");
+    assert.equal(db.calls[0].values[3], "hash-antigo");
+    const stale = {
+      prepare(sql) {
+        return {
+          bind(...values) {
+            assert.match(sql, /senha_hash = \?/);
+            assert.equal(values[3], "hash-antigo");
+            return this;
+          },
+          async run() { return { meta: { changes: 0 } }; }
+        };
+      }
+    };
+    assert.equal(await upgradeUserPasswordHash(stale, "user1", "hash-antigo", "hash-novo"), false);
   });
   it("fechamento diário preserva SQL de auditoria e regra de reabertura", async () => {
     const db = fakeDb();

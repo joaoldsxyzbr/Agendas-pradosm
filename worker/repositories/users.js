@@ -11,10 +11,12 @@ async function findUserById(db, id) {
     `SELECT ${USER_COLUMNS} FROM usuarios WHERE id = ? AND excluido_em IS NULL LIMIT 1`
   ).bind(id).first();
 }
-async function upgradeUserPasswordHash(db, userId, passwordHash) {
-  await db.prepare(
-    "UPDATE usuarios SET senha_hash = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL"
-  ).bind(passwordHash, (/* @__PURE__ */ new Date()).toISOString(), userId).run();
+async function upgradeUserPasswordHash(db, userId, expectedHash, passwordHash) {
+  // Não sobrescrever uma senha alterada por outra sessão/admin durante o login.
+  const result = await db.prepare(
+    "UPDATE usuarios SET senha_hash = ?, atualizado_em = ? WHERE id = ? AND senha_hash = ? AND excluido_em IS NULL"
+  ).bind(passwordHash, new Date().toISOString(), userId, expectedHash).run();
+  return (result.meta?.changes ?? 0) > 0;
 }
 async function hasAdmin(db) {
   const result = await db.prepare(

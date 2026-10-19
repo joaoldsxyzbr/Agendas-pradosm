@@ -11,6 +11,12 @@ describe("Autenticação JS corresponde à main", () => {
     assert.equal(js.includes("/demo-login"), false);
     assert.equal(js.includes("/demo-status"), false);
   });
+  it("condiciona migração de hash à senha originalmente verificada", () => {
+    const auth = read("../../worker/routes/auth.js");
+    const repo = read("../../worker/repositories/users.js");
+    assert.match(auth, /upgradeUserPasswordHash\(c\.env\.DB, user\.id, user\.senha_hash, upgradedHash\)/);
+    assert.match(repo, /WHERE id = \? AND senha_hash = \? AND excluido_em IS NULL/);
+  });
   it("mantém senha, rate-limit, sessões e revogação de acesso", () => {
     const js = read("../../worker/routes/auth.js");
     for (const token of ["verifyPassword", "checkLoginRateLimit", "verifySessionToken", "sameSite: \"Strict\"", "session_version", "passwordNeedsUpgrade", "revokeRealtimeUser"]) assert.ok(js.includes(token), token);
