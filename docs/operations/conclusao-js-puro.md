@@ -20,3 +20,13 @@ A migração autorizada vai diretamente da branch **migracao-js-puro** para **ma
 - Diagnóstico Cloudflare da falha externa anterior: o build de **preview da branch temporária** passou pelos 82 testes e build, mas o comando `wrangler preview` falhou por token de build inválido para preview (`10000`/`9109`). A configuração do gatilho foi alterada para incluir apenas `main`. Essa falha externa de preview não corresponde a teste funcional nem deploy produtivo da nova versão.
 - Publicação direta autorizada: `migracao-js-puro → main`, sem mesclar a implementação antiga da branch `preview`. O fluxo não cria alterações de schema ou usa a base fictícia.
 - Após merge, verificar a publicação do **Cloudflare Workers Builds de main** e o Worker ativo; se o token de build também falhar no fluxo produtivo, manter a versão anterior publicada e reparar credenciais antes de afirmar conclusão do deploy.
+
+## Correção de CI externo — 19/10/2026
+
+A checagem `Workers Builds: agendas-pradosm` falhava durante o comando `wrangler preview` com `Invalid access token [9109]` / `Authentication error [10000]`. Ela era produzida por um **gatilho Cloudflare exclusivo da branch de migração**, não pelo gatilho de produção.
+
+Como a promoção solicitada é diretamente `migracao-js-puro → main`, o gatilho temporário de preview foi excluído (UUID `f5d2a5fd-f86d-4669-98c2-b5043a269964`). Após a operação, a consulta ao Worker no Cloudflare confirmou **somente o gatilho de produção** (UUID `ee71540d-a1fe-4ef8-adb7-45d00e2491d8`, branch `main`, comando `npm run deploy:cloudflare`).
+
+Esta exclusão não publicou nem alterou o Worker ou o D1 e não modifica a branch `preview` do GitHub. O próximo commit de documentação serve para obter novo SHA e validar o CI sem o gatilho externo de preview desnecessário.
+
+O deploy real da `main` deve ser verificado após a integração e não pode ser declarado concluído apenas com o merge.
