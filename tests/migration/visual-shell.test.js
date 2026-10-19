@@ -11,12 +11,13 @@ describe("Aparência da preview sem alterações de negócio", () => {
     for (const item of ["prado-sidebar", "prado-topbar", "prado-side-nav", "prado-mobile-nav",
                         "admin-topbar-inner", "data-page-outlet", "data-logout"])
       assert.ok(admin.includes(item), item);
-    for (const path of ["/admin", "/admin/stores", "/admin/users"])
+    for (const path of ["/admin", "/admin/stores", "/admin/users", "/admin/reports"])
       assert.match(admin, new RegExp('href="' + path + '"'));
     assert.match(admin, /&lt;script&gt;/);
     assert.doesNotMatch(admin, /<script>teste/);
     const viewer = adminShell({ nome: "Leitura", papel: "visualizador" }, "/admin");
     assert.doesNotMatch(viewer, /href="\/admin\/(stores|users)"/);
+    assert.match(viewer, /href="\/admin\/reports"/);
     const store = storeShell({ nome: "Conferente", lojaNome: "Loja & A", papel: "conferente" });
     for (const item of ["store-operations-shell", "data-page-outlet", "data-agenda-command-slot", "data-logout"])
       assert.ok(store.includes(item), item);

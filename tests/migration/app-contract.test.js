@@ -8,7 +8,8 @@ describe("Worker em JavaScript preserva a main", () => {
     const js = source("../../worker/app.js");
     const paths = body => [...body.matchAll(/app\.(?:get|use|route)\(\s*["']([^"']+)["']/g)].map(hit => hit[0]);
     assert.deepEqual(paths(js), expected);
-    for (const forbidden of ["/api/auth/demo-login", "/api/admin/reports", "PREVIEW_DEMO_LOGIN"]) assert.equal(js.includes(forbidden), false);
+    assert.match(js,/app\.route\("\/api\/admin\/reports"/);
+    for (const forbidden of ["/api/auth/demo-login", "PREVIEW_DEMO_LOGIN"]) assert.equal(js.includes(forbidden), false);
   });
   it("mantém fechamento diário agendado e o Durable Object", () => {
     const js = source("../../worker/index.js");
