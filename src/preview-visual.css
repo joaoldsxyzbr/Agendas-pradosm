@@ -1,0 +1,197 @@
+/*
+ * Identidade visual da preview adaptada à main.
+ * Somente CSS: funcionalidades, dados e perfis permanecem na produção.
+ * Fonte: public/vanilla/styles.css e styles/recebimento.css da preview.
+ */
+html[data-theme="dark"] {
+  --color-primary:#79afff;--color-primary-strong:#a9cbff;--color-primary-soft:#293a53;
+  --color-accent:#e3c78d;--color-accent-strong:#ebd3a4;
+  --color-background:#14161b;--color-surface:#202329;
+  --color-surface-glass:#202329;--color-surface-muted:#252930;
+  --color-surface-strong:#2b3038;--color-neutral-soft:#252930;
+  --color-text:#f1f2f4;--color-text-strong:#f1f2f4;
+  --color-text-muted:#bac0ca;--color-text-soft:#969eaa;
+  --color-border:#454a54;--color-border-soft:#353942;--color-border-strong:#535c6b;
+  --color-success:#91d8b8;--color-danger:#f2aaa8;--color-warning:#ebc486;
+  --color-focus-ring:rgba(121,175,255,.22);
+  --shadow-card:none;--shadow-elevated:0 24px 72px rgba(0,0,0,.54);
+}
+html[data-theme="dark"] body {
+  background:var(--color-background);color:var(--color-text);
+  font-family:Inter,"Segoe UI Variable","Segoe UI",system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+html[data-theme="dark"] .prado-admin.admin-shell {
+  display:grid;grid-template-columns:232px minmax(0,1fr);
+  min-height:100vh;background:var(--color-background);
+}
+html[data-theme="dark"] .prado-sidebar {
+  position:sticky;top:0;z-index:12;display:flex;flex-direction:column;
+  height:100vh;min-width:0;padding:22px 13px 16px;
+  border-right:1px solid #353942;background:#191b21;
+}
+.prado-brand {
+  display:flex;align-items:center;gap:11px;min-width:0;
+  margin:0 10px 36px;color:#f1f2f4;text-decoration:none;
+}
+.prado-brand-mark {
+  width:35px;height:35px;flex:0 0 35px;display:grid;place-items:center;
+  border:1px solid #ebd3a4;border-radius:9px;background:#e3c78d;
+  color:#22242a;font-size:19px;font-weight:800;
+}
+.prado-brand strong,.prado-brand small{display:block;line-height:1.3}
+.prado-brand strong{font-size:15px;font-weight:720}
+.prado-brand small{margin-top:4px;color:#969eaa;font-size:11px}
+.prado-sidebar-label{padding:0 14px;margin-bottom:11px;color:#969eaa;font-size:10px;font-weight:700;letter-spacing:.095em}
+html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav{
+  display:flex;flex:1;flex-direction:column;align-items:stretch;justify-content:flex-start;
+  gap:4px;height:auto;min-height:0;width:100%;margin:0;padding:0;border:0;
+  border-radius:0;background:transparent;box-shadow:none;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link{
+  display:flex;align-items:center;min-height:43px;width:100%;
+  padding:10px 12px;border:1px solid transparent;border-radius:8px;
+  background:transparent;color:#bac0ca;font-size:13px;font-weight:560;box-shadow:none;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link:hover{background:#252930;color:#f1f2f4}
+html[data-theme="dark"] .prado-side-nav .nav-link.active{
+  background:#29374b;border-color:#374b67;color:#e5efff;
+  font-weight:675;box-shadow:inset 2px 0 #79afff;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link.active::after{display:none}
+.prado-sidebar-footer{margin-top:auto;padding:16px 12px 0;border-top:1px solid #353942;color:#969eaa;font-size:11px}
+.prado-workspace{display:flex;flex-direction:column;min-width:0;min-height:100vh}
+html[data-theme="dark"] .prado-topbar.admin-topbar{
+  position:sticky;top:0;z-index:20;min-height:66px;
+  padding:0 30px;border-bottom:1px solid #353942;
+  background:#191b21;backdrop-filter:none;
+}
+html[data-theme="dark"] .prado-topbar .admin-topbar-inner{
+  display:flex;align-items:center;justify-content:space-between;gap:16px;
+  min-height:66px;height:auto;width:100%;max-width:none;margin:0;padding:0;
+  border:0;border-radius:0;background:transparent;box-shadow:none;
+}
+.prado-topbar-breadcrumb{display:flex;gap:9px;align-items:center;flex-wrap:wrap;color:#969eaa;font-size:12px}
+.prado-topbar-breadcrumb strong{color:#f1f2f4;font-weight:650}
+html[data-theme="dark"] .prado-topbar .admin-topbar-account{
+  display:flex;align-items:center;gap:10px;min-height:0;margin:0;
+  padding:0 0 0 18px;border:0;border-left:1px solid #454a54;
+  border-radius:0;background:transparent;box-shadow:none;
+}
+html[data-theme="dark"] .prado-topbar .admin-topbar-user{text-align:right}
+html[data-theme="dark"] .prado-topbar .admin-topbar-user span{color:#f1f2f4;font-size:12px;font-weight:700}
+html[data-theme="dark"] .prado-topbar .admin-topbar-user small{color:#969eaa;font-size:11px}
+html[data-theme="dark"] .prado-topbar .admin-logout{padding:7px 12px;min-height:36px;border-radius:7px}
+html[data-theme="dark"] .prado-topbar .prado-mobile-nav{display:none}
+html[data-theme="dark"] .prado-workspace .app-content{
+  flex:1;max-width:1710px;width:100%;margin:0 auto;padding:29px 30px 58px;
+}
+html[data-theme="dark"] .prado-workspace .admin-page>.page-heading.page-heading-actions{
+  min-height:0;padding:0 0 14px;border:0;background:transparent;border-radius:0;
+}
+html[data-theme="dark"] .prado-workspace .page-heading h1{
+  font-size:clamp(1.5rem,2vw,1.8rem);font-weight:735;letter-spacing:-.03em;
+}
+html[data-theme="dark"] .dashboard-kpi,
+html[data-theme="dark"] .dashboard-store-card,
+html[data-theme="dark"] .store-card,
+html[data-theme="dark"] .table-card,
+html[data-theme="dark"] .registry-card,
+html[data-theme="dark"] .filter-bar,
+html[data-theme="dark"] .form-card,
+html[data-theme="dark"] .upload-card,
+html[data-theme="dark"] .login-card{
+  border-color:#393e47;border-radius:10px;background:#202329;box-shadow:none;
+}
+html[data-theme="dark"] .dashboard-kpi{min-height:106px;padding:16px 18px}
+html[data-theme="dark"] .dashboard-kpi span{font-size:12px;color:#bec6d2;font-weight:610}
+html[data-theme="dark"] .dashboard-kpi strong{
+  font-size:clamp(1.5rem,2vw,1.85rem);font-weight:735;letter-spacing:-.04em;
+}
+html[data-theme="dark"] .dashboard-operation-table th,
+html[data-theme="dark"] .registry-table th,
+html[data-theme="dark"] .agenda-desktop thead th,
+html[data-theme="dark"] .table-card th{
+  background:#262b33;color:#b6becc;font-size:11px;font-weight:655;
+}
+html[data-theme="dark"] .dashboard-operation-row td,
+html[data-theme="dark"] .registry-table td,
+html[data-theme="dark"] .agenda-desktop td{
+  padding-top:10px;padding-bottom:10px;color:#d9dfe7;font-size:12px;
+}
+html[data-theme="dark"] .registry-toolbar{background:#21252b;border-bottom-color:#353942}
+html[data-theme="dark"] .registry-toolbar input,
+html[data-theme="dark"] .registry-toolbar select,
+html[data-theme="dark"] .filter-bar input,
+html[data-theme="dark"] .filter-bar select,
+html[data-theme="dark"] .agenda-search input{
+  background:#1a1d23;color:#f1f2f4;border-color:#454a54;border-radius:7px;
+}
+html[data-theme="dark"] .primary-button,
+html[data-theme="dark"] .login-form button{
+  border-radius:7px;background:#79afff;color:#101a29;
+}
+html[data-theme="dark"] .primary-button:hover,
+html[data-theme="dark"] .login-form button:hover{background:#a9cbff}
+html[data-theme="dark"] .ghost-button{
+  border-radius:7px;background:#252930;border-color:#454a54;color:#dce1e9;
+}
+html[data-theme="dark"] .ghost-button:hover{background:#2b3038}
+html[data-theme="dark"] .prado-store-visual.store-shell{background:#14161b}
+html[data-theme="dark"] .prado-store-visual .store-topbar{
+  background:#191b21;border-bottom-color:#353942;
+}
+html[data-theme="dark"] .prado-store-visual .store-content{
+  padding-left:30px;padding-right:30px;
+}
+html[data-theme="dark"] .prado-store-visual .agenda-command-bar{
+  background:#202329;border-color:#393e47;border-radius:9px;
+}
+html[data-theme="dark"] :focus-visible{outline:2px solid #a9cbff;outline-offset:3px}
+@media(max-width:980px){
+  html[data-theme="dark"] .prado-admin.admin-shell{grid-template-columns:190px minmax(0,1fr)}
+  html[data-theme="dark"] .prado-workspace .app-content{padding:24px 20px 40px}
+}
+@media(max-width:760px){
+  html[data-theme="dark"] .prado-admin.admin-shell{display:block}
+  html[data-theme="dark"] .prado-sidebar{display:none}
+  html[data-theme="dark"] .prado-topbar.admin-topbar{
+    position:sticky;top:0;padding:0 14px;min-height:64px;
+  }
+  html[data-theme="dark"] .prado-topbar .admin-topbar-inner{
+    display:flex;flex-wrap:wrap;gap:8px;min-height:64px;
+  }
+  html[data-theme="dark"] .prado-topbar .admin-topbar-user{display:none}
+  html[data-theme="dark"] .prado-topbar .prado-mobile-nav{
+    order:3;display:flex;justify-content:flex-start;width:100%;
+    min-height:42px;height:auto;margin:0;padding:0 0 8px;gap:4px;
+    overflow-x:auto;border:0;background:transparent;
+  }
+  html[data-theme="dark"] .prado-mobile-nav .nav-link{
+    white-space:nowrap;min-height:34px;padding:8px 12px;border-radius:7px;font-size:12px;
+  }
+  html[data-theme="dark"] .prado-mobile-nav .nav-link.active{
+    background:#29374b;color:#e5efff;
+  }
+  html[data-theme="dark"] .prado-mobile-nav .nav-link.active::after{display:none}
+  html[data-theme="dark"] .prado-workspace .app-content{padding:22px 14px 48px}
+  html[data-theme="dark"] .prado-store-visual .store-content{padding:16px 14px}
+}
+@media(prefers-reduced-motion:reduce){
+  html[data-theme="dark"] .prado-side-nav .nav-link{transition:none}
+}
+@media print{
+  html[data-theme="dark"] .prado-sidebar,
+  html[data-theme="dark"] .prado-topbar{display:none!important}
+  html[data-theme="dark"] .prado-admin.admin-shell{display:block}
+  html[data-theme="dark"] .prado-workspace .app-content{padding:0}
+}
+/* O contêiner real da agenda é [data-agenda-view], não .agenda-desktop
+   diretamente; precisa ocupar ambas as colunas da grade do conferente. */
+@media (min-width: 901px) {
+  html[data-theme="dark"] .prado-store-visual .store-page > [data-agenda-view] {
+    grid-column: 1 / -1;
+    min-width: 0;
+    width: 100%;
+  }
+}

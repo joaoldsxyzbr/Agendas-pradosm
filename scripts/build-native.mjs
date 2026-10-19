@@ -78,7 +78,7 @@ for (const file of [
   "src/agenda/exportAgendaPdf.js", "src/import/extractPdfText.js",
   "src/import/parseAgendaBatch.js", "src/import/parseAgendaText.js"
 ]) await copy(file, file);
-for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css"])
+for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css", "preview-visual.css"])
   await copy("src/" + file, "src/" + file);
 for (const name of ["agenda", "api", "auth", "realtime", "store", "time"])
   await copy("shared/" + name + ".js", "shared/" + name + ".js");
