@@ -21,7 +21,9 @@
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
+    "chart.js": "4.5.1",
     "hono": "^4.9.8",
+    "lucide-static": "1.57.0",
     "zod": "^4.1.11"
   },
   "devDependencies": {
