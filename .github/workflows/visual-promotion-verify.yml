@@ -39,22 +39,28 @@ jobs:
           npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: Teste do layout, perfis e permissões
         run: node --test tests/migration/visual-shell.test.js
-      - name: Diagnosticar visibilidade da tabela no teste E2E
+      - name: Diagnosticar elemento oculto no teste E2E
         shell: bash
         run: |
           node --input-type=module <<'JS'
           import { readFileSync, writeFileSync } from "node:fs";
-          const p = "tests/migracao-browser/smoke.spec.js";
-          let s = readFileSync(p, "utf8");
-          const before = '  await expect(page.getByText("Fornecedor Teste").first()).toBeVisible();';
-          const diagnostic = `  console.log("DIAG_VISIBILIDADE", JSON.stringify(await page.evaluate(() => ({
-            viewport: window.innerWidth, theme: document.documentElement.dataset.theme,
-            desktop: [...document.querySelectorAll("[data-agenda-desktop]")].map(el => ({display:getComputedStyle(el).display, visibility:getComputedStyle(el).visibility, parent:getComputedStyle(el.parentElement).display})),
-            mobile: [...document.querySelectorAll("[data-agenda-mobile]")].map(el => ({display:getComputedStyle(el).display})),
-            sheetCount: document.styleSheets.length
-          }))));\n` + before;
-          if(!s.includes(before)) throw Error("Teste não localizado");
-          writeFileSync(p,s.replace(before,diagnostic));
+          const p="tests/migracao-browser/smoke.spec.js";
+          const source=readFileSync(p,"utf8");
+          const needle='  await expect(page.getByText("Fornecedor Teste").first()).toBeVisible();';
+          const diag=`  await page.locator('td[title="Fornecedor Teste"]').first().waitFor({state:"attached",timeout:10000});
+          console.log("DIAG_ANCESTROS",JSON.stringify(await page.evaluate(() => {
+            const el=document.querySelector('td[title="Fornecedor Teste"]');
+            const nodes=[];let p=el;
+            for(let i=0;i<12&&p;i++,p=p.parentElement){
+              const cs=getComputedStyle(p),box=p.getBoundingClientRect();
+              nodes.push({tag:p.tagName,cls:String(p.className).slice(0,90),
+                display:cs.display,visibility:cs.visibility,opacity:cs.opacity,
+                height:box.height,width:box.width,overflow:cs.overflow});
+            }
+            return {viewport:innerWidth,nodes};
+          })));\n`+needle;
+          if(!source.includes(needle))throw Error("Teste não localizado");
+          writeFileSync(p,source.replace(needle,diag));
           JS
       - name: Navegador com APIs mockadas
         env:
