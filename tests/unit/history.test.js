@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  formatHistoryDate, historyQuery, historyAgendaRow
+  formatHistoryDate, historyQuery, historyAgendaRow, appointmentHistoryList
 } from "../../frontend/history.js";
 
 const read = relative => readFileSync(new URL(relative, import.meta.url), "utf8");
@@ -41,6 +41,14 @@ describe("Histórico da main em JavaScript puro", () => {
     assert.match(src, /data-appointment-exchanges/);
     assert.match(src, /data-appointment-status/);
     assert.match(src, /Confirmar|Reabrir para conferente/);
+  });
+  it("exibe motivos do histórico administrativo e escapa HTML", () => {
+    const html = appointmentHistoryList([{ statusAnterior: "aguardando", statusNovo: "nao_chegou",
+      observation: "Outros: <img src=x onerror=alert(1)>", usuario: { nome: "Teste" } }]);
+    assert.match(html, /Obs\.: Outros:/);
+    assert.match(html, /&lt;img/);
+    assert.doesNotMatch(html, /<img/);
+    assert.match(read("../../worker/routes/admin-agendas.js"), /observation: item\.observacao \?\? null/);
   });
   it("preserva histórico diário, status e auditoria sem atualização global da interface", () => {
     const src = read("../../frontend/history.js");

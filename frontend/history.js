@@ -62,10 +62,11 @@ function dayList(events) {
   </li>`).join("")}</ul>` : "<p>Nenhum evento registrado para o dia.</p>";
 }
 
-function appointmentHistoryList(events) {
+export function appointmentHistoryList(events) {
   return events.length ? `<ul>${events.map(item => `<li>
     <strong>${escapeHtml(item.statusAnterior)} → ${escapeHtml(item.statusNovo)}</strong>
     <span>${escapeHtml(item.usuario?.nome ?? "Sistema")}</span>
+    ${item.observation ? `<span>Obs.: ${escapeHtml(item.observation)}</span>` : ""}
   </li>`).join("")}</ul>` : "<p>Nenhuma alteração registrada.</p>";
 }
 

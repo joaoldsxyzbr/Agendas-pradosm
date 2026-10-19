@@ -2,6 +2,8 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { createRealtimeClient, isRealtimeServerEvent, PING_INTERVAL_MS, PONG_TIMEOUT_MS } from "../../frontend/realtime.js";
 import { createStorePresence, HEARTBEAT_MS, REALTIME_IDLE_MS } from "../../frontend/presence.js";
+import { isAgendaChangedReason } from "../../shared/realtime.js";
+import { readFileSync } from "node:fs";
 
 class Socket {
   static OPEN = 1; static CONNECTING = 0; static instances = [];
@@ -41,6 +43,14 @@ describe("WebSocket da main em ES Modules", () => {
     assert.equal(isRealtimeServerEvent({ version: 2, type: "realtime.ready" }), false);
     assert.equal(isRealtimeServerEvent({ version: 1, type: "presence.changed", storeId: "F03", status: "online" }), true);
     assert.equal(isRealtimeServerEvent({ version: 1, type: "presence.changed", storeId: "F03", status: "desconhecido" }), false);
+    const event = { version: 1, type: "agenda.changed", agendaId: "agenda1", storeId: "loja1", date: "2026-10-19", reason: "observation" };
+    assert.equal(isAgendaChangedReason("observation"), true);
+    assert.equal(isAgendaChangedReason("desconhecido"), false);
+    assert.equal(isRealtimeServerEvent(event), true);
+    assert.equal(isRealtimeServerEvent({ ...event, reason: "desconhecido" }), false);
+    const hub = readFileSync(new URL("../../worker/realtime/RealtimeHub.js", import.meta.url), "utf8");
+    assert.match(hub, /isAgendaChangedReason/);
+    assert.match(hub, /shared\/realtime\.js/);
   });
   it("estabelece conexão, entrega eventos e limpa timers ao sair", async () => {
     Socket.instances.length = 0;
@@ -58,6 +68,8 @@ describe("WebSocket da main em ES Modules", () => {
     socket.message(JSON.stringify({ version: 1, type: "realtime.ready" }));
     assert.equal(client.state.status, "connected");
     socket.message(JSON.stringify({ version: 1, type: "presence.changed", storeId: "a", status: "online" }));
+    socket.message(JSON.stringify({ version: 1, type: "agenda.changed", agendaId: "agenda1", storeId: "loja1", date: "2026-10-19", reason: "observation" }));
+    assert.equal(received.at(-1).reason, "observation");
     assert.equal(received.at(-1).type, "presence.changed");
     assert.equal(client.send({ version: 1, type: "presence.heartbeat" }), true);
     client.stop();
