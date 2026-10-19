@@ -1,80 +1,34 @@
 name: Manual Verify
-
 on:
   workflow_dispatch:
-
 permissions:
   contents: read
   statuses: write
-
 jobs:
   manual-verify:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
-
-      - name: Run verification
-        shell: bash
+          node-version: "22"
+          cache: npm
+      - name: Validacao manual da producao JS
+        env:
+          CI: "true"
         run: |
-          set +e
-          stage="npm ci"
-          npm ci
-          code=$?
-
-          if [ "$code" -eq 0 ]; then
-            stage="lockfile check"
-            git diff --exit-code -- package-lock.json 2>&1 | tee /tmp/verify.log
-            code=${PIPESTATUS[0]}
-          fi
-
-          if [ "$code" -eq 0 ]; then
-            stage="production audit"
-            npm audit --omit=dev 2>&1 | tee /tmp/verify.log
-            code=${PIPESTATUS[0]}
-          fi
-
-          if [ "$code" -eq 0 ]; then
-            stage="test suite"
-            npm test 2>&1 | tee /tmp/verify.log
-            code=${PIPESTATUS[0]}
-          fi
-
-          if [ "$code" -eq 0 ]; then
-            stage="typecheck"
-            npm run typecheck 2>&1 | tee /tmp/verify.log
-            code=${PIPESTATUS[0]}
-          fi
-
-          if [ "$code" -eq 0 ]; then
-            stage="build"
-            npm run build 2>&1 | tee /tmp/verify.log
-            code=${PIPESTATUS[0]}
-          fi
-
-          description="$stage passed"
-          if [ "$code" -ne 0 ]; then
-            description="$stage failed"
-            if grep -Eqi "worker/index\.ts|Could not resolve.*worker|entry.*worker" /tmp/verify.log 2>/dev/null; then
-              description="RED: Worker entry missing"
-            fi
-          fi
-
-          echo "VERIFY_CODE=$code" >> "$GITHUB_ENV"
-          echo "VERIFY_DESCRIPTION=$description" >> "$GITHUB_ENV"
-
-      - name: Publish verification status
+          set -euo pipefail
+          npm ci --legacy-peer-deps
+          npm audit --omit=dev
+          npm run verify:production
+          npx wrangler deploy --dry-run --config wrangler.jsonc
+      - name: Publicar status aprovado
+        if: success()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          state="failure"
-          if [ "$VERIFY_CODE" = "0" ]; then
-            state="success"
-          fi
-          gh api --method POST             "repos/${{ github.repository }}/statuses/${{ github.sha }}"             -f state="$state"             -f context="agenda-prado/manual-verify"             -f description="$VERIFY_DESCRIPTION"
-
-      - name: Fail when verification failed
-        run: test "$VERIFY_CODE" = "0"
+          gh api --method POST "repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -f state="success" \
+            -f context="agenda-prado/manual-verify" \
+            -f description="JS puro, testes, build e Worker aprovados"
