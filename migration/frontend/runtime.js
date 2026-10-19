@@ -59,6 +59,10 @@ export function createVanillaRuntime({
       if (active) anchor.setAttribute("aria-current", "page");
       else anchor.removeAttribute("aria-current");
     }
+    // Atualiza a trilha visual ao navegar sem reconstruir o shell.
+    const currentLink = root.querySelector(".prado-side-nav .nav-link.active");
+    const breadcrumb = root.querySelector(".prado-topbar-breadcrumb strong");
+    if (breadcrumb && currentLink) breadcrumb.textContent = currentLink.textContent.trim();
     const renderer = pageRenderers[route.view];
     if (typeof renderer !== "function") {
       // Impede ativação prematura de uma interface incompleta.

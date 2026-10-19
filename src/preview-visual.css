@@ -195,3 +195,50 @@ html[data-theme="dark"] :focus-visible{outline:2px solid #a9cbff;outline-offset:
     width: 100%;
   }
 }
+
+/* Correção das abas do menu lateral: não herdar o flex:1 do antigo menu superior. */
+html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav {
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  align-items: stretch;
+  align-content: start;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav > .nav-link {
+  flex: 0 0 43px;
+  height: 43px;
+  min-height: 43px;
+  max-height: 43px;
+  width: 100%;
+  justify-content: flex-start;
+  padding: 0 12px;
+  line-height: 1.25;
+}
+html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav > .nav-link.active::after {
+  content: none;
+}
+/* Compactação e navegação horizontal do celular, sem esticar as abas. */
+@media (max-width:760px) {
+  html[data-theme="dark"] .prado-topbar .prado-mobile-nav.admin-topnav {
+    flex: 0 0 100%;
+    width: 100%;
+    height: auto;
+    min-height: 42px;
+    justify-content: flex-start;
+    align-items: center;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border: 0;
+    box-shadow: none;
+  }
+  html[data-theme="dark"] .prado-topbar .prado-mobile-nav.admin-topnav > .nav-link {
+    flex: 0 0 auto;
+    height: 34px;
+    min-height: 34px;
+    max-height: 34px;
+    padding: 0 12px;
+    border-radius: 7px;
+  }
+}
