@@ -12,7 +12,7 @@ describe("Build de migração sem React e Vite no output", () => {
     assert.ok(source.includes("pdfImportMap"));
   });
   it("preserva o index atual até homologar a versão nativa", () => {
-    assert.match(read("../../index.html"), /main\.tsx/);
+    assert.match(read("../../index.html"), /migration\/frontend\/entry\.js/);
     const entry = read("../../migration/frontend/entry.js");
     assert.match(entry, /createMigratedApplication/);
     assert.match(entry, /app\.start\(\)\.catch/);

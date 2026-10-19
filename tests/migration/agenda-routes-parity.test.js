@@ -5,10 +5,10 @@ const load = relative => readFileSync(new URL(relative, import.meta.url), "utf8"
 const endpoints = code => [...code.matchAll(/\.(?:get|post|put|patch|delete)\(\s*["'](\/[^"']+)["']/g)].map(m => m[0]);
 for (const name of ["admin-agendas", "store-agendas"]) {
   describe(name + " — paridade da main", () => {
-    const ts = load("../../worker/routes/" + name + ".ts");
+    const expected = JSON.parse(load("./legacy-route-contracts.json")).agenda[name];
     const js = load("../../worker/routes/" + name + ".js");
     it("mantém todos os endpoints e métodos", () => {
-      assert.deepEqual(endpoints(js), endpoints(ts));
+      assert.deepEqual(endpoints(js), expected);
     });
     it("usa somente os campos presentes no schema atual da produção", () => {
       assert.doesNotMatch(js, /\bobservacao\b|\bobservation\b/);
