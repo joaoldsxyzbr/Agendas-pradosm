@@ -4,19 +4,20 @@ import { readFileSync } from "node:fs";
 import { REPORT_HELP, reportInfo } from "../../migration/frontend/report-info.js";
 
 describe("Ajuda contextual do Relatório Gerencial", () => {
-  it("oferece explicações específicas nos 6 indicadores e nos 6 painéis", () => {
-    assert.equal(Object.keys(REPORT_HELP).length, 12);
+  it("oferece explicações específicas nos 7 indicadores e nos 6 painéis", () => {
+    assert.equal(Object.keys(REPORT_HELP).length, 13);
     for (const title of ["Comparativo por loja", "Taxa de recebimento", "Fornecedores com ocorrências", "Ocorrências e observações"]) {
       assert.ok(REPORT_HELP[title].length > 50, title);
     }
     assert.match(REPORT_HELP["Comparativo por loja"], /recebidos.*total/);
+    assert.match(REPORT_HELP["Sem conferência"], /concluída/);
     assert.match(REPORT_HELP["Fornecedores com ocorrências"], /quantidade/);
   });
   it("gera botão acessível vinculado ao tooltip correto", () => {
     const output = reportInfo("Comparativo por loja");
     assert.match(output, /aria-label="Sobre: Comparativo por loja"/);
     assert.match(output, /aria-expanded="false"/);
-    assert.match(output, /aria-controls="report-help-8"/);
+    assert.match(output, /aria-controls="report-help-9"/);
     assert.match(output, /role="tooltip" id="report-help-8"/);
     assert.equal(reportInfo("Título inexistente"), "");
   });

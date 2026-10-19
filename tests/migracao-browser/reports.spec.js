@@ -4,7 +4,9 @@ const admin={id:"a1",nome:"Administrador",papel:"admin",login:"admin"};
 const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:true}];
 const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",
- total:5,recebido:3,naoChegou:1,aguardando:1,recusado:0,semAgenda:1}],
+ total:5,recebido:3,naoChegou:1,aguardando:1,semConferencia:0,recusado:0,semAgenda:1},
+ {date:"2026-10-18",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",
+ total:2,recebido:1,naoChegou:0,aguardando:0,semConferencia:1,recusado:0,semAgenda:0}],
  suppliers:[{supplier:"Fornecedor Teste",naoChegou:1}]};
 const occ={total:1,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
  supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado"}]};
@@ -41,6 +43,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("3");
+   await expect(page.locator(".report-metric")).toHaveCount(7);
+   await expect(page.locator(".report-metric").filter({hasText:"Aguardando"})).toContainText("1");
+   await expect(page.locator(".report-metric").filter({hasText:"Sem conferência"})).toContainText("1");
+   await expect(page.locator(".manager-report")).toContainText("Sem conferência");
    await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
    await expect(page.locator("[data-report-native-chart]")).toBeHidden();
    const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
