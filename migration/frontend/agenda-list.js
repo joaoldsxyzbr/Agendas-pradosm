@@ -243,7 +243,7 @@ export function renderAgendaList(root, initialOptions = {}) {
   };
   const openObservationDialog = (item, status, trigger) => {
     closeObservationDialog?.();
-    const required = status === "nao_chegou";
+    const required = status === "nao_chegou" || (!status && item.status === "nao_chegou");
     const current = item.observation ?? "";
     const preset = OBSERVATION_REASONS.includes(current) ? current
       : current.startsWith("Outros: ") ? "Outros" : "";
@@ -304,7 +304,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       let note;
       try {
         const input = select.value === "Outros" ? "Outros: " + textarea.value.trim() : select.value;
-        note = required ? validateStatusObservation(status,input) : normalizeObservation(input);
+        note = required ? validateStatusObservation(status ?? item.status,input) : normalizeObservation(input);
       } catch (error) {
         errorNode.textContent = error.message;
         errorNode.hidden = false;
