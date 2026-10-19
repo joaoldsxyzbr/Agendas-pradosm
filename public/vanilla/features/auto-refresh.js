@@ -22,7 +22,7 @@ export async function hasViewChanged(snapshot, api) {
  * Novos botões recebem handlers das funções de renderização de cada página.
  */
 function stableKey(node) {
-  if (node.nodeType !== 1) return null;
+  if (!node || node.nodeType !== 1) return null;
   for (const name of ["data-store-id", "data-appointment-id"]) {
     if (node.hasAttribute(name)) return name + ":" + node.getAttribute(name);
   }
