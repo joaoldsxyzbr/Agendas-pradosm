@@ -45,3 +45,15 @@ Atualizado em 18/10/2026 (horário local). Fonte de verdade: repositório `joaol
 Não executar migrações D1 remotas nem deploy de produção pela branch de migração. Não copiar login de demonstração da preview para a main. Não remover o cron de fechamento da main. Não confundir build gerado, teste estático, CI verde, preview homologada e produção publicada.
 
 Documentos históricos de cada etapa: `docs/operations/migracao-etapa-4.md` até `migracao-etapa-18.md`; comandos em `docs/operations/comandos-nativos-migracao.md`, `docs/operations/migracao-ci-build.md` e `docs/operations/ci-runner-diagnostico.md`.
+
+## Atualização — GitHub Actions restabelecido e CI verde (19/10/2026)
+
+Após o repositório ficar público, um workflow manual mínimo de diagnóstico passou: [run 39234811919](https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/39234811919). O primeiro CI completo executou 82 testes Node, dos quais 81 passaram; o único problema era a expectativa desatualizada de um seletor DOM no teste de Histórico. O teste foi corrigido no commit `7ae23ef52a79407ac12ded56b2dac0a60c5672b2`.
+
+A nova execução do CI completo foi **aprovada integralmente**: [run 39235213622](https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/39235213622), com os três jobs verdes:
+
+1. Runner iniciado normalmente.
+2. Backend, frontend e imports JS, 82 testes de contrato, build HTML/CSS/JS, artefatos PDF/WASM, CSP e bloqueio de deploy aprovados.
+3. Playwright com Chromium e APIs mockadas aprovado — login, papéis, cadastro, conferente e recusa de importação inválida.
+
+**Não confundir este resultado com homologação de produção**: faltam a validação com D1 de preview/isolado em operações reais, auditoria de segurança do histórico do repositório agora público, comparação visual detalhada à `main`, limpeza definitiva da stack antiga e promoção `migracao-js-puro` → `preview` após validação. `main`, `preview` e banco produtivo permanecem inalterados.
