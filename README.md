@@ -14,7 +14,7 @@ Sistema web para gestão diária das agendas de recebimento das lojas Prado Supe
 ## Perfis de acesso
 
 - **admin**: administra lojas, usuários, importações, histórico e ajustes.
-- **visualizador**: acompanha o dashboard administrativo em modo somente leitura.
+- **visualizador**: consulta o dashboard e os relatórios gerenciais, sempre em modo somente leitura.
 - **conferente**: opera apenas a agenda da própria loja ativa.
 
 A autorização real é aplicada no Worker. A interface também oculta ações que o perfil não pode executar.
@@ -27,6 +27,28 @@ A autorização real é aplicada no Worker. A interface também oculta ações q
 - A importação CSV/PDF continua recebendo e preservando agendas de lojas cadastradas e ativas mesmo sem conferente ativo. Ao reativar o conferente, as agendas e histórico voltam a aparecer.
 - Usuários inativos continuam consultáveis na tela de cadastros. Desativar **usuário** não desativa a **loja**; a importação segue exigindo que a loja esteja ativa.
 
+
+## Organização do repositório
+
+O código em produção está em JavaScript puro (ES Modules); a antiga etapa `migration/frontend` foi consolidada na pasta definitiva `frontend`.
+
+| Pasta/arquivo | Responsabilidade |
+| --- | --- |
+| `frontend/` | Páginas, componentes, sessão, interações e navegação nativos |
+| `frontend/styles/` | CSS do sistema, tema e telas |
+| `frontend/import/` e `frontend/agenda/` | Importação de agendas e geração de PDF |
+| `worker/` | API, autenticação, serviços, D1 e tempo real do Cloudflare |
+| `shared/` | Contratos, datas e validações usados pelo Worker e frontend |
+| `migrations/` | Histórico **imutável** de migrações do D1 |
+| `public/` | Manifesto, ícone e headers HTTP |
+| `tests/unit/`, `tests/browser/`, `tests/fixtures/` | Testes JavaScript, Playwright e dados sintéticos |
+| `scripts/` | Build, testes de integridade e bootstrap administrativo |
+| `docs/operations/` | Procedimentos atuais; `docs/archive/` guarda históricos de migração |
+| `wrangler.jsonc`, `wrangler.local.jsonc` | Produção e ambiente local sintético |
+
+**Branches:** `main` = produção; `preview` = homologação isolada. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem na `main`.
+
+Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). O projeto não usa React, Vite ou TypeScript.
 
 ## Desenvolvimento local
 
@@ -53,7 +75,7 @@ Arquivos `.dev.vars*` e `.env*` são ignorados pelo Git e não devem ser version
 Prepare o D1 local:
 
 ```bash
-npx wrangler d1 migrations apply DB --local --config wrangler.migracao.jsonc
+npx wrangler d1 migrations apply DB --local --config wrangler.local.jsonc
 ```
 
 Inicie a aplicação:
@@ -62,7 +84,7 @@ Inicie a aplicação:
 npm run dev
 ```
 
-O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especificado em `wrangler.migracao.jsonc`. Esse diretório é ignorado pelo Git. A interface é servida como arquivos ES Modules, sem bundler.
+O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especificado em `wrangler.local.jsonc`. Esse diretório é ignorado pelo Git. A interface é servida como arquivos ES Modules, sem bundler.
 
 ## Comandos principais
 
@@ -72,7 +94,7 @@ O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especific
 | `npm test` | Testes de contratos e funcionalidades JavaScript |
 | `npm run test:design` | Tokens CSS e layout |
 | `npm run test:bootstrap-admin` | Segurança do bootstrap emergencial |
-| `npm run migracao:e2e` | Navegador Chromium com APIs mockadas e Worker local |
+| `npm run test:e2e` | Navegador Chromium com APIs mockadas e Worker local |
 | `npm run build` | Arquivos JS/CSS/HTML de produção em `dist/` |
 | `npm run verify:production` | Migrations, testes, design, bootstrap e build íntegro |
 | `npm run check:migrations` | Bloqueio de migrations destrutivas não aprovadas |
@@ -86,7 +108,7 @@ As migrations ficam em `migrations/`.
 Para desenvolvimento:
 
 ```bash
-npx wrangler d1 migrations apply DB --local --config wrangler.migracao.jsonc
+npx wrangler d1 migrations apply DB --local --config wrangler.local.jsonc
 ```
 
 No fluxo normal de produção, **não aplique migrations remotas separadamente**. O comando oficial é `npm run deploy`, executado pelo Cloudflare Workers Builds, que segue esta ordem:
