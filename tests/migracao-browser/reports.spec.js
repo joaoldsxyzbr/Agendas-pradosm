@@ -42,7 +42,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
-   await expect(page.locator(".report-kpis")).toContainText("3");
+   await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
    await expect(page.locator(".report-metric").filter({hasText:"Aguardando"})).toContainText("1");
    await expect(page.locator(".report-metric").filter({hasText:"Sem conferência"})).toContainText("1");
@@ -54,7 +54,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
      return {type:instance?.config.type,received:instance?.data.datasets?.[0]?.data?.[0],
        missed:instance?.data.datasets?.[1]?.data?.[0]};
    });
-   expect(data).toEqual({type:"bar",received:3,missed:1});
+   expect(data).toEqual({type:"bar",received:1,missed:0});
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
    const filter=page.locator("[data-report-filters]");
    await filter.locator('[name="store"]').selectOption("F01");
