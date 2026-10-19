@@ -26,6 +26,7 @@ test("Administrador: 12 ajudas em mouse e teclado", async ({ page }) => {
   await expect(tooltip).toContainText("recebidos");
   await page.mouse.move(4,4);
   await expect(tooltip).toBeHidden();
+  await page.keyboard.press("Tab");
   await info.focus();
   await expect(tooltip).toBeVisible();
   await info.click();
