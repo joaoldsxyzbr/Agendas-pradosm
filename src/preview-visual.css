@@ -1,2 +1,21 @@
-/* Base de identidade da preview. */
-html[data-theme="dark"] { --color-background: #14161b; }
+/* Paleta e superfícies da preview, sem mudar regras de negócio. */
+html[data-theme="dark"] {
+ --color-background:#14161b;--color-surface:#202329;--color-surface-glass:#202329;
+ --color-surface-muted:#252930;--color-surface-strong:#2b3038;
+ --color-text:#f1f2f4;--color-text-strong:#f1f2f4;
+ --color-text-muted:#bac0ca;--color-text-soft:#969eaa;
+ --color-border:#454a54;--color-border-soft:#353942;
+ --color-primary:#79afff;--color-primary-strong:#a9cbff;--color-primary-soft:#293a53;
+ --color-accent:#e3c78d;--color-success:#91d8b8;--color-warning:#ebc486;
+ --shadow-card:none;
+}
+html[data-theme="dark"] body {background:#14161b;color:#f1f2f4}
+html[data-theme="dark"] .dashboard-kpi,html[data-theme="dark"] .dashboard-store-card,
+html[data-theme="dark"] .table-card,html[data-theme="dark"] .registry-card,
+html[data-theme="dark"] .login-card {border-radius:10px;background:#202329;border-color:#393e47;box-shadow:none}
+html[data-theme="dark"] .dashboard-kpi {padding:16px 18px;min-height:106px}
+html[data-theme="dark"] .dashboard-operation-table th,html[data-theme="dark"] .registry-table th,
+html[data-theme="dark"] .agenda-desktop thead th {background:#262b33;color:#bac0ca}
+html[data-theme="dark"] .primary-button {border-radius:7px;background:#79afff;color:#101a29}
+html[data-theme="dark"] .primary-button:hover {background:#a9cbff}
+html[data-theme="dark"] .ghost-button {border-radius:7px;background:#252930;border-color:#454a54}
