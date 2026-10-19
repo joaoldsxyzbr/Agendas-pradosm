@@ -14,7 +14,7 @@ Configuração confirmada em 29/09/2026:
 - diretório raiz: `/`;
 - previews de PR: habilitados com recursos isolados da produção.
 
-O deploy command do Workers Builds deve permanecer **`npm run deploy:cloudflare`**. O build command já executa `npm run verify:production`, portanto o caminho Cloudflare aplica apenas o gate de migrations, as migrations remotas e a publicação, sem repetir testes/typecheck/build. O comando local **`npm run deploy`** continua autocontido: primeiro verifica toda a aplicação e depois chama `deploy:cloudflare`.
+O deploy command do Workers Builds deve permanecer **`npm run deploy:cloudflare`**. O build command já executa `npm run verify:production`, portanto o caminho Cloudflare aplica apenas o gate de migrations, as migrations remotas e a publicação, sem repetir testes e build. O comando local **`npm run deploy`** continua autocontido: primeiro verifica toda a aplicação e depois chama `deploy:cloudflare`.
 
 Referência oficial: https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
 
@@ -31,7 +31,7 @@ Desde 01/10/2026, os Workers Builds podem publicar Preview de pull requests usan
 
 O arquivo `wrangler.preview-migrations.jsonc` aponta para o mesmo D1 isolado e existe apenas para aplicar migrations nesse banco quando uma Preview funcional precisar de schema. Nunca trocar esse arquivo para o UUID do banco de produção.
 
-A suíte `test:deploy-flow` valida automaticamente que D1 e rate limit de Preview não compartilham os identificadores de produção.
+O `wrangler.jsonc` preserva IDs independentes para D1 e rate limit de previews; o CI principal usa D1 local sintético.
 
 Referências oficiais:
 
