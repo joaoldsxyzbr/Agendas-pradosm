@@ -41,7 +41,14 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("3");
-   await expect(page.locator(".report-chart")).toBeVisible();
+   await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
+   await expect(page.locator("[data-report-native-chart]")).toBeHidden();
+   const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
+     const instance=window.Chart?.getChart(canvas);
+     return {type:instance?.config.type,received:instance?.data.datasets?.[0]?.data?.[0],
+       missed:instance?.data.datasets?.[1]?.data?.[0]};
+   });
+   expect(data).toEqual({type:"bar",received:3,missed:1});
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
    const filter=page.locator("[data-report-filters]");
    await filter.locator('[name="store"]').selectOption("F01");
@@ -51,3 +58,11 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
+test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=>{
+  await page.route("**/vendor/chart.umd.min.js",route=>route.abort());
+  await mocks(page,viewer);
+  await page.goto("/admin/reports");
+  await expect(page.locator("[data-report-native-chart] .report-chart")).toBeVisible();
+  await expect(page.locator("[data-report-chart-wrap]")).toBeHidden();
+  await expect(page.locator(".report-kpis")).toContainText("Recebidos");
+});
