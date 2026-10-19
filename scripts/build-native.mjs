@@ -73,12 +73,21 @@ async function verifyImports(dir) {
 await rm(output, { recursive: true, force: true });
 await mkdir(output, { recursive: true });
 await copy("public", "");
+// Recursos locais e versionados: sem CDN, framework ou dependência de runtime nas telas.
+await copy("node_modules/chart.js/dist/chart.umd.min.js", "vendor/chart.umd.min.js");
+for (const icon of ["layout-dashboard", "chart-no-axes-column-increasing", "store", "users", "clipboard-check", "info"]) {
+  await copy("node_modules/lucide-static/icons/" + icon + ".svg", "vendor/lucide/" + icon + ".svg");
+}
+for (const [source, destination] of [
+  ["node_modules/chart.js/LICENSE.md", "vendor/LICENSE-chartjs.txt"],
+  ["node_modules/lucide-static/LICENSE", "vendor/LICENSE-lucide.txt"]
+]) if (existsSync(from(source))) await copy(source, destination);
 await copy("migration/frontend", "migration/frontend");
 for (const file of [
   "src/agenda/exportAgendaPdf.js", "src/import/extractPdfText.js",
   "src/import/parseAgendaBatch.js", "src/import/parseAgendaText.js"
 ]) await copy(file, file);
-for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css", "preview-visual.css", "conferente-visual.css", "manager-reports.css", "report-info.css"])
+for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css", "preview-visual.css", "conferente-visual.css", "manager-reports.css", "report-info.css", "vendor-ui.css"])
   await copy("src/" + file, "src/" + file);
 for (const name of ["agenda", "api", "auth", "realtime", "store", "time", "observations"])
   await copy("shared/" + name + ".js", "shared/" + name + ".js");

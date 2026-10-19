@@ -6,10 +6,10 @@ export function escapeHtml(value) {
 }
 
 const NAV_ITEMS = [
-  { to: "/admin", label: "Recebimento" },
-  { to: "/admin/reports", label: "Relatório Gerencial" },
-  { to: "/admin/stores", label: "Lojas" },
-  { to: "/admin/users", label: "Usuários" }
+  { to: "/admin", label: "Recebimento", icon: "layout-dashboard" },
+  { to: "/admin/reports", label: "Relatório Gerencial", icon: "chart-no-axes-column-increasing" },
+  { to: "/admin/stores", label: "Lojas", icon: "store" },
+  { to: "/admin/users", label: "Usuários", icon: "users" }
 ];
 
 export function adminShell(user, path) {
@@ -23,7 +23,7 @@ export function adminShell(user, path) {
       </a>
       <div class="prado-sidebar-label">OPERAÇÃO</div>
       <nav class="admin-topnav prado-side-nav" aria-label="Navegação lateral">
-        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}
+        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
       </nav>
       <div class="prado-sidebar-footer">Agenda Prado</div>
     </aside>
@@ -31,7 +31,7 @@ export function adminShell(user, path) {
     <header class="admin-topbar prado-topbar"><div class="admin-topbar-inner">
       <div class="prado-topbar-breadcrumb"><span>Operações</span><span aria-hidden="true">/</span><strong>${items.find(item => item.to === path)?.label ?? "Recebimento"}</strong></div>
       <nav class="admin-topnav prado-mobile-nav" aria-label="Navegação móvel">
-        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}>${item.label}</a>`).join("")}
+        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
       </nav>
       <div class="admin-topbar-account">
         <div class="admin-topbar-user"><span>${escapeHtml(user.nome)}</span>
@@ -55,7 +55,7 @@ export function storeShell(user) {
       <div class="prado-store-sidebar-label">OPERAÇÃO</div>
       <nav class="prado-store-side-nav" aria-label="Áreas do conferente">
         <a class="prado-store-nav-link active" href="/app" aria-current="page">
-          <span class="prado-store-nav-symbol" aria-hidden="true">✓</span>Conferência
+          <span class="prado-store-nav-symbol" aria-hidden="true"><img class="prado-nav-icon" src="/vendor/lucide/clipboard-check.svg" alt="" width="17" height="17"></span>Conferência
         </a>
       </nav>
       <div class="prado-store-sidebar-footer">

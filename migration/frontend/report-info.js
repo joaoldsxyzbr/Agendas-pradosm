@@ -20,7 +20,7 @@ export function reportInfo(title) {
   if (!description) return "";
   const id = "report-help-" + (Object.keys(REPORT_HELP).indexOf(title) + 1);
   return '<span class="report-info"><button type="button" class="report-info-button" data-report-info ' +
-    'aria-label="Sobre: ' + escapeHtml(title) + '" aria-describedby="' + id + '" aria-controls="' + id + '" aria-expanded="false">i</button>' +
+    'aria-label="Sobre: ' + escapeHtml(title) + '" aria-describedby="' + id + '" aria-controls="' + id + '" aria-expanded="false"><img class="report-info-icon" src="/vendor/lucide/info.svg" alt="" aria-hidden="true" width="15" height="15"></button>' +
     '<span class="report-info-tooltip" role="tooltip" id="' + id + '">' +
     escapeHtml(description) + '</span></span>';
 }

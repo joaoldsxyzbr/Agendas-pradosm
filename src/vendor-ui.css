@@ -1,0 +1,12 @@
+/* Ícones Lucide Static: arquivos SVG locais, sem JS de ícones. */
+.prado-admin .prado-side-nav .nav-link,
+.prado-admin .prado-mobile-nav .nav-link{display:flex;align-items:center;gap:10px}
+.prado-nav-icon,.report-info-icon{
+ display:inline-block;flex:none;width:17px;height:17px;object-fit:contain;
+ filter:brightness(0) invert(.8);
+}
+.prado-admin .nav-link.active .prado-nav-icon,
+.prado-store-nav-link.active .prado-nav-icon{filter:brightness(0) invert(.95)}
+.prado-store-nav-symbol .prado-nav-icon{width:18px;height:18px}
+.report-info-button .report-info-icon{width:15px;height:15px;filter:brightness(0) invert(.8)}
+.report-info-button:is(:hover,:focus-visible,[aria-expanded="true"]) .report-info-icon{filter:brightness(0) invert(1)}
