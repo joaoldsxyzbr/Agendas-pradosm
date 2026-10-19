@@ -53,7 +53,7 @@ describe("Conferente nativo — contratos da main", () => {
     assert.match(row,/data-status="recebido"/);
     assert.match(row,/data-exchanges="a"/);
     assert.match(row,/&lt;script&gt;/);
-    assert.doesNotMatch(row,/<script>/);
+    assert.equal(row.toLowerCase().includes("<script"), false);
     const list=files("../../migration/frontend/agenda-list.js");
     for(const token of ["agenda-mobile","agenda-card","data-testid=\"agenda-mobile-card\"",
       "Horário","Fornecedor","Protocolo","Tipo","Status","Ações","Trocas"])assert.ok(list.includes(token),token);

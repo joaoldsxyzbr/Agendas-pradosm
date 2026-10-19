@@ -21,7 +21,7 @@ describe("Histórico da main em JavaScript puro", () => {
     });
     assert.match(html, /18\/10\/2026/);
     assert.match(html, /Loja &lt;script&gt;/);
-    assert.doesNotMatch(html, /<script>/);
+    assert.equal(html.toLowerCase().includes("<script"), false);
     assert.match(html, /Concluído/);
     const src = read("../../migration/frontend/history.js");
     for (const text of [
