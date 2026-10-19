@@ -8,7 +8,7 @@ function isPresenceStatus(value) {
   return value === "online" || value === "away" || value === "offline";
 }
 
-// Validação equivalente a isRealtimeServerEvent em useRealtimeConnection.ts.
+// Validação dos eventos do protocolo WebSocket usado pelo frontend nativo.
 export function isRealtimeServerEvent(value) {
   if (!value || typeof value !== "object" || value.version !== 1) return false;
   if (value.type === "realtime.ready") return true;

@@ -4,7 +4,7 @@ import { createMigratedPageRenderers } from "./pages.js";
 import { createRealtimeClient } from "./realtime.js";
 import { createStorePresence } from "./presence.js";
 
-// Montagem isolada do frontend migrado. Não ligada ao index.html da main.
+// Composição da aplicação JavaScript nativa, carregada por frontend/entry.js em produção.
 export function createMigratedApplication({
   root, request = apiFetch, win = window, doc = document
 } = {}) {

@@ -7,7 +7,7 @@ import { renderToday } from "./today.js";
 import { renderImportAgenda } from "./import-agenda.js";
 import { openAdminAgendaPreview } from "./admin-agenda-preview.js";
 
-// Todas as páginas de App.tsx, sem modificações nas rotas ou nos dados da main.
+// Registro das páginas da aplicação atual em JavaScript nativo, sem React/TSX.
 export function createMigratedPageRenderers({ realtime } = {}) {
   return {
     dashboard(ctx) {
