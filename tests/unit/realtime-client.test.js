@@ -70,7 +70,7 @@ describe("WebSocket da main em ES Modules", () => {
     socket.message(JSON.stringify({ version: 1, type: "presence.changed", storeId: "a", status: "online" }));
     socket.message(JSON.stringify({ version: 1, type: "agenda.changed", agendaId: "agenda1", storeId: "loja1", date: "2026-10-19", reason: "observation" }));
     assert.equal(received.at(-1).reason, "observation");
-    assert.equal(received.at(-1).type, "presence.changed");
+    assert.equal(received.at(-1).type, "agenda.changed");
     assert.equal(client.send({ version: 1, type: "presence.heartbeat" }), true);
     client.stop();
     assert.equal(timers.entries.size, 0);
