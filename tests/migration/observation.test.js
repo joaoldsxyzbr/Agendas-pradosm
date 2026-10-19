@@ -30,13 +30,13 @@ describe("Observação de recebimento — motivos", () => {
     assert.match(row,/agenda-observation-cell/);
     assert.match(row,/data-edit-observation="id1"/);
     assert.match(row,/&lt;script&gt;/);
-    assert.doesNotMatch(row,/<script>/);
+    assert.equal(row.toLowerCase().includes("<script"),false);
     const readOnly = agendaRowHtml(record, {editable:false});
     assert.match(readOnly,/&lt;script&gt;/);
     const html = agendaDetailHtml(record);
     assert.match(html,/Obs\./);
     assert.match(html,/Sem pedido/);
-    assert.doesNotMatch(html,/<script>/);
+    assert.equal(html.toLowerCase().includes("<script"),false);
   });
   it("mantém seletor e não recebimento bloqueado na API", () => {
     const html = readFileSync(new URL("../../migration/frontend/agenda-list.js",import.meta.url),"utf8");
