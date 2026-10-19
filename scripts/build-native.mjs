@@ -37,8 +37,11 @@ async function pdfImportMap() {
   if (!existsSync(meta)) throw Error("Instale as dependências com npm ci antes do build.");
   const pkg = JSON.parse(await readFile(meta, "utf8"));
   const entry = browserEntry(pkg);
-  if (!entry || !entry.startsWith("./") || !existsSync(resolve(folder, entry)))
+  if (!entry || typeof entry !== "string" || !/\.m?js$/.test(entry))
     throw Error("Pacote PDF sem entrada ES Module para navegador.");
+  const resolved = resolve(folder, entry);
+  if (!resolved.startsWith(folder + "/") || !existsSync(resolved))
+    throw Error("Entrada JS do leitor PDF ausente ou fora do pacote.");
   await mkdir(to("vendor"), { recursive: true });
   await cp(folder, to("vendor/liteparse"), { recursive: true });
   return { imports: {
