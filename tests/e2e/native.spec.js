@@ -27,7 +27,7 @@ test("JavaScript puro: visualizador consulta relatórios sem acessar cadastros",
   await expect(page.getByRole("link", { name: "Lojas" })).toHaveCount(0);
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Por loja", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Ocorrências e observações" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Exportar CSV" })).toBeVisible();
 });

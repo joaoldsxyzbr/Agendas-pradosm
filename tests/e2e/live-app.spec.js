@@ -41,7 +41,7 @@ test("administrador percorre recebimento, relatórios e cadastros", async ({ pag
   await expect(importButton).toBeFocused();
   await page.getByRole("link", { name: /Relatórios/ }).click();
   await expect(page.getByRole("heading", { name: "Relatórios gerenciais" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Por loja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Por loja", exact: true })).toBeVisible();
   await expect(page.locator(".report-page .stat")).toHaveCount(6);
   await expect(page.getByRole("heading", { name: "Evolução diária" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Comparativo por loja" })).toBeVisible();
@@ -59,9 +59,9 @@ test("administrador percorre recebimento, relatórios e cadastros", async ({ pag
 test("painel de recebimento diferencia ocorrências de agendamentos aguardando", async ({ page }) => {
   await enterDemo(page, "Administrador");
   await expect(page.locator(".dashboard-page .stat")).toHaveCount(4);
-  await expect(page.getByRole("columnheader", { name: "Não recebidos" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Aguardando" })).toBeVisible();
-  await expect(page.getByRole("columnheader", { name: "Pendentes" })).toHaveCount(0);
+  await expect(page.locator(".dashboard-page .stat-label"))
+    .toHaveText(["Agendamentos", "Recebidos", "Não recebidos", "Aguardando"]);
+  await expect(page.locator(".dashboard-page .stat-foot").last()).toHaveText("Pendentes");
   await expect(page.locator("#dash-date")).toBeVisible();
   await expect(page.locator("#dash-store")).toBeVisible();
 });

@@ -177,6 +177,14 @@ body.dialog-open { overflow:hidden }
   .sidebar { position:fixed; transform:translateX(-100%); transition:transform .2s ease; width:245px; height:100dvh; box-shadow:20px 0 80px rgba(0,0,0,.2) }
   .app-shell.nav-open .sidebar { transform:none }
   .menu-toggle { display:inline-flex }
+  /* Botão permanece acessível acima do drawer para o usuário poder fechá-lo. */
+  .app-shell.nav-open .menu-toggle {
+    position:fixed;
+    top:12px;
+    left:195px;
+    z-index:11;
+    background:var(--panel);
+  }
   .topbar { min-height:64px; height:64px; padding:0 16px }
   .topbar-start,.topbar-end { gap:8px }
   .topbar-breadcrumb { font-size:11px }
