@@ -15,7 +15,8 @@
     "verify:production": "npm run check:migrations && npm test && npm run test:design && npm run test:bootstrap-admin && npm run build && node scripts/check-build.mjs",
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
-    "test:e2e": "playwright test --config playwright.config.js"
+    "test:e2e": "playwright test --config playwright.config.js",
+    "benchmark:password": "node scripts/benchmark-password.mjs"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",

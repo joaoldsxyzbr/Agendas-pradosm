@@ -44,6 +44,8 @@ function constantTimeEqual(a, b) {
   return difference === 0;
 }
 function parsePasswordHash(encoded) {
+  // Hash malformado ou inesperado deve falhar fechado, sem quebrar o login.
+  if (typeof encoded !== "string" || encoded.length > 256) return null;
   const [algorithm, iterationsText, saltText, hashText, extra] = encoded.split("$");
   const iterations = Number(iterationsText);
   if (algorithm !== "pbkdf2_sha256" || extra !== void 0 || !Number.isInteger(iterations) || !SUPPORTED_ITERATIONS.has(iterations) || !saltText || !hashText) {
