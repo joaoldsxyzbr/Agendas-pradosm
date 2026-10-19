@@ -7,13 +7,14 @@ export function escapeHtml(value) {
 
 const NAV_ITEMS = [
   { to: "/admin", label: "Recebimento" },
+  { to: "/admin/reports", label: "Relatório Gerencial" },
   { to: "/admin/stores", label: "Lojas" },
   { to: "/admin/users", label: "Usuários" }
 ];
 
 export function adminShell(user, path) {
   const viewer = user.papel === "visualizador";
-  const items = viewer ? NAV_ITEMS.slice(0, 1) : NAV_ITEMS;
+  const items = viewer ? NAV_ITEMS.filter(item => ["/admin", "/admin/reports"].includes(item.to)) : NAV_ITEMS;
   return `<div class="app-frame admin-shell prado-admin">
     <aside class="prado-sidebar">
       <a href="/admin" class="prado-brand">
