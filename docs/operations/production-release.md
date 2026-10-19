@@ -24,6 +24,10 @@ Referência oficial: https://developers.cloudflare.com/workers/ci-cd/builds/conf
 
 Os PRs de auditoria #95 e #96 passaram no gate GitHub Actions `verify`, mas o Workers Builds da Preview retornou erro `Authentication error [10000]` / `Invalid access token [9109]` ao executar `npx wrangler preview`. O build do código e os testes passaram, portanto esse erro específico não comprova falha do Worker. A produção usa outra configuração de publicação.
 
+**Causa identificada e corrigida nos PRs #95 e #96:** atualizar `previews_base_config.build_token_uuid` altera o padrão para futuras Previews, mas as Previews já criadas mantêm `settings.build_token_uuid` próprio. As antigas continuavam usando o token anterior, embora a nova Preview do PR #97 publicasse com o token correto. A correção foi atualizar **somente** o `settings.build_token_uuid` das duas Previews afetadas; ambas então publicaram com sucesso, sem tocar no token da produção.
+
+Na próxima rotação, confira as configurações de cada Preview. A API de configuração do Worker admite `patch_existing_previews=true` para propagar mudanças globalmente; prefira a atualização individual via `PATCH /accounts/{account_id}/builds/workers/{script_tag}/previews/{preview_id}` para limitar o alcance da alteração.
+
 Procedimento seguro:
 1. No Worker `agendas-pradosm`, confirmar em **Builds → Configurações de build → Preview** o token **válido e de escopo de usuário**, com permissões exigidas pela Cloudflare para Workers e recursos da Preview. Revisar a autenticidade/validade do token real, não apenas o identificador selecionado.
 2. Reexecutar uma build da branch/commit do PR e examinar o **resultado da etapa de deploy**, não somente o sucesso do comando de build ou do check GitHub `verify`.
