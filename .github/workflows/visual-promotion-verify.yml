@@ -1,0 +1,47 @@
+name: Validar candidato visual da preview
+on:
+  push:
+    branches: [preview]
+    paths:
+      - "visual-promotion/**"
+      - ".github/workflows/visual-promotion-verify.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  visual-candidate:
+    name: Preview visual contra main sem deploy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: main
+          fetch-depth: 1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Sobrepor apenas candidato visual da preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags --depth=1 origin refs/heads/preview:refs/remotes/origin/preview
+          for file in migration/frontend/shell.js index.html scripts/build-native.mjs src/preview-visual.css tests/migration/visual-shell.test.js; do
+            mkdir -p "$(dirname "$file")"
+            git show "refs/remotes/origin/preview:visual-promotion/$file" > "$file"
+          done
+      - name: Dependências
+        run: npm ci --legacy-peer-deps
+      - name: Contratos e build de produção sem deploy
+        run: |
+          npm run verify:production
+          npx wrangler deploy --dry-run --config wrangler.jsonc
+      - name: Teste do layout, perfis e permissões
+        run: node --test tests/migration/visual-shell.test.js
+      - name: Navegador com APIs mockadas
+        env:
+          CI: "true"
+        run: |
+          npx playwright install --with-deps chromium
+          npm run migracao:e2e
