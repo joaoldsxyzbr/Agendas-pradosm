@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           git fetch --no-tags --depth=1 origin refs/heads/preview:refs/remotes/origin/preview
-          for file in migration/frontend/shell.js index.html scripts/build-native.mjs src/preview-visual.css tests/migration/visual-shell.test.js; do
+          for file in migration/frontend/shell.js migration/frontend/runtime.js index.html scripts/build-native.mjs src/preview-visual.css tests/migration/visual-shell.test.js tests/migracao-browser/visual-layout.spec.js; do
             mkdir -p "$(dirname "$file")"
             git show "refs/remotes/origin/preview:visual-promotion/$file" > "$file"
           done
