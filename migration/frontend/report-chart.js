@@ -7,6 +7,7 @@ export function reportChartConfig(days) {
     ["recebido", "Recebidos", "#91d8b8"],
     ["naoChegou", "Não recebidos", "#f2aaa8"],
     ["aguardando", "Aguardando", "#ebc486"],
+    ["semConferencia", "Sem conferência", "#8294aa"],
     ["recusado", "Recusados", "#c2a4e2"]
   ];
   return {

@@ -5,13 +5,14 @@ export const REPORT_HELP = Object.freeze({
   "Recebidos": "Agendamentos marcados como recebidos. O percentual considera o total do período.",
   "Não recebidos": "Quantidade marcada como não recebida. Os motivos aparecem em Ocorrências e observações.",
   "Taxa de recebimento": "Recebidos ÷ total de agendamentos × 100. Os agendamentos pendentes também entram no total.",
-  "Aguardando": "Agendamentos que ainda aguardam a confirmação do recebimento.",
+  "Aguardando": "Agendamentos pendentes de recebimento em agendas que continuam abertas.",
+  "Sem conferência": "Agendamentos que permaneceram aguardando quando a agenda foi concluída. Não significa que o caminhão não foi recebido.",
   "Recusados": "Agendamentos com status recusado no período filtrado.",
-  "Evolução diária": "Volume de agendamentos em cada dia, dividido entre recebidos, não recebidos, aguardando e recusados.",
+  "Evolução diária": "Volume diário por resultado: recebidos, não recebidos, aguardando em dias abertos, sem conferência em dias concluídos e recusados.",
   "Comparativo por loja": "Taxa de recebimento de cada loja: recebidos ÷ total da unidade × 100. A barra representa esse percentual.",
   "Fornecedores com ocorrências": "Fornecedores com mais não recebimentos. A barra compara a quantidade de cada um com a do líder do ranking.",
-  "Por loja": "Indicadores de volume, status e taxa de recebimento consolidados por unidade.",
-  "Por data": "Detalhamento diário por loja, com status dos agendamentos e indicação de agenda aberta ou concluída.",
+  "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de sem conferência em agendas concluídas.",
+  "Por data": "Resultados por dia e loja, incluindo a separação entre aguardando e sem conferência conforme a situação da agenda.",
   "Ocorrências e observações": "Lista dos não recebimentos com fornecedor, protocolo e motivo. Registros antigos podem não ter motivo."
 });
 

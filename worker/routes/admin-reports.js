@@ -44,7 +44,8 @@ adminReportRoutes.get("/", async (c) => {
   const rows = await c.env.DB.prepare([
     "SELECT a.data_agenda AS date, l.codigo AS storeCode, l.nome AS storeName,",
     "a.status_dia AS dayStatus, COUNT(ag.id) AS total,",
-    "SUM(CASE WHEN ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,",
+    "SUM(CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'aberto' THEN 1 ELSE 0 END) AS aguardando,",
+    "SUM(CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'concluido' THEN 1 ELSE 0 END) AS semConferencia,",
     "SUM(CASE WHEN ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,",
     "SUM(CASE WHEN ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS naoChegou,",
     "SUM(CASE WHEN ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado,",
@@ -74,6 +75,7 @@ adminReportRoutes.get("/", async (c) => {
       ...row,
       total: Number(row.total),
       aguardando: Number(row.aguardando),
+      semConferencia: Number(row.semConferencia),
       recebido: Number(row.recebido),
       naoChegou: Number(row.naoChegou),
       recusado: Number(row.recusado),

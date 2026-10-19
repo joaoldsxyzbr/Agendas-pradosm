@@ -6,7 +6,7 @@
 .manager-report .report-filters input[type="date"],.manager-report .report-filters select{height:39px;width:100%;min-width:0;border:1px solid var(--color-border,#454a54);border-radius:7px;padding:7px 10px;background:var(--color-background,#14161b);color:var(--color-text,#f1f2f4);color-scheme:dark;font:inherit}
 .manager-report .report-compare{display:flex;align-items:center;gap:8px;min-height:39px;color:var(--color-text-muted,#bac0ca);font-size:12px}
 .manager-report .report-filters>.primary-button{height:39px}
-.manager-report .report-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin-bottom:16px}
+.manager-report .report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:16px}
 .manager-report .report-metric{display:flex;flex-direction:column;min-height:112px;padding:16px 18px;border-radius:10px;border:1px solid var(--color-border-soft,#393e47);background:var(--color-surface,#202329)}
 .manager-report .report-metric>span{font-size:12px;font-weight:650;color:var(--color-text-muted,#bac0ca)}
 .manager-report .report-metric strong{display:block;margin:8px 0 4px;font-size:28px;font-weight:750;letter-spacing:-.035em;line-height:1.18;color:var(--color-text,#f1f2f4)}
@@ -22,7 +22,7 @@
 .manager-report .report-legend span{display:flex;align-items:center;gap:6px}
 .manager-report .report-legend i{display:inline-block;width:9px;height:9px;border-radius:2px}
 .manager-report .report-segment-recebido{background:#91d8b8}.manager-report .report-segment-naoChegou{background:#f2aaa8}
-.manager-report .report-segment-aguardando{background:#ebc486}.manager-report .report-segment-recusado{background:#c2a4e2}
+.manager-report .report-segment-aguardando{background:#ebc486}.manager-report .report-segment-semConferencia{background:#8294aa}.manager-report .report-segment-recusado{background:#c2a4e2}
 .manager-report .report-chart-scroll{overflow-x:auto;padding:20px 18px 14px}
 .manager-report .report-chart{display:flex;align-items:flex-end;justify-content:space-around;gap:6px;min-width:100%;width:max-content}
 .manager-report .report-day{flex:1 0 20px;min-width:20px;max-width:55px;text-align:center}
@@ -47,7 +47,7 @@
 .manager-report .report-number{text-align:right}
 .manager-report .report-empty{padding:22px;text-align:center;color:var(--color-text-soft,#969eaa)}
 .manager-report .report-pagination{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;padding:12px 18px;border-top:1px solid var(--color-border-soft,#393e47);font-size:11px;color:var(--color-text-muted,#bac0ca)}
-@media(min-width:1550px){.manager-report .report-kpis{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media(min-width:1650px){.manager-report .report-kpis{grid-template-columns:repeat(7,minmax(0,1fr))}}
 @media(max-width:980px){.manager-report .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.manager-report .report-analytics-grid{grid-template-columns:1fr}}
 @media(max-width:720px){.manager-report .report-filters{padding:13px}.manager-report .report-filters>.primary-button{width:100%}.manager-report .report-kpis{gap:8px}.manager-report .report-metric{min-height:96px;padding:13px}.manager-report .report-metric strong{font-size:23px}.manager-report .report-chart-scroll{padding:14px 10px}.manager-report .report-bar-area{height:145px}}
 @media print{.prado-sidebar,.prado-topbar,.manager-report .report-filters,.manager-report .report-pagination{display:none!important}.manager-report .report-panel,.manager-report .report-metric{break-inside:avoid;background:white;color:#111;border-color:#ccc}.manager-report .report-table-scroll{overflow:visible}.manager-report table{min-width:0}}
