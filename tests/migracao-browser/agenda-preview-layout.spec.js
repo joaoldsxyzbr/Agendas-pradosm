@@ -47,13 +47,30 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
     const list=el.querySelector("[data-preview-list]");
     const table=el.querySelector("[data-agenda-desktop]");
     const scroll=el.querySelector(".table-scroll");
+    const metrics=el.querySelector(".agenda-metrics");
+    const metricsCards=metrics.querySelectorAll(".agenda-metric");
+    const search=el.querySelector(".agenda-toolbar");
+    const context=el.querySelector(".agenda-preview-context");
+    const actions=el.querySelector(".agenda-preview-status");
     return {section:box(section).width,list:box(list).width,table:box(table).width,
       scroll:box(scroll).width,scrollWidth:scroll.scrollWidth,
+      metricsWidth:box(metrics).width,searchWidth:box(search).width,
+      metricsTop:box(metrics).top,searchTop:box(search).top,
+      metricsRight:box(metrics).right,searchLeft:box(search).left,
+      contextWidth:box(context).width,actionsRight:box(actions).right,
+      contextRight:box(context).right,cards:[...metricsCards].map(card=>box(card).width),
       sectionGrid:getComputedStyle(section).gridTemplateColumns};
   });
   expect(geometry.list).toBeGreaterThan(geometry.section*0.9);
   expect(geometry.table).toBeGreaterThan(geometry.section*0.9);
   expect(geometry.scroll).toBeGreaterThan(geometry.section*0.9);
+  expect(Math.abs(geometry.metricsTop-geometry.searchTop)).toBeLessThan(12);
+  expect(geometry.metricsRight).toBeLessThanOrEqual(geometry.searchLeft+1);
+  expect(geometry.searchLeft-geometry.metricsRight).toBeLessThan(26);
+  expect(geometry.cards).toHaveLength(5);
+  expect(Math.min(...geometry.cards)).toBeGreaterThan(95);
+  expect(geometry.contextWidth).toBeGreaterThan(geometry.section*0.9);
+  expect(geometry.contextRight-geometry.actionsRight).toBeLessThan(30);
   await modal.locator("[data-preview-search]").fill("NÃO EXISTE");
   await expect(modal.locator("[data-preview-empty]")).toBeVisible();
   await modal.locator("[data-preview-search]").fill("");
