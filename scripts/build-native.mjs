@@ -82,27 +82,21 @@ for (const [source, destination] of [
   ["node_modules/chart.js/LICENSE.md", "vendor/LICENSE-chartjs.txt"],
   ["node_modules/lucide-static/LICENSE", "vendor/LICENSE-lucide.txt"]
 ]) if (existsSync(from(source))) await copy(source, destination);
-await copy("migration/frontend", "migration/frontend");
-for (const file of [
-  "src/agenda/exportAgendaPdf.js", "src/import/extractPdfText.js",
-  "src/import/parseAgendaBatch.js", "src/import/parseAgendaText.js"
-]) await copy(file, file);
-for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css", "preview-visual.css", "conferente-visual.css", "manager-reports.css", "report-info.css", "vendor-ui.css"])
-  await copy("src/" + file, "src/" + file);
+await copy("frontend", "frontend");
 for (const name of ["agenda", "api", "auth", "realtime", "store", "time", "observations"])
   await copy("shared/" + name + ".js", "shared/" + name + ".js");
 
 const importMap = await pdfImportMap();
 const html = await readFile(from("index.html"), "utf8");
-const originalEntry = '<script type="module" src="/migration/frontend/entry.js"></script>';
+const originalEntry = '<script type="module" src="/frontend/entry.js"></script>';
 if (!html.includes(originalEntry)) throw Error("Entrada JS nativa não localizada.");
 // CSS da main já está ligado no index.html nativo.
 const mapJson = JSON.stringify(importMap);
 const mapHash = createHash("sha256").update(mapJson, "utf8").digest("base64");
 const scripts = '<script type="importmap">' + mapJson + '</script>\n' +
-  '    <script type="module" src="/migration/frontend/entry.js"></script>';
+  '    <script type="module" src="/frontend/entry.js"></script>';
 const nativeHtml = html.replace(originalEntry, scripts);
-if (!nativeHtml.includes('type="importmap"') || nativeHtml.includes('src="/src/main.tsx"')) throw Error("Entrada JS ou importmap ausente.");
+if (!nativeHtml.includes('type="importmap"') || nativeHtml.includes('src="/frontend/styles/main.tsx"')) throw Error("Entrada JS ou importmap ausente.");
 await writeFile(to("index.html"), nativeHtml, "utf8");
 const security = await readFile(to("_headers"), "utf8");
 const needle = "script-src 'self' 'wasm-unsafe-eval';";

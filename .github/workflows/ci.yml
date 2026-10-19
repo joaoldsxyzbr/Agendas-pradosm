@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, migracao-js-puro]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -35,8 +35,8 @@ jobs:
           set -euo pipefail
           test -z "$(git ls-files | grep -E '\.(tsx?|jsx)$' || true)"
           node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const n of ["react","react-dom","react-router-dom","vite","vitest","typescript"])if(d[n])process.exit(1)'
-          node scripts/check-migracao-worker.mjs
-          node scripts/check-migracao-frontend.mjs
+          node scripts/check-worker.mjs
+          node scripts/check-frontend.mjs
       - name: Validar migrations e Worker
         run: npm run check:migrations
       - name: Testes JavaScript e design
@@ -47,7 +47,7 @@ jobs:
       - name: Build nativo e integridade dos assets
         run: |
           npm run build
-          node scripts/check-migracao-build.mjs
+          node scripts/check-build.mjs
       - name: Dry-run do Worker de producao sem deploy
         run: npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: Preparar Chromium
@@ -55,7 +55,7 @@ jobs:
       - name: Testes de navegador sem dados reais
         env:
           CI: "true"
-        run: npm run migracao:e2e
+        run: npm run test:e2e
       - name: Guardar diagnosticos em caso de falha
         if: failure()
         uses: actions/upload-artifact@v4

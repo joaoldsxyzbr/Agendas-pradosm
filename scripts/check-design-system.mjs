@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
-const css = readFileSync(new URL("../src/styles.css", import.meta.url), "utf8");
+const css = readFileSync(new URL("../frontend/styles/styles.css", import.meta.url), "utf8");
 
 assert.ok(css.includes("--color-primary: #1558a6"), "token primary light ausente");
 assert.ok(css.includes("--color-primary-strong: #0b3d78"), "token primary strong ausente");
