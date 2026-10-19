@@ -93,6 +93,9 @@ build = assertReplace(build, cssBefore, '// CSS da main já está ligado no inde
 build = assertReplace(build,
   'const nativeHtml = html.replace("</head>", "    " + css + "\\n  </head>")\n  .replace(originalEntry, scripts);',
   'const nativeHtml = html.replace(originalEntry, scripts);', native);
+build = assertReplace(build,
+  'if (nativeHtml.includes(originalEntry)) throw Error("O React continuou como entrypoint.");',
+  'if (!nativeHtml.includes(\'type="importmap"\') || nativeHtml.includes(\'src="/src/main.tsx"\')) throw Error("Entrada JS ou importmap ausente.");', native);
 write(native, build);
 
 const configPath = "wrangler.jsonc";
