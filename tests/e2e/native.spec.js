@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./isolated-session.js";
 
 test("JavaScript puro: painel e navegação após login rápido", async ({ page }) => {
   await page.goto("/");

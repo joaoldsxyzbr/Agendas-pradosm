@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./isolated-session.js";
 
 async function enterDemo(page, role) {
   await page.goto("/");

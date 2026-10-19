@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./isolated-session.js";
 
 // Cobertura da interface real em HTML/CSS/JavaScript, sem React.
 test("interface nativa oferece login rápido para todos os perfis", async ({ page }) => {
