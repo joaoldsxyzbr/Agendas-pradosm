@@ -39,6 +39,23 @@ jobs:
           npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: Teste do layout, perfis e permissões
         run: node --test tests/migration/visual-shell.test.js
+      - name: Diagnosticar visibilidade da tabela no teste E2E
+        shell: bash
+        run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from "node:fs";
+          const p = "tests/migracao-browser/smoke.spec.js";
+          let s = readFileSync(p, "utf8");
+          const before = '  await expect(page.getByText("Fornecedor Teste").first()).toBeVisible();';
+          const diagnostic = `  console.log("DIAG_VISIBILIDADE", JSON.stringify(await page.evaluate(() => ({
+            viewport: window.innerWidth, theme: document.documentElement.dataset.theme,
+            desktop: [...document.querySelectorAll("[data-agenda-desktop]")].map(el => ({display:getComputedStyle(el).display, visibility:getComputedStyle(el).visibility, parent:getComputedStyle(el.parentElement).display})),
+            mobile: [...document.querySelectorAll("[data-agenda-mobile]")].map(el => ({display:getComputedStyle(el).display})),
+            sheetCount: document.styleSheets.length
+          }))));\n` + before;
+          if(!s.includes(before)) throw Error("Teste não localizado");
+          writeFileSync(p,s.replace(before,diagnostic));
+          JS
       - name: Navegador com APIs mockadas
         env:
           CI: "true"
