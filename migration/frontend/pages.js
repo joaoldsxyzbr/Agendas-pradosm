@@ -1,4 +1,5 @@
 import { renderDashboard } from "./dashboard.js";
+import { renderReports } from "./reports.js";
 import { renderStores } from "./stores.js";
 import { renderUsers } from "./users.js";
 import { renderHistory } from "./history.js";
@@ -43,6 +44,7 @@ export function createMigratedPageRenderers({ realtime } = {}) {
       });
       return () => { dismiss(); detach(); };
     },
+    reports(ctx) { return renderReports(ctx.root, {request:ctx.request}); },
     stores(ctx) { return renderStores(ctx.root, { request: ctx.request }); },
     users(ctx) { return renderUsers(ctx.root, { request: ctx.request }); },
     history(ctx) { return renderHistory(ctx.root, { request: ctx.request }); },
