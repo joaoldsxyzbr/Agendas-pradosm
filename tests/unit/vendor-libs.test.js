@@ -46,7 +46,7 @@ describe("Chart.js e Lucide Static em JavaScript puro",()=>{
     const loader=read("../../frontend/report-chart.js");
     assert.match(build,/node_modules\/chart\.js\/dist\/chart\.umd\.min\.js/);
     assert.match(build,/node_modules\/lucide-static\/icons/);
-    assert.match(read("../../index.html"),/\/src\/vendor-ui\.css/);
+    assert.match(read("../../index.html"),/\/frontend\/styles\/vendor-ui\.css/);
     assert.match(build,/"vendor-ui\.css"/);
     assert.match(loader,/script\.src = "\/vendor\/chart\.umd\.min\.js"/);
     assert.match(reports,/data-report-native-chart/);

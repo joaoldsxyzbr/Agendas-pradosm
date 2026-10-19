@@ -30,7 +30,7 @@ describe("Aparência da preview sem alterações de negócio", () => {
     assert.match(css, /--color-background:\s*#14161b/);
     assert.match(css, /\.prado-sidebar/);
     assert.match(css, /@media\s*\(max-width:\s*760px\)/);
-    assert.match(html, /\/src\/preview-visual\.css/);
+    assert.match(html, /\/frontend\/styles\/preview-visual\.css/);
     assert.match(build, /"preview-visual\.css"/);
     assert.doesNotMatch(css + html, /PREVIEW_DEMO_LOGIN|Conta de demonstração|D1 ISOLADO/);
   });
