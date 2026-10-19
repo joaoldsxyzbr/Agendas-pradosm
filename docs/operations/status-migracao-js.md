@@ -1,65 +1,47 @@
-# Status da conversão para JavaScript puro — 18/10/2026
+# Estado da migração integral para JavaScript puro
 
-Branch de trabalho: `migracao-js-puro`, derivada da `main`. Esta documentação registra progresso real e pendências, sem inferir aprovação dos testes.
+Atualizado em 18/10/2026 (horário local). Fonte de verdade: repositório `joaoldsxyzbr/Agendas-pradosm`. Branch temporária autorizada: `migracao-js-puro`.
 
-## Código JS incorporado, ainda não ativado
+## Resumo da situação
 
-- Os módulos de runtime de `worker/` agora possuem equivalentes `.js` (entrada, autenticação, middleware, Durable Object, rotas, repositórios, serviços e bibliotecas).
-- Os arquivos `shared/` e parsers de `src/import/` têm versões JS.
-- As rotas e funções de agenda foram comparadas com a `main`. A exigência de motivo do não recebimento e a coluna `observacao` da `preview` **não foram levadas**, pois alterariam contratos e exigiriam migração D1 de produção.
-- O backend Node/Cloudflare **ainda usa TS no entrypoint Wrangler atual**; os `.ts` permanecem até a troca atômica, após testes.
-- Um teste isolado da lógica migrada de status executado durante a preparação passou; ele não substitui os testes reais Node/Worker.
+**Código migrado e integrado na branch, mas ainda não homologado.** Não existe evidência de que o build, o navegador ou a integração D1 estejam integralmente aprovados. A `main`, a `preview` e o D1 produtivo não receberam alterações desta migração.
 
-## Validações de migração
+### Implementado na branch
 
-- `node scripts/check-migracao-worker.mjs`: verifica a sintaxe e os caminhos dos imports ESM dos arquivos runtime migrados.
-- `node --test tests/migration/*.test.js`: verifica contratos básicos, regras de banco, status, presença, rotas e API.
-- `npm run verify:production`: mantém os testes existentes da versão TypeScript enquanto ainda é o runtime ativo.
+- Worker e serviços backend com equivalentes JavaScript ES Modules, incluindo autenticação, permissões, agendas, fornecedores, auditoria, manutenção agendada, presença e Durable Object de tempo real.
+- Frontend nativo em `migration/frontend/`: login, sessão, rotas, tema, dashboard, lojas, usuários, histórico, tela do conferente, importação CSV/PDF, detalhes de agendamento, modais e atualizações incrementais sem troca de página.
+- Entrada nativa `migration/frontend/entry.js`; build HTML/CSS/JS em `scripts/build-native.mjs`, preservando a ordem dos quatro arquivos CSS originais da `main`.
+- Leitura de PDF com `@llamaindex/liteparse-wasm`, arquivos estáticos do pacote e importmap com hash CSP específico. **Requer validação no navegador real**.
+- `npm run dev`, `npm run build` e `npm test` direcionados à stack JS nativa; testes legados mantidos em `npm run verify:legacy`, sem conexão com o runtime novo.
+- `wrangler.migracao.jsonc` usa Worker JS e D1 **exclusivamente local/sintético**; comandos padrão de deploy bloqueados na branch.
+- Testes de contrato `tests/migration/*.test.js`, testes Playwright com APIs mockadas `tests/migracao-browser/smoke.spec.js`, verificação estática de módulos, build e PDF.
 
-O workflow `.github/workflows/migracao-js-puro.yml` executa as três verificações, mas **segue vermelho com falha imediata e logs HTTP 404 na integração GitHub**. Não afirmar CI verde.
+### O que foi verificado de fato
 
-## Pendente para completar a missão
+- Conferência estática de sintaxe/importações de módulos JS durante a preparação.
+- Verificações isoladas de regras de status, pesquisa, ordenação, métricas, rotas, sessão, HTML escapado, WebSocket/presença e bytes do PDF.
+- Paridade estrutural de nomes de funções e consultas-chave do backend com a `main` inspecionada.
+- Correção da persistência indevida de linha vazia após reexibir agendamentos e do estado CSS no modo edição.
+- **Ainda não** foram executados com sucesso `npm ci`, `npm run build`, o conjunto completo `npm test` ou o Playwright em navegador nesta integração.
 
-1. Converter fielmente o frontend React/TSX da `main`, com mesmas URLs, telas, acessibilidade, aparência, importação, PDFs e atualização incremental sem piscar.
-2. Migrar todo o conjunto de testes, substituir configs e eliminar React/TypeScript/Vite do projeto final.
-3. Executar e aprovar testes Node, Workers, E2E, CI e homologação com D1 isolado.
-4. Apenas após validação do usuário e autorização, seguir `migracao-js-puro → preview → main`.
+## Bloqueio confirmado: GitHub Actions antes do primeiro passo
 
-Não foi feito deploy nem alteração de `main`, `preview` ou bancos de dados.
+- Workflow completo da migração: <https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/39181152322> — falhou em segundos.
+- **Experimento de controle mínimo**: <https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/39181152356> — job `ubuntu-latest` contendo apenas `echo RUNNER_EXECUTOU_COM_SUCESSO`, sem checkout, npm, API, Cloudflare, Secrets nem dependências. Também terminou com falha em ~2 segundos e sem etapas/logs acessíveis.
+- Isso descarta os testes, npm, React, JS e D1 como causa **direta** da falha no job mínimo. O diagnóstico exato da conta/runner exige a configuração do GitHub ou o suporte GitHub.
+- Arquivo `.github/workflows/runner-diagnostico.yml` preservado como workflow manual (não dispara em cada push).
+- Próxima ação externa: revisar as configurações e limites de Actions da conta/repositório; se tudo permitido, abrir chamado no <https://support.github.com/contact> com IDs do run/job e falha do `echo`.
 
-## Etapas 13–15 — telas nativas adicionadas (18/10/2026)
+## Critérios de aceite ainda não comprovados
 
-As três telas administrativas abaixo foram portadas da implementação React da `main` para JavaScript puro, preservando layout, nomes, classes e contratos HTTP. Elas permanecem em `migration/frontend/` e **não estão ligadas ao entrypoint da aplicação**:
+1. Obter runner operacional e executar `npm ci --legacy-peer-deps`, `npm run build`, `node scripts/check-migracao-build.mjs` e `npm test`.
+2. Executar `npm run migracao:e2e` (mock de APIs) e testes de integração Workers/D1 **local** (sem dados reais). Verificar login, papéis, status reversível, fornecedores manuais, troca, conclusão/reabertura, histórico, importação, PDF, WebSocket e acesso negado.
+3. Validar a interface visual e responsiva com comparação direta à `main`, acessibilidade, persistência, atualizações sem piscar e carregamento de PDF WebAssembly sob CSP.
+4. Com o código JS comprovado, remover definitivamente arquivos e dependências React/TypeScript/Vite, atualizar e conferir `package-lock.json` e trocar as configurações oficiais do Worker/entrypoint sem alterar cron/D1. **Não remover antecipadamente**, pois atualmente há testes de equivalência que usam os arquivos TS como referência.
+5. Homologar a migração na `preview` isolada e solicitar aprovação explícita antes da `main`.
 
-- **Dashboard (`dashboard.js`, `dashboard-model.js`)**: sete colunas da `main`, contadores, filtros de lojas ativas com conferente, presença, calendários, atualização por WebSocket e alteração incremental de células sem reconstruir a página. Os comandos de importação e detalhes ainda aguardam os respectivos modais.
-- **Usuários (`users.js`, `user-dialog.js`, `audit-trail.js`)**: cadastro, edição, senha opcional, filtro de papel/loja/situação, ativação/desativação com confirmação e auditoria, usando os mesmos endpoints da `main`.
-- **Histórico (`history.js`)**: filtros de loja/data, consulta de agenda, status e trocas dos agendamentos, reabertura de dia e trilhas de auditoria; sem alterações de esquema de banco.
+## Segurança
 
-Cobertura de contrato acrescentada em `tests/migration/dashboard.test.js`, `users.test.js`, `history.test.js`. Foram realizadas verificações isoladas do modelo de Dashboard, filtro/payload de Usuários e URL/renderização segura do Histórico. **Isso não equivale a testes completos E2E nem garante paridade visual.** Mais detalhes em `docs/operations/migracao-etapa-13.md`, `migracao-etapa-14.md` e `migracao-etapa-15.md`.
+Não executar migrações D1 remotas nem deploy de produção pela branch de migração. Não copiar login de demonstração da preview para a main. Não remover o cron de fechamento da main. Não confundir build gerado, teste estático, CI verde, preview homologada e produção publicada.
 
-### Bloqueios e próximos passos reais
-
-1. Migrar **tela do Conferente** e toda sua experiência de recebimento e atualização em tempo real.
-2. Migrar **importação de agenda** e **detalhes/edição da agenda administrativa**, conectar seus modais ao Dashboard.
-3. Integrar todas as páginas ao frontend nativo, manter CSS da `main`, converter testes e remover **React, TypeScript e Vite**.
-4. Corrigir o **GitHub Actions** (as execuções da branch continuam falhando rapidamente e a integração não disponibiliza os logs), rodar CI/E2E completo com banco isolado.
-5. Homologar na `preview`; promoção a `main` somente após validação e autorização explícita.
-
-`main`, `preview`, Worker de produção e bases D1 não foram modificados nesta etapa.
-
-
-## Atualização de integração nativa e riscos (18/10/2026)
-
-Após as etapas 16–18, a branch também contém os módulos da tela de conferente, importação CSV/PDF, visualização administrativa em popup, mapa de páginas e inicialização de sessão, presença e WebSocket. São `migration/frontend/application.js`, `entry.js`, `pages.js` e os demais renderizadores.
-
-**Novo build nativo testável, sem alterar a produção:**
-- `npm run migracao:build` gera `dist/index.html` que carrega módulos JavaScript nativos sem `main.tsx` nem bundle Vite. O código preserva as quatro folhas CSS da `main`.
-- O pacote `@llamaindex/liteparse-wasm` é copiado para `dist/vendor/liteparse`, e um importmap aponta para a entrada ES Modules. O build inclui no `dist/_headers` um hash SHA-256 exclusivo para esse importmap; a política CSP de segurança é mantida.
-- `node scripts/check-migracao-build.mjs` inspeciona HTML/CSS, mapa PDF, arquivos e hash CSP; o workflow agora inclui essas etapas.
-- `npm run migracao:dev` usa **somente** `wrangler.migracao.jsonc` com nome distinto, banco D1 local sintético e realtime desligado. Não executar deploy remoto a partir desse arquivo.
-
-**Evidência atual:** os scripts e o entrypoint foram verificados quanto à sintaxe. Não houve execução completa do build com dependências instaladas, nem teste no navegador real, e não há validação D1 local concluída.
-
-**CI ainda bloqueado:** a execução GitHub Actions encerra em segundos e registra **0 ms de execução faturável**. A API de logs retorna HTTP 404. Isso aponta para falha antes dos testes, mas não revela causa confirmada. A causa precisa ser vista em GitHub Actions (mensagens de runner/restrições da conta/repositório), não presumida.
-
-**Falta antes da homologação:** executar build nativo + E2E completos, testar leitor PDF/WASM com CSP no navegador, simular permissões e ações com D1 isolado, revisar equivalência visual e corrigir as divergências encontradas. **A remoção final de React, TypeScript e Vite e a substituição dos entrypoints oficiais permanecem bloqueadas pela validação.** O ambiente produtivo `main` e a `preview` continuam intocados.
+Documentos históricos de cada etapa: `docs/operations/migracao-etapa-4.md` até `migracao-etapa-18.md`; comandos em `docs/operations/comandos-nativos-migracao.md`, `docs/operations/migracao-ci-build.md` e `docs/operations/ci-runner-diagnostico.md`.
