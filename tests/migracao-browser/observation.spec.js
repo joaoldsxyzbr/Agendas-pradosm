@@ -43,7 +43,7 @@ test("Não recebido exige motivo e outros exige texto",async({page})=>{
  await expect(dialog).toHaveCount(0);
  await expect(page.locator(".agenda-observation-cell")).toContainText("Outros: Motorista sem documento");
  expect(calls).toEqual([{status:"nao_chegou",observation:"Outros: Motorista sem documento"}]);
- await page.locator('[data-edit-observation="appt1"]').click();
+ await page.locator('[data-testid="agenda-desktop-row"] [data-edit-observation="appt1"]').click();
  await expect(page.locator("[data-observation-reason]")).toHaveValue("Outros");
  await expect(page.locator("[data-observation-custom]")).toHaveValue("Motorista sem documento");
  await page.locator("[data-observation-cancel]").last().click();
