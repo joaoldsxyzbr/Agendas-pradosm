@@ -1,6 +1,6 @@
 import { DurableObject } from "cloudflare:workers";
 import {
-  REALTIME_PROTOCOL_VERSION
+  REALTIME_PROTOCOL_VERSION, isAgendaChangedReason
 } from "../../shared/realtime.js";
 const PRESENCE_STALE_MS = 12e4;
 const MAX_CLIENT_MESSAGE_BYTES = 2048;
@@ -9,9 +9,6 @@ function connectionTag(prefix, value) {
 }
 function isLivePresenceStatus(value) {
   return value === "online" || value === "away";
-}
-function isAgendaChangedReason(value) {
-  return value === "status" || value === "exchanges" || value === "manual" || value === "day-status" || value === "import";
 }
 function parseAgendaChangedEvent(value) {
   if (!value || typeof value !== "object") return null;

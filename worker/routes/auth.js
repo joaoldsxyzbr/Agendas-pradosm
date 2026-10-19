@@ -147,7 +147,7 @@ authRoutes.post("/login", async (c) => {
 
   if (passwordNeedsUpgrade(user.senha_hash)) {
     const upgradedHash = await hashPassword(parsed.data.senha);
-    await upgradeUserPasswordHash(c.env.DB, user.id, upgradedHash);
+    await upgradeUserPasswordHash(c.env.DB, user.id, user.senha_hash, upgradedHash);
   }
 
   const store =

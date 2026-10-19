@@ -1,4 +1,5 @@
 import { apiFetch } from "./api.js";
+import { isAgendaChangedReason } from "../shared/realtime.js";
 
 export const PING_INTERVAL_MS = 30_000;
 export const PONG_TIMEOUT_MS = 10_000;
@@ -27,7 +28,7 @@ export function isRealtimeServerEvent(value) {
       typeof value.storeId === "string" &&
       typeof value.date === "string" &&
       /^\d{4}-\d{2}-\d{2}$/.test(value.date) &&
-      ["status", "exchanges", "manual", "day-status", "import"].includes(value.reason);
+      isAgendaChangedReason(value.reason);
   }
   return false;
 }

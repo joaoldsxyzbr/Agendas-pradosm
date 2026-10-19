@@ -11,10 +11,12 @@ async function findUserById(db, id) {
     `SELECT ${USER_COLUMNS} FROM usuarios WHERE id = ? AND excluido_em IS NULL LIMIT 1`
   ).bind(id).first();
 }
-async function upgradeUserPasswordHash(db, userId, passwordHash) {
-  await db.prepare(
-    "UPDATE usuarios SET senha_hash = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL"
-  ).bind(passwordHash, (/* @__PURE__ */ new Date()).toISOString(), userId).run();
+async function upgradeUserPasswordHash(db, userId, expectedHash, passwordHash) {
+  // Não sobrescrever uma senha alterada por outra sessão/admin durante o login.
+  const result = await db.prepare(
+    "UPDATE usuarios SET senha_hash = ?, atualizado_em = ? WHERE id = ? AND senha_hash = ? AND excluido_em IS NULL"
+  ).bind(passwordHash, new Date().toISOString(), userId, expectedHash).run();
+  return (result.meta?.changes ?? 0) > 0;
 }
 async function hasAdmin(db) {
   const result = await db.prepare(
@@ -119,7 +121,9 @@ async function updateUser(db, current, input, actorUserId) {
   const passwordHash = input.senha ? await hashPassword(input.senha) : current.senha_hash;
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const statusChanged = input.ativo !== void 0 && input.ativo !== (current.ativo === 1);
-  const sessionVersion = current.session_version + (input.senha || statusChanged ? 1 : 0);
+  // Mudanças de identidade ou permissão exigem uma nova autenticação.
+  const identityChanged = login !== current.login || papel !== current.papel || lojaId !== current.loja_id;
+  const sessionVersion = current.session_version + (input.senha || statusChanged || identityChanged ? 1 : 0);
   const statements = [
     db.prepare(
       "UPDATE usuarios SET loja_id = ?, nome = ?, login = ?, senha_hash = ?, papel = ?, ativo = ?, session_version = ?, atualizado_em = ? WHERE id = ? AND excluido_em IS NULL"
