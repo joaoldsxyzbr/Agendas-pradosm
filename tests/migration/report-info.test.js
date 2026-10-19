@@ -18,7 +18,7 @@ describe("Ajuda contextual do Relatório Gerencial", () => {
     assert.match(output, /aria-label="Sobre: Comparativo por loja"/);
     assert.match(output, /aria-expanded="false"/);
     assert.match(output, /aria-controls="report-help-9"/);
-    assert.match(output, /role="tooltip" id="report-help-8"/);
+    assert.match(output, /role="tooltip" id="report-help-9"/);
     assert.equal(reportInfo("Título inexistente"), "");
   });
   it("CSS de ajuda está incluído no build e no HTML", () => {
