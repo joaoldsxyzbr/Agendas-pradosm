@@ -16,7 +16,8 @@
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
     "test:e2e": "playwright test --config playwright.config.js",
-    "benchmark:password": "node scripts/benchmark-password.mjs"
+    "benchmark:password": "node scripts/benchmark-password.mjs",
+    "benchmark:agendas": "node scripts/benchmark-agendas.mjs"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
