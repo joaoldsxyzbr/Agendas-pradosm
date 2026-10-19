@@ -1,7 +1,7 @@
 # Ajuda contextual no Relatório Gerencial
 
 ## Entrega (19/10/2026)
-A nova interface inclui **ícone i** discreto nos seis KPIs e nos seis painéis do relatório, para administrador e visualizador. O tooltip contém explicação curta e específica de cada indicador ou gráfico.
+A nova interface inclui **ícone i** discreto nos sete KPIs e nos cinco painéis do relatório, para administrador e visualizador. O tooltip contém explicação curta e específica de cada indicador ou gráfico.
 
 ## Interações
 - **Mouse:** passar o cursor revela o tooltip.
@@ -24,3 +24,5 @@ A nova interface inclui **ícone i** discreto nos seis KPIs e nos seis painéis 
 - `tests/browser/report-info.spec.js`: hover, foco, toque e fechamento com API mockada.
 
 **Escopo:** apenas front-end; sem mudanças em APIs, Worker, cálculos, permissões ou D1. Confirmar separadamente CI e Cloudflare antes de afirmar que está publicado.
+## Atualização — 19/10/2026
+Após a remoção da tabela **Por data**, a ajuda contextual permanece em 12 pontos (sete KPIs e cinco painéis). O texto da ajuda desse painel foi excluído; os demais continuam acessíveis por mouse, teclado e toque.

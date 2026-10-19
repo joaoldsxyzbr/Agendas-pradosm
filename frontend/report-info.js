@@ -12,7 +12,6 @@ export const REPORT_HELP = Object.freeze({
   "Comparativo por loja": "Taxa de recebimento de cada loja: recebidos ÷ total da unidade × 100. A barra representa esse percentual.",
   "Fornecedores com ocorrências": "Fornecedores com mais não recebimentos. A barra compara a quantidade de cada um com a do líder do ranking.",
   "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de sem conferência em agendas concluídas.",
-  "Por data": "Resultados por dia e loja, incluindo a separação entre aguardando e sem conferência conforme a situação da agenda.",
   "Ocorrências e observações": "Lista dos não recebimentos com fornecedor, protocolo e motivo. Registros antigos podem não ter motivo."
 });
 

@@ -39,7 +39,7 @@ function chart(days) {
     .map(([k,t])=>'<span><i class="report-segment-'+k+'"></i>'+t+'</span>').join("")+'</div>'+
     '<div class="report-chart-scroll" data-report-native-chart><div class="report-chart">'+bars+'</div></div>'+
     '<div class="report-chart-canvas-scroll" data-report-chart-wrap hidden>'+
-      '<div class="report-chart-canvas"><canvas data-report-chart-canvas role="img" aria-label="Evolução diária de recebimentos por status. A tabela Por data apresenta os valores."></canvas></div>'+
+      '<div class="report-chart-canvas"><canvas data-report-chart-canvas role="img" aria-label="Evolução diária de recebimentos por status. O gráfico apresenta os totais diários por status."></canvas></div>'+
     '</div>';
 }
 const meter=(title,total,received,bad=false)=>'<div class="report-progress-item"><div><span>'+esc(title)+'</span>'+
@@ -87,8 +87,6 @@ export function renderReports(root,{request=apiFetch}={}) {
     const highest=Math.max(1,...report.suppliers.map(x=>Number(x.naoChegou)||0));
     const supplierBars=report.suppliers.map((u,i)=>meter((i+1)+". "+u.supplier,highest,u.naoChegou,true)).join("")||'<p class="report-empty">Sem ocorrências.</p>';
     const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.semConferencia,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+cell(rate(u),true)+'</tr>');
-    const byDay=report.rows.map(r=>'<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.dayStatus==="concluido"?"Concluído":"Em aberto")+
-      [r.total,r.recebido,r.naoChegou,r.aguardando,r.semConferencia,r.recusado,r.semAgenda].map(x=>cell(num(x),true)).join("")+'</tr>');
     const rows=occurrences.rows.map(r=>'<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.supplier)+cell(r.protocol)+cell(r.observation||"Motivo não registrado")+'</tr>');
     const pager='<div class="report-pagination"><span>'+num(occurrences.total)+' ocorrência(s) · '+
       num(occurrences.total?settings.offset+1:0)+'–'+num(Math.min(settings.offset+50,occurrences.total))+'</span><div>'+
@@ -108,7 +106,6 @@ export function renderReports(root,{request=apiFetch}={}) {
       panel("Comparativo por loja","Taxa de recebimento por unidade",'<div class="report-progress-list">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos",'<div class="report-progress-list">'+supplierBars+'</div>')+'</div>'+
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore))+
-      panel("Por data","Situação de cada agenda",table(["Data","Loja","Situação","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda"],byDay))+
       panel("Ocorrências e observações","Motivos dos não recebimentos",table(["Data","Loja","Fornecedor","Protocolo","Motivo"],rows)+pager);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId);
   }

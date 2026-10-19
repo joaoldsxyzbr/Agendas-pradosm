@@ -4,8 +4,8 @@ import { readFileSync } from "node:fs";
 import { REPORT_HELP, reportInfo } from "../../frontend/report-info.js";
 
 describe("Ajuda contextual do Relatório Gerencial", () => {
-  it("oferece explicações específicas nos 7 indicadores e nos 6 painéis", () => {
-    assert.equal(Object.keys(REPORT_HELP).length, 13);
+  it("oferece explicações específicas nos 7 indicadores e nos 5 painéis", () => {
+    assert.equal(Object.keys(REPORT_HELP).length, 12);
     for (const title of ["Comparativo por loja", "Taxa de recebimento", "Fornecedores com ocorrências", "Ocorrências e observações"]) {
       assert.ok(REPORT_HELP[title].length > 50, title);
     }
