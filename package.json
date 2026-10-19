@@ -28,7 +28,8 @@
     "migracao:test": "node scripts/check-migracao-worker.mjs && node scripts/check-migracao-frontend.mjs && node --test tests/migration/*.test.js",
     "test:legacy": "npm run test:worker && npm run test:ui && npm run test:design && npm run test:deploy-flow && npm run test:bootstrap-admin",
     "build:legacy": "vite build",
-    "verify:legacy": "npm run test:legacy && npm run typecheck && npm run build:legacy"
+    "verify:legacy": "npm run test:legacy && npm run typecheck && npm run build:legacy",
+    "migracao:e2e": "playwright test --config playwright.migracao.config.js"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
