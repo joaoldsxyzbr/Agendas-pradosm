@@ -3,9 +3,9 @@ import { resolve, join, dirname } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const root = resolve(".");
-const folder = join(root, "migration/frontend");
+const folder = join(root, "frontend");
 const files = readdirSync(folder).filter(f => f.endsWith(".js")).map(f => join(folder, f));
-files.push(join(root, "src/agenda/exportAgendaPdf.js"));
+files.push(join(root, "frontend/agenda/exportAgendaPdf.js"));
 
 for (const file of files) {
   const code = readFileSync(file, "utf8");
