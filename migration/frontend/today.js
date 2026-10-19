@@ -38,7 +38,7 @@ export function renderToday(root,{
     <p class="muted-state" data-store-loading>Carregando agenda...</p>
     <p class="form-error" data-store-error hidden></p>
     <div class="empty-panel store-empty" data-no-agenda hidden></div>
-    <div data-agenda-view hidden>
+    <div class="prado-store-agenda-view" data-agenda-view hidden>
       <div class="agenda-completed-banner" data-completed hidden></div>
       <section class="agenda-metrics" aria-label="Resumo da agenda">
         <span><strong data-metric="total">0</strong> total</span>
@@ -47,17 +47,26 @@ export function renderToday(root,{
         <span><strong data-metric="naoChegou">0</strong> não recebidos</span>
         <span><strong data-metric="trocas">0</strong> trocas</span>
       </section>
-      <div class="agenda-toolbar">
-        <label class="agenda-search"><span class="sr-only">Pesquisar fornecedor ou protocolo</span>
-          <input type="search" data-agenda-search aria-label="Pesquisar fornecedor ou protocolo"
-            placeholder="Pesquisar fornecedor ou protocolo" autocomplete="off"></label>
-        <button class="ghost-button agenda-manual-button" type="button"
-          data-add-manual hidden>+ Fornecedor sem agenda</button>
-      </div>
-      <div data-agenda-list></div>
-      <div class="empty-panel agenda-search-empty" data-search-empty hidden>
-        Nenhum fornecedor ou protocolo encontrado.
-      </div>
+      <section class="prado-store-agenda-panel" aria-label="Agenda de recebimento">
+        <div class="prado-store-agenda-panel-heading">
+          <div>
+            <span class="prado-store-eyebrow">AGENDA DO DIA</span>
+            <h2>Agenda de recebimento</h2>
+            <p>Consulte os fornecedores e atualize os recebimentos.</p>
+          </div>
+          <div class="agenda-toolbar">
+            <label class="agenda-search"><span class="sr-only">Pesquisar fornecedor ou protocolo</span>
+              <input type="search" data-agenda-search aria-label="Pesquisar fornecedor ou protocolo"
+                placeholder="Pesquisar fornecedor ou protocolo" autocomplete="off"></label>
+            <button class="ghost-button agenda-manual-button" type="button"
+              data-add-manual hidden>+ Fornecedor sem agenda</button>
+          </div>
+        </div>
+        <div data-agenda-list></div>
+        <div class="empty-panel agenda-search-empty" data-search-empty hidden>
+          Nenhum fornecedor ou protocolo encontrado.
+        </div>
+      </section>
       <div data-appointment-details></div>
     </div>
   </section>`;

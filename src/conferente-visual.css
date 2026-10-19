@@ -1,0 +1,449 @@
+/* Conferente: equivalência visual com a preview, sem copiar regras nem dados mockados.
+   Regras isoladas no shell do conferente. Manter as classes e data-* dos controles. */
+html[data-theme="dark"] .prado-store-layout.store-shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100vh;
+  background: #14161b;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 22px 13px 16px;
+  background: #191b21;
+  border-right: 1px solid #353942;
+}
+html[data-theme="dark"] .prado-store-layout .prado-brand {margin:0 10px 36px}
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-label {
+  padding: 0 14px;
+  margin-bottom: 11px;
+  color: #969eaa;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .095em;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-side-nav {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-height: 0;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link {
+  display: flex;
+  align-items: center;
+  flex: 0 0 43px;
+  gap: 10px;
+  min-height: 43px;
+  max-height: 43px;
+  padding: 0 12px;
+  border: 1px solid #374b67;
+  border-radius: 8px;
+  background: #29374b;
+  color: #e5efff;
+  box-shadow: inset 2px 0 #79afff;
+  font-size: 13px;
+  font-weight: 675;
+  text-decoration: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-symbol {
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  color: #a9cbff;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-footer {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 15px 12px 0;
+  border-top: 1px solid #353942;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-footer span {
+  color: #969eaa;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-footer strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #bac0ca;
+  font-size: 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-workspace {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 100vh;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar.store-operations-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: block;
+  min-height: 66px;
+  padding: 0 30px;
+  border-bottom: 1px solid #353942;
+  background: #191b21;
+  backdrop-filter: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: none;
+  min-height: 66px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-right: auto;
+  color: #969eaa;
+  font-size: 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-breadcrumb strong {color:#f1f2f4;font-weight:650}
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-operator-context {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  padding: 0 16px 0 0;
+  border: 0;
+  border-right: 1px solid #454a54;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .prado-store-layout .store-operator-context > span {display:none}
+html[data-theme="dark"] .prado-store-layout .store-operator-context strong {
+  font-size: 12px;
+  font-weight: 700;
+  color: #f1f2f4;
+}
+html[data-theme="dark"] .prado-store-layout .store-operator-context strong::after {display:none}
+html[data-theme="dark"] .prado-store-layout .store-operator-context small {font-size:11px;color:#969eaa}
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-actions {
+  display: flex;
+  grid-column: auto;
+  justify-self: end;
+  align-items: center;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-actions .ghost-button {
+  min-height: 36px;
+  padding: 7px 12px;
+  border: 1px solid #454a54;
+  border-radius: 7px;
+  background: #252930;
+  color: #dce1e9;
+  font-size: 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-body {
+  width: 100%;
+  max-width: 1710px;
+  min-width: 0;
+  margin: 0 auto;
+  padding: 28px 30px 58px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 25px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading {min-width:0}
+html[data-theme="dark"] .prado-store-layout .prado-store-eyebrow {
+  display: block;
+  margin-bottom: 6px;
+  color: #969eaa;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .095em;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading h1 {
+  margin: 0;
+  color: #f1f2f4;
+  font-size: clamp(23px, 2.2vw, 29px);
+  font-weight: 735;
+  letter-spacing: -.035em;
+  line-height: 1.2;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading p {
+  margin: 6px 0 0;
+  color: #bac0ca;
+  font-size: 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls.store-topbar-agenda-slot {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-command-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  width: auto;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-command-actions {flex-wrap:wrap;gap:6px}
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-date-controls {
+  background: #202329;
+  border-color: #454a54;
+  border-radius: 8px;
+}
+html[data-theme="dark"] .prado-store-layout .store-operations-content.store-content {
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+}
+html[data-theme="dark"] .prado-store-layout .store-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+html[data-theme="dark"] .prado-store-layout .store-page > * {grid-column:1;min-width:0}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view:not([hidden]) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+  min-width: 0;
+  width: 100%;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view > * {grid-column:1;min-width:0}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  overflow: visible;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  flex: initial;
+  gap: 8px;
+  min-width: 0;
+  min-height: 105px;
+  padding: 15px 17px;
+  border: 1px solid #393e47;
+  border-radius: 10px;
+  background: #202329;
+  box-shadow: none;
+  color: #bac0ca;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: normal;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics strong {
+  order: 2;
+  color: #f1f2f4;
+  font-size: 29px;
+  font-weight: 740;
+  letter-spacing: -.035em;
+  line-height: 1;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(2) strong{color:#ebc486}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(3) strong{color:#91d8b8}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(4) strong{color:#f2aaa8}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid #393e47;
+  border-radius: 10px;
+  background: #202329;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 16px 18px;
+  background: #202329;
+  border-bottom: 1px solid #353942;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 690;
+  color: #f1f2f4;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading p {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #969eaa;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex: 1 1 420px;
+  min-width: 0;
+  width: auto;
+  gap: 9px;
+  margin: 0;
+  padding: 0;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-search {
+  flex: 1 1 260px;
+  min-width: 170px;
+  max-width: 390px;
+  width: auto;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-search input {
+  min-height: 38px;
+  border: 1px solid #454a54;
+  border-radius: 7px;
+  background: #1a1d23;
+  color: #f1f2f4;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop.table-card {
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .table-scroll {
+  max-height: none;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop table {
+  width: 100%;
+  min-width: 840px;
+  table-layout: fixed;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop thead th {
+  background: #262b33;
+  color: #bac0ca;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: normal;
+  text-transform: none;
+  padding: 11px 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop td {
+  padding: 12px;
+  border-bottom-color: #353942;
+  background: #202329;
+  color: #d9dfe7;
+  font-size: 12px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop td:nth-child(2) {
+  color: #f1f2f4;
+  font-weight: 680;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop tbody tr:hover td {
+  background: #252930;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-mobile {
+  padding: 12px;
+  gap: 10px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-card {
+  border-color: #393e47;
+  border-radius: 10px;
+  background: #202329;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view [hidden] {display:none!important}
+@media (max-width: 1160px) {
+  html[data-theme="dark"] .prado-store-layout.store-shell {grid-template-columns:190px minmax(0,1fr)}
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-bar {align-items:flex-start}
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls.store-topbar-agenda-slot {
+    flex: 1 1 100%;
+    width: 100%;
+    justify-content: flex-start;
+  }
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-command-bar {justify-content:flex-start}
+}
+@media (max-width: 850px) {
+  html[data-theme="dark"] .prado-store-layout.store-shell {display:block}
+  html[data-theme="dark"] .prado-store-layout .prado-store-sidebar {display:none}
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar.store-operations-topbar {min-height:60px;padding:0 16px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-inner {
+    display:flex;
+    flex-wrap:nowrap;
+    gap:9px;
+    min-height:60px;
+  }
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-operator-context {margin-left:auto}
+  html[data-theme="dark"] .prado-store-layout .prado-store-body {padding:22px 14px 48px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-bar {gap:13px;margin-bottom:20px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics {grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span {min-height:90px;padding:13px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics strong {font-size:25px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading {align-items:flex-start;padding:14px;gap:13px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-toolbar {
+    flex-basis:100%;
+    align-items:stretch;
+    flex-wrap:wrap;
+    justify-content:flex-start;
+  }
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-search {flex:1 1 100%;max-width:none}
+}
+@media (max-width: 540px) {
+  html[data-theme="dark"] .prado-store-layout .prado-store-breadcrumb {font-size:11px}
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-operator-context {display:none}
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-manual-button {width:100%}
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-command-bar {justify-content:flex-start}
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-command-actions {justify-content:flex-start}
+}
+@media print {
+  html[data-theme="dark"] .prado-store-layout.store-shell {display:block}
+  html[data-theme="dark"] .prado-store-layout .prado-store-sidebar,
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar,
+  html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls {display:none!important}
+  html[data-theme="dark"] .prado-store-layout .prado-store-body {padding:0}
+}
