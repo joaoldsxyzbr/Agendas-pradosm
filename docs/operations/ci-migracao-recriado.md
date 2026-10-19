@@ -26,3 +26,19 @@ Antes desta recriação, um workflow independente com só `echo` já falhou sem 
 - A promoção segue `migracao-js-puro` → `preview` (homologação) → `main` somente após validação e autorização explícita.
 
 Quando um runner estiver operacional, todas as etapas devem passar antes de concluir a migração.
+
+## Execução confirmada após a recriação — 19/10/2026
+
+CI novo: <https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/39230300933> (commit `051a14195296458b13ad3a554f24b9ce44a8d9f6`).
+
+Resultado observado:
+- Job **1 — Verificar executor GitHub**: falhou, de 09:28:17 UTC a 09:28:19 UTC.
+- Job **2 — Validar backend, frontend e build JS**: ignorado por dependência do job 1.
+- Job **3 — Validar fluxos reais com APIs mockadas**: ignorado por dependência do job 1.
+- Tentativa de baixar logs do job 1 pela API: HTTP 404.
+
+Conclusão: mesmo após reconstrução integral do YAML e mudança para o runner `ubuntu-24.04`, a falha persiste **antes de qualquer passo do pipeline**. Não há falha confirmada de Node, npm, JS, D1 ou navegador; tampouco há CI verde.
+
+**Ação necessária para liberar execução:** verificar as permissões e políticas de Actions do repositório (Settings → Actions → General), o status de cobrança/cota e eventuais restrições da conta/organização. Se não houver restrição aparente, abrir chamado com o suporte do GitHub, anexando os links deste run e do controle mínimo `39181152356`. A mensagem de erro da plataforma/conta, quando disponível, é necessária para identificar a causa definitiva.
+
+A `main`, a `preview` e a produção permanecem intactas.
