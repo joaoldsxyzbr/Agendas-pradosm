@@ -1,3 +1,4 @@
+import { normalizeObservation, validateStatusObservation } from "../../shared/observations.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { businessDate, businessTime } from "../lib/time.js";
@@ -19,8 +20,10 @@ import {
 const storeAgendaRoutes = new Hono();
 const storeAppointmentRoutes = new Hono();
 const ChangeStatusInput = z.object({
-  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"])
+  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
+  observation: z.string().max(250).nullable().optional()
 });
+const ChangeObservationInput = z.object({ observation: z.string().max(250).nullable() });
 const ChangeExchangesInput = z.object({
   hasExchanges: z.boolean()
 });
@@ -68,6 +71,7 @@ function appointmentJson(appointment) {
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
     hasExchanges: appointment.trocas === 1,
+    observation: appointment.observacao ?? null,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1
   };
@@ -294,6 +298,7 @@ storeAppointmentRoutes.get("/:id", async (c) => {
       id: item.id,
       statusAnterior: item.status_anterior,
       statusNovo: item.status_novo,
+      observation: item.observacao ?? null,
       alteradoEm: item.alterado_em,
       usuario: {
         id: item.usuario_id,
@@ -450,6 +455,30 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     );
   }
 });
+storeAppointmentRoutes.patch("/:id/observation", async (c) => {
+  const user = storeUser(c);
+  if (!user) return forbidden(c);
+  const parsed = ChangeObservationInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "REQUISICAO_INVALIDA", message: "Observação inválida." }, 400);
+  const appointment = await findAppointmentForStore(c.env.DB, c.req.param("id"), user.lojaId);
+  if (!appointment) return c.json({ error: "AGENDAMENTO_NAO_ENCONTRADO", message: "Agendamento não encontrado." }, 404);
+  const agenda = await editableAgendaForAppointment(c.env.DB, appointment);
+  if (!agenda) return concludedDay(c);
+  let observation;
+  try {
+    observation = validateStatusObservation(appointment.status, parsed.data.observation);
+  } catch (error) {
+    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+  }
+  try {
+    const updated = await changeAppointmentStatus(c.env.DB, appointment, user.id, appointment.status, undefined, observation);
+    await publishAgendaChanged(c.env, { agendaId: agenda.id, storeId: agenda.loja_id, date: agenda.data_agenda, reason: "observation" });
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Appointment observation change failed", error);
+    return c.json({ error: "ALTERACAO_OBSERVACAO_FALHOU", message: "A observação não foi atualizada." }, 500);
+  }
+});
 storeAppointmentRoutes.patch("/:id/status", async (c) => {
   const user = storeUser(c);
   if (!user) return forbidden(c);
@@ -480,12 +509,22 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
   if (!agenda) {
     return concludedDay(c);
   }
+  let observation;
+  try {
+    observation = parsed.data.status === "nao_chegou"
+      ? validateStatusObservation(parsed.data.status, parsed.data.observation)
+      : normalizeObservation(parsed.data.observation);
+  } catch (error) {
+    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+  }
   try {
     const updated = await changeAppointmentStatus(
       c.env.DB,
       appointment,
       user.id,
-      parsed.data.status
+      parsed.data.status,
+      undefined,
+      observation
     );
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,

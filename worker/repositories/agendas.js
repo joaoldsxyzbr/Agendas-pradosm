@@ -1,6 +1,6 @@
 import { auditStatement } from "./audit.js";
 const AGENDA_COLUMNS = "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, criado_em, atualizado_em";
-const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, origem, ativo, criado_em, atualizado_em";
+const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, observacao, origem, ativo, criado_em, atualizado_em";
 async function findStoreByCode(db, code) {
   return db.prepare(
     "SELECT id, codigo, nome FROM lojas WHERE codigo = ? COLLATE NOCASE AND ativo = 1 AND excluido_em IS NULL LIMIT 1"
@@ -78,6 +78,7 @@ async function listAppointmentHistory(db, appointmentId) {
          u.nome AS usuario_nome,
          h.status_anterior,
          h.status_novo,
+         h.observacao,
          h.alterado_em
        FROM historico_status h
        JOIN usuarios u ON u.id = h.usuario_id
@@ -578,28 +579,37 @@ async function changeAppointmentExchanges(db, appointment, userId, hasExchanges,
   }
   return updated;
 }
-async function changeAppointmentStatus(db, appointment, userId, status, adminAdjustmentDetails) {
-  if (appointment.status === status) return appointment;
+async function changeAppointmentStatus(db, appointment, userId, status, adminAdjustmentDetails, observation) {
+  const previousObservation = appointment.observacao ?? null;
+  // Se for apenas uma troca de status, a observação atual é limpa.
+  // O histórico continua preservado para auditoria.
+  const nextObservation = observation === undefined
+    ? (status === appointment.status ? previousObservation : null)
+    : observation;
+  if (status === "nao_chegou" && !nextObservation && status !== appointment.status)
+    throw new Error("Motivo obrigatório para não recebido.");
+  if (appointment.status === status && previousObservation === nextObservation) return appointment;
   const agenda = await findAgendaById(db, appointment.agenda_id);
   if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
   const now = new Date().toISOString();
   const historyId = crypto.randomUUID();
+  const statusChanged = appointment.status !== status;
   const statements = [
-    db.prepare("UPDATE agendamentos SET status = ?, atualizado_em = ? WHERE id = ?")
-      .bind(status, now, appointment.id),
-    db.prepare("INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, alterado_em) VALUES (?, ?, ?, ?, ?, ?)")
-      .bind(historyId, appointment.id, userId, appointment.status, status, now),
+    db.prepare("UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ?")
+      .bind(status, nextObservation, now, appointment.id),
+    db.prepare("INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, observacao, alterado_em) VALUES (?, ?, ?, ?, ?, ?, ?)")
+      .bind(historyId, appointment.id, userId, appointment.status, status, nextObservation, now),
     auditStatement(db, {
       userId,
-      action: "status_alterado",
+      action: statusChanged ? "status_alterado" : "observacao_alterada",
       entity: "agendamento",
       entityId: appointment.id,
       storeId: agenda.loja_id,
       agendaId: agenda.id,
       appointmentId: appointment.id,
-      before: { status: appointment.status },
-      after: { status },
-      details: "Status do recebimento alterado.",
+      before: { status: appointment.status, observation: previousObservation },
+      after: { status, observation: nextObservation },
+      details: statusChanged ? "Status do recebimento alterado." : "Observação do recebimento alterada.",
       createdAt: now
     })
   ];

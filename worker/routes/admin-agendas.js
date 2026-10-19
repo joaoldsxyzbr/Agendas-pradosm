@@ -1,3 +1,4 @@
+import { normalizeObservation, validateStatusObservation } from "../../shared/observations.js";
 import { Hono } from "hono";
 import { z } from "zod";
 import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.js";
@@ -50,6 +51,7 @@ function appointmentJson(appointment) {
     orders: parseStringArray(appointment.pedidos),
     status: appointment.status,
     hasExchanges: appointment.trocas === 1,
+    observation: appointment.observacao ?? null,
     origin: manual ? "manual" : "imported",
     ativo: appointment.ativo === 1
   };
@@ -446,8 +448,10 @@ adminAgendaRoutes.get("/:id", async (c) => {
   return c.json(result);
 });
 const AdminAppointmentStatusInput = z.object({
-  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"])
+  status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
+  observation: z.string().max(250).nullable().optional()
 });
+const AdminObservationInput = z.object({ observation: z.string().max(250).nullable() });
 const AdminAppointmentExchangesInput = z.object({
   hasExchanges: z.boolean()
 });
@@ -539,6 +543,28 @@ adminAppointmentRoutes.delete("/:id/manual", async (c) => {
     );
   }
 });
+adminAppointmentRoutes.patch("/:id/observation", async (c) => {
+  const parsed = AdminObservationInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "REQUISICAO_INVALIDA", message: "Observação inválida." }, 400);
+  const appointment = await findAppointmentById(c.env.DB, c.req.param("id"));
+  if (!appointment) return c.json({ error: "AGENDAMENTO_NAO_ENCONTRADO", message: "Agendamento não encontrado." }, 404);
+  const agenda = await findAgendaById(c.env.DB, appointment.agenda_id);
+  if (!agenda) return c.json({ error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." }, 404);
+  let observation;
+  try {
+    observation = validateStatusObservation(appointment.status, parsed.data.observation);
+  } catch (error) {
+    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+  }
+  try {
+    const updated = await changeAppointmentStatus(c.env.DB, appointment, c.get("authUser").id, appointment.status, undefined, observation);
+    await publishAgendaChanged(c.env, { agendaId: agenda.id, storeId: agenda.loja_id, date: agenda.data_agenda, reason: "observation" });
+    return c.json(appointmentJson(updated));
+  } catch (error) {
+    console.error("Admin observation update failed", error);
+    return c.json({ error: "ALTERACAO_OBSERVACAO_FALHOU", message: "A observação não foi atualizada." }, 500);
+  }
+});
 adminAppointmentRoutes.patch("/:id/status", async (c) => {
   const parsed = AdminAppointmentStatusInput.safeParse(
     await c.req.json().catch(() => null)
@@ -566,6 +592,12 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
       404
     );
   }
+  let observation;
+  try {
+    observation = validateStatusObservation(parsed.data.status, parsed.data.observation);
+  } catch (error) {
+    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+  }
   try {
     const user = c.get("authUser");
     const changed = appointment.status !== parsed.data.status;
@@ -574,7 +606,8 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
       appointment,
       user.id,
       parsed.data.status,
-      changed ? `Status alterado de ${appointment.status} para ${parsed.data.status}.` : undefined
+      changed ? `Status alterado de ${appointment.status} para ${parsed.data.status}.` : undefined,
+      observation
     );
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,

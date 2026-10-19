@@ -80,7 +80,7 @@ for (const file of [
 ]) await copy(file, file);
 for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css", "preview-visual.css", "conferente-visual.css"])
   await copy("src/" + file, "src/" + file);
-for (const name of ["agenda", "api", "auth", "realtime", "store", "time"])
+for (const name of ["agenda", "api", "auth", "realtime", "store", "time", "observations"])
   await copy("shared/" + name + ".js", "shared/" + name + ".js");
 
 const importMap = await pdfImportMap();
