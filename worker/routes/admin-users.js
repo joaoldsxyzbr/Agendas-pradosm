@@ -128,12 +128,9 @@ adminUserRoutes.patch("/", async (c) => {
       },
       actor.id
     );
-    const sessionInvalidated = Boolean(parsed.data.senha) || current.ativo === 1 && user.ativo !== 1;
-    const realtimeIdentityChanged = current.papel !== user.papel || current.loja_id !== user.loja_id;
-    if (sessionInvalidated) {
+    // O versionamento da sessão é decidido no repositório (senha, status, login, papel, loja).
+    if (user.session_version !== current.session_version) {
       await revokeRealtimeUser(c.env, current.id, "terminate");
-    } else if (realtimeIdentityChanged) {
-      await revokeRealtimeUser(c.env, current.id, "refresh");
     }
     return c.json(userJson(user));
   } catch (error) {
