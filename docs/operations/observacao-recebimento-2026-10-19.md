@@ -12,4 +12,4 @@ Marcar **Não recebido** obriga selecionar motivo, e "Outros" exige descrição.
 A main é código-fonte; o deploy precisa aplicar as migrações **antes do Worker** usando `deploy:cloudflare`. Se o token do Cloudflare falhar com 9109, **não** considerar publicação concluída. Conferir D1, validar as migrações e então publicar o Worker. Não ativar novo código em um esquema D1 antigo.
 
 ## Testes
-`tests/migration/observation.test.js`, `tests/migration/agenda-status.test.js`, `tests/migration/agenda-routes-parity.test.js` e regressões de navegador. Não alterar a lógica de trocas, PDF, autenticação ou fechamento do dia.
+`tests/unit/observation.test.js`, `tests/unit/agenda-status.test.js`, `tests/unit/agenda-routes-parity.test.js` e regressões de navegador. Não alterar a lógica de trocas, PDF, autenticação ou fechamento do dia.

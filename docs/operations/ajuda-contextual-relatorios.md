@@ -16,11 +16,11 @@ A nova interface inclui **ícone i** discreto nos seis KPIs e nos seis painéis 
 - **Fornecedores com ocorrências:** quantidade de não recebimentos por fornecedor; a barra é proporcional à quantidade do líder do ranking, não à taxa de recebimento.
 
 ## Arquivos e verificação
-- `migration/frontend/report-info.js`: textos e comportamento.
-- `migration/frontend/reports.js`: inserção nos 12 blocos.
-- `src/report-info.css`: estilo do ícone e dos tooltips.
+- `frontend/report-info.js`: textos e comportamento.
+- `frontend/reports.js`: inserção nos 12 blocos.
+- `frontend/styles/report-info.css`: estilo do ícone e dos tooltips.
 - `index.html`, `scripts/build-native.mjs`: carregamento no build.
-- `tests/migration/report-info.test.js`: conteúdo, HTML acessível e assets.
-- `tests/migracao-browser/report-info.spec.js`: hover, foco, toque e fechamento com API mockada.
+- `tests/unit/report-info.test.js`: conteúdo, HTML acessível e assets.
+- `tests/browser/report-info.spec.js`: hover, foco, toque e fechamento com API mockada.
 
 **Escopo:** apenas front-end; sem mudanças em APIs, Worker, cálculos, permissões ou D1. Confirmar separadamente CI e Cloudflare antes de afirmar que está publicado.

@@ -14,7 +14,7 @@ separa registros que continuam com status de agendamento `aguardando` conforme o
 
 ## Exibição
 
-A consulta em `worker/routes/admin-reports.js` devolve `aguardando` e `semConferencia` separados por agenda e período, mediante SQL parametrizado somente de leitura. As agregações `migration/frontend/report-model.js` propagam os números para:
+A consulta em `worker/routes/admin-reports.js` devolve `aguardando` e `semConferencia` separados por agenda e período, mediante SQL parametrizado somente de leitura. As agregações `frontend/report-model.js` propagam os números para:
 - **7 KPIs**: agendamentos, recebidos, não recebidos, taxa, aguardando, sem conferência e recusados;
 - evolução diária no Chart.js e fallback HTML/CSS, com cinco séries empilhadas;
 - tabelas **Por loja** e **Por data**, com coluna `Sem conferência`;
@@ -25,8 +25,8 @@ A taxa de recebimento continua **recebidos / total × 100**. O comparativo por l
 ## Validação
 
 Testar dias abertos, dias concluídos, agregados de várias lojas, reabertura, soma dos cinco resultados, taxas, filtros por período e por loja, gráfico HTML/Chart.js e acesso do visualizador.
-`tests/migration/reports.test.js`, `tests/migration/report-info.test.js`,
-`tests/migration/vendor-libs.test.js`, `tests/migracao-browser/reports.spec.js`
-e `tests/migracao-browser/report-info.spec.js`.
+`tests/unit/reports.test.js`, `tests/unit/report-info.test.js`,
+`tests/unit/vendor-libs.test.js`, `tests/browser/reports.spec.js`
+e `tests/browser/report-info.spec.js`.
 
 O GitHub `main` é fonte de verdade. Conferir CI e versão publicada do Cloudflare separadamente antes de afirmar que o site está atualizado.
