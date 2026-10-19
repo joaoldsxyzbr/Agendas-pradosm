@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  formatHistoryDate, historyQuery, historyAgendaRow
+  formatHistoryDate, historyQuery, historyAgendaRow, appointmentHistoryList, historyStatusPayload
 } from "../../frontend/history.js";
 
 const read = relative => readFileSync(new URL(relative, import.meta.url), "utf8");
@@ -34,13 +34,37 @@ describe("Histórico da main em JavaScript puro", () => {
     const src = read("../../frontend/history.js");
     for (const endpoint of [
       "/api/admin/agendas/", "/api/admin/appointments/",
-      "/status", "/history", 'field === "status" ? { status: value } : { hasExchanges: value }'
+      "/status", "/history", "historyStatusPayload(value, observation)"
     ]) assert.ok(src.includes(endpoint), endpoint);
     assert.match(src, /method: "PATCH"/);
     assert.match(src, /JSON\.stringify\(\{ status: "aberto" \}\)/);
     assert.match(src, /data-appointment-exchanges/);
     assert.match(src, /data-appointment-status/);
     assert.match(src, /Confirmar|Reabrir para conferente/);
+  });
+  it("impede não recebido sem motivo na edição do histórico", () => {
+    assert.deepEqual(historyStatusPayload("recebido"), { status: "recebido" });
+    assert.deepEqual(historyStatusPayload("nao_chegou", "Sem pedido"),
+      { status: "nao_chegou", observation: "Sem pedido" });
+    assert.deepEqual(historyStatusPayload("nao_chegou", "Outros: Sem romaneio"),
+      { status: "nao_chegou", observation: "Outros: Sem romaneio" });
+    assert.throws(() => historyStatusPayload("nao_chegou"), /Selecione um motivo/);
+    assert.throws(() => historyStatusPayload("nao_chegou", "Outros:  "), /Selecione|Outros/);
+    const ui = read("../../frontend/history-observation-dialog.js");
+    const history = read("../../frontend/history.js");
+    assert.match(ui, /data-observation-reason/);
+    assert.match(ui, /data-observation-custom/);
+    assert.match(ui, /validateStatusObservation/);
+    assert.match(history, /requireHistoryObservation\(item, control\)/);
+    assert.match(history, /closeObservationDialog\?\.\(\)/);
+  });
+  it("exibe motivos do histórico administrativo e escapa HTML", () => {
+    const html = appointmentHistoryList([{ statusAnterior: "aguardando", statusNovo: "nao_chegou",
+      observation: "Outros: <img src=x onerror=alert(1)>", usuario: { nome: "Teste" } }]);
+    assert.match(html, /Obs\.: Outros:/);
+    assert.match(html, /&lt;img/);
+    assert.doesNotMatch(html, /<img/);
+    assert.match(read("../../worker/routes/admin-agendas.js"), /observation: item\.observacao \?\? null/);
   });
   it("preserva histórico diário, status e auditoria sem atualização global da interface", () => {
     const src = read("../../frontend/history.js");

@@ -1,5 +1,7 @@
 import { apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
+import { openHistoryObservationDialog } from "./history-observation-dialog.js";
+import { validateStatusObservation } from "../shared/observations.js";
 
 export function formatHistoryDate(value) {
   const [year, month, day] = String(value).split("-");
@@ -62,11 +64,17 @@ function dayList(events) {
   </li>`).join("")}</ul>` : "<p>Nenhum evento registrado para o dia.</p>";
 }
 
-function appointmentHistoryList(events) {
+export function appointmentHistoryList(events) {
   return events.length ? `<ul>${events.map(item => `<li>
     <strong>${escapeHtml(item.statusAnterior)} → ${escapeHtml(item.statusNovo)}</strong>
     <span>${escapeHtml(item.usuario?.nome ?? "Sistema")}</span>
+    ${item.observation ? `<span>Obs.: ${escapeHtml(item.observation)}</span>` : ""}
   </li>`).join("")}</ul>` : "<p>Nenhuma alteração registrada.</p>";
+}
+
+export function historyStatusPayload(status, observation = null) {
+  return status === "nao_chegou" ?
+    { status, observation: validateStatusObservation(status, observation) } : { status };
 }
 
 export function renderHistory(root, { request = apiFetch } = {}) {
@@ -74,6 +82,7 @@ export function renderHistory(root, { request = apiFetch } = {}) {
   let queryToken = 0, detailToken = 0, savingId = null;
   let stores = [], agendas = [], detail = null, dayEvents = [];
   let history = [], historyAppointmentId = null;
+  let closeObservationDialog = null;
   root.innerHTML = `<section class="admin-page">
     <header class="page-heading"><div>
       <span class="eyebrow">Administração</span><h1>Histórico</h1>
@@ -154,6 +163,7 @@ export function renderHistory(root, { request = apiFetch } = {}) {
     if (loading) return;
     const token = ++queryToken;
     ++detailToken;
+    closeObservationDialog?.();
     loading = true; error(null);
     const form = root.querySelector("[data-history-filter]");
     const submit = form.querySelector("[data-history-submit]");
@@ -176,6 +186,7 @@ export function renderHistory(root, { request = apiFetch } = {}) {
     }
   };
   const openAgenda = async id => {
+    closeObservationDialog?.();
     const token = ++detailToken;
     detail = null; history = []; historyAppointmentId = null; dayEvents = [];
     error(null); drawDetail();
@@ -190,7 +201,7 @@ export function renderHistory(root, { request = apiFetch } = {}) {
       if (!disposed && token === detailToken) error("Não foi possível abrir a agenda.");
     }
   };
-  const changeAppointment = async (appointmentId, field, value) => {
+  const changeAppointment = async (appointmentId, field, value, observation = null) => {
     if (!detail || savingId) return;
     const currentAgenda = detail.agenda;
     savingId = appointmentId; error(null);
@@ -200,18 +211,20 @@ export function renderHistory(root, { request = apiFetch } = {}) {
       const updated = await request(
         `/api/admin/appointments/${encodeURIComponent(appointmentId)}/${field}`, {
           method: "PATCH", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(field === "status" ? { status: value } : { hasExchanges: value })
+          body: JSON.stringify(field === "status" ? historyStatusPayload(value, observation) : { hasExchanges: value })
         }
       );
       if (disposed || detail?.agenda.id !== currentAgenda.id) return;
       updateAppointment(updated);
       if (currentAgenda.dayStatus === "concluido") await reloadDayHistory(currentAgenda);
+      return true;
     } catch {
       if (!disposed) {
         error(field === "status" ? "Não foi possível alterar o status." : "Não foi possível alterar a marcação de trocas.");
         const item = detail?.appointments.find(x => x.id === appointmentId);
         if (item) updateAppointment(item);
       }
+      return false;
     } finally {
       savingId = null;
       for (const input of row?.querySelectorAll("select, input") || []) input.disabled = false;
@@ -258,6 +271,17 @@ export function renderHistory(root, { request = apiFetch } = {}) {
     }
   };
 
+  const requireHistoryObservation = (item, control) => {
+    closeObservationDialog?.();
+    control.value = item.status;
+    closeObservationDialog = openHistoryObservationDialog(root, item, {
+      onSave: observation => changeAppointment(item.id, "status", "nao_chegou", observation),
+      onClose: () => {
+        closeObservationDialog = null;
+        if (control.isConnected) control.focus();
+      }
+    });
+  };
   const onClick = event => {
     const button = event.target.closest?.("button");
     if (!button || !root.contains(button)) return;
@@ -272,7 +296,10 @@ export function renderHistory(root, { request = apiFetch } = {}) {
   const onChange = event => {
     const control = event.target;
     if (control.matches("[data-appointment-status]")) {
-      void changeAppointment(control.dataset.appointmentStatus, "status", control.value);
+      const item = detail?.appointments.find(x => x.id === control.dataset.appointmentStatus);
+      if (control.value === "nao_chegou" && item && item.status !== "nao_chegou")
+        requireHistoryObservation(item, control);
+      else void changeAppointment(control.dataset.appointmentStatus, "status", control.value);
     } else if (control.matches("[data-appointment-exchanges]")) {
       void changeAppointment(control.dataset.appointmentExchanges, "exchanges", control.checked);
     }
@@ -290,6 +317,7 @@ export function renderHistory(root, { request = apiFetch } = {}) {
     if (!disposed) error("Não foi possível carregar as lojas.");
   });
   return () => {
+    closeObservationDialog?.();
     disposed = true;
     ++queryToken; ++detailToken;
     root.removeEventListener("submit", query);

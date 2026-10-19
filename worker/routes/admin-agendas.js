@@ -702,6 +702,7 @@ adminAppointmentRoutes.get("/:id/history", async (c) => {
       appointmentId: item.agendamento_id,
       statusAnterior: item.status_anterior,
       statusNovo: item.status_novo,
+      observation: item.observacao ?? null,
       alteradoEm: item.alterado_em,
       usuario: {
         id: item.usuario_id,
