@@ -6,3 +6,7 @@ dist/
 .dev.vars*
 .env*
 public/vanilla/vendor/
+
+# Artefatos temporarios de validacao, nunca commitar
+.release-candidate/
+wrangler.production-candidate.jsonc

@@ -1,0 +1,33 @@
+name: Candidato de producao JS - apenas dry-run
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  candidate:
+    if: github.ref == 'refs/heads/preview'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Instalar bibliotecas e preparar assets
+        run: npm ci --legacy-peer-deps
+      - name: Validar JavaScript e migrations
+        run: |
+          npm run check:javascript
+          npm run check:migrations
+      - name: Preparar artefato prod preservando config da main
+        run: node scripts/prepare-production-candidate.mjs
+      - name: Validar empacotamento sem deploy
+        env:
+          SESSION_SECRET: candidato-local-sem-credenciais-de-producao
+        run: npx wrangler deploy --dry-run --config wrangler.production-candidate.jsonc
