@@ -1,4 +1,5 @@
 import { apiFetch } from "./api.js";
+import { reportInfo, setupReportInfo } from "./report-info.js";
 import { escapeHtml as esc } from "./shell.js";
 import { businessDate } from "../../shared/time.js";
 import { sumReportRows, reportRate, groupDailyReport, groupStoreReport } from "./report-model.js";
@@ -18,8 +19,8 @@ function table(columns,rows) {
     '</tbody></table></div>';
 }
 const cell=(text,numeric=false)=>'<td'+(numeric?' class="report-number"':'')+'>'+esc(text)+'</td>';
-const panel=(title,description,inner)=>'<section class="report-panel"><header><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></header>'+inner+'</section>';
-const metric=(label,value,description)=>'<div class="report-metric"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(description)+'</small></div>';
+const panel=(title,description,inner)=>'<section class="report-panel"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+reportInfo(title)+'</header>'+inner+'</section>';
+const metric=(label,value,description)=>'<div class="report-metric"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div><strong>'+esc(value)+'</strong><small>'+esc(description)+'</small></div>';
 function chart(days) {
   if(!days.length)return '<p class="report-empty">Sem movimentação no período.</p>';
   const maximum=Math.max(1,...days.map(x=>x.total));
@@ -44,6 +45,7 @@ const meter=(title,total,received,bad=false)=>'<div class="report-progress-item"
   (bad?"":'<small>'+num(received)+' de '+num(total)+' recebidos</small>')+'</div>';
 export function renderReports(root,{request=apiFetch}={}) {
   let closed=false,sequence=0,storePromise=null,stores=[],error="";
+  const disposeInfo=setupReportInfo(root);
   let settings={end:businessDate(),start:"",store:"",compare:true,offset:0};
   settings.start=shift(settings.end,-29);
   const params=(start,end,offset=null)=>{
@@ -148,5 +150,5 @@ export function renderReports(root,{request=apiFetch}={}) {
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
   void load();
-  return ()=>{closed=true;sequence++;root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
+  return ()=>{closed=true;sequence++;disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
 }
