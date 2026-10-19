@@ -2,6 +2,7 @@
 
 - [Arquitetura atual](architecture.md) — caminhos do código, stack, build, testes e ambientes
 - [Plano de remediação da auditoria 19/10/2026](operations/auditoria-remediacao-2026-10-19.md) — prioridades, progresso, critérios de aceite e riscos
+- [Auditoria de dependências, senhas e branches](operations/auditoria-dependencias-autenticacao-2026-10-19.md) — inventário, testes, benchmark opcional e critérios de limpeza
 - [Operação e publicação](operations/production-release.md) — Cloudflare, D1 e procedimento de produção
 - [Relatório Gerencial](operations/relatorio-gerencial-2026-10-19.md) e [Sem conferência](operations/relatorio-gerencial-sem-conferencia.md)
 - [Observações de recebimento](operations/observacao-recebimento-2026-10-19.md)
