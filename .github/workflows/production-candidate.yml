@@ -1,6 +1,8 @@
 name: Candidato de producao JS - apenas dry-run
 
 on:
+  push:
+    branches: [preview]
   workflow_dispatch:
 
 permissions:
