@@ -2,92 +2,108 @@ name: CI
 
 on:
   push:
-    branches: [main, preview]
+    branches: [main, migracao-js-puro]
   pull_request:
-    branches: [main, preview]
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-js-puro-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
-    name: Tests, typecheck, build and E2E
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    name: JavaScript, seguranca, build e navegador
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 22
+          node-version: "22"
           cache: npm
-
-      - name: Install
-        run: npm ci
-
-      - name: Audit production dependencies
+      - name: Dependencias reproduziveis
+        run: npm ci --legacy-peer-deps
+      - name: Auditoria de dependencias de producao
         run: npm audit --omit=dev
-
-      - name: Test
-        run: npm test
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Build
-        env:
-          VITE_PREVIEW_MOCKS: "off"
-        run: npm run build
-
-      - name: Install Playwright Chromium
+      - name: Garantir codigo-fonte 100 por cento JavaScript
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-files | grep -E '\.(tsx?|jsx)$' || true)"
+          node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const n of ["react","react-dom","react-router-dom","vite","vitest","typescript"])if(d[n])process.exit(1)'
+          node scripts/check-migracao-worker.mjs
+          node scripts/check-migracao-frontend.mjs
+      - name: Validar migrations e Worker
+        run: npm run check:migrations
+      - name: Testes JavaScript e design
+        run: |
+          npm test
+          npm run test:design
+          npm run test:bootstrap-admin
+      - name: Build nativo e integridade dos assets
+        run: |
+          npm run build
+          node scripts/check-migracao-build.mjs
+      - name: Dry-run do Worker de producao sem deploy
+        run: npx wrangler deploy --dry-run --config wrangler.jsonc
+      - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
-
-      - name: End-to-end and accessibility
+      - name: Testes de navegador sem dados reais
         env:
-          SESSION_SECRET: agenda-prado-ci-e2e-secret
-        run: npm run test:e2e:ci
+          CI: "true"
+        run: npm run migracao:e2e
+      - name: Guardar diagnosticos em caso de falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: diagnosticos-js-puro
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 7
 
   codeql:
-    name: CodeQL JavaScript/TypeScript
-    runs-on: ubuntu-latest
+    name: CodeQL JavaScript
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
       security-events: write
       packages: read
       actions: read
       contents: read
-
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Initialize CodeQL
+      - name: Inicializar CodeQL
         uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           languages: javascript-typescript
           queries: security-extended
-
-      - name: Analyze without Code Scanning upload
+      - name: Analisar JS sem enviar para Code Scanning
         uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
         with:
           upload: never
           output: codeql-results
-
-      - name: Require no CodeQL findings
+      - name: Bloquear findings de seguranca
         shell: bash
         run: |
           shopt -s nullglob
           files=(codeql-results/*.sarif)
           test "${#files[@]}" -gt 0
+          jq -r '[.[].runs[]?.results[]? | {rule: .ruleId, file: (.locations[0].physicalLocation.artifactLocation.uri // ""), message: (.message.text // "")}]' --slurp "${files[@]}"
           jq -e '[.[].runs[]?.results[]?] | length == 0' --slurp "${files[@]}"
 
   verify:
     name: verify
     if: always()
     needs: [quality, codeql]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - name: Require quality and CodeQL
+      - name: Exigir qualidade e seguranca verdes
         env:
           QUALITY_RESULT: ${{ needs.quality.result }}
           CODEQL_RESULT: ${{ needs.codeql.result }}

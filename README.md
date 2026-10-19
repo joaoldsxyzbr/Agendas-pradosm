@@ -4,12 +4,12 @@ Sistema web para gestão diária das agendas de recebimento das lojas Prado Supe
 
 ## Stack
 
-- React 19 + TypeScript + Vite
+- **JavaScript puro (ES Modules), HTML e CSS** — sem React, Vite ou TypeScript
 - Hono em Cloudflare Workers
 - Cloudflare D1
 - Zod
-- Vitest
-- Playwright + axe para E2E e acessibilidade
+- Testes Node.js nativos e validação do Worker
+- Playwright + Chromium com APIs mockadas para os testes de navegador
 
 ## Perfis de acesso
 
@@ -39,7 +39,7 @@ Pré-requisitos:
 Instale as dependências:
 
 ```bash
-npm ci
+npm ci --legacy-peer-deps
 ```
 
 Crie um arquivo local `.dev.vars`:
@@ -53,7 +53,7 @@ Arquivos `.dev.vars*` e `.env*` são ignorados pelo Git e não devem ser version
 Prepare o D1 local:
 
 ```bash
-npx wrangler d1 migrations apply DB --local
+npx wrangler d1 migrations apply DB --local --config wrangler.migracao.jsonc
 ```
 
 Inicie a aplicação:
@@ -62,23 +62,22 @@ Inicie a aplicação:
 npm run dev
 ```
 
-Por padrão, Wrangler e o plugin Vite da Cloudflare usam `.wrangler/state` para o estado local. Esse diretório também é ignorado pelo Git.
+O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especificado em `wrangler.migracao.jsonc`. Esse diretório é ignorado pelo Git. A interface é servida como arquivos ES Modules, sem bundler.
 
 ## Comandos principais
 
 | Comando | Função |
 | --- | --- |
-| `npm run dev` | Ambiente local com Vite + Worker |
-| `npm test` | Testes Worker/UI e guards do projeto |
-| `npm run test:worker` | Testes do Worker e D1 local |
-| `npm run test:ui` | Testes da interface |
-| `npm run test:e2e` | Build + D1 local isolado + Playwright Chromium + axe |
-| `npm run typecheck` | TypeScript sem emissão |
-| `npm run build` | Build de produção |
-| `npm run verify:production` | Testes + typecheck + build |
-| `npm run check:migrations` | Bloqueia migrations novas classificadas como destrutivas |
-| `npm run deploy` | Verifica, aplica migrations remotas e publica o Worker |
-| `npm run bootstrap-admin` | Bootstrap administrativo de emergência, somente break-glass |
+| `npm run dev` | HTML/CSS/JS puros e Worker com D1 exclusivamente local |
+| `npm test` | Testes de contratos e funcionalidades JavaScript |
+| `npm run test:design` | Tokens CSS e layout |
+| `npm run test:bootstrap-admin` | Segurança do bootstrap emergencial |
+| `npm run migracao:e2e` | Navegador Chromium com APIs mockadas e Worker local |
+| `npm run build` | Arquivos JS/CSS/HTML de produção em `dist/` |
+| `npm run verify:production` | Migrations, testes, design, bootstrap e build íntegro |
+| `npm run check:migrations` | Bloqueio de migrations destrutivas não aprovadas |
+| `npm run deploy` | Validação, migrations remotas e publicação explícita |
+| `npm run bootstrap-admin` | Bootstrap emergencial (somente com aprovação operacional) |
 
 ## D1 e migrations
 
@@ -87,12 +86,12 @@ As migrations ficam em `migrations/`.
 Para desenvolvimento:
 
 ```bash
-npx wrangler d1 migrations apply DB --local
+npx wrangler d1 migrations apply DB --local --config wrangler.migracao.jsonc
 ```
 
 No fluxo normal de produção, **não aplique migrations remotas separadamente**. O comando oficial é `npm run deploy`, executado pelo Cloudflare Workers Builds, que segue esta ordem:
 
-1. verificação completa da aplicação;
+1. verificação completa da aplicação JavaScript;
 2. gate de segurança das migrations;
 3. `wrangler d1 migrations apply DB --remote`;
 4. `wrangler deploy`.

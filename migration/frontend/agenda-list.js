@@ -1,0 +1,262 @@
+import { ApiError, apiFetch } from "./api.js";
+import { escapeHtml } from "./shell.js";
+
+export const STATUS_LABELS = Object.freeze({
+  aguardando: "Aguardando", recebido: "Recebido",
+  nao_chegou: "Não recebido", recusado: "Recusado"
+});
+const STATUSES = [
+  { value: "recebido", label: "Recebido", symbol: "✓" },
+  { value: "nao_chegou", label: "Não recebido", symbol: "✕" }
+];
+const SORT_KEYS = { time: "startTime", supplier: "supplier",
+  protocol: "protocol", type: "type", status: "status" };
+const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+
+export function appointmentTime(item) {
+  return item.origin === "manual" ? item.startTime : `${item.startTime} - ${item.endTime}`;
+}
+export function normalizeAgendaSearch(value) {
+  return String(value ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim();
+}
+export function sortAgendaAppointments(items, sort = null) {
+  const byDefault = (a,b) => a.startTime.localeCompare(b.startTime) ||
+    a.protocol.localeCompare(b.protocol);
+  return [...items].sort((a,b) => {
+    if (!sort) return byDefault(a,b);
+    const attr = SORT_KEYS[sort.key];
+    const result = collator.compare(a[attr] ?? "", b[attr] ?? "");
+    if (result) return sort.direction === "asc" ? result : -result;
+    return byDefault(a,b);
+  });
+}
+export function nextAgendaSort(previous, key) {
+  if (!previous || previous.key !== key) return { key, direction: "desc" };
+  if (previous.direction === "desc") return { key, direction: "asc" };
+  return null;
+}
+export function requestedAgendaStatus(current, selected) {
+  return current === selected ? "aguardando" : selected;
+}
+function statusBadge(item) {
+  return `<span class="store-status status-${escapeHtml(item.status)}">${escapeHtml(STATUS_LABELS[item.status])}</span>`;
+}
+function actions(item, { editable, onChanged, onEditManual, onDeleteManual, onOpen }) {
+  const esc = escapeHtml;
+  const controls = editable && onChanged ? `<div class="status-actions-wrap">
+    <div class="status-actions" aria-label="Alterar status">
+      ${STATUSES.map(option => `<button type="button" class="status-action status-action-${option.value}${item.status === option.value ? " current" : ""}"
+        data-status="${option.value}" data-id="${esc(item.id)}" aria-label="${option.label}"
+        title="${item.status === option.value ? "Voltar para aguardando" : `Marcar como ${option.label.toLowerCase()}`}"
+        aria-pressed="${item.status === option.value}"><span aria-hidden="true">${option.symbol}</span></button>`).join("")}
+    </div>
+    <p class="inline-error" role="alert" data-inline-error hidden></p>
+  </div>` : "";
+  const edit = editable && item.origin === "manual" && onEditManual
+    ? `<button class="ghost-button agenda-manual-edit-action" type="button"
+        data-edit-manual="${esc(item.id)}" aria-label="Editar fornecedor ${esc(item.supplier)}"
+        title="Editar fornecedor">✎</button>` : "";
+  const del = editable && item.origin === "manual" && onDeleteManual
+    ? `<button class="ghost-button agenda-manual-delete-action" type="button"
+        data-delete-manual="${esc(item.id)}" aria-label="Excluir fornecedor ${esc(item.supplier)}"
+        title="Excluir fornecedor">✕</button>` : "";
+  const open = onOpen
+    ? `<button class="ghost-button agenda-detail-button" type="button"
+         data-open-appointment="${esc(item.id)}">Ver detalhes</button>` : "";
+  return `<div class="agenda-row-actions">${controls}${edit}${del}${open}</div>`;
+}
+function exchanges(item, options) {
+  if (options.editable && options.onChanged) {
+    return `<div class="exchange-control"><input type="checkbox" aria-label="Trocas"
+       data-exchanges="${escapeHtml(item.id)}" ${item.hasExchanges ? "checked" : ""}>
+       <p class="inline-error" role="alert" data-inline-error hidden></p></div>`;
+  }
+  return `<span class="exchange-readonly ${options.highlightPositiveExchanges && item.hasExchanges ? "positive" : ""}">${item.hasExchanges ? "Sim" : "Não"}</span>`;
+}
+export function agendaRowHtml(item, options) {
+  const esc = escapeHtml;
+  const hasActions = Boolean(options.onOpen || (options.editable &&
+    (options.onChanged || options.onEditManual || options.onDeleteManual)));
+  return `<tr data-appointment-id="${esc(item.id)}" data-testid="agenda-desktop-row">
+    <td>${esc(appointmentTime(item))}</td><td title="${esc(item.supplier)}">${esc(item.supplier)}</td>
+    <td>${esc(item.protocol)}</td><td>${esc(item.type ?? "-")}</td><td>${statusBadge(item)}</td>
+    ${hasActions ? `<td class="table-action">${actions(item, options)}</td>` : ""}
+    <td class="exchange-cell">${exchanges(item,options)}</td></tr>`;
+}
+function mobileCard(item, options) {
+  const esc = escapeHtml;
+  const hasActions = Boolean(options.onOpen || (options.editable &&
+    (options.onChanged || options.onEditManual || options.onDeleteManual)));
+  return `<article class="agenda-card" data-appointment-id="${esc(item.id)}" data-testid="agenda-mobile-card">
+    <div class="agenda-card-heading"><div><strong>${esc(appointmentTime(item))}</strong>
+      <span>${esc(item.supplier)}</span></div><span class="protocol-chip">${esc(item.protocol)}</span></div>
+    <div class="agenda-card-meta"><span>${esc(item.type ?? "Tipo não informado")}</span></div>
+    ${statusBadge(item)}${hasActions ? actions(item,options) : ""}
+    <div class="agenda-card-exchanges"><span>Trocas</span>${exchanges(item,options)}</div>
+  </article>`;
+}
+function sortHeader(key, label, sort) {
+  const active = sort?.key === key ? sort.direction : null;
+  const aria = active === "asc" ? "ascending" : active === "desc" ? "descending" : "none";
+  return `<th aria-sort="${aria}"><button class="agenda-sort-button" type="button"
+    data-sort="${key}" title="Ordenar por ${label}">
+    <span>${label}</span><span class="agenda-sort-icon" aria-hidden="true">${active === "desc" ? "↓" : active === "asc" ? "↑" : ""}</span>
+  </button></th>`;
+}
+
+// Componente reutilizado pelo conferente e detalhe administrativo.
+export function renderAgendaList(root, initialOptions = {}) {
+  let options = { editable: true, appointmentApiBase: "/api/store/appointments",
+    request: apiFetch, ...initialOptions };
+  let items = options.appointments || [];
+  let sort = null;
+  let disposed = false;
+  const pending = new Set();
+  let headerSignature = null;
+  const hasActions = () => Boolean(options.onOpen || (options.editable &&
+    (options.onChanged || options.onEditManual || options.onDeleteManual)));
+
+  const draw = () => {
+    if (disposed) return;
+    const sorted = sortAgendaAppointments(items, sort);
+    const header = [
+      sortHeader("time","Horário",sort),sortHeader("supplier","Fornecedor",sort),
+      sortHeader("protocol","Protocolo",sort),sortHeader("type","Tipo",sort),
+      sortHeader("status","Status",sort),hasActions() ? "<th>Ações</th>" : "", "<th>Trocas</th>"
+    ].join("");
+    // Preserva o container ao atualizar um único agendamento.
+    const signature = JSON.stringify({sort, hasActions:hasActions()});
+    if (!root.querySelector("[data-agenda-desktop]")) {
+      root.innerHTML = `<div class="agenda-desktop table-card ${hasActions() ? "has-actions" : "is-readonly"}"
+        data-agenda-desktop><div class="table-scroll"><table><thead><tr data-agenda-header>${header}</tr></thead>
+        <tbody data-agenda-rows></tbody></table></div></div>
+        <div class="agenda-mobile" data-agenda-mobile></div>`;
+    } else {
+      const th = root.querySelector("[data-agenda-header]");
+      if (headerSignature !== signature) th.innerHTML = header;
+    }
+    headerSignature = signature;
+    const container = root.querySelector("[data-agenda-desktop]");
+    const containerClass = "agenda-desktop table-card " + (hasActions() ? "has-actions" : "is-readonly");
+    if (container.className !== containerClass) container.className = containerClass;
+    const tbody = root.querySelector("[data-agenda-rows]");
+    const mobile = root.querySelector("[data-agenda-mobile]");
+    // Um estado vazio anterior não pode permanecer misturado aos novos agendamentos.
+    for (const placeholder of tbody.querySelectorAll("tr:not([data-appointment-id])")) {
+      placeholder.remove();
+    }
+    const desktopRows = new Map([...tbody.querySelectorAll("tr[data-appointment-id]")]
+      .map(row => [row.dataset.appointmentId, row]));
+    const mobileRows = new Map([...mobile.querySelectorAll("article[data-appointment-id]")]
+      .map(row => [row.dataset.appointmentId, row]));
+    const create = html => {
+      const template = root.ownerDocument.createElement("template");
+      template.innerHTML = html;
+      return template.content.firstElementChild;
+    };
+    for (const [index,item] of sorted.entries()) {
+      const id = String(item.id);
+      let desktop = desktopRows.get(id);
+      const nextDesktop = create(agendaRowHtml(item,options));
+      if (!desktop) desktop = nextDesktop;
+      else if (desktop.outerHTML !== nextDesktop.outerHTML && !pending.has(id)) desktop.replaceWith(nextDesktop), desktop = nextDesktop;
+      if (tbody.children[index] !== desktop) tbody.insertBefore(desktop,tbody.children[index] || null);
+      let card = mobileRows.get(id);
+      const nextCard = create(mobileCard(item,options));
+      if (!card) card = nextCard;
+      else if (card.outerHTML !== nextCard.outerHTML && !pending.has(id)) card.replaceWith(nextCard),card=nextCard;
+      if (mobile.children[index] !== card) mobile.insertBefore(card,mobile.children[index] || null);
+      desktopRows.delete(id); mobileRows.delete(id);
+    }
+    for (const row of desktopRows.values()) row.remove();
+    for (const row of mobileRows.values()) row.remove();
+    if (!sorted.length) {
+      tbody.innerHTML = `<tr><td colspan="${hasActions()?7:6}" class="empty-cell">Nenhum agendamento nesta agenda.</td></tr>`;
+    }
+  };
+  const action = async (id, kind, value, trigger) => {
+    if (pending.has(id)) return;
+    const item = items.find(item => item.id === id);
+    if (!item) return;
+    pending.add(id);
+    let failed = false;
+    const controls = [...root.querySelectorAll("[data-appointment-id]")]
+      .filter(row => row.dataset.appointmentId === id)
+      .flatMap(row => [...row.querySelectorAll("button, input")]);
+    controls.forEach(el => { el.disabled = true; });
+    try {
+      const suffix = kind === "status" ? "status" : "exchanges";
+      const body = kind === "status"
+        ? { status: requestedAgendaStatus(item.status,value) }
+        : { hasExchanges: value };
+      const updated = await options.request(
+        `${options.appointmentApiBase}/${encodeURIComponent(id)}/${suffix}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+      if (disposed) return;
+      items = items.map(x => x.id === id ? updated : x);
+      options.onChanged?.(updated);
+    } catch (error) {
+      failed = true;
+      if (disposed) return;
+      for (const row of root.querySelectorAll("[data-appointment-id]")) {
+        if (row.dataset.appointmentId !== id) continue;
+        const el = row.querySelector("[data-inline-error]");
+        if (el) {
+          el.textContent = error instanceof ApiError ? error.message
+            : kind === "status" ? "Não foi possível alterar o status."
+              : "Não foi possível alterar a marcação de trocas.";
+          el.hidden = false;
+        }
+        const input = row.querySelector('[data-exchanges]');
+        if (input) input.checked = item.hasExchanges;
+      }
+    } finally {
+      pending.delete(id);
+      if (!disposed) {
+        controls.forEach(el => {if(el.isConnected)el.disabled=false;});
+        if (!failed) draw();
+      }
+    }
+  };
+  const onClick = event => {
+    const button = event.target.closest?.("button");
+    if (!button || !root.contains(button)) return;
+    if (button.matches("[data-sort]")) {
+      sort = nextAgendaSort(sort,button.dataset.sort); draw(); return;
+    }
+    const id = button.dataset.id;
+    if (id && button.matches("[data-status]") && options.editable && options.onChanged) {
+      void action(id,"status",button.dataset.status,button);
+      return;
+    }
+    const appointment = items.find(x=>x.id===button.dataset.editManual ||
+      x.id===button.dataset.deleteManual || x.id===button.dataset.openAppointment);
+    if (!appointment) return;
+    if (button.matches("[data-edit-manual]")) options.onEditManual?.(appointment);
+    else if (button.matches("[data-delete-manual]")) options.onDeleteManual?.(appointment);
+    else if (button.matches("[data-open-appointment]")) options.onOpen?.(appointment.id);
+  };
+  const onChange = event => {
+    const input = event.target;
+    if (!input.matches("[data-exchanges]") || !options.editable || !options.onChanged) return;
+    void action(input.dataset.exchanges,"exchanges",input.checked,input);
+  };
+  root.addEventListener("click",onClick);
+  root.addEventListener("change",onChange);
+  draw();
+  return {
+    update(next, nextOptions = {}) {
+      items = next || [];
+      options = { ...options, ...nextOptions };
+      draw();
+    },
+    destroy() {
+      disposed = true;
+      root.removeEventListener("click",onClick);
+      root.removeEventListener("change",onChange);
+    }
+  };
+}
