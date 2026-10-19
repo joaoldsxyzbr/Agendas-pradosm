@@ -242,3 +242,88 @@ html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav > .nav-link.
     border-radius: 7px;
   }
 }
+
+/* Popup de consulta: largura integral sem herdar o grid da tela do conferente. */
+.agenda-preview-modal.modal-card {
+  width: min(96vw, 1480px);
+  min-width: 0;
+  padding: clamp(16px, 2vw, 26px);
+  gap: 16px;
+}
+.agenda-preview-modal .admin-agenda-preview.store-page {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 14px;
+  min-width: 0;
+  width: 100%;
+}
+.agenda-preview-modal .admin-agenda-preview.store-page > * {
+  grid-column: 1 / -1;
+  min-width: 0;
+  width: 100%;
+}
+.agenda-preview-modal .admin-agenda-preview .agenda-preview-context {
+  align-items: center;
+  gap: 10px 22px;
+}
+.agenda-preview-modal .admin-agenda-preview .agenda-metrics {
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.agenda-preview-modal .admin-agenda-preview .agenda-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.agenda-preview-modal .admin-agenda-preview .agenda-toolbar .agenda-search {
+  flex: 0 1 440px;
+  width: min(100%, 440px);
+  max-width: 100%;
+}
+.agenda-preview-modal .admin-agenda-preview [data-preview-list],
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .agenda-desktop,
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .table-scroll {
+  min-width: 0;
+  width: 100%;
+}
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .table-scroll {
+  overflow-x: auto;
+}
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .agenda-desktop table {
+  width: 100%;
+  min-width: 840px;
+  table-layout: fixed;
+}
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .agenda-desktop.has-actions table {
+  min-width: 1020px;
+}
+.agenda-preview-modal .admin-agenda-preview [data-preview-list] .agenda-desktop td:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 760px) {
+  .agenda-preview-modal.modal-card {
+    width: calc(100vw - 20px);
+    padding: 14px;
+    max-height: calc(100dvh - 20px);
+    gap: 12px;
+  }
+  .agenda-preview-modal .admin-agenda-preview .agenda-toolbar {
+    justify-content: stretch;
+  }
+  .agenda-preview-modal .admin-agenda-preview .agenda-toolbar .agenda-search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+  .agenda-preview-modal .admin-agenda-preview .agenda-toolbar .agenda-manual-button {
+    width: 100%;
+  }
+  .agenda-preview-modal .admin-agenda-preview [data-preview-list] .agenda-mobile {
+    width: 100%;
+  }
+}
