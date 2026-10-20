@@ -20,6 +20,21 @@ jobs:
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
+      - name: Gerar candidate lock Wrangler oficial (somente neste run manual)
+        shell: bash
+        run: |
+          set -euo pipefail
+          npm install --package-lock-only --ignore-scripts --legacy-peer-deps --save-dev --save-exact wrangler@4.151.2
+          node --input-type=module -e '
+            import { readFileSync } from "node:fs";
+            for (const name of ["package.json", "package-lock.json"]) {
+              const json = JSON.stringify(JSON.parse(readFileSync(name, "utf8")));
+              const width = 1300;
+              const chunks = Math.ceil(json.length / width);
+              for (let i = 0; i < chunks; i++) console.log(`GHLOCK|${name}|${i}|${chunks}|${json.slice(i * width, (i + 1) * width)}`);
+            }
+          '
+          npm audit --audit-level=high
       - name: Medir consultas com SQLite sintético (sem D1 remoto)
         run: npm run benchmark:agendas
       - name: Medir PBKDF2 com senhas sintéticas (sem usuários reais)
