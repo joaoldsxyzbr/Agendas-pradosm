@@ -84,9 +84,10 @@ describe("Relatório Gerencial",()=>{
    assert.ok(search.sql.includes("ag.fornecedor LIKE ? ESCAPE '\\'"));
    assert.ok(search.sql.includes("ag.protocolo LIKE ? ESCAPE '\\'"));
    assert.equal(search.params.filter(value=>value==="%Teste 100\\%%").length,2);
+   const beforeWithoutSearch=statements.length;
    const withoutSearch=await fetch("/occurrences?start=2026-10-01&end=2026-10-19");
    assert.equal(withoutSearch.status,200);
-   assert.equal(statements.filter(item=>item.sql.includes("LIKE")).length,0);
+   assert.equal(statements.slice(beforeWithoutSearch).filter(item=>item.sql.includes("LIKE")).length,0);
    const tooLong=await fetch("/occurrences?start=2026-10-01&end=2026-10-19&q="+("a".repeat(81)));
    assert.equal(tooLong.status,400);
  });
