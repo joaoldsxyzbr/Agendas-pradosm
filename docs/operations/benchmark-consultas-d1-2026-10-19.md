@@ -19,7 +19,8 @@ O workflow `.github/workflows/runner-diagnostico.yml` (`Diagnóstico operacional
 - benchmark WebCrypto com **100.000 iterações** usando a implementação real da senha no **Workerd local isolado** (Wrangler oficial, apenas loopback), medindo ida e volta HTTP, não CPU remota; nunca testar valores superiores por iniciativa da rotina;
 - `git rev-list` e `git log --cherry-pick` em branches históricas, somente leitura, sem exclusões;
 - smoke HTTP **somente GET** à página inicial e ao arquivo `/frontend/entry.js` do Worker publicado;
-- smoke HTTP **somente GET** a `/api/auth/bootstrap-status` (espera JSON com chave `available`).
+- smoke HTTP **somente GET** a `/api/auth/bootstrap-status` (espera JSON com chave `available`);
+- smoke HTTP **somente GET** a `/api/health`, que executa `SELECT 1 AS ok` no D1 da própria produção e exige `{ "ok": true, "database": "ok" }`. Não lê dados de usuários e não escreve no banco.
 
 O workflow não autentica usuários nem altera registros. Sucesso no HTTP comprova disponibilidade básica de asset e API pública, **não substitui teste manual de login, conferência, importação ou permissões**. Falhas externas de DNS, rede ou WAF devem ser diagnosticadas antes de interpretar como defeito do app.
 
