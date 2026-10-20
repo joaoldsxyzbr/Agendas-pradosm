@@ -73,8 +73,9 @@ export function renderDashboard(root, {
       <div class="dashboard-operation-table table-card" data-table>
         <div class="table-scroll"><table>
           <thead><tr>
-            <th>Presença</th><th>Loja</th><th>Agenda</th><th>Andamento</th>
-            <th>Pendências</th><th>Situação</th><th><span class="sr-only">Ações</span></th>
+            <th scope="col">Loja</th><th scope="col">Conferente</th>
+            <th scope="col">Recebimentos</th><th scope="col">Pendências</th>
+            <th scope="col">Situação</th><th scope="col"><span class="sr-only">Ações</span></th>
           </tr></thead>
           <tbody data-rows></tbody>
         </table></div>
