@@ -47,7 +47,21 @@ Comparação de árvores (caminhos e hashes, **não equivale a comparação de h
 - `migracao-js-puro`: 114 arquivos diferentes/exclusivos em relação à Main, e 127 só na Main. Inclui código sob `migration/frontend/` e documentação antiga hoje arquivada.
 - `chore-organizacao-js-puro`: 26 arquivos distintos da Main, e 2 presentes somente na Main. Possui alterações antigas em arquivos que receberam correções posteriores.
 
-**Proposta de limpeza:** confirmar ausência de trabalho exclusivo aproveitável e preservar o histórico via PR/commits e `docs/archive/`; somente então excluir `migracao-js-puro` e `chore-organizacao-js-puro`. Branches temporárias dos PRs #95–#97 também podem ser removidas **após comprovar merge**, mas não eliminar `preview` nem branches Dependabot com PR ativo.
+**Resultado adicional do histórico** (workflow `runner-diagnostico.yml` em 20/10/2026): `main...preview` tem 91 commits exclusivos da Preview; `main...migracao-js-puro` tem **0 exclusivos** da migração; `main...chore-organizacao-js-puro` tem **145 exclusivos** dessa branch. Os contadores não dizem se os commits já foram integrados por squash ou equivalência de conteúdo. **Preservar `preview` e `chore-organizacao-js-puro` até revisão dos commits**.
+
+**Proposta de limpeza:** `migracao-js-puro` e branches de PRs já mesclados são candidatas a remoção somente depois de confirmar as refs, PRs e ausência de trabalho pendente. O MCP GitHub instalado oferece `list_branches`, mas **não dispõe de ação para excluir refs**; não tentar excluir arquivos da `main` como substituto. As branches Dependabot dos PRs abertos #98–#101 e a `preview` devem ser preservadas.
+
+## Decisão de manutenção das bibliotecas (20/10/2026)
+
+Após examinar os imports, scripts de build, teste `tests/unit/vendor-libs.test.js` e testes browser `tests/browser/reports.spec.js`:
+
+- **Chart.js 4.5.1 e Lucide Static 1.57.0:** o usuário solicitou explicitamente essas bibliotecas para o relatório gerencial e o visual do sistema. Ambas são usadas efetivamente, com arquivos distribuídos **localmente**, sem dependência de CDN em tempo de execução; o relatório já tem fallback HTML nativo. **Mantê-las nesta revisão** é a decisão mais segura para preservar visual e funcionalidades; não eliminar apenas para reduzir o número de dependências. Futuras mudanças exigem autorização específica e paridade de acessibilidade, layout e testes.
+- **Hono e Zod:** estão integrados a rotas HTTP, cookies, autorização e validações, incluindo limites de entrada. A implementação caseira dessas peças críticas teria elevado risco de regressão; manter até existir proposta testada com contratos equivalentes.
+- **LiteParse WASM:** participa da importação de PDF; a remoção sem motor substituto validado pode interromper importações. Preservar e validar PDF com fixtures saneadas antes de discutir migração.
+- **Wrangler e Playwright:** ferramentas oficiais de Cloudflare e Microsoft; manter. Wrangler foi atualizado no PR #108 para corrigir o aviso transitivo do `sharp`.
+- **Segurança:** o último `npm audit` completo na `main` retornou zero vulnerabilidades conhecidas após #108. Isso não prova ausência de falhas nem dispensa a auditoria semanal e os alertas Dependabot.
+
+**Status da tarefa:** inventário e decisão de manutenção concluídos; **não há substituição segura imediata que justifique mudar o sistema em produção**. Se for priorizado retirar uma biblioteca futuramente, fazer um PR independente com equivalência funcional e aprovação visual, especialmente para Chart.js/Lucide, que foram solicitadas pelo próprio usuário.
 
 ## Pendências e aceite
 
@@ -58,6 +72,6 @@ Comparação de árvores (caminhos e hashes, **não equivale a comparação de h
 - [x] PBKDF2 travado em 100.000 iterações; aumento e benchmark remoto para elevar custo descartados por decisão do responsável.
 - [ ] Medir performance D1 com plano de consulta e dados sintéticos para definir necessidade de paginação.
 - [ ] Analisar branches antigas por commits exclusivos antes de qualquer exclusão.
-- [ ] Planejar eliminação faseada de bibliotecas externas com equivalência de testes.
+- [x] Definida estratégia por biblioteca: manter as dependências efetivamente utilizadas e aprovadas enquanto não houver alternativa equivalente validada; nenhuma remoção arriscada em produção.
 
 Nenhum segredo ou dado de usuário foi consultado e nenhum D1 de produção foi alterado nesta etapa.

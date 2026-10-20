@@ -70,7 +70,8 @@ jobs:
           html="$(mktemp)"
           asset="$(mktemp)"
           response="$(mktemp)"
-          trap 'rm -f "$html" "$asset" "$response"' EXIT
+          health="$(mktemp)"
+          trap 'rm -f "$html" "$asset" "$response" "$health"' EXIT
           curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/" > "$html"
           grep -qi '<html' "$html"
           grep -q 'frontend/entry.js' "$html"
@@ -78,4 +79,7 @@ jobs:
           grep -q 'createMigratedApplication' "$asset"
           curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/auth/bootstrap-status" > "$response"
           node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof x.available!=="boolean")process.exit(1)' "$response"
-          echo "Smoke HTTP de leitura: HTML, entry.js e bootstrap-status acessíveis."
+          # A rota pública de saúde executa SELECT 1 (somente leitura) no D1 do Worker.
+          curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/health" > "$health"
+          node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.ok!==true||x.database!=="ok")process.exit(1)' "$health"
+          echo "Smoke HTTP de leitura: HTML, entry.js, bootstrap-status e saúde D1 acessíveis."
