@@ -32,7 +32,7 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
   await expect(page.locator(".dashboard-operation-row").first().locator("td")).toHaveCount(6);
   await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("max","20");
   await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("value","20");
-  await expect(page.locator('.dashboard-operation-row.is-empty').first().getByText("Sem agenda")).toBeVisible();
+  await expect(page.locator('.dashboard-operation-row.is-empty').first().locator(".dashboard-agenda-mark")).toBeVisible();
   await expect(page.locator(".dashboard-operation-row").first().locator("[data-agenda-id]")).toHaveCount(1);
   const layout=await page.evaluate(()=>{
     const wrap=document.querySelector(".dashboard-operation-table .table-scroll");

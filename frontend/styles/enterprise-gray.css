@@ -459,6 +459,15 @@ html[data-theme="dark"] .form-success { color: var(--color-success); }
   }
 }
 
+/* A grid contém largura intrínseca de tabelas e impede overflow global no mobile. */
+html[data-theme="dark"] .prado-admin .receiving-page,
+html[data-theme="dark"] .prado-admin .dashboard-operations {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
+  max-width: 100%;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table .table-scroll { display: block; }
 /* Recebimento operacional — correção específica das colunas azuladas/sticky do legado.
  * Não aplicar a outras tabelas nem alterar o modelo de dados.
  */

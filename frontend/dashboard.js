@@ -37,7 +37,7 @@ export function renderDashboard(root, {
   let lastToday = monitor.today;
   selectedDate = lastToday;
 
-  root.innerHTML = `<section class="admin-page">
+  root.innerHTML = `<section class="admin-page receiving-page">
     <header class="page-heading page-heading-actions">
       <div>
         <span class="eyebrow">${readOnly ? "Acompanhamento" : "Administração"}</span>

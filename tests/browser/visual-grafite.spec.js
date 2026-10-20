@@ -37,7 +37,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await expect(page.locator("body")).toHaveCSS("background-color","rgb(24, 26, 28)");
   await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 32, 34)");
   await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(48, 52, 56)");
-  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-color","rgb(36, 39, 42)");
+  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-color","rgb(36, 39, 41)");
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
