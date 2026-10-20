@@ -33,13 +33,13 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   await page.setViewportSize({width:1440,height:900});
   await mockDashboard(page);
   await page.goto("/admin");
+  const bodyOverflowBefore=await page.locator("body").evaluate(el=>el.style.overflow);
   await page.locator('[data-agenda-id="agenda1"]').click();
   const modal=page.locator(".agenda-preview-modal");
   const content=modal.locator("[data-preview-content]");
   const list=modal.locator("[data-preview-list]");
   await expect(modal).toBeVisible();
   await expect(content).toBeVisible();
-  const bodyOverflowBefore=await page.locator("body").evaluate(el=>el.style.overflow);
   await expect(page.locator("body")).toHaveCSS("overflow","hidden");
   await expect(modal.locator("[data-preview-reopen]")).toBeHidden();
   await expect(modal.locator(".agenda-sort-button").first()).toHaveCSS("background-color","rgba(0, 0, 0, 0)");

@@ -98,6 +98,7 @@ test("Relatório: mostra datas em dd/mm/aaaa e esclarece comparação sem base a
   await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
   const rateMetric=page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span",{hasText:/^Taxa de recebimento$/})});
   await expect(rateMetric.locator(".report-metric-delta")).toHaveCount(0);
+  await expect(page.locator(".report-metric-delta")).toHaveCount(0);
 });
 test("Atalhos de período, alternância do gráfico, busca de ocorrências e padrão semanal",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
