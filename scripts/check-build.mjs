@@ -12,6 +12,7 @@ const required = [
   "frontend/stores.js", "frontend/history.js",
   "frontend/import-agenda.js", "frontend/admin-agenda-preview.js",
   "frontend/agenda/exportAgendaPdf.js", "frontend/import/extractPdfText.js",
+  "frontend/import/pdf-engine-liteparse.js",
   "frontend/import/parseAgendaBatch.js", "frontend/import/parseAgendaText.js",
   "frontend/styles/styles.css", "frontend/styles/store-desktop.css", "frontend/styles/corporate.css",
   "frontend/styles/cadastros-compactos.css", "frontend/styles/vendor-ui.css", "shared/time.js", "theme-bootstrap.js",
@@ -38,8 +39,10 @@ const expectedHash = createHash("sha256").update(mapMatch[1], "utf8").digest("ba
 const policy = read("_headers");
 if (!policy.includes("'sha256-" + expectedHash + "'"))
   throw Error("Importmap PDF foi bloqueado pela política CSP.");
-const file = read("frontend/import/extractPdfText.js");
-if (!file.includes('from "@llamaindex/liteparse-wasm"')) throw Error("Contrato de PDF mudou.");
+const engine = read("frontend/import/pdf-engine-liteparse.js");
+if (!engine.includes('from "@llamaindex/liteparse-wasm"')) throw Error("Contrato de PDF mudou.");
+const facade = read("frontend/import/extractPdfText.js");
+if (facade.includes("@llamaindex")) throw Error("A fachada de PDF não pode referenciar o motor WASM diretamente.");
 if (!html.includes("/frontend/styles/vendor-ui.css")) throw Error("CSS dos ícones Lucide ausente.");
 if (!read("frontend/report-chart.js").includes("/vendor/chart.umd.min.js"))
   throw Error("Gráfico Chart.js não aponta para recurso local.");

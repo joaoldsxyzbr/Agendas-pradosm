@@ -6,6 +6,7 @@
 - [PBKDF2 fixado em 100 mil iterações](operations/regra-pbkdf2-e-testes-2026-10-20.md) — decisão de estabilidade e testes autenticados sintéticos
 - [Auditoria semanal de segurança](operations/auditoria-seguranca-semanal-2026-10-20.md) — npm audit agendado, sem atualizações automáticas
 - [Correção Wrangler/Miniflare/sharp](operations/correcao-wrangler-sharp-2026-10-20.md) — remediação dos alertas encontrados na primeira varredura
+- [Isolamento do motor de PDF](operations/isolamento-parser-pdf-2026-10-20.md) — fachada estável para extração de texto e WASM carregado sob demanda
 - [Diagnóstico de consultas D1](operations/benchmark-consultas-d1-2026-10-19.md) — benchmark sintético, planos SQL, health público somente leitura e critérios para paginação
 - [Operação e publicação](operations/production-release.md) — Cloudflare, D1 e procedimento de produção
 - [Relatório Gerencial](operations/relatorio-gerencial-2026-10-19.md) e [Sem conferência](operations/relatorio-gerencial-sem-conferencia.md)
