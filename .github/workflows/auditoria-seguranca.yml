@@ -1,0 +1,37 @@
+name: Auditoria semanal de seguranca
+
+on:
+  schedule:
+    # Segundas-feiras, 12:17 UTC (09:17 horario de Brasilia).
+    - cron: "17 12 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-audit-semanal-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: Vulnerabilidades do package-lock da main
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Obter somente o codigo versionado
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Usar Node.js oficial
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Confirmar package-lock versionado
+        run: test -s package-lock.json
+      - name: Auditar dependencias de producao (moderada ou superior)
+        run: npm audit --omit=dev --audit-level=moderate
+      - name: Auditar dependencias de desenvolvimento (alta ou critica)
+        if: success() || failure()
+        run: npm audit --audit-level=high
+
+# Somente leitura: sem npm install, npm audit fix, alteracao de branches,
+# deploy, acesso a banco ou segredos. Falhas aparecem nos Actions da main.
