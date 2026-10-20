@@ -1,0 +1,460 @@
+/*
+ * Agenda Prado / Preview: linguagem visual operacional em cinza-grafite.
+ * Somente a branch testes. Revisão de interface, sem alterar fluxos nem API.
+ * Ordem de carga: após todos os estilos de tela para neutralizar legado azul.
+ */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --color-primary: #b1beca;
+  --color-primary-strong: #d4dee6;
+  --color-primary-soft: #30353a;
+  --color-accent: #bdc8d0;
+  --color-accent-strong: #d4dee6;
+  --color-background: #181a1c;
+  --color-surface: #24272a;
+  --color-surface-glass: #24272a;
+  --color-surface-muted: #2b2f33;
+  --color-surface-strong: #34393e;
+  --color-neutral-soft: #2b2f33;
+  --color-text: #dce0e3;
+  --color-text-strong: #eff1f2;
+  --color-text-muted: #bcc2c6;
+  --color-text-soft: #a5adb3;
+  --color-border: #44494e;
+  --color-border-soft: #363b3f;
+  --color-border-strong: #60676e;
+  --color-on-primary: #181a1c;
+  --color-focus-ring: rgba(198, 210, 220, .23);
+  --color-primary-glow: transparent;
+  --color-overlay: rgba(7,8,10,.8);
+  --color-success: #a3d3b7;
+  --color-success-soft: #25382e;
+  --color-success-border: #436852;
+  --color-warning: #e1c58c;
+  --color-warning-soft: #3b3325;
+  --color-warning-border: #67583d;
+  --color-danger: #ebaeaa;
+  --color-danger-soft: #3d292a;
+  --color-danger-border: #6b4648;
+  --shadow-card: none;
+  --shadow-elevated: 0 14px 38px rgba(0,0,0,.32);
+}
+html[data-theme="dark"] body {
+  background: var(--color-background);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  letter-spacing: normal;
+}
+/* Estrutura fixa, sem cartões ornamentais na navegação. */
+html[data-theme="dark"] .prado-admin.admin-shell,
+html[data-theme="dark"] .prado-store-layout.store-shell {
+  background: var(--color-background);
+}
+html[data-theme="dark"] .prado-sidebar,
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar {
+  background: #1d2022;
+  border-right-color: var(--color-border-soft);
+  padding-top: 22px;
+}
+html[data-theme="dark"] .prado-brand {
+  margin-bottom: 28px;
+  gap: 10px;
+}
+html[data-theme="dark"] .prado-brand-mark {
+  border: 1px solid #6d777f;
+  border-radius: 7px;
+  background: #31363a;
+  color: #ecf0f2;
+  box-shadow: none;
+  font-size: 17px;
+}
+html[data-theme="dark"] .prado-brand strong { font-weight: 700; color: var(--color-text-strong); }
+html[data-theme="dark"] .prado-brand small,
+html[data-theme="dark"] .prado-sidebar-label,
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-label,
+html[data-theme="dark"] .prado-store-layout .prado-store-eyebrow,
+html[data-theme="dark"] .prado-store-sidebar-footer span { color: var(--color-text-soft); }
+html[data-theme="dark"] .prado-side-nav .nav-link,
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link {
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 12.5px;
+  font-weight: 580;
+  box-shadow: none;
+  transition: background-color .14s ease, color .14s ease;
+}
+html[data-theme="dark"] .prado-sidebar .prado-side-nav.admin-topnav > .nav-link { border-radius: 6px; }
+html[data-theme="dark"] .prado-side-nav .nav-link:hover,
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link:hover {
+  background: #2c3033; color: #f0f2f4;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link.active,
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link.active {
+  border-color: transparent;
+  background: #303438;
+  color: #f1f2f3;
+  box-shadow: inset 3px 0 #bbc5cc;
+  font-weight: 680;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-symbol { color: var(--color-text-strong); }
+html[data-theme="dark"] .prado-sidebar-footer,
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar-footer {
+  border-top-color: var(--color-border-soft);
+  color: var(--color-text-soft);
+}
+html[data-theme="dark"] .prado-topbar.admin-topbar,
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar.store-operations-topbar {
+  background: #202326;
+  border-bottom: 1px solid var(--color-border-soft);
+}
+html[data-theme="dark"] .prado-topbar-breadcrumb,
+html[data-theme="dark"] .prado-store-layout .prado-store-breadcrumb { color: var(--color-text-soft); }
+html[data-theme="dark"] .prado-topbar-breadcrumb strong,
+html[data-theme="dark"] .prado-store-layout .prado-store-breadcrumb strong,
+html[data-theme="dark"] .prado-store-layout .store-operator-context strong { color: var(--color-text-strong); }
+html[data-theme="dark"] .prado-topbar .admin-topbar-account { border-left-color: var(--color-border-soft); }
+html[data-theme="dark"] .prado-topbar .admin-topbar-user span { color: var(--color-text-strong); }
+html[data-theme="dark"] .prado-topbar .admin-topbar-user small,
+html[data-theme="dark"] .prado-store-layout .store-operator-context small { color: var(--color-text-soft); }
+html[data-theme="dark"] .prado-workspace .app-content,
+html[data-theme="dark"] .prado-store-layout .prado-store-body {
+  max-width: 1580px;
+  padding-top: 27px;
+}
+/* Títulos contidos, controles explícitos e densidade apropriada a sistema empresarial. */
+html[data-theme="dark"] .prado-workspace .page-heading h1,
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading h1 {
+  color: var(--color-text-strong);
+  font-size: clamp(21px, 2vw, 25px);
+  letter-spacing: -.025em;
+  font-weight: 680;
+}
+html[data-theme="dark"] .prado-workspace .page-heading p,
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading p {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+html[data-theme="dark"] .prado-workspace .page-heading .eyebrow { display: none; }
+html[data-theme="dark"] .primary-button,
+html[data-theme="dark"] .login-form button {
+  background: #ccd5da;
+  border: 1px solid #ccd5da;
+  color: #171a1c;
+  border-radius: 7px;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 720;
+}
+html[data-theme="dark"] .primary-button:hover:not(:disabled),
+html[data-theme="dark"] .login-form button:hover:not(:disabled) {
+  border-color: #e9edf0;
+  background: #e9edf0;
+  color: #171a1c;
+}
+html[data-theme="dark"] .ghost-button,
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-actions .ghost-button {
+  background: #292d30;
+  border: 1px solid #50565b;
+  color: var(--color-text-strong);
+  border-radius: 7px;
+  box-shadow: none;
+  font-size: 12px;
+  font-weight: 620;
+}
+html[data-theme="dark"] .ghost-button:hover:not(:disabled) {
+  border-color: #737b82;
+  background: #363b40;
+}
+html[data-theme="dark"] button:disabled { opacity: .55; cursor: not-allowed; }
+html[data-theme="dark"] :focus-visible { outline: 2px solid #d2dde5; outline-offset: 2px; }
+html[data-theme="dark"] :is(input,select,textarea):focus-visible {
+  outline: 2px solid #b2c2cf;
+  outline-offset: 1px;
+}
+html[data-theme="dark"] :is(input,select,textarea) { accent-color: #ccd5da; }
+html[data-theme="dark"] :is(.form-card,.modal-card,.registry-card,.table-card,.store-card,.upload-card,.login-card,.dashboard-kpi) {
+  border-color: var(--color-border-soft);
+  background: var(--color-surface);
+  border-radius: 9px;
+  box-shadow: none;
+}
+/* Recebimento ADM: painel operacional, não vitrine de indicadores. */
+html[data-theme="dark"] .dashboard-operations { gap: 10px; }
+html[data-theme="dark"] .dashboard-operations-heading { margin-bottom: 0; }
+html[data-theme="dark"] .dashboard-operations-heading h2 { font-size: 14px; font-weight: 675; }
+html[data-theme="dark"] .dashboard-operation-summary {
+  min-height: 62px;
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+  border-radius: 8px;
+}
+html[data-theme="dark"] .dashboard-operation-summary > span {
+  border-right-color: var(--color-border-soft);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 580;
+}
+html[data-theme="dark"] .dashboard-operation-summary strong {
+  font-size: 19px;
+  color: var(--color-text-strong);
+  font-weight: 710;
+}
+html[data-theme="dark"] .dashboard-operation-table { border-color: var(--color-border-soft); border-radius: 8px; }
+html[data-theme="dark"] .dashboard-operation-table thead th,
+html[data-theme="dark"] .registry-table th,
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop thead th {
+  background: #292d30;
+  color: #c1c7cb;
+  border-bottom-color: var(--color-border);
+  font-size: 11px;
+  letter-spacing: .01em;
+  font-weight: 650;
+  text-transform: none;
+}
+html[data-theme="dark"] .dashboard-operation-row td,
+html[data-theme="dark"] .registry-table td {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border-bottom-color: var(--color-border-soft);
+}
+html[data-theme="dark"] .dashboard-operation-row:nth-child(even) td,
+html[data-theme="dark"] .registry-table tbody tr:nth-child(even) td { background: #26292c; }
+html[data-theme="dark"] .dashboard-operation-row:hover td,
+html[data-theme="dark"] .registry-table tbody tr:hover td { background: #313538; }
+html[data-theme="dark"] .dashboard-operation-row td:first-child,
+html[data-theme="dark"] .dashboard-operation-row td:nth-child(2) { background: inherit; }
+html[data-theme="dark"] .dashboard-operation-row .dashboard-store-cell strong { color: var(--color-text-strong); }
+html[data-theme="dark"] .dashboard-operation-row .dashboard-store-details { color: var(--color-text-strong); }
+html[data-theme="dark"] .dashboard-operation-row .dashboard-store-details:hover { background: var(--color-surface-muted); }
+html[data-theme="dark"] .dashboard-date-controls,
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-date-controls {
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  background: #282c2f;
+}
+html[data-theme="dark"] .dashboard-date-controls .dashboard-date-step { background: transparent; border-color: transparent; }
+/* Conferente: resumo compacto mas legível; tabela central é o foco. */
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-bar { margin-bottom: 18px; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view:not([hidden]) { gap: 15px; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics {
+  gap: 9px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span {
+  min-height: 93px;
+  padding: 13px 15px;
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  box-shadow: none;
+  gap: 7px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics strong {
+  font-size: 27px;
+  font-weight: 710;
+  color: var(--color-text-strong);
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(2) strong { color: var(--color-warning); }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(3) strong { color: var(--color-success); }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(4) strong { color: var(--color-danger); }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel {
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+  border-radius: 9px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border-soft);
+  padding: 16px 19px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading h2 { color: var(--color-text-strong); font-size: 14px; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading p { color: var(--color-text-muted); }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-search input,
+html[data-theme="dark"] .registry-toolbar input,
+html[data-theme="dark"] .registry-toolbar select {
+  background: #1d2022;
+  border-color: var(--color-border);
+  color: var(--color-text-strong);
+  border-radius: 7px;
+  min-height: 39px;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop td {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border-soft);
+  color: var(--color-text);
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop tbody tr:nth-child(even) td { background: #26292c; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop tbody tr:hover td { background: #313538; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-card {
+  border-color: var(--color-border-soft);
+  background: var(--color-surface);
+  border-radius: 8px;
+}
+html[data-theme="dark"] .prado-store-layout .agenda-observation-trigger {
+  background: #2b2f32;
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  border-radius: 6px;
+}
+html[data-theme="dark"] .prado-store-layout .agenda-observation-trigger:hover { background: #373c40; }
+/* Cadastros: mesma hierarquia para lojas e usuários, reduzindo elementos decorativos. */
+html[data-theme="dark"] .registry-page-heading { padding-bottom: 15px; border-bottom: 1px solid var(--color-border-soft); }
+html[data-theme="dark"] .registry-heading-meta { font-size: 12px; color: var(--color-text-muted); font-weight: 550; }
+html[data-theme="dark"] .registry-card { border: 1px solid var(--color-border-soft); border-radius: 9px; }
+html[data-theme="dark"] .registry-toolbar { background: #292d30; border-bottom-color: var(--color-border-soft); padding: 12px; gap: 10px; }
+html[data-theme="dark"] .registry-primary-cell { font-weight: 650; color: var(--color-text-strong); }
+html[data-theme="dark"] .registry-code-cell { color: var(--color-text-strong); }
+html[data-theme="dark"] .registry-status.is-active { color: var(--color-text); }
+html[data-theme="dark"] .registry-status.is-inactive { color: var(--color-text-soft); }
+html[data-theme="dark"] .registry-edit-button { background: transparent; border-color: var(--color-border); }
+html[data-theme="dark"] .registry-edit-button:hover { background: var(--color-surface-strong); }
+html[data-theme="dark"] .registry-create-modal :is(input,select),
+html[data-theme="dark"] .observation-field :is(select,textarea) {
+  background: #1d2022;
+  border-color: var(--color-border);
+}
+/* Relatórios: preservar informações, remover gradientes e hierarquia exagerada. */
+html[data-theme="dark"] .manager-report .report-heading-tag { display: none; }
+html[data-theme="dark"] .manager-report .report-filters {
+  border-color: var(--color-border-soft);
+  background: var(--color-surface);
+  border-radius: 9px;
+  box-shadow: none;
+  padding: 17px 19px;
+  gap: 11px;
+  margin-bottom: 18px;
+}
+html[data-theme="dark"] .manager-report .report-filter-intro { border-bottom-color: var(--color-border-soft); padding-bottom: 10px; }
+html[data-theme="dark"] .manager-report .report-filter-intro strong { color: var(--color-text-strong); }
+html[data-theme="dark"] .manager-report .report-filter-intro span { color: var(--color-text-muted); }
+html[data-theme="dark"] .manager-report .report-chip {
+  border: 1px solid var(--color-border);
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 6px;
+}
+html[data-theme="dark"] .manager-report .report-chip[aria-pressed="true"] {
+  background: #3b4145;
+  border-color: #89949b;
+  color: #f0f2f3;
+}
+html[data-theme="dark"] .manager-report .report-section-heading {
+  margin: 21px 0 10px;
+}
+html[data-theme="dark"] .manager-report .report-section-kicker { color: var(--color-text-soft); }
+html[data-theme="dark"] .manager-report .report-section-heading h2 {
+  font-size: clamp(16px, 1.75vw, 19px);
+  font-weight: 680;
+  color: var(--color-text-strong);
+}
+html[data-theme="dark"] .manager-report .report-range-summary {
+  background: #282c2f;
+  border-color: var(--color-border-soft);
+  color: var(--color-text-muted);
+}
+html[data-theme="dark"] .manager-report .report-kpis { gap: 9px; margin-bottom: 13px; }
+html[data-theme="dark"] .manager-report .report-metric,
+html[data-theme="dark"] .manager-report .report-metric:nth-child(n+5) {
+  min-height: 114px;
+  padding: 15px 17px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: 8px;
+  box-shadow: none;
+}
+html[data-theme="dark"] .manager-report .report-metric:nth-child(4) {
+  background: #2b2f33;
+  border-color: #6c777e;
+}
+html[data-theme="dark"] .manager-report .report-metric strong,
+html[data-theme="dark"] .manager-report .report-metric:nth-child(n+5) strong {
+  font-size: clamp(24px, 2vw, 29px);
+  font-weight: 690;
+  color: var(--color-text-strong);
+}
+html[data-theme="dark"] .manager-report .report-metric:nth-child(2) strong { color: var(--color-success); }
+html[data-theme="dark"] .manager-report .report-metric:nth-child(3) strong { color: var(--color-danger); }
+html[data-theme="dark"] .manager-report .report-panel {
+  background: var(--color-surface);
+  border-color: var(--color-border-soft);
+  border-radius: 9px;
+  box-shadow: none;
+  margin-bottom: 12px;
+}
+html[data-theme="dark"] .manager-report .report-panel > header {
+  background: #292d30;
+  border-bottom-color: var(--color-border-soft);
+  border-radius: 9px 9px 0 0;
+  min-height: 67px;
+  padding: 13px 17px;
+}
+html[data-theme="dark"] .manager-report .report-panel > header h2 { font-size: 14px; }
+html[data-theme="dark"] .manager-report .report-progress-list { padding: 8px 16px; }
+html[data-theme="dark"] .manager-report .report-progress-item { padding: 12px 0; }
+html[data-theme="dark"] .manager-report .report-mode-button[aria-pressed="true"] { background: #41484d; color: #fff; }
+html[data-theme="dark"] .manager-report th { background: #292d30; color: var(--color-text-muted); }
+html[data-theme="dark"] .manager-report td { border-top-color: var(--color-border-soft); }
+html[data-theme="dark"] .manager-report tbody tr:hover { background: #303438; }
+html[data-theme="dark"] .manager-report .report-info-button {
+  color: var(--color-text-muted);
+  border-color: var(--color-border);
+}
+html[data-theme="dark"] .manager-report .report-info-button:hover,
+html[data-theme="dark"] .manager-report .report-info-button:focus-visible {
+  background: #41484d;
+  border-color: #8b979f;
+  color: var(--color-text-strong);
+}
+/* Login e diálogos: componentes discretos, sem brilho e sem arredondamento excessivo. */
+html[data-theme="dark"] .login-page {
+  background: var(--color-background);
+}
+html[data-theme="dark"] .login-card {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+  border-radius: 10px;
+  box-shadow: 0 14px 40px rgba(0,0,0,.2);
+}
+html[data-theme="dark"] .brand-icon { border-radius: 8px; box-shadow: none; }
+html[data-theme="dark"] .login-heading .eyebrow { color: var(--color-text-soft); }
+html[data-theme="dark"] .login-heading h1 { color: var(--color-text-strong); font-size: 27px; }
+html[data-theme="dark"] .login-form input {
+  background: #1e2123;
+  border: 1px solid var(--color-border);
+  border-radius: 7px;
+  color: var(--color-text-strong);
+}
+html[data-theme="dark"] .modal-card { background: #25282b; border-color: var(--color-border); }
+html[data-theme="dark"] .modal-card :is(input,select,textarea) { background: #1f2224; color: var(--color-text); border-color: var(--color-border); }
+html[data-theme="dark"] .form-success { color: var(--color-success); }
+@media (max-width: 980px) {
+  html[data-theme="dark"] .prado-workspace .app-content,
+  html[data-theme="dark"] .prado-store-layout .prado-store-body { padding: 22px 18px 38px; }
+}
+@media (max-width: 760px) {
+  html[data-theme="dark"] .prado-workspace .app-content,
+  html[data-theme="dark"] .prado-store-layout .prado-store-body { padding: 18px 13px 32px; }
+  html[data-theme="dark"] .prado-topbar.admin-topbar,
+  html[data-theme="dark"] .prado-store-layout .prado-store-topbar.store-operations-topbar {
+    background: #202326;
+  }
+  html[data-theme="dark"] .dashboard-operation-summary { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); }
+  html[data-theme="dark"] .dashboard-operation-summary > span { min-width: 0; border-bottom: 1px solid var(--color-border-soft); }
+  html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics {
+    grid-template-columns: repeat(2,minmax(0,1fr));
+  }
+  html[data-theme="dark"] .manager-report .report-filters { padding: 14px; }
+  html[data-theme="dark"] .manager-report .report-kpis { gap: 8px; }
+  html[data-theme="dark"] .manager-report .report-metric { padding: 12px; }
+  html[data-theme="dark"] .manager-report .report-section-heading { margin-top: 18px; }
+}
+@media print {
+  .manager-report .report-metric, .manager-report .report-panel,
+  .manager-report .report-panel > header {
+    box-shadow: none !important;
+  }
+}
