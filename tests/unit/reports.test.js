@@ -2,7 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { adminReportRoutes } from "../../worker/routes/admin-reports.js";
-import { sumReportRows, reportRate, groupDailyReport, groupStoreReport } from "../../frontend/report-model.js";
+import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, groupWeekdayReport } from "../../frontend/report-model.js";
 import { validReportRange } from "../../frontend/reports.js";
 
 const rows=[
@@ -33,7 +33,7 @@ describe("Relatório Gerencial",()=>{
    const statements=[];
    const db={prepare(sql){const item={sql,params:[]};statements.push(item);
      return{bind(...args){item.params=args;return this;},
-       async all(){if(sql.includes("ag.fornecedor"))return {results:[{supplier:"Teste",naoChegou:2}]};return {results:[rows[0]]};},
+       async all(){if(sql.includes("ag.fornecedor"))return {results:[{supplier:"Teste",total:5,recebido:3,naoChegou:2}]};return {results:[rows[0]]};},
        async first(){return {total:1};}
      };
    }};
@@ -51,8 +51,44 @@ describe("Relatório Gerencial",()=>{
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'aberto'/);
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'concluido'/);
    assert.equal(data.rows[0].semConferencia,0);
+   assert.match(statements[1].sql,/HAVING naoChegou > 0/);
+   assert.match(statements[1].sql,/ag\.status = 'recebido'/);
+   assert.equal(data.suppliers[0].total,5);
+   assert.equal(data.suppliers[0].recebido,3);
+   assert.equal(data.suppliers[0].naoChegou,2);
    const badPage=await fetch("/occurrences?start=2026-10-01&end=2026-10-19&limit=200");
    assert.equal(badPage.status,400);
+ });
+ it("agrupa por dia da semana na ordem operacional e conta os dias",()=>{
+   const daily=groupDailyReport(rows);
+   const weekdays=groupWeekdayReport(daily);
+   assert.deepEqual(weekdays.map(w=>w.weekday),[4,5]);
+   assert.deepEqual(weekdays.map(w=>w.days),[1,1]);
+   assert.deepEqual(weekdays.map(w=>w.total),[6,4]);
+   assert.equal(weekdays[0].recebido,4);
+   assert.equal(weekdays[1].recebido,2);
+ });
+ it("busca ocorrências por fornecedor ou protocolo com curingas escapados",async()=>{
+   const statements=[];
+   const db={prepare(sql){const item={sql,params:[]};statements.push(item);
+     return{bind(...args){item.params=args;return this;},
+       async all(){return {results:[]};},
+       async first(){return {total:0};}
+     };
+   }};
+   const fetch=path=>adminReportRoutes.request("http://localhost"+path,{}, {DB:db});
+   const ok=await fetch("/occurrences?start=2026-10-01&end=2026-10-19&q=Teste%20100%25");
+   assert.equal(ok.status,200);
+   const search=statements.find(item=>item.sql.includes("LIKE"));
+   assert.ok(search,"nenhuma consulta com LIKE registrada");
+   assert.ok(search.sql.includes("ag.fornecedor LIKE ? ESCAPE '\\'"));
+   assert.ok(search.sql.includes("ag.protocolo LIKE ? ESCAPE '\\'"));
+   assert.equal(search.params.filter(value=>value==="%Teste 100\\%%").length,2);
+   const withoutSearch=await fetch("/occurrences?start=2026-10-01&end=2026-10-19");
+   assert.equal(withoutSearch.status,200);
+   assert.equal(statements.filter(item=>item.sql.includes("LIKE")).length,0);
+   const tooLong=await fetch("/occurrences?start=2026-10-01&end=2026-10-19&q="+("a".repeat(81)));
+   assert.equal(tooLong.status,400);
  });
  it("exige perfis autorizados e mantém somente GET para visualizador",()=>{
    const auth=read("../../worker/middleware/auth.js");
