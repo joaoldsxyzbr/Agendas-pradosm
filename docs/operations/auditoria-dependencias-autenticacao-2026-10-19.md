@@ -28,7 +28,13 @@ Dependabot PRs: alvo `preview`, limite 2 por ecossistema, sem auto-merge. **Depe
 - O PR #96 passou a proteger migração de hash contra mudança de senha concorrente; revoga sessões após alterações relevantes.
 - Este PR adiciona testes de compatibilidade de hashes legados/mais fortes e rejeição de hashes malformados, sem alterar o número atual de iterações.
 - Para referência local, executar `npm run benchmark:password`: mede três verificações com cada custo (100k, 600k) **somente no Node da máquina**, sem banco e sem credenciais reais. Não extrapolar diretamente para latência nem limites da Cloudflare.
-- **Antes de mudar 100k → 600k:** realizar benchmark controlado em Worker **isolado de homologação**, revisar quotas de CPU e rate-limiter, demonstrar login responsivo e recuperação de sessão, depois migrar progressivamente mantendo hashes antigos funcionais. Não gerar migração D1 apenas para mudar parâmetro codificado no hash.
+- **Antes de mudar 100k → 600k:** realizar benchmark controlado em Worker **isolado de homologação**, revisar quotas de CPU e rate-limiter, demonstrar login responsivo e recuperação de sessão, depois migrar progressivamente mantendo hashes antigos funcionais.
+
+### Diagnóstico com Workerd local
+
+O workflow manual `.github/workflows/runner-diagnostico.yml` usa apenas o **Wrangler oficial** para iniciar `wrangler dev --local --ip 127.0.0.1` com `wrangler.password-benchmark.jsonc`, que aponta para `scripts/workerd-password-benchmark-worker.js`. Este Worker efêmero importa a função `verifyPassword` real, recebe **somente fixtures sintéticas** e é encerrado no fim do job. Não há binding D1, segredo, deploy remoto nem endpoint público permanente.
+
+O benchmark `node scripts/benchmark-password-workerd.mjs` mede cinco tempos de **ida e volta HTTP local** para hashes de 100 mil e 600 mil iterações, após aquecimento, além de verificar senha incorreta. Os números aproximam a compatibilidade do runtime Workerd mas **não medem CPU remota, quota de CPU, latência de rede ou performance do ambiente Cloudflare publicado**; uma medição isolada no Worker remoto e validação de login na Preview continuam necessárias antes de alterar o custo das senhas. Não gerar migração D1 apenas para mudar parâmetro codificado no hash.
 
 ## Divergência e limpeza do GitHub
 
@@ -46,7 +52,7 @@ Comparação de árvores (caminhos e hashes, **não equivale a comparação de h
 - [x] Auditoria do formato de hashes de senha com testes.
 - [x] Mapear divergências principais de branches sem alterações destrutivas.
 - [ ] Ativar Dependabot Alerts no GitHub e triar vulnerabilidades reais.
-- [ ] Benchmark de PBKDF2 no runtime Cloudflare isolado antes de alterar custo em produção.
+- [ ] Benchmark Workerd local e, depois, Worker Cloudflare remoto isolado antes de alterar custo em produção.
 - [ ] Medir performance D1 com plano de consulta e dados sintéticos para definir necessidade de paginação.
 - [ ] Analisar branches antigas por commits exclusivos antes de qualquer exclusão.
 - [ ] Planejar eliminação faseada de bibliotecas externas com equivalência de testes.
