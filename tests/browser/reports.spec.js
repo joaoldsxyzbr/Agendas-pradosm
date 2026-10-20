@@ -10,7 +10,7 @@ const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  suppliers:[{supplier:"Fornecedor Teste",total:4,recebido:3,naoChegou:1}]};
 const occ={total:1,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
  supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado"}]};
-async function mocks(page,user){
+async function mocks(page,user,{emptyPrevious=false}={}){
  const requests=[];const searches=[];
  await page.route("**/api/**",route=>{
    const u=new URL(route.request().url());requests.push(u.pathname);searches.push(u.search);
@@ -20,7 +20,10 @@ async function mocks(page,user){
    if(u.pathname==="/api/admin/stores")return json(stores);
    if(u.pathname==="/api/admin/presence")return json([]);
    if(u.pathname==="/api/admin/agendas")return json([]);
-   if(u.pathname==="/api/admin/reports")return json(report);
+   if(u.pathname==="/api/admin/reports"){
+     const noBaseline=emptyPrevious&&u.searchParams.get("end")==="2026-09-30";
+     return json(noBaseline?{...report,rows:[],suppliers:[]}:report);
+   }
    if(u.pathname==="/api/admin/reports/occurrences")return json(occ);
    throw Error("API inesperada: "+u.pathname);
  });
@@ -55,6 +58,9 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
+   await expect(page.locator(".report-metric-primary")).toHaveCount(4);
+   await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
+   await expect(page.locator('[data-report-date-display="start"]')).toHaveText(/^\d{2}\/\d{2}\/\d{4}$/);
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
    await expect(page.locator(".manager-report")).toContainText("Sem conferência");
@@ -78,6 +84,21 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
+test("Relatório: mostra datas em dd/mm/aaaa e esclarece comparação sem base anterior",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  await mocks(page,admin,{emptyPrevious:true});
+  await page.goto("/admin/reports");
+  await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  await page.locator("[name=start]").fill("2026-10-01");
+  await page.locator("[name=end]").fill("2026-10-19");
+  await expect(page.locator('[data-report-date-display="start"]')).toHaveText("01/10/2026");
+  await expect(page.locator('[data-report-date-display="end"]')).toHaveText("19/10/2026");
+  await page.getByRole("button",{name:"Aplicar filtros"}).click();
+  await expect(page.locator(".report-insight")).toContainText("0 agendamentos");
+  await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
+  const rateMetric=page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span",{hasText:/^Taxa de recebimento$/})});
+  await expect(rateMetric.locator(".report-metric-delta")).toHaveCount(0);
+});
 test("Atalhos de período, alternância do gráfico, busca de ocorrências e padrão semanal",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   const {requests,searches}=await mocks(page,viewer);

@@ -29,11 +29,15 @@ export function dashboardModel(stores, agendas, presences) {
     const agenda = byCode.get(store.codigo);
     return agenda && agenda.dayStatus !== "concluido";
   }).length;
+  const rows = activeStores.map(store => ({
+    store, agenda: byCode.get(store.codigo) || null,
+    presenceStatus: byId.get(store.id)?.status || "offline"
+  })).sort((a, b) => {
+    const rank = row => row.agenda?.dayStatus === "concluido" ? 1 : 0;
+    return rank(a) - rank(b);
+  });
   return {
-    rows: activeStores.map(store => ({
-      store, agenda: byCode.get(store.codigo) || null,
-      presenceStatus: byId.get(store.id)?.status || "offline"
-    })),
+    rows,
     totalStores: activeStores.length,
     storesWithAgenda,
     completedStores,
@@ -42,7 +46,7 @@ export function dashboardModel(stores, agendas, presences) {
   };
 }
 
-export function dashboardRowHtml({ store, agenda, presenceStatus }, selectedDate) {
+export function dashboardRowHtml({ store, agenda, presenceStatus }) {
   const presence = presenceLabel(presenceStatus);
   const rowClass = agenda?.dayStatus === "concluido" ? "is-completed" : agenda ? "is-open" : "is-empty";
   const esc = escapeHtml;
@@ -51,6 +55,17 @@ export function dashboardRowHtml({ store, agenda, presenceStatus }, selectedDate
   const total = Math.max(0, Number(agenda?.total) || 0);
   const progressMax = Math.max(1, total);
   const progressValue = Math.min(received, progressMax);
+  const pendingCounts = agenda ? [
+    [Math.max(0, Number(agenda.aguardando) || 0), "aguardando", "has-waiting"],
+    [Math.max(0, Number(agenda.naoChegou) || 0), "não recebidos", "has-missing"],
+    [Math.max(0, Number(agenda.recusado) || 0), "recusados", "has-missing"],
+    [Math.max(0, Number(agenda.semAgenda) || 0), "sem agenda", ""]
+  ].filter(([count]) => count > 0) : [];
+  const pendingContent = agenda
+    ? (pendingCounts.length
+      ? pendingCounts.map(([count, label, tone]) => `<span${tone ? ` class="${tone}"` : ""}>${count} ${label}</span>`).join("")
+      : '<span class="dashboard-no-pending">Sem pendências</span>')
+    : '<span class="dashboard-no-agenda-copy">Sem agenda nesta data</span>';
   return `<tr class="dashboard-operation-row ${rowClass}" data-store-id="${esc(store.id)}" data-testid="dashboard-store-${esc(store.codigo)}">
     <td class="dashboard-store-cell">
       <strong>${esc(store.codigo)}<small class="dashboard-agenda-mark">${agenda ? "Agenda importada" : "Sem agenda"}</small></strong>
@@ -64,14 +79,7 @@ export function dashboardRowHtml({ store, agenda, presenceStatus }, selectedDate
       ? `<strong>${received} <span class="dashboard-progress-divider">/</span> ${total}</strong>
         <progress class="dashboard-received-progress" value="${progressValue}" max="${progressMax}" aria-label="Recebimentos concluídos"></progress>`
       : '<span class="dashboard-empty-value">—</span>'}</td>
-    <td class="dashboard-pending-cell">${agenda
-      ? `<div>
-          <span class="${agenda.aguardando > 0 ? "has-waiting" : "is-zero"}">${agenda.aguardando} aguardando</span>
-          <span class="${agenda.naoChegou > 0 ? "has-missing" : "is-zero"}">${agenda.naoChegou} não recebidos</span>
-          ${agenda.recusado > 0 ? `<span class="has-missing">${agenda.recusado} recusados</span>` : ""}
-          ${agenda.semAgenda > 0 ? `<span>${agenda.semAgenda} sem agenda</span>` : ""}
-        </div>`
-      : `<span class="dashboard-no-agenda-copy">Não importada em ${esc(formatDashboardDate(selectedDate))}</span>`}</td>
+    <td class="dashboard-pending-cell"><div>${pendingContent}</div></td>
     <td>${agenda
       ? `<span class="status-pill ${agenda.dayStatus === "concluido" ? "success" : "warning"}">${agenda.dayStatus === "concluido" ? "Concluído" : "Em andamento"}</span>`
       : '<span class="status-pill muted">Sem agenda</span>'}</td>

@@ -24,7 +24,7 @@ function table(columns,rows) {
 const cell=(text,numeric=false)=>'<td'+(numeric?' class="report-number"':'')+'>'+esc(text)+'</td>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
-const metric=(label,value,description,delta=null)=>'<div class="report-metric"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div><strong>'+esc(value)+'</strong>'+
+const metric=(label,value,description,delta=null,variant="supporting")=>'<div class="report-metric report-metric-'+variant+'"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div><strong>'+esc(value)+'</strong>'+
   (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+'<small>'+esc(description)+'</small></div>';
 const delta=(current,previous,kind="neutral",unit="")=>{
   if(previous==null)return null;
@@ -119,8 +119,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<form class="report-filters" data-report-filters>'+ 
       '<div class="report-filter-intro"><div><strong>Período e filtros</strong><span>Escolha os dados que deseja analisar.</span></div><small>Intervalo máximo de 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
-      '<label>De<input type="date" name="start" required value="'+esc(settings.start)+'"></label>'+
-      '<label>Até<input type="date" name="end" required value="'+esc(settings.end)+'"></label>'+
+      '<label>De<div class="report-date-control"><span aria-hidden="true" data-report-date-display="start">'+esc(date(settings.start))+'</span><span class="report-date-calendar" aria-hidden="true">▦</span><input type="date" lang="pt-BR" name="start" data-report-date-input="start" value="'+esc(settings.start)+'"></div></label>'+
+      '<label>Até<div class="report-date-control"><span aria-hidden="true" data-report-date-display="end">'+esc(date(settings.end))+'</span><span class="report-date-calendar" aria-hidden="true">▦</span><input type="date" lang="pt-BR" name="end" data-report-date-input="end" value="'+esc(settings.end)+'"></div></label>'+
       '<label class="report-store-filter">Loja<select name="store"><option value="">Todas as lojas</option>'+options+'</select></label>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
       '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
@@ -133,9 +133,10 @@ export function renderReports(root,{request=apiFetch}={}) {
     const rate=x=>pct(reportRate(x));
     const prev=previous?prior:null;
     const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
-    const difference=reportRate(sum)-reportRate(prior);
+    const hasPriorRate=Boolean(previous)&&prior.total>0;
+    const difference=hasPriorRate?reportRate(sum)-reportRate(prior):null;
     const compare=previous?'<p class="report-insight"><strong>Período anterior ('+num(days)+' dias):</strong> '+num(prior.total)+
-      ' agendamentos · variação da taxa de recebimento: <strong>'+esc((difference>=0?"+":"")+difference.toLocaleString("pt-BR",{maximumFractionDigits:1})+' p.p.')+'</strong></p>':"";
+      (hasPriorRate?' agendamentos · variação da taxa de recebimento: <strong>'+esc((difference>=0?"+":"")+difference.toLocaleString("pt-BR",{maximumFractionDigits:1})+' p.p.')+'</strong>':' agendamentos · sem base para comparar a taxa de recebimento.')+'</p>':"";
     const open=sum.abertas?'<p class="report-open-note">'+num(sum.abertas)+' agenda(s) em aberto; os indicadores podem mudar até o fechamento.</p>':"";
     const storeBars=units.map(u=>meter(u.code+" · "+u.name,u.total,u.recebido)).join("")||'<p class="report-empty">Nenhuma loja.</p>';
     const highest=Math.max(1,...report.suppliers.map(x=>Number(x.naoChegou)||0));
@@ -168,10 +169,10 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
       '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(settings.store||"Todas as lojas")+'</span></div>'+ 
       '<div class="report-kpis">'+
-      metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total))+
-      metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"))+
-      metric("Não recebidos",num(sum.naoChegou),"Não chegaram",delta(sum.naoChegou,prev?.naoChegou,"invert"))+
-      metric("Taxa de recebimento",rate(sum),"Recebidos / total",delta(reportRate(sum),prev?reportRate(prior):null,"good"," p.p."))+
+      metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
+      metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
+      metric("Não recebidos",num(sum.naoChegou),"Não chegaram",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
+      metric("Taxa de recebimento",rate(sum),"Recebidos / total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary")+
       metric("Aguardando",num(sum.aguardando),"Agendas abertas",delta(sum.aguardando,prev?.aguardando))+
       metric("Sem conferência",num(sum.semConferencia),"Agendas concluídas",delta(sum.semConferencia,prev?.semConferencia))+
       metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+compare+open+
@@ -232,6 +233,12 @@ export function renderReports(root,{request=apiFetch}={}) {
     persistFilters();
     void load();
   };
+  const syncDateDisplay=e=>{
+    const input=e.target;
+    if(!input.matches?.("[data-report-date-input]"))return;
+    const output=root.querySelector(`[data-report-date-display="${input.dataset.reportDateInput}"]`);
+    if(output)output.textContent=input.value?date(input.value):"dd/mm/aaaa";
+  };
   const click=e=>{
     const pagerButton=e.target.closest?.("[data-report-prev],[data-report-next]");
     if(pagerButton&&root.contains(pagerButton)&&!pagerButton.disabled){
@@ -265,6 +272,8 @@ export function renderReports(root,{request=apiFetch}={}) {
   };
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
+  root.addEventListener("input",syncDateDisplay);
+  root.addEventListener("change",syncDateDisplay);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("input",syncDateDisplay);root.removeEventListener("change",syncDateDisplay);};
 }

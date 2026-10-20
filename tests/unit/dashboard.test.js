@@ -36,17 +36,29 @@ describe("Dashboard administrativo em JS puro — paridade com a main", () => {
     assert.match(row, /value="4" max="5"/);
     assert.match(row, /Agenda importada/);
     assert.match(row, /1 aguardando/);
+    assert.doesNotMatch(row, /0 não recebidos|0 recusados|0 sem agenda/);
     assert.match(row, /Em andamento/);
     assert.match(row, /Ver detalhes/);
     assert.match(row, /Loja &amp; Filial/);
     const noAgenda = dashboardRowHtml(dashboardModel(stores, agendas, presence).rows[1], "2026-10-18");
-    assert.match(noAgenda, /Não importada em 18\/10\/2026/);
+    assert.match(noAgenda, /Sem agenda nesta data/);
+    assert.doesNotMatch(noAgenda, /18\/10\/2026/);
     assert.match(noAgenda, /Sem agenda/);
     const controller = read("../../frontend/dashboard.js");
     for (const heading of [
       "Loja", "Conferente", "Recebimentos", "Pendências", "Situação",
       "Recebimento por loja", "Nenhuma loja com conferente ativo."
     ]) assert.ok(controller.includes(heading), heading);
+    assert.doesNotMatch(controller, /data-selected-date/);
+  });
+  it("prioriza lojas com agenda em andamento e resume contagens zeradas", () => {
+    const completedStore = { id: "e", codigo: "F11", nome: "Loja concluída", ativo: true, temConferenteAtivo: true };
+    const completedAgenda = { id: "agenda-e", storeCode: "F11", total: 1, recebido: 1, aguardando: 0, naoChegou: 0, recusado: 0, semAgenda: 0, dayStatus: "concluido" };
+    const model = dashboardModel([...stores, completedStore], [...agendas, completedAgenda], presence);
+    assert.deepEqual(model.rows.map(row => row.store.id), ["a", "b", "e"]);
+    const completed = dashboardRowHtml(model.rows[2]);
+    assert.match(completed, /Sem pendências/);
+    assert.doesNotMatch(completed, /0 aguardando|0 não recebidos|0 recusados/);
   });
   it("usa apenas células alteradas no refresh, sem reabrir a tela", () => {
     const source = read("../../frontend/dashboard.js");

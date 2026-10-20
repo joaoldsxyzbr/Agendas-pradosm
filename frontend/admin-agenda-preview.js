@@ -51,10 +51,14 @@ export function openAdminAgendaPreview(root,{
     </section>
   </div>`;
   root.appendChild(backdrop);
+  const body=root.ownerDocument.body;
+  const previousBodyOverflow=body.style.overflow;
+  body.style.overflow="hidden";
   const field=selector=>backdrop.querySelector(selector);
   const close=()=>{
     if(disposed)return;
     disposed=true;requestToken++;
+    body.style.overflow=previousBodyOverflow;
     manualClose?.();list?.destroy();
     offRealtime();
     backdrop.remove();

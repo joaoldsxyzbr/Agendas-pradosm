@@ -31,7 +31,12 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
   await expect(page.locator(".dashboard-operation-table thead th")).toHaveCount(6);
   await expect(page.locator(".dashboard-operation-row").first().locator("td")).toHaveCount(6);
   await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("max","20");
-  await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("value","20");
+  await expect(page.locator(".dashboard-operation-row").first()).toHaveClass(/is-open/);
+  await expect(page.locator(".dashboard-operation-row").last()).toHaveClass(/is-completed/);
+  await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("value","4");
+  await expect(page.locator(".dashboard-operation-row").first().locator(".dashboard-pending-cell")).not.toContainText("0 não recebidos");
+  await expect(page.locator(".dashboard-operation-row.is-completed .dashboard-pending-cell")).toContainText("Sem pendências");
+  await expect(page.locator("[data-selected-date]")).toHaveCount(0);
   await expect(page.locator('.dashboard-operation-row.is-empty').first().locator(".dashboard-agenda-mark")).toBeVisible();
   await expect(page.locator(".dashboard-operation-row").first().locator("[data-agenda-id]")).toHaveCount(1);
   const layout=await page.evaluate(()=>{

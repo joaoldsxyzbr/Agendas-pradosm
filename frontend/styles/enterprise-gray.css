@@ -752,3 +752,205 @@ html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody td.table-a
   html[data-theme="dark"] .prado-admin .dashboard-operation-table { overflow: hidden; }
   html[data-theme="dark"] .prado-admin .dashboard-operation-table .table-scroll { overflow-x: auto; overscroll-behavior-x: contain; }
 }
+
+/* Refinamentos administrativos: densidade, estados e hierarquia de leitura. */
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row > td {
+  height: 58px;
+  padding-block: 9px;
+}
+html[data-theme="dark"] .prado-admin .dashboard-pending-cell > div > span.dashboard-no-pending,
+html[data-theme="dark"] .prado-admin .dashboard-pending-cell > div > span.dashboard-no-agenda-copy {
+  color: #9ca5aa;
+}
+
+/* Cabeçalhos da agenda são comandos de ordenação, mas continuam com aparência de cabeçalho. */
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop thead th {
+  background: #292d30;
+  border-bottom: 1px solid #454a4e;
+  color: #c0c6c9;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop .agenda-sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 0;
+  width: auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 650;
+  text-align: left;
+  text-transform: none;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop .agenda-sort-button:hover {
+  background: transparent;
+  color: #f1f2f2;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop .agenda-sort-button:focus-visible {
+  outline: 2px solid #aeb7bc;
+  outline-offset: 3px;
+  box-shadow: none;
+}
+html[data-theme="dark"] .agenda-preview-modal [data-preview-reopen][hidden] {
+  display: none !important;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-metrics > .agenda-metric-total,
+html[data-theme="dark"] .agenda-preview-modal .agenda-metrics > .agenda-metric-pending,
+html[data-theme="dark"] .agenda-preview-modal .agenda-metrics > .agenda-metric-exchange {
+  background: #242729;
+  border-color: #3b4044;
+  color: #b5bdc1;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-metrics > .agenda-metric-success {
+  background: #252b28;
+  border-color: #46584d;
+  color: #a3d3b7;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-metrics > .agenda-metric-danger {
+  background: #2b2526;
+  border-color: #604244;
+  color: #e0aaa8;
+}
+
+/* Cadastros: mais linhas visíveis sem apertar o conteúdo dos campos. */
+html[data-theme="dark"] .prado-admin .registry-table td {
+  height: 46px;
+  padding-block: 0.38rem;
+}
+@media (min-width: 900px) {
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(1) { width: 24%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(2) { width: 43%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(3) { width: 19%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(1) { width: 22%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(2) { width: 16%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(3) { width: 27%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(4) { width: 15%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(5) { width: 12%; }
+}
+
+/* Indicadores principais em destaque; estados de apoio mais compactos. */
+html[data-theme="dark"] .manager-report .report-kpis {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 9px;
+}
+html[data-theme="dark"] .manager-report .report-metric-primary {
+  grid-column: span 3;
+  min-height: 112px;
+}
+html[data-theme="dark"] .manager-report .report-metric-supporting {
+  grid-column: span 4;
+  min-height: 84px;
+  padding: 11px 14px;
+  border-color: #353a3e;
+  background: #202326;
+}
+html[data-theme="dark"] .manager-report .report-metric-supporting strong {
+  margin: 5px 0 3px;
+  font-size: 22px;
+}
+html[data-theme="dark"] .manager-report .report-metric-supporting small {
+  font-size: 10px;
+}
+html[data-theme="dark"] .manager-report .report-section-heading {
+  margin-top: 17px;
+}
+html[data-theme="dark"] .manager-report .report-panel {
+  margin-bottom: 10px;
+}
+html[data-theme="dark"] .manager-report .report-panel > header {
+  min-height: 59px;
+  padding: 11px 15px;
+}
+html[data-theme="dark"] .manager-report .report-bar-area {
+  height: 175px;
+}
+html[data-theme="dark"] .manager-report .report-progress-item {
+  padding-block: 9px;
+}
+html[data-theme="dark"] .manager-report th {
+  padding: 10px 12px;
+}
+html[data-theme="dark"] .manager-report td {
+  padding: 9px 12px;
+}
+html[data-theme="dark"] .manager-report .report-filters .report-date-control {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 43px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 9px;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+html[data-theme="dark"] .manager-report .report-date-control > span:first-child {
+  min-width: 0;
+  padding: 0 39px 0 10px;
+  color: var(--color-text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}
+html[data-theme="dark"] .manager-report .report-date-calendar {
+  position: absolute;
+  right: 11px;
+  color: var(--color-text-muted);
+  font-size: 15px;
+  pointer-events: none;
+}
+html[data-theme="dark"] .manager-report .report-filters .report-date-control input[type="date"] {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+html[data-theme="dark"] .manager-report .report-date-control:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-focus-ring);
+}
+@media (max-width: 1150px) {
+  html[data-theme="dark"] .manager-report .report-kpis {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  html[data-theme="dark"] .manager-report .report-metric-primary,
+  html[data-theme="dark"] .manager-report .report-metric-supporting {
+    grid-column: span 1;
+  }
+}
+@media (max-width: 720px) {
+  html[data-theme="dark"] .manager-report .report-metric-primary {
+    min-height: 104px;
+    padding: 13px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric-supporting {
+    min-height: 78px;
+    padding: 10px 12px;
+  }
+}
+@media (max-width: 380px) {
+  html[data-theme="dark"] .manager-report .report-kpis {
+    grid-template-columns: 1fr;
+  }
+  html[data-theme="dark"] .manager-report .report-metric-primary,
+  html[data-theme="dark"] .manager-report .report-metric-supporting {
+    grid-column: 1 / -1;
+  }
+}

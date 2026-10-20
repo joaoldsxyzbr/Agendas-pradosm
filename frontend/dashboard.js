@@ -2,7 +2,7 @@ import { apiFetch } from "./api.js";
 import { createBusinessDateMonitor } from "./business-date.js";
 import { renderAgendaDatePicker } from "./agenda-date-picker.js";
 import {
-  addDashboardDays, formatDashboardDate, dashboardModel, dashboardRowHtml
+  addDashboardDays, dashboardModel, dashboardRowHtml
 } from "./dashboard-model.js";
 
 // Equivalente nativo de src/admin/DashboardPage.tsx da main.
@@ -61,7 +61,6 @@ export function renderDashboard(root, {
     <section class="dashboard-section dashboard-operations" aria-label="Situação por loja" data-content hidden>
       <div class="dashboard-section-heading dashboard-operations-heading">
         <div><span class="eyebrow">Operação</span><h2>Recebimento por loja</h2></div>
-        <span data-selected-date></span>
       </div>
       <div class="dashboard-operation-summary" aria-label="Situação do dia">
         <span><strong data-count="totalStores">0</strong>lojas</span>
@@ -111,7 +110,7 @@ export function renderDashboard(root, {
     model.rows.forEach((data, index) => {
       const id = String(data.store.id);
       rowIds.add(id);
-      template.innerHTML = dashboardRowHtml(data, selectedDate);
+      template.innerHTML = dashboardRowHtml(data);
       const desired = template.content.firstElementChild;
       let current = previousRows.get(id);
       if (!current) {
@@ -143,9 +142,6 @@ export function renderDashboard(root, {
       const cell = root.querySelector(`[data-count="${key}"]`);
       if (cell.textContent !== String(model[key])) cell.textContent = String(model[key]);
     }
-    const date = formatDashboardDate(selectedDate);
-    const dateNode = root.querySelector("[data-selected-date]");
-    if (dateNode.textContent !== date) dateNode.textContent = date;
     root.querySelector("[data-no-stores]").hidden = model.rows.length !== 0;
     root.querySelector("[data-table]").hidden = model.rows.length === 0;
     updateTable(model);
