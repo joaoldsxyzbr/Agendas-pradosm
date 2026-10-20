@@ -1,41 +1,81 @@
 name: Diagnóstico operacional (manual)
+
 on:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   diagnostics:
-    name: Gerar diff de lockfile (temporario nesta branch)
+    name: Benchmarks sintéticos e smoke HTTP
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Checkout
+      - name: Obter código do GitHub
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Node
+        with:
+          fetch-depth: 0 # historico completo para comparar refs sem falsos negativos
+      - name: Preparar Node.js
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "22"
-      - name: Regenerar lock sem instalar nem executar scripts
+      - name: Medir consultas com SQLite sintético (sem D1 remoto)
+        run: npm run benchmark:agendas
+      - name: Medir PBKDF2 com senhas sintéticas (sem usuários reais)
+        run: npm run benchmark:password
+      - name: Instalar Wrangler oficial para Workerd local
+        run: npm ci --legacy-peer-deps
+      - name: Medir PBKDF2 no Workerd isolado (loopback; sem Worker remoto)
         shell: bash
         run: |
           set -euo pipefail
-          npm install --package-lock-only --ignore-scripts --legacy-peer-deps --save-dev --save-exact wrangler@4.151.2
-          node --input-type=module -e '
-            import { readFileSync } from "node:fs";
-            import { execFileSync } from "node:child_process";
-            const before = JSON.parse(execFileSync("git", ["show", "HEAD:package-lock.json"], { encoding: "utf8" }));
-            const after = JSON.parse(readFileSync("package-lock.json", "utf8"));
-            const changed = {};
-            for (const [name, value] of Object.entries(after.packages))
-              if (JSON.stringify(value) !== JSON.stringify(before.packages[name])) changed[name] = value;
-            const removed = Object.keys(before.packages).filter(name => !Object.hasOwn(after.packages, name));
-            const json = JSON.stringify({ changed, removed });
-            const size = 1000;
-            const parts = Math.ceil(json.length / size);
-            for (let i = 0; i < parts; i++)
-              console.log(`GHDELTA|${i}|${parts}|${json.slice(i * size, (i + 1) * size)}`);
-            console.log("Versao Wrangler gerada: " + after.packages["node_modules/wrangler"].version);
-            console.log("Versao Miniflare gerada: " + after.packages["node_modules/miniflare"].version);
-            console.log("Versao sharp gerada: " + after.packages["node_modules/sharp"].version);
-          '
-          npm audit --audit-level=high
+          logfile="$RUNNER_TEMP/pbkdf2-workerd.log"
+          npx --no-install wrangler dev --local --config wrangler.password-benchmark.jsonc --ip 127.0.0.1 --port 8799 > "$logfile" 2>&1 &
+          worker_pid=$!
+          trap 'kill "$worker_pid" 2>/dev/null || true; wait "$worker_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error --max-time 2 http://127.0.0.1:8799/health > /dev/null 2>&1; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$worker_pid" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          if [[ "$ready" != "1" ]]; then
+            tail -n 70 "$logfile"
+            exit 1
+          fi
+          if ! node scripts/benchmark-password-workerd.mjs; then
+            tail -n 70 "$logfile"
+            exit 1
+          fi
+      - name: Comparar historico de branches sem alterar refs
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin main preview migracao-js-puro chore-organizacao-js-puro
+          for branch in preview migracao-js-puro chore-organizacao-js-puro; do
+            echo "=== Comparacao main ... $branch (esquerda=main, direita=branch) ==="
+            git rev-list --left-right --count "origin/main...origin/$branch"
+            git log --cherry-pick --right-only --format='%h %s' -n 12 "origin/main...origin/$branch"
+          done
+      - name: Smoke HTTP público do Worker publicado (somente GET)
+        shell: bash
+        env:
+          APP_URL: https://agendas-pradosm.contato-24f.workers.dev
+        run: |
+          set -euo pipefail
+          html="$(mktemp)"
+          asset="$(mktemp)"
+          response="$(mktemp)"
+          trap 'rm -f "$html" "$asset" "$response"' EXIT
+          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/" > "$html"
+          grep -qi '<html' "$html"
+          grep -q 'frontend/entry.js' "$html"
+          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/frontend/entry.js" > "$asset"
+          grep -q 'createMigratedApplication' "$asset"
+          curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/auth/bootstrap-status" > "$response"
+          node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof x.available!=="boolean")process.exit(1)' "$response"
+          echo "Smoke HTTP de leitura: HTML, entry.js e bootstrap-status acessíveis."

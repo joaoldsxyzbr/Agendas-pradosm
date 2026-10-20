@@ -20,6 +20,8 @@ Regras atuais: **JavaScript ES Modules, HTML, CSS e SQL nativos**, sem React/Typ
 
 Versões efetivas devem ser conferidas no `package-lock.json`. Bibliotecas externas existentes são **dívida de conformidade à preferência atual**: não implica vulnerabilidade comprovada, nem autoriza reimplementação rápida de funções críticas. Nenhuma biblioteca nova foi introduzida por esta auditoria.
 
+**Remediação dos alertas do primeiro scan semanal:** veja [correção Wrangler/Miniflare/sharp](correcao-wrangler-sharp-2026-10-20.md). O `npm audit` encontrou avisos altos transitivos de `sharp` na dependência oficial de desenvolvimento `wrangler`; a versão `sharp 0.35.5` resolve o advisory. Atualização e auditoria devem ser validadas pelos gates antes do merge.
+
 Dependabot PRs: alvo `preview`, limite 2 por ecossistema, sem auto-merge. **Dependabot Alerts ainda desativados** (API GitHub retorna HTTP 403 com mensagem explícita), exigem ativação em *Settings → Security → Code security and analysis*. CI executa `npm audit --omit=dev` como verificação complementar. A rotina [`auditoria-seguranca.yml`](../../.github/workflows/auditoria-seguranca.yml) também verifica semanalmente o lockfile da `main`, sem auto-fix; ela **não substitui** o Dependabot Alerts ou revisão de avisos.
 
 ## Segurança de senha PBKDF2
