@@ -24,19 +24,20 @@ Versões efetivas devem ser conferidas no `package-lock.json`. Bibliotecas exter
 
 Dependabot PRs: alvo `preview`, limite 2 por ecossistema, sem auto-merge. **Dependabot Alerts ainda desativados** (API GitHub retorna HTTP 403 com mensagem explícita), exigem ativação em *Settings → Security → Code security and analysis*. CI executa `npm audit --omit=dev` como verificação complementar. A rotina [`auditoria-seguranca.yml`](../../.github/workflows/auditoria-seguranca.yml) também verifica semanalmente o lockfile da `main`, sem auto-fix; ela **não substitui** o Dependabot Alerts ou revisão de avisos.
 
-## Segurança de senha PBKDF2
+## Segurança de senha PBKDF2 — decisão definitiva
 
-- `worker/lib/password.js` usa WebCrypto nativa, PBKDF2-HMAC-SHA256, salt aleatório de 16 bytes e hash de 32 bytes. `CURRENT_ITERATIONS=100000`; o parser aceita formatos com 100000 e 600000 iterações.
-- O PR #96 passou a proteger migração de hash contra mudança de senha concorrente; revoga sessões após alterações relevantes.
-- Este PR adiciona testes de compatibilidade de hashes legados/mais fortes e rejeição de hashes malformados, sem alterar o número atual de iterações.
-- Para referência local, executar `npm run benchmark:password`: mede três verificações com cada custo (100k, 600k) **somente no Node da máquina**, sem banco e sem credenciais reais. Não extrapolar diretamente para latência nem limites da Cloudflare.
-- **Antes de mudar 100k → 600k:** realizar benchmark controlado em Worker **isolado de homologação**, revisar quotas de CPU e rate-limiter, demonstrar login responsivo e recuperação de sessão, depois migrar progressivamente mantendo hashes antigos funcionais.
+**Regra de estabilidade confirmada pelo responsável em 20/10/2026: o custo PBKDF2-HMAC-SHA256 fica fixo em 100.000 iterações. Não aumentar para 600.000 nem qualquer valor superior neste projeto.** Experiências de indisponibilidade em outros projetos motivaram a escolha pela estabilidade do login.
+
+- O `worker/lib/password.js` **já gera** hashes com `CURRENT_ITERATIONS = 100000`; manter esse parâmetro e teste automatizado que exige exatamente `100_000`.
+- A verificação de hashes antigos com 600 mil iterações continua **somente por compatibilidade**: remover essa leitura poderia bloquear contas caso existam hashes com esse formato. Isso não autoriza gerar novas senhas com custo superior.
+- Não há migração de hash, mudança de senha, benchmark remoto de 600 mil, nem alteração da base D1 como parte da auditoria.
+- Testes de compatibilidade de hashes antigos podem continuar validando a leitura, mas os benchmarks operacionais automáticos de Node.js e Workerd foram restritos a **100.000** iterações.
+- Em vez de aumentar o custo, preservar limites de tentativa de login, WebCrypto nativa, salt aleatório, sessões assinadas, invalidação de sessão e testes de autorização.
+- **Não reabrir sugestão de elevar PBKDF2** sem nova decisão explícita do responsável.
 
 ### Diagnóstico com Workerd local
 
-O workflow manual `.github/workflows/runner-diagnostico.yml` usa apenas o **Wrangler oficial** para iniciar `wrangler dev --local --ip 127.0.0.1` com `wrangler.password-benchmark.jsonc`, que aponta para `scripts/workerd-password-benchmark-worker.js`. Este Worker efêmero importa a função `verifyPassword` real, recebe **somente fixtures sintéticas** e é encerrado no fim do job. Não há binding D1, segredo, deploy remoto nem endpoint público permanente.
-
-O benchmark `node scripts/benchmark-password-workerd.mjs` mede cinco tempos de **ida e volta HTTP local** para hashes de 100 mil e 600 mil iterações, após aquecimento, além de verificar senha incorreta. Os números aproximam a compatibilidade do runtime Workerd mas **não medem CPU remota, quota de CPU, latência de rede ou performance do ambiente Cloudflare publicado**; uma medição isolada no Worker remoto e validação de login na Preview continuam necessárias antes de alterar o custo das senhas. Não gerar migração D1 apenas para mudar parâmetro codificado no hash.
+O workflow manual `.github/workflows/runner-diagnostico.yml` usa somente o **Wrangler oficial** em `127.0.0.1` para testar o algoritmo real de verificação, com hashes e senhas sintéticos, sem D1, secrets, autenticação de produção ou endpoint remoto de diagnóstico. O benchmark registra cinco tempos de ida e volta HTTP **com 100 mil iterações**; resultados locais não são quota de CPU Cloudflare.
 
 ## Divergência e limpeza do GitHub
 
@@ -54,7 +55,7 @@ Comparação de árvores (caminhos e hashes, **não equivale a comparação de h
 - [x] Auditoria do formato de hashes de senha com testes.
 - [x] Mapear divergências principais de branches sem alterações destrutivas.
 - [ ] Ativar Dependabot Alerts no GitHub e triar vulnerabilidades reais.
-- [ ] Benchmark Workerd local e, depois, Worker Cloudflare remoto isolado antes de alterar custo em produção.
+- [x] PBKDF2 travado em 100.000 iterações; aumento e benchmark remoto para elevar custo descartados por decisão do responsável.
 - [ ] Medir performance D1 com plano de consulta e dados sintéticos para definir necessidade de paginação.
 - [ ] Analisar branches antigas por commits exclusivos antes de qualquer exclusão.
 - [ ] Planejar eliminação faseada de bibliotecas externas com equivalência de testes.

@@ -25,7 +25,8 @@ async function verifyOnce(password, encoded, expected) {
   return performance.now() - started;
 }
 
-for (const iterations of [100_000, 600_000]) {
+// Parâmetro operacional máximo definido pelo projeto: 100.000 iterações.
+for (const iterations of [100_000]) {
   const bits = await crypto.subtle.deriveBits(
     { name: "PBKDF2", hash: "SHA-256", salt, iterations }, key, 256
   );
@@ -42,4 +43,4 @@ for (const iterations of [100_000, 600_000]) {
     " ms; min " + Math.min(...timings).toFixed(1) +
     " ms; max " + Math.max(...timings).toFixed(1) + " ms (5 amostras)");
 }
-console.log("IMPORTANTE: workerd local nao mede CPU real, latencia remota nem quotas Cloudflare.");
+console.log("Somente diagnostico local de 100.000 iteracoes; workerd nao mede CPU real da Cloudflare.");

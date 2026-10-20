@@ -15,8 +15,8 @@ A `main` utiliza `listAdminAgendas` e `listStoreAgendas` em `worker/repositories
 
 O workflow `.github/workflows/runner-diagnostico.yml` (`Diagnóstico operacional (manual)`) pode ser executado sob demanda na `main`. Ele realiza:
 
-- `npm run benchmark:agendas` e `npm run benchmark:password` com dados e senhas sintéticos, sem D1 nem secrets;
-- benchmark WebCrypto usando a implementação real da senha no **Workerd local isolado** (Wrangler oficial, apenas loopback), medindo tempos de ida e volta HTTP, não CPU remota;
+- `npm run benchmark:agendas` e `npm run benchmark:password` com dados e senhas sintéticos (PBKDF2 **somente 100.000**), sem D1 nem secrets;
+- benchmark WebCrypto com **100.000 iterações** usando a implementação real da senha no **Workerd local isolado** (Wrangler oficial, apenas loopback), medindo ida e volta HTTP, não CPU remota; nunca testar valores superiores por iniciativa da rotina;
 - `git rev-list` e `git log --cherry-pick` em branches históricas, somente leitura, sem exclusões;
 - smoke HTTP **somente GET** à página inicial e ao arquivo `/frontend/entry.js` do Worker publicado;
 - smoke HTTP **somente GET** a `/api/auth/bootstrap-status` (espera JSON com chave `available`).
