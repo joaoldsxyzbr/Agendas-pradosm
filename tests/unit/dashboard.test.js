@@ -29,20 +29,22 @@ describe("Dashboard administrativo em JS puro — paridade com a main", () => {
     assert.equal(model.rows[0].presenceStatus, "online");
     assert.equal(model.rows[1].presenceStatus, "away");
   });
-  it("mantém presença, andamento, pendências e a ordem das colunas", () => {
+  it("mantém presença, recebimentos, pendências e a nova ordem das colunas", () => {
     const row = dashboardRowHtml(dashboardModel(stores, agendas, presence).rows[0], "2026-10-18");
     assert.match(row, /presence-dot online/);
-    assert.match(row, /4 \/ 5/);
+    assert.match(row, /dashboard-progress-divider/);
+    assert.match(row, /value="4" max="5"/);
+    assert.match(row, /Agenda importada/);
     assert.match(row, /1 aguardando/);
     assert.match(row, /Em andamento/);
     assert.match(row, /Ver detalhes/);
     assert.match(row, /Loja &amp; Filial/);
     const noAgenda = dashboardRowHtml(dashboardModel(stores, agendas, presence).rows[1], "2026-10-18");
     assert.match(noAgenda, /Não importada em 18\/10\/2026/);
-    assert.match(noAgenda, /Pendente/);
+    assert.match(noAgenda, /Sem agenda/);
     const controller = read("../../frontend/dashboard.js");
     for (const heading of [
-      "Presença", "Loja", "Agenda", "Andamento", "Pendências", "Situação",
+      "Loja", "Conferente", "Recebimentos", "Pendências", "Situação",
       "Recebimento por loja", "Nenhuma loja com conferente ativo."
     ]) assert.ok(controller.includes(heading), heading);
   });
