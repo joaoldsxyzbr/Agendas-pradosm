@@ -47,6 +47,11 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page).toHaveURL(/\/admin\/reports$/);
    await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
+   await expect(page.locator(".report-filter-intro")).toContainText("Período e filtros");
+   await expect(page.locator(".report-section-heading")).toHaveCount(3);
+   await expect(page.getByRole("heading",{name:"Resumo do período"})).toBeVisible();
+   await expect(page.getByRole("heading",{name:"Tendências e comparativos"})).toBeVisible();
+   await expect(page.getByRole("heading",{name:"Lojas e ocorrências"})).toBeVisible();
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
@@ -85,6 +90,10 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator(".report-weekdays .report-progress-item span").first()).toHaveText("Segunda-feira");
   await expect(page.locator(".manager-report")).toContainText("Taxa de recebimento no período");
   const today=businessDay();
+  await page.locator("[name=start]").fill("2026-09-01");
+  await page.locator("[name=end]").fill("2026-09-30");
+  await page.getByRole("button",{name:"Aplicar filtros"}).click();
+  await expect(page.locator("[name=end]")).toHaveValue("2026-09-30");
   await page.getByRole("button",{name:"Últimos 7 dias"}).click();
   await expect(page.locator("[name=\"start\"]")).toHaveValue(shift(today,-6));
   await expect(page.locator("[name=\"end\"]")).toHaveValue(today);

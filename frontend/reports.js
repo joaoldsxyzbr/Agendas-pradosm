@@ -94,7 +94,8 @@ export function renderReports(root,{request=apiFetch}={}) {
     try{window.localStorage.setItem(FILTERS_STORAGE_KEY,JSON.stringify({start:settings.start,end:settings.end,store:settings.store,compare:settings.compare}));}catch{}
   };
   const presetRange=key=>{
-    const end=settings.end||businessDate();
+    // Atalhos baseados no dia atual, mesmo se houver filtros salvos.
+    const end=businessDate();
     if(key==="month")return [end.slice(0,8)+"01",end];
     const n=Number(key)||30;
     return [shift(end,-(n-1)),end];
@@ -114,12 +115,13 @@ export function renderReports(root,{request=apiFetch}={}) {
     }).join("");
     root.innerHTML='<section class="admin-page manager-report"><header class="page-heading"><div>'+
       '<span class="eyebrow">Indicadores de gestão</span><h1>Relatório Gerencial</h1>'+
-      '<p>Acompanhe resultados, tendências e ocorrências por loja.</p></div></header>'+
-      '<form class="report-filters" data-report-filters>'+
+      '<p>Resultados, tendências e pontos de atenção em um só lugar.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
+      '<form class="report-filters" data-report-filters>'+ 
+      '<div class="report-filter-intro"><div><strong>Período e filtros</strong><span>Escolha os dados que deseja analisar.</span></div><small>Intervalo máximo de 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
       '<label>De<input type="date" name="start" required value="'+esc(settings.start)+'"></label>'+
       '<label>Até<input type="date" name="end" required value="'+esc(settings.end)+'"></label>'+
-      '<label>Loja<select name="store"><option value="">Todas as lojas</option>'+options+'</select></label>'+
+      '<label class="report-store-filter">Loja<select name="store"><option value="">Todas as lojas</option>'+options+'</select></label>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
       '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
       '<p class="form-error" role="alert" data-report-error'+(error?'':' hidden')+'>'+esc(error)+'</p>'+
@@ -163,6 +165,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       (settings.occurrenceQuery?'<button class="ghost-button" type="button" data-report-clear-search>Limpar</button>':"")+
       '</form>';
     root.querySelector("[data-report-content]").innerHTML=
+      '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
+      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(settings.store||"Todas as lojas")+'</span></div>'+ 
       '<div class="report-kpis">'+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total))+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"))+
@@ -171,12 +175,14 @@ export function renderReports(root,{request=apiFetch}={}) {
       metric("Aguardando",num(sum.aguardando),"Agendas abertas",delta(sum.aguardando,prev?.aguardando))+
       metric("Sem conferência",num(sum.semConferencia),"Agendas concluídas",delta(sum.semConferencia,prev?.semConferencia))+
       metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+compare+open+
+      '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+
       panel("Comparativo por loja","Taxa de recebimento por unidade",'<div class="report-progress-list">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos com a taxa de recebimento de cada um",'<div class="report-progress-list">'+supplierBars+'</div>')+
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
       '</div>'+
+      '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore))+
       panel("Ocorrências e observações","Motivos dos não recebimentos",table(["Data","Loja","Fornecedor","Protocolo","Motivo"],rows)+pager,search);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
