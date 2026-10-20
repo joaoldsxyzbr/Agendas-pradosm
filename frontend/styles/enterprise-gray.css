@@ -577,6 +577,12 @@ html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th {
   white-space: nowrap;
   text-align: left;
 }
+/* O cabeçalho final contém texto de leitor de tela absoluto. Sem containing
+ * block próprio, sua posição vaza da área rolável no celular.
+ */
+html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th:last-child {
+  position: relative;
+}
 html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th:nth-child(1),
 html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody td:nth-child(1) { width: 22%; min-width: 0; }
 html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th:nth-child(2),

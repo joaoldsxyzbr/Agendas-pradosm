@@ -14,3 +14,5 @@ Captura real da tela com manchas/colunas azuis e cinzas, efeito de tabela recort
 - CI do GitHub + Cloudflare Preview; main e dados de produção intocados.
 
 A promoção para `main` dependerá de revisão visual e aprovação explícita do usuário.
+## Correção complementar identificada nos testes responsivos
+A largura extra não vinha da grid: o cabeçalho de ações usava um `span.sr-only` com `position:absolute` e, após remover as colunas fixas, a âncora de posicionamento ficou fora da área rolável. O cabeçalho final agora usa `position:relative`, mantendo a descrição acessível dentro do contêiner. A grid do Recebimento recebe `minmax(0,1fr)` para isolar o fluxo horizontal. O teste desktop aceita até 6 px de excedente **interno** por arredondamento de colunas, sem aceitar rolagem global da página.
