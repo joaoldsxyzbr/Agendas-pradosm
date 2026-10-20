@@ -20,7 +20,7 @@ Regras atuais: **JavaScript ES Modules, HTML, CSS e SQL nativos**, sem React/Typ
 
 Versões efetivas devem ser conferidas no `package-lock.json`. Bibliotecas externas existentes são **dívida de conformidade à preferência atual**: não implica vulnerabilidade comprovada, nem autoriza reimplementação rápida de funções críticas. Nenhuma biblioteca nova foi introduzida por esta auditoria.
 
-Dependabot PRs: alvo `preview`, limite 2 por ecossistema, sem auto-merge. **Dependabot Alerts ainda desativados** (API GitHub retorna HTTP 403 com mensagem explícita), exigem ativação em *Settings → Security → Code security and analysis*. CI executa `npm audit --omit=dev` como verificação complementar, mas não substitui os alertas do GitHub.
+Dependabot PRs: alvo `preview`, limite 2 por ecossistema, sem auto-merge. **Dependabot Alerts ainda desativados** (API GitHub retorna HTTP 403 com mensagem explícita), exigem ativação em *Settings → Security → Code security and analysis*. CI executa `npm audit --omit=dev` como verificação complementar. A rotina [`auditoria-seguranca.yml`](../../.github/workflows/auditoria-seguranca.yml) também verifica semanalmente o lockfile da `main`, sem auto-fix; ela **não substitui** o Dependabot Alerts ou revisão de avisos.
 
 ## Segurança de senha PBKDF2
 
