@@ -39,6 +39,10 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   const list=modal.locator("[data-preview-list]");
   await expect(modal).toBeVisible();
   await expect(content).toBeVisible();
+  const bodyOverflowBefore=await page.locator("body").evaluate(el=>el.style.overflow);
+  await expect(page.locator("body")).toHaveCSS("overflow","hidden");
+  await expect(modal.locator("[data-preview-reopen]")).toBeHidden();
+  await expect(modal.locator(".agenda-sort-button").first()).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
   await expect(modal.locator('[data-preview-search]')).toBeVisible();
   await expect(list.locator('[data-testid="agenda-desktop-row"]')).toHaveCount(1);
   const geometry=await modal.evaluate(el=>{
@@ -79,6 +83,7 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   await expect(modal.locator("[data-preview-add]")).toBeVisible();
   await modal.locator("[data-preview-close]").click();
   await expect(modal).toHaveCount(0);
+  await expect.poll(()=>page.locator("body").evaluate(el=>el.style.overflow)).toBe(bodyOverflowBefore);
 });
 
 test("Popup de agenda fica legível no celular",async({page})=>{
