@@ -131,7 +131,7 @@ export function renderReports(root,{request=apiFetch}={}) {
   function paintContent(report,previous,occurrences,requestId){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows),weekdays=groupWeekdayReport(daily);
     const rate=x=>pct(reportRate(x));
-    const prev=previous?prior:null;
+    const prev=previous&&prior.total>0?prior:null;
     const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
     const hasPriorRate=Boolean(previous)&&prior.total>0;
     const difference=hasPriorRate?reportRate(sum)-reportRate(prior):null;
