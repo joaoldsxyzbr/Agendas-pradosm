@@ -23,7 +23,7 @@ function table(columns,rows) {
 }
 const cell=(text,numeric=false)=>'<td'+(numeric?' class="report-number"':'')+'>'+esc(text)+'</td>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
-  (actions?'<div class="report-panel-actions">'+actions+'</div>':"")+'</header>'+inner+'</section>';
+  (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
 const metric=(label,value,description,delta=null)=>'<div class="report-metric"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div><strong>'+esc(value)+'</strong>'+
   (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+'<small>'+esc(description)+'</small></div>';
 const delta=(current,previous,kind="neutral",unit="")=>{
