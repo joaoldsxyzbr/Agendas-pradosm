@@ -76,7 +76,7 @@ function createFixture() {
       body: JSON.stringify(body)
     }, env);
   }
-  const status = () => sqlite.prepare("SELECT status,observacao FROM agendamentos WHERE id='agend1'").get();
+  const status = () => ({ ...sqlite.prepare("SELECT status,observacao FROM agendamentos WHERE id='agend1'").get() });
   const historyCount = () => sqlite.prepare("SELECT count(*) AS n FROM historico_status").get().n;
   const auditCount = () => sqlite.prepare("SELECT count(*) AS n FROM auditoria").get().n;
   return { sqlite, callAs, status, historyCount, auditCount, failAudit: () => { simulateAuditFailure = true; } };
