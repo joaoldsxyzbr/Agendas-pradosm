@@ -83,3 +83,25 @@ test("Resposta 409 exige confirmação explícita de substituição", async ({ p
   expect(submissions[1].agendas.every(a => a.replace)).toBe(true);
   await expect(page.getByRole("dialog", { name: "Importar agenda" })).toHaveCount(0);
 });
+
+test("CSV Windows-1252 com acentos abre prévia corretamente", async ({ page }) => {
+  await openImport(page);
+  await page.locator("[data-import-file]").setInputFiles({
+    name: "agenda-windows.csv", mimeType: "text/csv",
+    buffer: Buffer.from(fixture.toString("utf8"), "latin1")
+  });
+  await expect(page.locator(".preview-summary")).toContainText("4 agendamentos");
+  await expect(page.locator("[data-import-submit]")).toBeEnabled();
+});
+
+test("CSV UTF-16LE com BOM abre prévia corretamente", async ({ page }) => {
+  await openImport(page);
+  const csv = Buffer.concat([
+    Buffer.from([0xff, 0xfe]), Buffer.from(fixture.toString("utf8"), "utf16le")
+  ]);
+  await page.locator("[data-import-file]").setInputFiles({
+    name: "agenda-utf16.csv", mimeType: "text/csv", buffer: csv
+  });
+  await expect(page.locator(".preview-summary")).toContainText("4 agendamentos");
+  await expect(page.locator("[data-import-submit]")).toBeEnabled();
+});
