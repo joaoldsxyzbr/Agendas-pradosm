@@ -13,11 +13,11 @@ async function mocks(page, user) {
     throw Error("API não mockada: " + path);
   });
 }
-test("Administrador: 12 ajudas em mouse e teclado", async ({ page }) => {
+test("Administrador: 13 ajudas em mouse e teclado", async ({ page }) => {
   await page.setViewportSize({ width:1366, height:900 });
   await mocks(page, admin);
   await page.goto("/admin/reports");
-  await expect(page.locator(".report-info-button")).toHaveCount(12);
+  await expect(page.locator(".report-info-button")).toHaveCount(13);
   const info=page.getByRole("button", { name:"Sobre: Comparativo por loja" });
   const tooltip=page.locator("#report-help-9");
   await expect(tooltip).toBeHidden();

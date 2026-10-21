@@ -46,7 +46,7 @@ O código em produção está em JavaScript puro (ES Modules); a antiga etapa `m
 | `docs/operations/` | Procedimentos atuais; `docs/archive/` guarda históricos de migração |
 | `wrangler.jsonc`, `wrangler.local.jsonc` | Produção e ambiente local sintético |
 
-**Branches:** `main` = produção; `preview` = homologação isolada. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem na `main`.
+**Branches:** `main` = produção; `testes` = homologação (Preview), com dados isolados conforme a configuração do ambiente. Acesso: https://testes.agendaspradosm.joaolds.xyz.br. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem na `main`.
 
 Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). O projeto não usa React, Vite ou TypeScript.
 

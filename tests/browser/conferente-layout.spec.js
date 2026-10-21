@@ -31,6 +31,10 @@ test("Conferente ganha sidebar e resumo em cards, preservando comandos",async({p
   await expect(shell).toBeVisible();
   await expect(page.getByRole("heading",{name:"Conferência de recebimentos"})).toBeVisible();
   await expect(page.locator(".prado-store-sidebar")).toBeVisible();
+  const sidebarToggle=page.locator("[data-sidebar-toggle]");
+  await expect(sidebarToggle).toHaveAttribute("aria-expanded","false");
+  await sidebarToggle.click();
+  await expect(sidebarToggle).toHaveAttribute("aria-expanded","true");
   await expect(page.locator(".prado-store-side-nav a")).toHaveAttribute("href","/app");
   await expect(page.locator(".prado-store-sidebar a[href='/admin']")).toHaveCount(0);
   await expect(page.locator(".agenda-metrics [data-metric]")).toHaveCount(5);

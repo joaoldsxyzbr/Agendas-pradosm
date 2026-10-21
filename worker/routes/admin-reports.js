@@ -57,14 +57,17 @@ adminReportRoutes.get("/", async (c) => {
     "GROUP BY a.id ORDER BY a.data_agenda ASC, l.codigo ASC"
   ].join(" ")).bind(...filters).all();
   const suppliers = await c.env.DB.prepare([
-    "SELECT ag.fornecedor AS supplier, COUNT(*) AS naoChegou",
+    "SELECT ag.fornecedor AS supplier, COUNT(*) AS total,",
+    "SUM(CASE WHEN ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,",
+    "SUM(CASE WHEN ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS naoChegou",
     "FROM agendamentos ag",
     "JOIN agendas a ON a.id = ag.agenda_id",
     "JOIN lojas l ON l.id = a.loja_id",
     "WHERE",
     dateWhere,
-    "AND ag.ativo = 1 AND ag.status = 'nao_chegou'",
+    "AND ag.ativo = 1",
     "GROUP BY ag.fornecedor",
+    "HAVING naoChegou > 0",
     "ORDER BY naoChegou DESC, ag.fornecedor ASC LIMIT 12"
   ].join(" ")).bind(...filters).all();
   return c.json({
@@ -83,19 +86,23 @@ adminReportRoutes.get("/", async (c) => {
     })),
     suppliers: suppliers.results.map((supplier) => ({
       ...supplier,
+      total: Number(supplier.total),
+      recebido: Number(supplier.recebido),
       naoChegou: Number(supplier.naoChegou)
     }))
   });
 });
 const occurrencesFilters = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
-  offset: z.coerce.number().int().min(0).max(1e5).default(0)
+  offset: z.coerce.number().int().min(0).max(1e5).default(0),
+  q: z.string().trim().min(1).max(80).optional()
 });
 adminReportRoutes.get("/occurrences", async (c) => {
   const parsed = parseFilters((key) => c.req.query(key));
   const paging = occurrencesFilters.safeParse({
     limit: c.req.query("limit") ?? void 0,
-    offset: c.req.query("offset") ?? void 0
+    offset: c.req.query("offset") ?? void 0,
+    q: (c.req.query("q") || "").trim() || void 0
   });
   if (!parsed.success || !paging.success) {
     return c.json({ error: "FILTROS_INVALIDOS", message: "Filtros ou pagina\xE7\xE3o inv\xE1lidos." }, 400);
@@ -110,17 +117,24 @@ adminReportRoutes.get("/occurrences", async (c) => {
     dateWhere,
     "AND ag.ativo = 1 AND ag.status = 'nao_chegou'"
   ].join(" ");
+  const hasSearch = typeof paging.data.q === "string" && paging.data.q.length > 0;
+  const like = hasSearch ? "%" + paging.data.q.replace(/[\\%_]/g, (char) => "\\" + char) + "%" : null;
+  const searchClause = hasSearch
+    ? " AND (ag.fornecedor LIKE ? ESCAPE '\\' OR ag.protocolo LIKE ? ESCAPE '\\')"
+    : "";
+  const searchArgs = hasSearch ? [like, like] : [];
   const [count, rows] = await Promise.all([
-    c.env.DB.prepare("SELECT COUNT(*) AS total " + base).bind(...filters).first(),
+    c.env.DB.prepare("SELECT COUNT(*) AS total " + base + searchClause).bind(...filters, ...searchArgs).first(),
     c.env.DB.prepare([
       "SELECT a.data_agenda AS date, l.codigo AS storeCode,",
       "l.nome AS storeName, ag.protocolo AS protocol,",
       "ag.fornecedor AS supplier, ag.observacao AS observation,",
       "ag.origem AS origin",
       base,
+      searchClause,
       "ORDER BY a.data_agenda DESC, l.codigo ASC, ag.horario_inicio ASC, ag.id ASC",
       "LIMIT ? OFFSET ?"
-    ].join(" ")).bind(...filters, paging.data.limit, paging.data.offset).all()
+    ].join(" ")).bind(...filters, ...searchArgs, paging.data.limit, paging.data.offset).all()
   ]);
   return c.json({
     total: Number(count?.total ?? 0),
