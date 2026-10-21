@@ -5,7 +5,7 @@ function isSensitiveApiPath(path) {
   return path.startsWith("/api/auth/") || path.startsWith("/api/admin/") || path.startsWith("/api/store/");
 }
 function isMutationOriginProtectedPath(path) {
-  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/demo-login";
+  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/login" || path === "/api/auth/logout";
 }
 function originMatchesRequest(requestUrl, origin) {
   try {

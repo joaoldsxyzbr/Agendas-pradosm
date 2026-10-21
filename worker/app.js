@@ -49,7 +49,7 @@ app.get("/api/health", async (c) => {
     return c.json({ ok: false, database: "unavailable" }, 503);
   }
 });
-app.use("/api/auth/bootstrap-register", validateMutationOrigin);
+app.use("/api/auth/*", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
 
 app.use("/api/realtime", requireAuth);

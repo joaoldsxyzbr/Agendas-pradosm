@@ -35,7 +35,7 @@
   "app": [
     "app.use(\"/api/*\"",
     "app.get(\"/api/health\"",
-    "app.use(\"/api/auth/bootstrap-register\"",
+    "app.use(\"/api/auth/*\"",
     "app.route(\"/api/auth\"",
     "app.use(\"/api/realtime\"",
     "app.use(\"/api/realtime/*\"",
