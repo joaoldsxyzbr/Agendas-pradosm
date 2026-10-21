@@ -80,6 +80,8 @@ test("Importação rejeita arquivo não permitido antes de gravar",async({page})
   await expect(page.locator("#import-agenda-title")).toBeFocused();
   await expect(page.getByRole("button",{name:"Selecionar arquivo"})).toBeVisible();
   await expect(page.locator("[data-import-file-name]")).toHaveText("Nenhum arquivo selecionado");
+  await page.evaluate(()=>{document.documentElement.dataset.theme="dark";});
+  await expect(page.locator("[data-import-body]")).toHaveCSS("overflow-x","hidden");
   await page.locator("[data-import-file]").setInputFiles({
     name:"arquivo.exe",mimeType:"application/octet-stream",buffer:Buffer.from("x")
   });

@@ -1027,6 +1027,7 @@ html[data-theme="dark"] .agenda-preview-modal .admin-agenda-preview[data-preview
 }
 html[data-theme="dark"] .import-agenda-modal [data-import-body] {
   min-height: 0;
+  overflow-x: hidden;
   overflow-y: auto;
   overscroll-behavior: contain;
   scrollbar-width: thin;
