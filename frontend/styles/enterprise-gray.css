@@ -954,3 +954,114 @@ html[data-theme="dark"] .manager-report .report-date-control:focus-within {
     grid-column: 1 / -1;
   }
 }
+
+/* Acabamento operacional na branch de testes. */
+@media (min-width: 1121px) {
+  html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th:nth-child(4),
+  html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody td:nth-child(4) { width: 26%; }
+  html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th:nth-child(6),
+  html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody td:nth-child(6) { width: 12%; }
+}
+html[data-theme="dark"] .prado-admin .registry-role,
+html[data-theme="dark"] .prado-admin .registry-status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 620;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .prado-admin .registry-role {
+  background: #2b2f32;
+  color: #d5dadd;
+}
+html[data-theme="dark"] .prado-admin .registry-status { gap: 6px; }
+html[data-theme="dark"] .prado-admin .registry-status.is-active {
+  border-color: #526f5c;
+  background: #26332b;
+  color: #b8d8c4;
+}
+html[data-theme="dark"] .prado-admin .registry-status.is-inactive {
+  border-color: #4a5055;
+  background: #2a2d30;
+  color: #b8bec2;
+}
+@media (min-width: 900px) {
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(1) { width: 20%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(2) { width: 48%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(3) { width: 20%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-stores + .table-scroll .registry-table th:nth-child(4) { width: 12%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(1) { width: 18%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(2) { width: 16%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(3) { width: 24%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(4) { width: 18%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(5) { width: 12%; }
+  html[data-theme="dark"] .prado-admin .registry-toolbar-users + .table-scroll .registry-table th:nth-child(6) { width: 12%; }
+}
+html[data-theme="dark"] .agenda-preview-modal.modal-card,
+html[data-theme="dark"] .import-agenda-modal.modal-card {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow: hidden;
+}
+html[data-theme="dark"] .agenda-preview-modal > .modal-heading,
+html[data-theme="dark"] .import-agenda-modal .modal-heading {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  flex: 0 0 auto;
+  background: var(--color-surface, #202329);
+}
+html[data-theme="dark"] .agenda-preview-modal .admin-agenda-preview[data-preview-content] {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+html[data-theme="dark"] .import-agenda-modal [data-import-body] {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+}
+html[data-theme="dark"] .agenda-preview-modal [data-preview-list] .agenda-desktop tbody tr > td {
+  background: #242729;
+  border-bottom-color: #3b4044;
+}
+html[data-theme="dark"] .agenda-preview-modal [data-preview-list] .agenda-desktop tbody tr:nth-child(even) > td {
+  background: #282b2e;
+}
+html[data-theme="dark"] .agenda-preview-modal [data-preview-list] .agenda-desktop tbody tr:hover > td {
+  background: #34383c;
+}
+html[data-theme="dark"] .import-agenda-content .file-picker-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+html[data-theme="dark"] .import-agenda-content .file-picker-button {
+  min-height: 38px;
+  white-space: nowrap;
+}
+html[data-theme="dark"] .import-agenda-content .file-picker-name {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+@media (max-width: 560px) {
+  html[data-theme="dark"] .import-agenda-content .file-picker-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  html[data-theme="dark"] .import-agenda-content .file-picker-button { width: 100%; }
+}

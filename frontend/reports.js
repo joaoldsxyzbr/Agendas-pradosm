@@ -15,8 +15,8 @@ export function validReportRange(start,end) {
     && new Date(Date.parse(d+"T00:00:00Z")).toISOString().slice(0,10)===d;
   return valid(start)&&valid(end)&&Date.parse(end)>=Date.parse(start)&&Date.parse(end)-Date.parse(start)<93*86400000;
 }
-function table(columns,rows) {
-  return '<div class="report-table-scroll"><table><thead><tr>'+
+function table(columns,rows,className="") {
+  return '<div class="report-table-scroll'+(className?" "+esc(className):"")+'"><table><thead><tr>'+
     columns.map(x=>'<th>'+esc(x)+'</th>').join("")+'</tr></thead><tbody>'+
     (rows.length?rows.join(""):'<tr><td colspan="'+columns.length+'" class="report-empty">Nenhum registro no período.</td></tr>')+
     '</tbody></table></div>';
@@ -138,7 +138,19 @@ export function renderReports(root,{request=apiFetch}={}) {
     const compare=previous?'<p class="report-insight"><strong>Período anterior ('+num(days)+' dias):</strong> '+num(prior.total)+
       (hasPriorRate?' agendamentos · variação da taxa de recebimento: <strong>'+esc((difference>=0?"+":"")+difference.toLocaleString("pt-BR",{maximumFractionDigits:1})+' p.p.')+'</strong>':' agendamentos · sem base para comparar a taxa de recebimento.')+'</p>':"";
     const open=sum.abertas?'<p class="report-open-note">'+num(sum.abertas)+' agenda(s) em aberto; os indicadores podem mudar até o fechamento.</p>':"";
-    const storeBars=units.map(u=>meter(u.code+" · "+u.name,u.total,u.recebido)).join("")||'<p class="report-empty">Nenhuma loja.</p>';
+    const rankedStores=units.filter(unit=>Number(unit.total)>0).slice().sort((a,b)=>
+      reportRate(b)-reportRate(a)||String(a.code).localeCompare(String(b.code),"pt-BR",{numeric:true}));
+    const storeBars=rankedStores.length
+      ?[
+        '<div class="report-store-highlight report-store-highlight-best">'+meter(rankedStores[0].code+" · "+rankedStores[0].name,rankedStores[0].total,rankedStores[0].recebido,false,"Maior taxa no período")+'</div>',
+        ...(rankedStores.length>1?['<div class="report-store-highlight report-store-highlight-low">'+meter(rankedStores.at(-1).code+" · "+rankedStores.at(-1).name,rankedStores.at(-1).total,rankedStores.at(-1).recebido,false,"Menor taxa no período")+'</div>']:[])
+      ].join("")
+      :'<p class="report-empty">Sem movimentação por loja no período.</p>';
+    const storeComparisonDescription=rankedStores.length>1
+      ?"Maior e menor taxa no período; a tabela abaixo reúne todos os indicadores."
+      :rankedStores.length===1
+        ?"Taxa da loja no período; a tabela abaixo reúne todos os indicadores."
+        :"Nenhuma agenda por loja no período.";
     const highest=Math.max(1,...report.suppliers.map(x=>Number(x.naoChegou)||0));
     const supplierBars=report.suppliers.map((u,i)=>{
       const total=Number(u.total)||0,recebido=Number(u.recebido)||0,naoChegou=Number(u.naoChegou)||0;
@@ -179,12 +191,12 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+
-      panel("Comparativo por loja","Taxa de recebimento por unidade",'<div class="report-progress-list">'+storeBars+'</div>')+
+      panel("Comparativo por loja",storeComparisonDescription,'<div class="report-progress-list report-store-highlights">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos com a taxa de recebimento de cada um",'<div class="report-progress-list">'+supplierBars+'</div>')+
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
       '</div>'+
       '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
-      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore))+
+      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
       panel("Ocorrências e observações","Motivos dos não recebimentos",table(["Data","Loja","Fornecedor","Protocolo","Motivo"],rows)+pager,search);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
   }

@@ -160,3 +160,27 @@
 .manager-report .report-metric{box-shadow:none;min-height:auto;background:#fff!important;color:#111!important}
 .manager-report .report-section-heading h2,.manager-report .report-section-kicker{color:#111!important}
 }
+
+/* Comparativo e detalhamento de lojas: funções distintas, identidade sempre visível. */
+.manager-report .report-store-highlights { padding: 8px 18px; }
+.manager-report .report-store-highlight .report-progress-item { padding: 12px 0 12px 10px; }
+.manager-report .report-store-highlight-best .report-progress-item { border-left: 2px solid #91d8b8; }
+.manager-report .report-store-highlight-low .report-progress-item { border-left: 2px solid #ebc486; }
+.manager-report .report-store-highlight:last-child .report-progress-item { border-bottom: 0; }
+.manager-report .report-store-table table { min-width: 920px; border-collapse: separate; border-spacing: 0; }
+.manager-report .report-store-table th:first-child,
+.manager-report .report-store-table td:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 170px;
+  background: var(--color-surface, #202329);
+  box-shadow: 1px 0 0 var(--color-border-soft, #393e47);
+}
+.manager-report .report-store-table thead th:first-child {
+  z-index: 2;
+  background: var(--color-surface-muted, #252930);
+}
+.manager-report .report-store-table tbody tr:hover td:first-child {
+  background: var(--color-surface-muted, #252930);
+}
