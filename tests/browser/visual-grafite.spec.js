@@ -64,7 +64,7 @@ test("Navegação do administrador recolhe em telas de notebook e memoriza a esc
   await expect(shell).toHaveAttribute("data-sidebar-collapsed","true");
   await expect(toggle).toHaveAttribute("aria-expanded","false");
   await expect(sidebar).toHaveCSS("width","72px");
-  await expect(page.getByRole("link",{name:"Recebimento"})).toBeVisible();
+  await expect(page.locator(".prado-side-nav").getByRole("link",{name:"Recebimento",exact:true})).toBeVisible();
   await toggle.click();
   await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
   await expect(toggle).toHaveAttribute("aria-expanded","true");
