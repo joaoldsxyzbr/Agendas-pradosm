@@ -78,8 +78,8 @@
     "d1_databases": [
       {
         "binding": "DB",
-        "database_name": "agendas-pradosm-teste",
-        "database_id": "73b4ca0c-bc56-4bad-9846-e98fe5b16ed1",
+        "database_name": "agendas-pradosm-preview",
+        "database_id": "716cc88e-7da8-400e-b4be-edc4be0c9c03",
         "migrations_dir": "migrations"
       }
     ],
