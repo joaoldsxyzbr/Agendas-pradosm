@@ -53,6 +53,44 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(41, 45, 48)");
 });
 
+
+test("Navegação do administrador recolhe em telas de notebook e memoriza a escolha",async({page})=>{
+  await page.setViewportSize({width:1288,height:686});
+  await mock(page,admin);
+  await page.goto("/admin");
+  const shell=page.locator(".prado-admin.admin-shell");
+  const sidebar=page.locator(".prado-sidebar");
+  const toggle=page.locator("[data-sidebar-toggle]");
+  await expect(shell).toHaveAttribute("data-sidebar-collapsed","true");
+  await expect(toggle).toHaveAttribute("aria-expanded","false");
+  await expect(sidebar).toHaveCSS("width","72px");
+  await expect(page.getByRole("link",{name:"Recebimento"})).toBeVisible();
+  await toggle.click();
+  await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
+  await expect(toggle).toHaveAttribute("aria-expanded","true");
+  await expect(sidebar).toHaveCSS("width","232px");
+  await page.reload();
+  await expect(toggle).toHaveAttribute("aria-expanded","true");
+  await expect(sidebar).toHaveCSS("width","232px");
+});
+
+test("Navegação do conferente compacta a tabela sem rolar a página para o lado",async({page})=>{
+  await page.setViewportSize({width:1288,height:686});
+  await mock(page,conferente);
+  await page.goto("/app");
+  const shell=page.locator(".prado-store-layout.store-shell");
+  const sidebar=page.locator(".prado-store-sidebar");
+  const toggle=page.locator("[data-sidebar-toggle]");
+  await expect(shell).toHaveAttribute("data-sidebar-collapsed","true");
+  await expect(toggle).toHaveAttribute("aria-expanded","false");
+  await expect(sidebar).toHaveCSS("width","72px");
+  await expect(page.getByRole("link",{name:"Conferência"})).toBeVisible();
+  const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+  await toggle.click();
+  await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
+  await expect(sidebar).toHaveCSS("width","232px");
+});
 test("Conferente mantém layout móvel e usa o mesmo grafite",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await mock(page,conferente);

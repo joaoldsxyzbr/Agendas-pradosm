@@ -1066,3 +1066,145 @@ html[data-theme="dark"] .import-agenda-content .file-picker-name {
   }
   html[data-theme="dark"] .import-agenda-content .file-picker-button { width: 100%; }
 }
+
+/* Navegação lateral recolhível: ganha espaço para tabelas em notebooks. */
+html[data-theme="dark"] .prado-sidebar-head,
+html[data-theme="dark"] .prado-store-sidebar-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 2px 26px;
+}
+html[data-theme="dark"] .prado-sidebar-head .prado-brand,
+html[data-theme="dark"] .prado-store-sidebar-head .prado-brand {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+}
+html[data-theme="dark"] .prado-sidebar-toggle {
+  display: grid;
+  place-items: center;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid #454a54;
+  border-radius: 7px;
+  background: transparent;
+  color: #bac0ca;
+}
+html[data-theme="dark"] .prado-sidebar-toggle:hover {
+  background: #2b2f33;
+  border-color: #697078;
+  color: #f1f2f4;
+}
+html[data-theme="dark"] .prado-sidebar-toggle svg {
+  width: 16px;
+  height: 16px;
+  transition: transform .14s ease;
+}
+html[data-theme="dark"] [data-sidebar-collapsed="true"] .prado-sidebar-toggle svg {
+  transform: rotate(180deg);
+}
+@media (min-width: 761px) {
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-sidebar {
+    align-items: stretch;
+    padding-inline: 8px;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-sidebar-head {
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 22px;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-brand-copy,
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-sidebar-label {
+    display: none;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-brand {
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-sidebar-toggle {
+    align-self: center;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-side-nav .nav-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+    font-size: 0;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-side-nav .prado-nav-icon {
+    flex: 0 0 17px;
+  }
+  html[data-theme="dark"] .prado-admin.admin-shell[data-sidebar-collapsed="true"] .prado-sidebar-footer {
+    padding-inline: 0;
+    text-align: center;
+    font-size: 0;
+  }
+}
+@media (min-width: 851px) {
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] {
+    grid-template-columns: 72px minmax(0, 1fr);
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar {
+    align-items: stretch;
+    padding-inline: 8px;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-head {
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 0 22px;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-brand-copy,
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-label {
+    display: none;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-brand {
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-sidebar-toggle {
+    align-self: center;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-nav-link {
+    justify-content: center;
+    gap: 0;
+    padding-inline: 0;
+    font-size: 0;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-footer {
+    display: flex;
+    justify-content: center;
+    padding: 14px 0 0;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-footer span,
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-footer strong {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+  html[data-theme="dark"] .prado-store-layout.store-shell[data-sidebar-collapsed="true"] .prado-store-sidebar-footer::before {
+    content: "L";
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    border: 1px solid #454a54;
+    border-radius: 7px;
+    color: #bac0ca;
+    font-size: 12px;
+    font-weight: 700;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-theme="dark"] .prado-sidebar-toggle svg { transition: none; }
+}
