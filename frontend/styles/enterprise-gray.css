@@ -1467,3 +1467,21 @@ html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard
 html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row > td:nth-child(2) {
   background: inherit;
 }
+
+/* Padroniza tabelas administrativas em azul-grafite, inclusive Histórico. */
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table thead th {
+  background: #2c3540;
+  border-bottom-color: #4e5b68;
+  color: #d7e1eb;
+}
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table tbody td {
+  background: #222830;
+  border-bottom-color: #36414c;
+  color: #e0e8f0;
+}
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table tbody tr:nth-child(even) td {
+  background: #252d36;
+}
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table tbody tr:hover td {
+  background: #303c49;
+}
