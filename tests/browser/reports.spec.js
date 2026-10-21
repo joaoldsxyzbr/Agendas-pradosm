@@ -75,6 +75,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
    await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
+   const comparison=page.locator(".report-analytics-grid .report-panel").filter({hasText:"Comparativo por loja"});
+   await expect(comparison).toContainText("Maior taxa no período");
+   await expect(comparison.locator(".report-store-highlight")).toHaveCount(1);
+   await expect(page.locator(".report-store-table")).toBeVisible();
    await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
    const filter=page.locator("[data-report-filters]");
    await filter.locator('[name="store"]').selectOption("F01");
@@ -146,4 +150,22 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await expect(page.locator("[data-report-native-chart] .report-chart")).toBeVisible();
   await expect(page.locator("[data-report-chart-wrap]")).toBeHidden();
   await expect(page.locator(".report-kpis")).toContainText("Recebidos");
+});test("Relatório mantém a identificação da loja durante a rolagem horizontal",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await mocks(page,viewer);
+  await page.goto("/admin/reports");
+  await expect(page.getByRole("heading",{name:"Por loja",exact:true})).toBeVisible();
+  const geometry=await page.locator(".report-store-table").evaluate(el=>{
+    const cell=el.querySelector("tbody td:first-child");
+    el.scrollLeft=el.scrollWidth;
+    return {position:getComputedStyle(cell).position,
+      scroll:el.scrollWidth-el.clientWidth,
+      leftOffset:cell.getBoundingClientRect().left-el.getBoundingClientRect().left,
+      pageOverflow:document.documentElement.scrollWidth-window.innerWidth};
+  });
+  expect(geometry.position).toBe("sticky");
+  expect(geometry.scroll).toBeGreaterThan(0);
+  expect(geometry.leftOffset).toBeGreaterThanOrEqual(-1);
+  expect(geometry.leftOffset).toBeLessThanOrEqual(2);
+  expect(geometry.pageOverflow).toBeLessThanOrEqual(2);
 });

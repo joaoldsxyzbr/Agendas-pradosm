@@ -51,6 +51,7 @@ test("Usuários mantém editor em popup",async({page})=>{
   await page.locator('[data-edit-user-id="conf1"]').click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("heading",{name:"Editar usuário"})).toBeVisible();
+  await expect(page.locator(".registry-role").first()).toBeVisible();
 });
 test("Conferente repete recebido e volta para aguardando",async({page})=>{
   await mocks(page,storeUser);
@@ -68,5 +69,26 @@ test("Importação rejeita arquivo não permitido antes de gravar",async({page})
     name:"arquivo.exe",mimeType:"application/octet-stream",buffer:Buffer.from("x")
   });
   await expect(page.getByText("Selecione um arquivo CSV ou PDF.")).toBeVisible();
+  expect(changes).toHaveLength(0);
+});test("Importação em popup localiza o seletor, mantém foco e fecha com Escape",async({page})=>{
+  await mocks(page,admin);
+  await page.goto("/admin");
+  const trigger=page.locator("[data-open-import]");
+  await trigger.click();
+  const dialog=page.locator('[data-import-backdrop] [role="dialog"]');
+  await expect(dialog).toBeVisible();
+  await expect(page.locator("#import-agenda-title")).toBeFocused();
+  await expect(page.getByRole("button",{name:"Selecionar arquivo"})).toBeVisible();
+  await expect(page.locator("[data-import-file-name]")).toHaveText("Nenhum arquivo selecionado");
+  await page.locator("[data-import-file]").setInputFiles({
+    name:"arquivo.exe",mimeType:"application/octet-stream",buffer:Buffer.from("x")
+  });
+  await expect(page.locator("[data-import-file-name]")).toHaveText("arquivo.exe");
+  await expect(page.getByText("Selecione um arquivo CSV ou PDF.")).toBeVisible();
+  await page.keyboard.press("Tab");
+  await expect(dialog.locator("[data-import-close]")).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toHaveCount(0);
+  await expect(trigger).toBeFocused();
   expect(changes).toHaveLength(0);
 });

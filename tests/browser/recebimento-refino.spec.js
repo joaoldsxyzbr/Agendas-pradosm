@@ -24,7 +24,7 @@ async function mock(page){
   });
 }
 test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíveis no desktop",async({page})=>{
-  await page.setViewportSize({width:1440,height:900});
+  await page.setViewportSize({width:1366,height:900});
   await mock(page);
   await page.goto("/admin");
   await expect(page.locator(".dashboard-operation-row")).toHaveCount(10);
@@ -44,19 +44,22 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
     const r=el=>el.getBoundingClientRect();
     const table=document.querySelector(".dashboard-operation-table table");
     const row=document.querySelector(".dashboard-operation-row");
+    const action=row.querySelector(".dashboard-store-details");
     const cells=[...row.querySelectorAll("td")];
     const rect=r(wrap),tr=r(table);
     const colors=cells.map(c=>getComputedStyle(c).backgroundColor);
     return {right:tr.right,visibleRight:rect.right,documentOverflow:document.documentElement.scrollWidth-window.innerWidth,
       sticky:cells.some(c=>getComputedStyle(c).position==="sticky"),
+      actionRight:action?.getBoundingClientRect().right,
       colors,overflow:wrap.scrollWidth-wrap.clientWidth};
   });
   expect(layout.sticky).toBe(false);
   expect(new Set(layout.colors).size).toBe(1);
   expect(layout.colors[0]).toBe("rgb(36, 39, 41)");
   expect(layout.documentOverflow).toBeLessThanOrEqual(2);
-  expect(layout.overflow).toBeLessThanOrEqual(6);
+  expect(layout.overflow).toBeLessThanOrEqual(2);
   expect(layout.right).toBeLessThanOrEqual(layout.visibleRight+2);
+  expect(layout.actionRight).toBeLessThanOrEqual(layout.visibleRight+1);
 });
 test("Recebimento no celular rola a tabela sem cortar a página ou o botão de detalhes",async({page})=>{
   await page.setViewportSize({width:390,height:844});
