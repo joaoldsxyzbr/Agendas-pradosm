@@ -2,7 +2,7 @@
 
 ## Fonte de verdade e ambientes
 
-Repositório: `joaoldsxyzbr/Agendas-pradosm`. Branch `main`: produção; branch `preview`: validação isolada. Alterações grandes de estrutura devem passar por PR e CI antes de entrar em `main`. O deploy efetivo depende de confirmação separada no Cloudflare Workers Builds.
+Repositório: `joaoldsxyzbr/Agendas-pradosm`. Branch `main`: produção; branch `testes`: homologação isolada (Preview). Alterações grandes de estrutura devem passar por PR e CI antes de entrar em `main`. O deploy efetivo depende de confirmação separada no Cloudflare Workers Builds.
 
 **Stack:** JavaScript puro (ES Modules), HTML, CSS, Hono no Cloudflare Workers, D1, Zod, PDF WASM e recursos locais Lucide/Chart.js. Sem React, Vite ou TypeScript.
 

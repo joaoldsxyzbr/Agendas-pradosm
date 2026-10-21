@@ -18,7 +18,7 @@ function requestTooLarge(c) {
   return c.json(
     {
       error: "REQUISICAO_MUITO_GRANDE",
-      message: "O arquivo processado excede o limite permitido para importa\xE7\xE3o."
+      message: "O arquivo processado excede o limite permitido para importação."
     },
     413
   );
@@ -46,11 +46,13 @@ const validateMutationOrigin = createMiddleware(
       return;
     }
     const origin = c.req.header("Origin");
-    if (origin && !originMatchesRequest(c.req.url, origin)) {
+    const fetchSite = c.req.header("Sec-Fetch-Site");
+    // Complementa Origin quando Fetch Metadata detecta uma requisicao cross-site.
+    if ((origin && !originMatchesRequest(c.req.url, origin)) || fetchSite === "cross-site") {
       return c.json(
         {
           error: "ORIGEM_INVALIDA",
-          message: "Origem da requisi\xE7\xE3o n\xE3o permitida."
+          message: "Origem da requisição não permitida."
         },
         403
       );
@@ -79,7 +81,7 @@ function internalServerError(c) {
   return c.json(
     {
       error: "ERRO_INTERNO",
-      message: "N\xE3o foi poss\xEDvel concluir a opera\xE7\xE3o."
+      message: "Não foi possível concluir a operação."
     },
     500
   );
