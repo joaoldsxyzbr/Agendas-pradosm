@@ -1409,3 +1409,24 @@ html[data-theme="dark"] .prado-admin .registry-status.is-inactive {
 html[data-theme="dark"] .agenda-preview-modal .agenda-desktop .agenda-sort-button:focus-visible {
   outline-color: #8bc0ff;
 }
+
+
+/* Resumo do administrador na nova paleta. */
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary {
+  background: #222830;
+  border-color: #4e5b68;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span {
+  border-right-color: #36414c;
+  color: #bec9d4;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:last-child {
+  border-right-color: transparent;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary strong {
+  color: #f7faff;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:first-child strong { color: #8bc0ff; }
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(3) strong { color: #ffd077; }
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(4) strong { color: #61db9a; }
+html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(5) strong { color: #ff949b; }
