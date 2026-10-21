@@ -1430,3 +1430,40 @@ html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:first-c
 html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(3) strong { color: #ffd077; }
 html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(4) strong { color: #61db9a; }
 html[data-theme="dark"] .prado-admin .dashboard-operation-summary > span:nth-child(5) strong { color: #ff949b; }
+
+
+/* Superfícies da tabela administrativa em azul-grafite. */
+html[data-theme="dark"] .prado-admin .dashboard-operation-table {
+  background: #222830;
+  border-color: #4e5b68;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table table { background: #222830; }
+html[data-theme="dark"] .prado-admin .dashboard-operation-table thead th {
+  background: #2c3540;
+  border-bottom-color: #4e5b68;
+  color: #d7e1eb;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row {
+  background: #222830;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row > td {
+  background: #222830;
+  border-bottom-color: #36414c;
+  color: #e0e8f0;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row:nth-child(2n) {
+  background: #252d36;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row:nth-child(2n) > td {
+  background: #252d36;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row:hover {
+  background: #303c49;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row:hover > td {
+  background: #303c49;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row > td:first-child,
+html[data-theme="dark"] .prado-admin .dashboard-operation-table tbody .dashboard-operation-row > td:nth-child(2) {
+  background: inherit;
+}
