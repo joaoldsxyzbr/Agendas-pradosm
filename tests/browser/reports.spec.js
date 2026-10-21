@@ -165,7 +165,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
       pageOverflow:document.documentElement.scrollWidth-window.innerWidth};
   });
   expect(geometry.position).toBe("sticky");
-  expect(geometry.scroll).toBeGreaterThan(0);
+  expect(geometry.scroll,JSON.stringify(geometry)).toBeGreaterThan(0);
   expect(geometry.leftOffset).toBeGreaterThanOrEqual(-1);
   expect(geometry.leftOffset).toBeLessThanOrEqual(2);
   expect(geometry.pageOverflow).toBeLessThanOrEqual(2);
