@@ -46,3 +46,85 @@ test("Dia concluído impede escrita na API real e preserva status", async ({ req
   expect(appointment.status()).toBe(200);
   expect((await appointment.json()).status).toBe("recebido");
 });
+
+const importAgenda = ({ date, storeCode = "F05", replace = false, supplier = "Fornecedor Sintético" }) => ({
+  storeCode,
+  date,
+  originalFileName: "agenda-sintetica-e2e.csv",
+  replace,
+  appointments: [{
+    protocol: "987654320001",
+    startTime: "09:00",
+    endTime: "10:00",
+    supplier,
+    items: 2,
+    volumes: 3,
+    pallets: 1,
+    cargaBatida: null,
+    type: "Nota fiscal",
+    nfe: ["12345"],
+    orders: ["67890"]
+  }]
+});
+async function postImport(request, user, agendas) {
+  return request.post("/api/admin/agendas/import/bulk", {
+    headers: { ...await auth(user), Origin: "http://127.0.0.1:8789" },
+    data: { agendas }
+  });
+}
+
+test("Importação real em D1 local grava, exige confirmação e preserva status ao substituir", async ({ request }) => {
+  const date = "2038-04-06";
+  const original = importAgenda({ date });
+  expect((await postImport(request, "viewer", [original])).status()).toBe(403);
+  const created = await postImport(request, "admin", [original]);
+  expect(created.status()).toBe(201);
+  const summary = await created.json();
+  expect(summary.totalAgendas).toBe(1);
+  expect(summary.totalAppointments).toBe(1);
+  const agendaId = summary.agendas[0].agendaId;
+
+  const agendas = await request.get("/api/admin/agendas?date=" + date, { headers: await auth("admin") });
+  expect(agendas.status()).toBe(200);
+  expect((await agendas.json()).find(a=>a.id===agendaId)?.total).toBe(1);
+
+  const conflict = await postImport(request, "admin", [original]);
+  expect(conflict.status()).toBe(409);
+
+  const firstDetail = await request.get("/api/admin/agendas/" + agendaId, { headers: await auth("admin") });
+  expect(firstDetail.status()).toBe(200);
+  const appointmentId = (await firstDetail.json()).appointments[0].id;
+  const statusUpdated = await request.patch("/api/admin/appointments/" + appointmentId + "/status", {
+    headers: { ...await auth("admin"), Origin: "http://127.0.0.1:8789" },
+    data: { status: "recebido", observation: null }
+  });
+  expect(statusUpdated.status()).toBe(200);
+
+  const replacement = await postImport(request, "admin", [
+    importAgenda({ date, replace: true, supplier: "Fornecedor Atualizado" })
+  ]);
+  expect(replacement.status()).toBe(200);
+  const details = await request.get("/api/admin/agendas/" + agendaId, { headers: await auth("admin") });
+  expect(details.status()).toBe(200);
+  const rows = (await details.json()).appointments;
+  expect(rows).toHaveLength(1);
+  expect(rows[0].id).toBe(appointmentId);
+  expect(rows[0].status).toBe("recebido");
+  expect(rows[0].supplier).toBe("Fornecedor Atualizado");
+
+  const history = await request.get("/api/admin/appointments/" + appointmentId + "/history", { headers: await auth("admin") });
+  expect(history.status()).toBe(200);
+  expect((await history.json()).some(h=>h.statusNovo==="recebido")).toBe(true);
+});
+
+test("Lote com loja não cadastrada rejeita tudo sem gravação parcial", async ({ request }) => {
+  const date = "2038-04-07";
+  const result = await postImport(request, "admin", [
+    importAgenda({ date }),
+    importAgenda({ date, storeCode: "F99" })
+  ]);
+  expect(result.status()).toBe(422);
+  const agendas = await request.get("/api/admin/agendas?date=" + date, { headers: await auth("admin") });
+  expect(agendas.status()).toBe(200);
+  expect(await agendas.json()).toEqual([]);
+});
