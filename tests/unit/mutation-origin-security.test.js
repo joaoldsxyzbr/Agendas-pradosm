@@ -28,3 +28,19 @@ describe("Proteção de origem das mutações", () => {
     assert.equal(response.status, 200);
   });
 });
+import { app as productionApp } from "../../worker/app.js";
+
+describe("Login e logout protegidos contra requisições cross-site", () => {
+  it("bloqueia login sem Origin quando Fetch Metadata indica outro site", async () => {
+    const response = await productionApp.request("https://agendas.example/api/auth/login", { method: "POST", headers: { "Sec-Fetch-Site": "cross-site" }, body: "{}" });
+    assert.equal(response.status, 403);
+  });
+  it("bloqueia logout vindo de outra origem", async () => {
+    const response = await productionApp.request("https://agendas.example/api/auth/logout", { method: "POST", headers: { Origin: "https://outro.example" } });
+    assert.equal(response.status, 403);
+  });
+  it("mantém respostas normais de validação para login de mesma origem", async () => {
+    const response = await productionApp.request("https://agendas.example/api/auth/login", { method: "POST", headers: { Origin: "https://agendas.example", "Content-Type": "application/json" }, body: "{}" });
+    assert.equal(response.status, 400);
+  });
+});
