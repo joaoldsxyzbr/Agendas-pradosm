@@ -58,7 +58,7 @@
 .manager-report .report-progress{height:7px;margin-top:9px;overflow:hidden;border-radius:99px;background:var(--color-surface-strong,#2b3038)}
 .manager-report .report-progress span{display:block;height:100%;background:#91d8b8;border-radius:inherit}
 .manager-report .report-progress.is-missed span{background:#f2aaa8}
-.manager-report .report-table-scroll{width:100%;overflow-x:auto}
+.manager-report .report-table-scroll{width:100%;min-width:0;overflow-x:auto}
 .manager-report table{width:100%;min-width:830px;border-collapse:collapse;font-variant-numeric:tabular-nums}
 .manager-report th{background:var(--color-surface-muted,#252930);padding:11px 12px;text-align:left;font-size:11px;color:var(--color-text-muted,#bac0ca)}
 .manager-report td{padding:11px 12px;border-top:1px solid var(--color-border-soft,#393e47);color:var(--color-text,#f1f2f4);font-size:12px}
