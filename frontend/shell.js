@@ -17,13 +17,18 @@ export function adminShell(user, path) {
   const items = viewer ? NAV_ITEMS.filter(item => ["/admin", "/admin/reports"].includes(item.to)) : NAV_ITEMS;
   return `<div class="app-frame admin-shell prado-admin">
     <aside class="prado-sidebar">
-      <a href="/admin" class="prado-brand">
-        <span class="prado-brand-mark" aria-hidden="true">P</span>
-        <span><strong>Agenda Prado</strong><small>Gestão de recebimento</small></span>
-      </a>
+      <div class="prado-sidebar-head">
+        <a href="/admin" class="prado-brand" aria-label="Agenda Prado — Gestão de recebimento">
+          <span class="prado-brand-mark" aria-hidden="true">P</span>
+          <span class="prado-brand-copy"><strong>Agenda Prado</strong><small>Gestão de recebimento</small></span>
+        </a>
+        <button class="prado-sidebar-toggle" type="button" data-sidebar-toggle aria-controls="admin-sidebar-navigation" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4H5v16h4"></path><path d="m15 17-5-5 5-5"></path></svg>
+        </button>
+      </div>
       <div class="prado-sidebar-label">OPERAÇÃO</div>
-      <nav class="admin-topnav prado-side-nav" aria-label="Navegação lateral">
-        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
+      <nav id="admin-sidebar-navigation" class="admin-topnav prado-side-nav" aria-label="Navegação lateral">
+        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" aria-label="${item.label}" title="${item.label}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
       </nav>
       <div class="prado-sidebar-footer">Agenda Prado</div>
     </aside>
@@ -31,7 +36,7 @@ export function adminShell(user, path) {
     <header class="admin-topbar prado-topbar"><div class="admin-topbar-inner">
       <div class="prado-topbar-breadcrumb"><span>Operações</span><span aria-hidden="true">/</span><strong>${items.find(item => item.to === path)?.label ?? "Recebimento"}</strong></div>
       <nav class="admin-topnav prado-mobile-nav" aria-label="Navegação móvel">
-        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
+        ${items.map(item => `<a class="nav-link${path === item.to ? " active" : ""}" href="${item.to}" aria-label="${item.label}" title="${item.label}" ${path === item.to ? 'aria-current="page"' : ""}><img class="prado-nav-icon" src="/vendor/lucide/${item.icon}.svg" alt="" aria-hidden="true" width="17" height="17">${item.label}</a>`).join("")}
       </nav>
       <div class="admin-topbar-account">
         <div class="admin-topbar-user"><span>${escapeHtml(user.nome)}</span>
@@ -48,17 +53,22 @@ export function storeShell(user) {
   const storeLabel = user.lojaNome ?? (user.lojaCodigo ? `Loja ${user.lojaCodigo}` : "Loja");
   return `<div class="store-shell store-operations-shell prado-store-visual prado-store-layout">
     <aside class="prado-store-sidebar" aria-label="Navegação do conferente">
-      <a class="prado-brand" href="/app">
-        <span class="prado-brand-mark" aria-hidden="true">P</span>
-        <span><strong>Agenda Prado</strong><small>Gestão de recebimento</small></span>
-      </a>
+      <div class="prado-store-sidebar-head">
+        <a class="prado-brand" href="/app" aria-label="Agenda Prado — Gestão de recebimento">
+          <span class="prado-brand-mark" aria-hidden="true">P</span>
+          <span class="prado-brand-copy"><strong>Agenda Prado</strong><small>Gestão de recebimento</small></span>
+        </a>
+        <button class="prado-sidebar-toggle" type="button" data-sidebar-toggle aria-controls="store-sidebar-navigation" aria-expanded="true" aria-label="Recolher navegação" title="Recolher navegação">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9 4H5v16h4"></path><path d="m15 17-5-5 5-5"></path></svg>
+        </button>
+      </div>
       <div class="prado-store-sidebar-label">OPERAÇÃO</div>
-      <nav class="prado-store-side-nav" aria-label="Áreas do conferente">
-        <a class="prado-store-nav-link active" href="/app" aria-current="page">
+      <nav id="store-sidebar-navigation" class="prado-store-side-nav" aria-label="Áreas do conferente">
+        <a class="prado-store-nav-link active" href="/app" aria-label="Conferência" title="Conferência" aria-current="page">
           <span class="prado-store-nav-symbol" aria-hidden="true"><img class="prado-nav-icon" src="/vendor/lucide/clipboard-check.svg" alt="" width="17" height="17"></span>Conferência
         </a>
       </nav>
-      <div class="prado-store-sidebar-footer">
+      <div class="prado-store-sidebar-footer" title="Loja: ${escapeHtml(storeLabel)}" aria-label="Loja: ${escapeHtml(storeLabel)}">
         <span>LOJA</span>
         <strong>${escapeHtml(storeLabel)}</strong>
       </div>

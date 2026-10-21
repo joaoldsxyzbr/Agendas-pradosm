@@ -29,11 +29,15 @@ export function dashboardModel(stores, agendas, presences) {
     const agenda = byCode.get(store.codigo);
     return agenda && agenda.dayStatus !== "concluido";
   }).length;
+  const rows = activeStores.map(store => ({
+    store, agenda: byCode.get(store.codigo) || null,
+    presenceStatus: byId.get(store.id)?.status || "offline"
+  })).sort((a, b) => {
+    const rank = row => row.agenda?.dayStatus === "concluido" ? 1 : 0;
+    return rank(a) - rank(b);
+  });
   return {
-    rows: activeStores.map(store => ({
-      store, agenda: byCode.get(store.codigo) || null,
-      presenceStatus: byId.get(store.id)?.status || "offline"
-    })),
+    rows,
     totalStores: activeStores.length,
     storesWithAgenda,
     completedStores,
@@ -42,26 +46,43 @@ export function dashboardModel(stores, agendas, presences) {
   };
 }
 
-export function dashboardRowHtml({ store, agenda, presenceStatus }, selectedDate) {
-  const status = presenceLabel(presenceStatus);
+export function dashboardRowHtml({ store, agenda, presenceStatus }) {
+  const presence = presenceLabel(presenceStatus);
   const rowClass = agenda?.dayStatus === "concluido" ? "is-completed" : agenda ? "is-open" : "is-empty";
   const esc = escapeHtml;
+  // <progress> usa valores numéricos seguros, sem depender de cores para transmitir avanço.
+  const received = Math.max(0, Number(agenda?.recebido) || 0);
+  const total = Math.max(0, Number(agenda?.total) || 0);
+  const progressMax = Math.max(1, total);
+  const progressValue = Math.min(received, progressMax);
+  const pendingCounts = agenda ? [
+    [Math.max(0, Number(agenda.aguardando) || 0), "aguardando", "has-waiting"],
+    [Math.max(0, Number(agenda.naoChegou) || 0), "não recebidos", "has-missing"],
+    [Math.max(0, Number(agenda.recusado) || 0), "recusados", "has-missing"],
+    [Math.max(0, Number(agenda.semAgenda) || 0), "sem agenda", ""]
+  ].filter(([count]) => count > 0) : [];
+  const pendingContent = agenda
+    ? (pendingCounts.length
+      ? pendingCounts.map(([count, label, tone]) => `<span${tone ? ` class="${tone}"` : ""}>${count} ${label}</span>`).join("")
+      : '<span class="dashboard-no-pending">Sem pendências</span>')
+    : '<span class="dashboard-no-agenda-copy">Sem agenda nesta data</span>';
   return `<tr class="dashboard-operation-row ${rowClass}" data-store-id="${esc(store.id)}" data-testid="dashboard-store-${esc(store.codigo)}">
+    <td class="dashboard-store-cell">
+      <strong>${esc(store.codigo)}<small class="dashboard-agenda-mark">${agenda ? "Agenda importada" : "Sem agenda"}</small></strong>
+      <span>${esc(store.nome)}</span>
+    </td>
     <td><span class="dashboard-presence">
       <span class="presence-dot ${esc(presenceStatus)}" role="img"
-        aria-label="Conferente ${esc(status.toLowerCase())}" title="${esc(status)}"></span>${esc(status)}
+        aria-label="Conferente ${esc(presence.toLowerCase())}" title="${esc(presence)}"></span>${esc(presence)}
     </span></td>
-    <td class="dashboard-store-cell"><strong>${esc(store.codigo)}</strong><span>${esc(store.nome)}</span></td>
-    <td><span class="dashboard-agenda-state ${agenda ? "has-agenda" : "no-agenda"}">${agenda ? "Importada" : "Sem agenda"}</span></td>
     <td class="dashboard-progress-cell">${agenda
-      ? `<strong>${agenda.recebido} / ${agenda.total}</strong><span>recebidos</span>`
+      ? `<strong>${received} <span class="dashboard-progress-divider">/</span> ${total}</strong>
+        <progress class="dashboard-received-progress" value="${progressValue}" max="${progressMax}" aria-label="Recebimentos concluídos"></progress>`
       : '<span class="dashboard-empty-value">—</span>'}</td>
-    <td class="dashboard-pending-cell">${agenda
-      ? `<div><span>${agenda.aguardando} aguardando</span><span>${agenda.naoChegou} não recebidos</span>${agenda.recusado > 0 ? `<span>${agenda.recusado} recusados</span>` : ""}${agenda.semAgenda > 0 ? `<span>${agenda.semAgenda} sem agenda</span>` : ""}</div>`
-      : `<span class="dashboard-no-agenda-copy">Não importada em ${esc(formatDashboardDate(selectedDate))}</span>`}</td>
+    <td class="dashboard-pending-cell"><div>${pendingContent}</div></td>
     <td>${agenda
-      ? `<span class="status-pill ${agenda.dayStatus === "concluido" ? "success" : "warning"}">${agenda.dayStatus === "concluido" ? "✓ Concluído" : "Em andamento"}</span>`
-      : '<span class="status-pill muted">Pendente</span>'}</td>
+      ? `<span class="status-pill ${agenda.dayStatus === "concluido" ? "success" : "warning"}">${agenda.dayStatus === "concluido" ? "Concluído" : "Em andamento"}</span>`
+      : '<span class="status-pill muted">Sem agenda</span>'}</td>
     <td class="table-action">${agenda
       ? `<button class="ghost-button dashboard-store-details" type="button" data-agenda-id="${esc(agenda.id)}">Ver detalhes</button>`
       : ""}</td>

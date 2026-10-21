@@ -33,12 +33,22 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   await page.setViewportSize({width:1440,height:900});
   await mockDashboard(page);
   await page.goto("/admin");
-  await page.locator('[data-agenda-id="agenda1"]').click();
+  const bodyOverflowBefore=await page.locator("body").evaluate(el=>el.style.overflow);
+  const trigger=page.locator('[data-agenda-id="agenda1"]');
+  await trigger.click();
   const modal=page.locator(".agenda-preview-modal");
   const content=modal.locator("[data-preview-content]");
   const list=modal.locator("[data-preview-list]");
   await expect(modal).toBeVisible();
   await expect(content).toBeVisible();
+  await expect(modal.locator("#admin-agenda-preview-title")).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(modal.locator("[data-preview-close]")).toBeFocused();
+  await page.keyboard.press("Shift+Tab");
+  await expect.poll(()=>modal.evaluate(dialog=>dialog.contains(document.activeElement))).toBe(true);
+  await expect(page.locator("body")).toHaveCSS("overflow","hidden");
+  await expect(modal.locator("[data-preview-reopen]")).toBeHidden();
+  await expect(modal.locator(".agenda-sort-button").first()).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
   await expect(modal.locator('[data-preview-search]')).toBeVisible();
   await expect(list.locator('[data-testid="agenda-desktop-row"]')).toHaveCount(1);
   const geometry=await modal.evaluate(el=>{
@@ -77,8 +87,10 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   await expect(list.locator('[data-testid="agenda-desktop-row"]')).toHaveCount(1);
   await modal.locator("[data-preview-edit]").click();
   await expect(modal.locator("[data-preview-add]")).toBeVisible();
-  await modal.locator("[data-preview-close]").click();
+  await page.keyboard.press("Escape");
   await expect(modal).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+  await expect.poll(()=>page.locator("body").evaluate(el=>el.style.overflow)).toBe(bodyOverflowBefore);
 });
 
 test("Popup de agenda fica legível no celular",async({page})=>{

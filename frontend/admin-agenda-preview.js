@@ -3,6 +3,7 @@ import { escapeHtml } from "./shell.js";
 import { renderAgendaList,normalizeAgendaSearch,sortAgendaAppointments } from "./agenda-list.js";
 import { storeAgendaMetrics,formatStoreDate } from "./store-agenda-model.js";
 import { openAdminManualDialog } from "./admin-manual-dialog.js";
+import { activateModal } from "./dialog-focus.js";
 
 // Popup AdminAgendaPreview da main: consulta primeiro, edita só após autorização manual.
 export function openAdminAgendaPreview(root,{
@@ -11,13 +12,14 @@ export function openAdminAgendaPreview(root,{
 }={}) {
   let disposed=false,loading=true,error=null,detail=null,editMode=false;
   let reopening=false,search="",list=null,manualClose=null,requestToken=0;
+  let releaseFocus=()=>{};
   const backdrop=root.ownerDocument.createElement("div");
   backdrop.className="modal-backdrop";
   backdrop.setAttribute("role","presentation");
   backdrop.innerHTML=`<div class="modal-card agenda-preview-modal" role="dialog" aria-modal="true"
     aria-labelledby="admin-agenda-preview-title">
     <div class="modal-heading"><div><span class="eyebrow">Consulta</span>
-      <h2 id="admin-agenda-preview-title" data-preview-heading>Detalhes da agenda</h2></div>
+      <h2 id="admin-agenda-preview-title" data-preview-heading tabindex="-1">Detalhes da agenda</h2></div>
       <button class="ghost-button" type="button" data-preview-close>Fechar</button>
     </div>
     <p class="muted-state" data-preview-loading>Carregando agenda...</p>
@@ -51,12 +53,17 @@ export function openAdminAgendaPreview(root,{
     </section>
   </div>`;
   root.appendChild(backdrop);
+  const body=root.ownerDocument.body;
+  const previousBodyOverflow=body.style.overflow;
+  body.style.overflow="hidden";
   const field=selector=>backdrop.querySelector(selector);
   const close=()=>{
     if(disposed)return;
     disposed=true;requestToken++;
+    body.style.overflow=previousBodyOverflow;
     manualClose?.();list?.destroy();
     offRealtime();
+    releaseFocus();
     backdrop.remove();
     onClose();
   };
@@ -184,6 +191,9 @@ export function openAdminAgendaPreview(root,{
   };
   backdrop.addEventListener("click",onClick);
   backdrop.addEventListener("input",onInput);
+  releaseFocus=activateModal(()=>field('[role="dialog"]'),{
+    initialFocus:()=>field("[data-preview-heading]"),onEscape:close
+  });
   const offRealtime=realtime?.onEvent?.(event=>{
     if(event.type==="agenda.changed"&&event.agendaId===agendaId)void load(true);
   })||(()=>{});

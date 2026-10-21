@@ -4,6 +4,7 @@ import { applyTheme, readStoredTheme } from "./theme.js";
 import { resolveRoute } from "./routes.js";
 import { renderLogin } from "./login.js";
 import { adminShell, storeShell } from "./shell.js";
+import { setupSidebarNavigation } from "./sidebar-navigation.js";
 
 // Runtime nativo carregado pelo entrypoint de produção através de frontend/application.js.
 // Usa apenas os renderizadores registrados para cada rota e perfil.
@@ -18,6 +19,7 @@ export function createVanillaRuntime({
 }) {
   const auth = createAuthController({ request, onChange: onSessionChange });
   let cleanup = () => {};
+  let cleanupSidebar = () => {};
   let activePage = null;
   let activeLayout = null;
   let started = false;
@@ -40,15 +42,19 @@ export function createVanillaRuntime({
       throw Error("Redirecionamento circular inesperado.");
     }
     if (route.view === "login") {
+      cleanupSidebar();
+      cleanupSidebar = () => {};
       activePage = "login";
       activeLayout = null;
       cleanup = renderLogin(root, { auth, navigate, request });
       return;
     }
     if (route.layout !== activeLayout) {
+      cleanupSidebar();
       root.innerHTML = route.layout === "store"
         ? storeShell(auth.user)
         : adminShell(auth.user, win.location.pathname);
+      cleanupSidebar = setupSidebarNavigation(root, win);
       activeLayout = route.layout;
     }
     const outlet = root.querySelector("[data-page-outlet]");
@@ -122,6 +128,8 @@ export function createVanillaRuntime({
     },
     stop() {
       cleanup();
+      cleanupSidebar();
+      cleanupSidebar = () => {};
       win.removeEventListener("popstate", onPop);
       root.removeEventListener("click", onLink);
       root.removeEventListener("click", onLogout);

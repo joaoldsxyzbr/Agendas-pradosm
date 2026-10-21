@@ -2,6 +2,7 @@ import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { extractPdfText } from "./import/extractPdfText.js";
 import { parseAgendaCsv, parseAgendaPdfText } from "./import/parseAgendaBatch.js";
+import { activateModal } from "./dialog-focus.js";
 
 export const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 const ERROR_LABELS = {
@@ -110,21 +111,29 @@ export function renderImportAgenda(root,{
 }={}) {
   let disposed=false,preview=null,file=null,loading=false,submitting=false;
   let replacePending=false,message=null,success=false,selectionToken=0;
+  const dialogTrigger=modal?root.ownerDocument.activeElement:null;
+  let releaseFocus=()=>{};
   if(modal)root.innerHTML=`<div class="modal-backdrop" role="presentation" data-import-backdrop>
-    <section class="modal-card import-agenda-modal" role="dialog" aria-modal="true"
+    <section class="modal-card import-agenda-modal" role="dialog" tabindex="-1" aria-modal="true"
       aria-labelledby="import-agenda-title"><div data-import-body></div></section>
   </div>`;
   const body=modal?root.querySelector("[data-import-body]"):root;
   body.innerHTML=`<div class="admin-page import-agenda-content">
     <header class="${modal?"modal-heading":"page-heading"}">
       <div><span class="eyebrow">Agenda diária</span>
-        <${modal?"h2":"h1"} id="import-agenda-title">Importar agenda</${modal?"h2":"h1"}>
+        <${modal?"h2":"h1"} id="import-agenda-title"${modal?' tabindex="-1"':""}>Importar agenda</${modal?"h2":"h1"}>
         <p>Importe o CSV com todas as lojas de uma vez. O PDF continua disponível como formato de reserva.</p>
       </div>
       ${modal?'<button class="ghost-button" type="button" data-import-close>Fechar</button>':""}
     </header>
-    <div class="upload-card"><label class="file-field"><span>Arquivo CSV ou PDF</span>
-      <input type="file" data-import-file accept=".csv,text/csv,.pdf,application/pdf"></label>
+    <div class="upload-card"><div class="file-field"><span>Arquivo CSV ou PDF</span>
+      <div class="file-picker-controls">
+        <input id="import-agenda-file" type="file" data-import-file hidden
+          accept=".csv,text/csv,.pdf,application/pdf">
+        <button class="ghost-button file-picker-button" type="button" data-import-browse
+          aria-controls="import-agenda-file">Selecionar arquivo</button>
+        <span class="file-picker-name" data-import-file-name aria-live="polite">Nenhum arquivo selecionado</span>
+      </div></div>
       <p class="field-help">O arquivo é interpretado no navegador. Nenhuma agenda é gravada até você conferir a prévia e confirmar.</p>
     </div>
     <p class="muted-state" data-import-loading hidden>Lendo arquivo...</p>
@@ -134,11 +143,13 @@ export function renderImportAgenda(root,{
   const render=()=>{
     if(disposed)return;
     body.querySelector("[data-import-loading]").hidden=!loading;
+    const fileName=body.querySelector("[data-import-file-name]");
+    if(fileName)fileName.textContent=file?.name||"Nenhum arquivo selecionado";
     messageNode(body,message,success);
     body.querySelector("[data-import-preview]").innerHTML=preview
       ?previewHtml(preview,file,submitting,replacePending):"";
   };
-  const close=(force=false)=>{if((submitting&&!force)||disposed)return;disposed=true;selectionToken++;onClose();};
+  const close=(force=false)=>{if((submitting&&!force)||disposed)return;disposed=true;selectionToken++;releaseFocus();onClose();};
   const changeFile=async event=>{
     const selected=event.target.files?.[0]??null;
     const token=++selectionToken;
@@ -193,6 +204,7 @@ export function renderImportAgenda(root,{
   const onClick=event=>{
     const button=event.target.closest?.("button");
     if(!button||!root.contains(button))return;
+    if(button.matches("[data-import-browse]"))return body.querySelector("[data-import-file]").click();
     if(button.matches("[data-import-close]"))close();
     else if(button.matches("[data-import-submit]"))void submit(false);
     else if(button.matches("[data-import-replace]"))void submit(true);
@@ -205,8 +217,12 @@ export function renderImportAgenda(root,{
   root.addEventListener("click",onClick);
   root.querySelector("[data-import-backdrop]")?.addEventListener("mousedown",onBackdrop);
   render();
+  if(modal)releaseFocus=activateModal(()=>root.querySelector('[data-import-backdrop] [role="dialog"]'),{
+    initialFocus:()=>root.querySelector("#import-agenda-title"),onEscape:close,trigger:dialogTrigger
+  });
   return ()=>{
     disposed=true;selectionToken++;
+    releaseFocus();
     root.removeEventListener("change",onChange);
     root.removeEventListener("click",onClick);
     root.querySelector("[data-import-backdrop]")?.removeEventListener("mousedown",onBackdrop);
