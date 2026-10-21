@@ -52,6 +52,8 @@ jobs:
         run: npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
+      - name: Preparar D1 local para testes de integracao
+        run: node scripts/prepare-e2e.mjs
       - name: Testes de navegador sem dados reais
         env:
           CI: "true"
