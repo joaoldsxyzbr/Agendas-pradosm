@@ -155,6 +155,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await mocks(page,viewer);
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Por loja",exact:true})).toBeVisible();
+  await page.evaluate(()=>{document.documentElement.dataset.theme="dark";});
   const geometry=await page.locator(".report-store-table").evaluate(el=>{
     const cell=el.querySelector("tbody td:first-child");
     el.scrollLeft=el.scrollWidth;

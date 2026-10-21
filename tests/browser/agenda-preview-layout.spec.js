@@ -45,7 +45,7 @@ test("Popup de agenda ocupa largura integral e preserva ações",async({page})=>
   await page.keyboard.press("Tab");
   await expect(modal.locator("[data-preview-close]")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect.poll(()=>modal.locator('[role="dialog"]').evaluate(dialog=>dialog.contains(document.activeElement))).toBe(true);
+  await expect.poll(()=>modal.evaluate(dialog=>dialog.contains(document.activeElement))).toBe(true);
   await expect(page.locator("body")).toHaveCSS("overflow","hidden");
   await expect(modal.locator("[data-preview-reopen]")).toBeHidden();
   await expect(modal.locator(".agenda-sort-button").first()).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
