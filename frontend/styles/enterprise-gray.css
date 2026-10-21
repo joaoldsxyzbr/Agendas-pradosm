@@ -1208,3 +1208,204 @@ html[data-theme="dark"] [data-sidebar-collapsed="true"] .prado-sidebar-toggle sv
 @media (prefers-reduced-motion: reduce) {
   html[data-theme="dark"] .prado-sidebar-toggle svg { transition: none; }
 }
+
+
+/* Paleta cromática reforçada — azul técnico e estados vivos. */
+html[data-theme="dark"] {
+  --color-primary: #5ea9ff;
+  --color-primary-strong: #8bc0ff;
+  --color-primary-soft: #203b5a;
+  --color-accent: #47d5e3;
+  --color-accent-strong: #8ae8ef;
+  --color-background: #171b20;
+  --color-surface: #222830;
+  --color-surface-glass: #222830;
+  --color-surface-muted: #2b333d;
+  --color-surface-strong: #36424e;
+  --color-neutral-soft: #2b333d;
+  --color-text: #e0e8f0;
+  --color-text-strong: #f7faff;
+  --color-text-muted: #bec9d4;
+  --color-text-soft: #a9b7c4;
+  --color-border: #4e5b68;
+  --color-border-soft: #36414c;
+  --color-border-strong: #718193;
+  --color-on-primary: #102033;
+  --color-focus-ring: rgba(94, 169, 255, .38);
+  --color-success: #61db9a;
+  --color-success-soft: #20392d;
+  --color-success-border: #4a916b;
+  --color-warning: #ffd077;
+  --color-warning-soft: #3b3020;
+  --color-warning-border: #9a7840;
+  --color-danger: #ff949b;
+  --color-danger-soft: #40292d;
+  --color-danger-border: #a75d65;
+}
+html[data-theme="dark"] body { background: #171b20; color: #e0e8f0; }
+html[data-theme="dark"] .prado-sidebar,
+html[data-theme="dark"] .prado-store-layout .prado-store-sidebar {
+  background: #1d252e;
+  border-right-color: #36414c;
+}
+html[data-theme="dark"] .prado-topbar.admin-topbar,
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar.store-operations-topbar {
+  background: #1e252d;
+  border-bottom-color: #36414c;
+}
+html[data-theme="dark"] .prado-brand-mark {
+  border-color: #477cad;
+  background: #26394c;
+  color: #d8eaff;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link:hover,
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link:hover {
+  background: #2b3641;
+  color: #f7faff;
+}
+html[data-theme="dark"] .prado-side-nav .nav-link.active,
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link.active {
+  background: #203b5a;
+  color: #c7e4ff;
+  box-shadow: inset 3px 0 #5ea9ff;
+}
+html[data-theme="dark"] .prado-sidebar-toggle {
+  border-color: #4e5b68;
+  color: #c7d8e8;
+}
+html[data-theme="dark"] .prado-sidebar-toggle:hover {
+  background: #2b3641;
+  border-color: #5ea9ff;
+  color: #f7faff;
+}
+html[data-theme="dark"] .primary-button,
+html[data-theme="dark"] .login-form button {
+  background: #5ea9ff;
+  border-color: #5ea9ff;
+  color: #102033;
+}
+html[data-theme="dark"] .primary-button:hover:not(:disabled),
+html[data-theme="dark"] .login-form button:hover:not(:disabled) {
+  background: #8bc0ff;
+  border-color: #8bc0ff;
+  color: #102033;
+}
+html[data-theme="dark"] .ghost-button,
+html[data-theme="dark"] .prado-store-layout .prado-store-topbar .store-topbar-actions .ghost-button {
+  background: #2b333d;
+  border-color: #4e5b68;
+  color: #e7edf4;
+}
+html[data-theme="dark"] .ghost-button:hover:not(:disabled) {
+  background: #36424e;
+  border-color: #718193;
+}
+html[data-theme="dark"] :focus-visible { outline-color: #8bc0ff; }
+html[data-theme="dark"] :is(input,select,textarea):focus-visible { outline-color: #5ea9ff; }
+html[data-theme="dark"] :is(input,select,textarea) { accent-color: #5ea9ff; }
+html[data-theme="dark"] .prado-workspace .page-heading h1,
+html[data-theme="dark"] .prado-store-layout .prado-store-page-heading h1 { color: #f7faff; }
+html[data-theme="dark"] .dashboard-operation-table thead th,
+html[data-theme="dark"] .registry-table th,
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop thead th,
+html[data-theme="dark"] .manager-report th,
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop thead th {
+  background: #2c3540;
+  color: #d7e1eb;
+  border-bottom-color: #4e5b68;
+}
+html[data-theme="dark"] .dashboard-operation-row:nth-child(even) td,
+html[data-theme="dark"] .registry-table tbody tr:nth-child(even) td,
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop tbody tr:nth-child(even) td {
+  background: #252d36;
+}
+html[data-theme="dark"] .dashboard-operation-row:hover td,
+html[data-theme="dark"] .registry-table tbody tr:hover td,
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop tbody tr:hover td,
+html[data-theme="dark"] .manager-report tbody tr:hover {
+  background: #303c49;
+}
+html[data-theme="dark"] .dashboard-date-controls,
+html[data-theme="dark"] .prado-store-layout .prado-store-heading-controls .agenda-date-controls {
+  background: #252d36;
+  border-color: #4e5b68;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading {
+  background: #252d36;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel-heading .agenda-search input,
+html[data-theme="dark"] .registry-toolbar input,
+html[data-theme="dark"] .registry-toolbar select,
+html[data-theme="dark"] .registry-create-modal :is(input,select),
+html[data-theme="dark"] .observation-field :is(select,textarea),
+html[data-theme="dark"] .login-form input,
+html[data-theme="dark"] .modal-card :is(input,select,textarea) {
+  background: #1b2128;
+  border-color: #4e5b68;
+  color: #f0f5fa;
+}
+html[data-theme="dark"] .registry-toolbar,
+html[data-theme="dark"] .manager-report .report-panel > header {
+  background: #2c3540;
+  border-color: #36414c;
+}
+html[data-theme="dark"] .manager-report .report-chip[aria-pressed="true"],
+html[data-theme="dark"] .manager-report .report-mode-button[aria-pressed="true"] {
+  background: #203b5a;
+  border-color: #5ea9ff;
+  color: #d8eaff;
+}
+html[data-theme="dark"] .manager-report .report-info-button:hover,
+html[data-theme="dark"] .manager-report .report-info-button:focus-visible {
+  background: #203b5a;
+  border-color: #5ea9ff;
+  color: #f7faff;
+}
+html[data-theme="dark"] .manager-report .report-metric-primary strong,
+html[data-theme="dark"] .dashboard-operation-summary > span:first-child strong,
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:first-child strong {
+  color: #8bc0ff;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span {
+  border-top: 2px solid #4e5b68;
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(1) { border-top-color: #5ea9ff; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(2) strong { color: #ffd077; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(3) strong { color: #61db9a; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(4) strong { color: #ff949b; }
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-view .agenda-metrics > span:nth-child(5) strong { color: #47d5e3; border-top-color: #47d5e3; }
+html[data-theme="dark"] .prado-admin .dashboard-pending-cell > div > span.has-waiting { color: #ffd077; }
+html[data-theme="dark"] .prado-admin .dashboard-pending-cell > div > span.has-missing { color: #ff949b; }
+html[data-theme="dark"] .prado-admin .dashboard-operation-row .status-pill.success {
+  color: #61db9a;
+  border-color: #4a916b;
+  background: #20392d;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-row .status-pill.warning {
+  color: #ffd077;
+  border-color: #9a7840;
+  background: #3b3020;
+}
+html[data-theme="dark"] .prado-admin .dashboard-operation-row .status-pill.muted {
+  color: #bec9d4;
+  border-color: #4e5b68;
+  background: #2b333d;
+}
+html[data-theme="dark"] .prado-admin .registry-role {
+  background: #2b333d;
+  border-color: #4e5b68;
+  color: #e0e8f0;
+}
+html[data-theme="dark"] .prado-admin .registry-status.is-active {
+  border-color: #4a916b;
+  background: #20392d;
+  color: #61db9a;
+}
+html[data-theme="dark"] .prado-admin .registry-status.is-inactive {
+  border-color: #4e5b68;
+  background: #2b333d;
+  color: #bec9d4;
+}
+html[data-theme="dark"] .agenda-preview-modal .agenda-desktop .agenda-sort-button:focus-visible {
+  outline-color: #8bc0ff;
+}

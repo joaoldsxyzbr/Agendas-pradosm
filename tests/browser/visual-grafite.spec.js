@@ -34,23 +34,23 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await mock(page,admin);
   await page.goto("/admin");
   await expect(page.getByRole("heading",{name:"Recebimento",exact:true})).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS("background-color","rgb(24, 26, 28)");
-  await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 32, 34)");
-  await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(48, 52, 56)");
-  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-color","rgb(36, 39, 41)");
+  await expect(page.locator("body")).toHaveCSS("background-color","rgb(23, 27, 32)");
+  await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 37, 46)");
+  await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(32, 59, 90)");
+  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-color","rgb(34, 40, 48)");
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
-  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-color","rgb(36, 39, 42)");
+  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-color","rgb(34, 40, 48)");
   await expect(page.locator(".manager-report .report-heading-tag")).toBeHidden();
 
   await page.goto("/admin/stores");
   await expect(page.getByRole("heading",{name:"Lojas"})).toBeVisible();
-  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(41, 45, 48)");
+  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(44, 53, 64)");
 
   await page.goto("/admin/users");
   await expect(page.getByRole("heading",{name:"Usuários"})).toBeVisible();
-  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(41, 45, 48)");
+  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(44, 53, 64)");
 });
 
 
@@ -99,7 +99,7 @@ test("Conferente mantém layout móvel e usa o mesmo grafite",async({page})=>{
   await expect(page.locator(".prado-store-sidebar")).toBeHidden();
   await expect(page.locator(".agenda-metrics [data-metric]")).toHaveCount(5);
   await expect(page.locator(".prado-store-agenda-view .agenda-metrics > span").first())
-    .toHaveCSS("background-color","rgb(36, 39, 42)");
+    .toHaveCSS("background-color","rgb(34, 40, 48)");
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
