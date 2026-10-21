@@ -8,11 +8,12 @@ export const REPORT_HELP = Object.freeze({
   "Aguardando": "Agendamentos pendentes de recebimento em agendas que continuam abertas.",
   "Sem conferência": "Agendamentos que permaneceram aguardando quando a agenda foi concluída. Não significa que o caminhão não foi recebido.",
   "Recusados": "Agendamentos com status recusado no período filtrado.",
-  "Evolução diária": "Volume diário por resultado: recebidos, não recebidos, aguardando em dias abertos, sem conferência em dias concluídos e recusados.",
+  "Evolução diária": "Volume diário por resultado: recebidos, não recebidos, aguardando em dias abertos, sem conferência em dias concluídos e recusados. A alternância mostra o volume por status ou a taxa de recebimento de cada dia.",
   "Comparativo por loja": "Taxa de recebimento de cada loja: recebidos ÷ total da unidade × 100. A barra representa esse percentual.",
-  "Fornecedores com ocorrências": "Fornecedores com mais não recebimentos. A barra compara a quantidade de cada um com a do líder do ranking.",
+  "Fornecedores com ocorrências": "Fornecedores com mais não recebidos. A barra compara a quantidade de cada um com a do líder do ranking e mostra também a taxa de recebimento do fornecedor no período.",
   "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de sem conferência em agendas concluídas.",
-  "Ocorrências e observações": "Lista dos não recebimentos com fornecedor, protocolo e motivo. Registros antigos podem não ter motivo."
+  "Ocorrências e observações": "Lista dos não recebimentos com fornecedor, protocolo e motivo. Registros antigos podem não ter motivo. Use a busca para filtrar por fornecedor ou protocolo.",
+  "Padrão por dia da semana": "Taxa de recebimento agrupada por dia da semana no período, somando todas as lojas. Ajuda a identificar dias que concentram problemas de entrega."
 });
 
 export function reportInfo(title) {

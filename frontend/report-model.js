@@ -29,6 +29,26 @@ export function groupDailyReport(rows = []) {
   return [...grouped.values()].sort((a, b) => a.date.localeCompare(b.date));
 }
 
+const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+export const WEEKDAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+
+export function groupWeekdayReport(dailyRows = []) {
+  const grouped = new Map();
+  for (const row of dailyRows) {
+    const weekday = new Date(row.date + "T00:00:00Z").getUTCDay();
+    let day = grouped.get(weekday);
+    if (!day) {
+      day = { weekday, total: 0, recebido: 0, naoChegou: 0, days: 0 };
+      grouped.set(weekday, day);
+    }
+    day.total += Number(row.total || 0);
+    day.recebido += Number(row.recebido || 0);
+    day.naoChegou += Number(row.naoChegou || 0);
+    day.days += 1;
+  }
+  return [...grouped.values()].sort((a, b) => WEEKDAY_ORDER.indexOf(a.weekday) - WEEKDAY_ORDER.indexOf(b.weekday));
+}
+
 export function groupStoreReport(rows = []) {
   const grouped = new Map();
   for (const row of rows) {
