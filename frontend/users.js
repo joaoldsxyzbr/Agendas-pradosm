@@ -83,7 +83,7 @@ export function renderUsers(root, { request = apiFetch } = {}) {
         <td class="registry-primary-cell">${escapeHtml(user.nome)}</td>
         <td>${escapeHtml(user.login)}</td>
         <td>${escapeHtml(user.lojaId ? names.get(user.lojaId) || "Loja não localizada" : "—")}</td>
-        <td>${escapeHtml(ROLE_LABELS[user.papel] || user.papel)}</td>
+        <td><span class="registry-role">${escapeHtml(ROLE_LABELS[user.papel] || user.papel)}</span></td>
         <td><span class="registry-status ${user.ativo ? "is-active" : "is-inactive"}">${user.ativo ? "Ativo" : "Inativo"}</span></td>
         <td class="table-action"><button class="ghost-button registry-edit-button"
           type="button" data-edit-user-id="${escapeHtml(user.id)}">Editar</button></td>
