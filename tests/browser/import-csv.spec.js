@@ -63,7 +63,7 @@ test("CSV com colunas inválidas mantém modal aberto e mostra erro", async ({ p
     name: "invalido.csv", mimeType: "text/csv", buffer: Buffer.from("x;y\n1;2\n")
   });
   await expect(page.getByRole("dialog", { name: "Importar agenda" })).toBeVisible();
-  await expect(page.getByRole("region", { name: "Erros da importação" })).toContainText("não possui as colunas esperadas");
+  await expect(page.locator('[aria-label="Erros da importação"]')).toContainText("não possui as colunas esperadas");
   await expect(page.locator("[data-import-submit]")).toBeDisabled();
   expect(submissions).toHaveLength(0);
 });
