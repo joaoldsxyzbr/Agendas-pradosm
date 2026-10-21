@@ -1,6 +1,7 @@
 import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { extractPdfText } from "./import/extractPdfText.js";
+import { readCsvText } from "./import/readCsvText.js";
 import { parseAgendaCsv, parseAgendaPdfText } from "./import/parseAgendaBatch.js";
 import { activateModal } from "./dialog-focus.js";
 
@@ -62,7 +63,7 @@ function previewHtml(preview, file, busy, replacePending) {
     storeCode:agenda.storeCode??"—",item
   })));
   const errors=preview.blockingErrors.length
-    ? `<section class="validation-panel error-panel" aria-label="Erros da importação">
+    ? `<section class="validation-panel error-panel" role="alert" aria-label="Erros da importação">
        <h2>Corrija antes de importar</h2><ul>
        ${preview.blockingErrors.map(error=>`<li>${esc(importErrorLabel(error))}</li>`).join("")}
        </ul></section>` : "";
@@ -137,7 +138,7 @@ export function renderImportAgenda(root,{
       <p class="field-help">O arquivo é interpretado no navegador. Nenhuma agenda é gravada até você conferir a prévia e confirmar.</p>
     </div>
     <p class="muted-state" data-import-loading hidden>Lendo arquivo...</p>
-    <p data-import-message hidden></p>
+    <p data-import-message role="status" aria-live="polite" hidden></p>
     <div data-import-preview></div>
   </div>`;
   const render=()=>{
@@ -156,13 +157,15 @@ export function renderImportAgenda(root,{
     file=selected;preview=null;message=null;success=false;replacePending=false;
     if(!selected){render();return;}
     if(selected.size>MAX_SOURCE_FILE_BYTES){message="O arquivo excede o limite de 10 MB.";render();return;}
+    if(selected.size===0){message="O arquivo está vazio. Selecione um CSV ou PDF com dados.";render();return;}
     if(!isCsvAgenda(selected)&&!isPdfAgenda(selected)){message="Selecione um arquivo CSV ou PDF.";render();return;}
     loading=true;render();
     try{
-      const parsed=isCsvAgenda(selected) ?parseCsv(await selected.text())
+      const parsed=isCsvAgenda(selected) ?parseCsv(await readCsvText(selected))
         :parsePdf(await extractPdf(selected));
       if(disposed||token!==selectionToken)return;
       preview=parsed;
+      if(parsed.blockingErrors?.length){message="O arquivo foi lido, mas precisa de correções. Confira os erros da prévia.";}
     }catch{
       if(disposed||token!==selectionToken)return;
       message=isCsvAgenda(selected)?"Não foi possível ler o CSV selecionado."
@@ -199,7 +202,11 @@ export function renderImportAgenda(root,{
     }
   };
   const onChange=event=>{
-    if(event.target.matches("[data-import-file]"))void changeFile(event);
+    if(event.target.matches("[data-import-file]")){
+      void changeFile(event);
+      // Permite selecionar novamente o mesmo arquivo após uma correção.
+      event.target.value="";
+    }
   };
   const onClick=event=>{
     const button=event.target.closest?.("button");
