@@ -12,7 +12,7 @@ const wrangler = resolve(
 );
 
 function runWrangler(args, input = undefined) {
-  const result = spawnSync(wrangler, args, {
+  const result = spawnSync(wrangler, [...args, "--config", "wrangler.local.jsonc"], {
     cwd: process.cwd(),
     env: process.env,
     input,
