@@ -55,7 +55,7 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
   });
   expect(layout.sticky).toBe(false);
   expect(new Set(layout.colors).size).toBe(1);
-  expect(layout.colors[0]).toBe("rgb(36, 39, 41)");
+  expect(layout.colors[0]).toBe("rgb(34, 40, 48)");
   expect(layout.documentOverflow).toBeLessThanOrEqual(2);
   expect(layout.overflow).toBeLessThanOrEqual(2);
   expect(layout.right).toBeLessThanOrEqual(layout.visibleRight+2);
