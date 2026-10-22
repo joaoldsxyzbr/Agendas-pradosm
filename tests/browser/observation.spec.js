@@ -64,3 +64,34 @@ test("Cancelamento não altera status e cinco motivos aparecem no mobile",async(
  expect(calls).toHaveLength(0);
  await expect(page.locator('[data-testid="agenda-mobile-card"] .status-aguardando')).toBeVisible();
 });
+
+for (const scenario of [
+ {name:"desktop",viewport:{width:1440,height:900},container:'[data-testid="agenda-desktop-row"]'},
+ {name:"mobile",viewport:{width:390,height:844},container:'[data-testid="agenda-mobile-card"]'}
+]) {
+ test("Motivos predefinidos ocultam descrição no "+scenario.name,async({page})=>{
+  appointment.status="aguardando";appointment.observation=null;
+  await page.setViewportSize(scenario.viewport);
+  await mocks(page);await page.goto("/app");
+  await page.locator(scenario.container+' [data-status="nao_chegou"]').click();
+  const dialog=page.locator(".observation-dialog");
+  const reason=dialog.locator("[data-observation-reason]");
+  const custom=dialog.locator("[data-observation-custom-wrap]");
+  await expect(dialog).toBeVisible();
+  await expect(custom).toBeHidden();
+  for(const preset of ["Sem agenda","Sem pedido","Sem boleto","Prazo de pagamento incorreto","Temperatura acima do OK"]) {
+   await reason.selectOption(preset);
+   await expect(custom).toBeHidden();
+  }
+  await reason.selectOption("Outros");
+  await expect(custom).toBeVisible();
+  await expect(dialog.locator("[data-observation-custom]")).toHaveAttribute("required","");
+  await reason.selectOption("Sem pedido");
+  await expect(custom).toBeHidden();
+  await expect(dialog.locator("[data-observation-custom]")).not.toHaveAttribute("required","");
+  await dialog.locator("[data-observation-save]").click();
+  await expect(dialog).toHaveCount(0);
+  expect(calls).toEqual([{status:"nao_chegou",observation:"Sem pedido"}]);
+  await expect(page.locator(scenario.container+" .status-nao_chegou")).toBeVisible();
+ });
+}

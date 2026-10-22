@@ -487,3 +487,6 @@ html[data-theme="dark"] .admin-agenda-preview .agenda-observation-cell {text-ali
 html[data-theme="dark"] .admin-agenda-preview .agenda-desktop table {min-width:950px;}
 html[data-theme="dark"] .admin-agenda-preview .agenda-desktop th:last-child,
 html[data-theme="dark"] .admin-agenda-preview .agenda-desktop td:last-child {width:160px;min-width:160px;}
+
+/* Respeitar o atributo hidden no campo condicional, apesar do display:grid de .observation-field. */
+.observation-dialog [data-observation-custom-wrap][hidden] { display: none !important; }
