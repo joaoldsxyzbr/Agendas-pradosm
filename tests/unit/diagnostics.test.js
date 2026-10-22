@@ -13,7 +13,7 @@ const secret = "diagnosticos-teste-local-credencial-sintetica-2026";
 
 function fixture() {
   const sql = new DatabaseSync(":memory:");
-  sql.exec(`CREATE TABLE lojas (id TEXT PRIMARY KEY, codigo TEXT, nome TEXT, ativo INTEGER, excluido_em TEXT);
+  sql.exec(`CREATE TABLE lojas (id TEXT PRIMARY KEY, codigo TEXT, nome TEXT, ativo INTEGER, excluido_em TEXT, criado_em TEXT, atualizado_em TEXT);
     CREATE TABLE usuarios (id TEXT PRIMARY KEY, loja_id TEXT, nome TEXT, login TEXT, senha_hash TEXT,
       papel TEXT, ativo INTEGER, session_version INTEGER, excluido_em TEXT);
     CREATE TABLE auditoria (id TEXT PRIMARY KEY, usuario_id TEXT, acao TEXT, entidade TEXT,
