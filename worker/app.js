@@ -46,6 +46,23 @@ app.onError(async (error, c) => {
   return internalServerError(c);
 });
 
+// Erros tratados pelas rotas também geram diagnóstico. Evita duplicação de eventos
+// já registrados por handlers específicos e não deixa a telemetria se auto-registrar.
+app.use("/api/*", async (c, next) => {
+  await next();
+  if (c.req.path === "/api/diagnostics/events" || c.res.status < 500 ||
+      c.res.headers.get("X-Error-Id")) return;
+  const correlacao = crypto.randomUUID();
+  await recordDiagnosticSafe(c.env.DB, {
+    origem: "worker", nivel: "error", evento: "WORKER_EXCEPTION",
+    operacao: "api", httpStatus: c.res.status,
+    userId: c.get("authUser")?.id ?? null,
+    storeId: c.get("authUser")?.lojaId ?? null,
+    correlacao
+  });
+  c.header("X-Error-Id", correlacao);
+});
+
 app.get("/api/health", async (c) => {
   try {
     const database = await c.env.DB.prepare("SELECT 1 AS ok").first();

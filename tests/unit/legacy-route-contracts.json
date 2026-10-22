@@ -34,6 +34,7 @@
   },
   "app": [
     "app.use(\"/api/*\"",
+    "app.use(\"/api/*\"",
     "app.get(\"/api/health\"",
     "app.use(\"/api/auth/*\"",
     "app.route(\"/api/auth\"",
