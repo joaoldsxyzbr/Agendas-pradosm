@@ -3,6 +3,7 @@ import { createVanillaRuntime } from "./runtime.js";
 import { createMigratedPageRenderers } from "./pages.js";
 import { createRealtimeClient } from "./realtime.js";
 import { createStorePresence } from "./presence.js";
+import { installBrowserDiagnostics } from "./diagnostic-client.js";
 
 // Composição da aplicação JavaScript nativa, carregada por frontend/entry.js em produção.
 export function createMigratedApplication({
@@ -32,12 +33,18 @@ export function createMigratedApplication({
     beforeLogout: () => presence.disconnect(),
     onSessionChange
   });
+  let stopDiagnostics = () => {};
   return {
-    async start() { await runtime.start(); },
+    async start() {
+      stopDiagnostics();
+      stopDiagnostics = installBrowserDiagnostics(win, () => runtime.auth.user);
+      await runtime.start();
+    },
     navigate: runtime.navigate,
     get user() { return runtime.auth.user; },
     get realtimeState() { return realtime.state; },
     stop() {
+      stopDiagnostics();
       runtime.stop();
       presence.stop();
       realtime.stop();

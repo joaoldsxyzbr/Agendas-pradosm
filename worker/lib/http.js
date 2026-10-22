@@ -2,10 +2,10 @@ import { createMiddleware } from "hono/factory";
 const MAX_IMPORT_JSON_BYTES = 1024 * 1024;
 const MUTATION_METHODS = /* @__PURE__ */ new Set(["POST", "PUT", "PATCH", "DELETE"]);
 function isSensitiveApiPath(path) {
-  return path.startsWith("/api/auth/") || path.startsWith("/api/admin/") || path.startsWith("/api/store/");
+  return path.startsWith("/api/auth/") || path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path.startsWith("/api/diagnostics/");
 }
 function isMutationOriginProtectedPath(path) {
-  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/login" || path === "/api/auth/logout";
+  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path.startsWith("/api/diagnostics/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/login" || path === "/api/auth/logout";
 }
 function originMatchesRequest(requestUrl, origin) {
   try {

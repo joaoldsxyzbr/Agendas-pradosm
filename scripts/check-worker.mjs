@@ -14,6 +14,7 @@ const listed = [
   "worker/lib/presence.js", "worker/lib/session.js", "worker/lib/time.js",
   "worker/middleware/auth.js", "worker/realtime/RealtimeHub.js",
   "worker/repositories/agendas.js", "worker/repositories/audit.js",
+  "worker/repositories/diagnostics.js", "worker/routes/diagnostics.js",
   "worker/repositories/presence.js", "worker/repositories/stores.js",
   "worker/repositories/users.js",
   "worker/services/agenda-maintenance.js", "worker/services/realtime.js",

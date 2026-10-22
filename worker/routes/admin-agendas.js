@@ -3,6 +3,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.js";
 import { businessTime } from "../lib/time.js";
+import { recordDiagnosticSafe } from "../repositories/diagnostics.js";
 import { publishAgendaChanged } from "../services/realtime.js";
 import {
   changeAgendaDayStatus,
@@ -178,7 +179,13 @@ adminAgendaRoutes.post("/import", async (c) => {
         409
       );
     }
-    console.error("Agenda import failed", error);
+    const correlacao = crypto.randomUUID();
+    c.header("X-Error-Id", correlacao);
+    console.error("Agenda import failed", { type: error?.name ?? "Error", correlacao });
+    await recordDiagnosticSafe(c.env.DB, {
+      origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
+      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
+    });
     return c.json(
       {
         error: "IMPORTACAO_FALHOU",
@@ -293,7 +300,13 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
         409
       );
     }
-    console.error("Agenda batch import failed", error);
+    const correlacao = crypto.randomUUID();
+    c.header("X-Error-Id", correlacao);
+    console.error("Agenda batch import failed", { type: error?.name ?? "Error", correlacao });
+    await recordDiagnosticSafe(c.env.DB, {
+      origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
+      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
+    });
     return c.json(
       {
         error: "IMPORTACAO_FALHOU",

@@ -8,6 +8,7 @@ const read = file => readFileSync(join(dist, file), "utf8");
 const required = [
   "index.html", "frontend/entry.js", "frontend/application.js",
   "frontend/pages.js", "frontend/today.js",
+  "frontend/diagnostic-client.js", "frontend/diagnostics.js", "frontend/styles/diagnostics.css",
   "frontend/dashboard.js", "frontend/users.js",
   "frontend/stores.js", "frontend/history.js",
   "frontend/import-agenda.js", "frontend/admin-agenda-preview.js",

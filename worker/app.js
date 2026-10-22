@@ -15,6 +15,8 @@ import {
   adminAppointmentRoutes,
 } from "./routes/admin-agendas.js";
 import { adminAuditRoutes } from "./routes/admin-audit.js";
+import { diagnosticRoutes, adminDiagnosticRoutes } from "./routes/diagnostics.js";
+import { recordDiagnosticSafe } from "./repositories/diagnostics.js";
 import { adminReportRoutes } from "./routes/admin-reports.js";
 import { adminStoreRoutes } from "./routes/admin-stores.js";
 import { adminUserRoutes } from "./routes/admin-users.js";
@@ -31,9 +33,34 @@ export const app = new Hono();
 
 app.use("/api/*", apiSecurityHeaders);
 
-app.onError((error, c) => {
-  console.error("Unhandled API error", error);
+app.onError(async (error, c) => {
+  const correlacao = crypto.randomUUID();
+  // Erros brutos podem conter dados pessoais; só metadados controlados nos logs.
+  console.error("Unhandled API error", { type: error?.name ?? "Error", correlacao });
+  await recordDiagnosticSafe(c.env.DB, {
+    origem: "worker", nivel: "error", evento: "WORKER_EXCEPTION",
+    operacao: "api", userId: c.get("authUser")?.id ?? null,
+    storeId: c.get("authUser")?.lojaId ?? null, correlacao
+  });
+  c.header("X-Error-Id", correlacao);
   return internalServerError(c);
+});
+
+// Erros tratados pelas rotas também geram diagnóstico. Evita duplicação de eventos
+// já registrados por handlers específicos e não deixa a telemetria se auto-registrar.
+app.use("/api/*", async (c, next) => {
+  await next();
+  if (c.req.path === "/api/diagnostics/events" || c.res.status < 500 ||
+      c.res.headers.get("X-Error-Id")) return;
+  const correlacao = crypto.randomUUID();
+  await recordDiagnosticSafe(c.env.DB, {
+    origem: "worker", nivel: "error", evento: "WORKER_EXCEPTION",
+    operacao: "api", httpStatus: c.res.status,
+    userId: c.get("authUser")?.id ?? null,
+    storeId: c.get("authUser")?.lojaId ?? null,
+    correlacao
+  });
+  c.header("X-Error-Id", correlacao);
 });
 
 app.get("/api/health", async (c) => {
@@ -51,6 +78,9 @@ app.get("/api/health", async (c) => {
 });
 app.use("/api/auth/*", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
+
+app.use("/api/diagnostics/*", requireAuth, validateMutationOrigin);
+app.route("/api/diagnostics", diagnosticRoutes);
 
 app.use("/api/realtime", requireAuth);
 app.use("/api/realtime/*", requireAuth);
@@ -74,6 +104,7 @@ app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
 app.route("/api/admin/audit", adminAuditRoutes);
+app.route("/api/admin/diagnostics", adminDiagnosticRoutes);
 app.route("/api/admin/reports", adminReportRoutes);
 app.route("/api/admin/presence", adminPresenceRoutes);
 

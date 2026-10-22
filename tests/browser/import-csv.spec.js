@@ -10,6 +10,7 @@ async function openImport(page, { conflict = false } = {}) {
     const url = new URL(route.request().url()).pathname;
     const method = route.request().method();
     const respond = data => route.fulfill({ json: data });
+    if (url === "/api/diagnostics/events") return route.fulfill({ status: 204 });
     if (url === "/api/auth/me") return respond(admin);
     if (url === "/api/realtime/config") return respond({ mode: "off", protocolVersion: 1 });
     if (url === "/api/admin/stores") return respond([
