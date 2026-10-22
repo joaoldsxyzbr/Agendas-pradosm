@@ -29,3 +29,25 @@ Apagar apenas eventos técnicos de `diagnosticos` com mais de **30 dias**, no cr
 
 ## Reversão
 Antes da integração a produção, a branch pode ser encerrada sem efeito na operação. Após migration: deixar a nova tabela aditiva inativa se necessário; nunca tentar rollback destrutivo de banco. Reverter apenas código por release controlada.
+## Como usar no aplicativo
+1. Administrador: abrir **Logs e Auditoria** na navegação lateral.
+2. **Erros**: vê eventos com nível error e identificador de correlação (primeiros 8 caracteres na tabela; valor completo em tooltip).
+3. **Operações**: acompanha eventos informativos/avisos, especialmente importações.
+4. **Auditoria**: histórico existente de alterações de cadastros e agendas, sem conflitar com diagnósticos.
+5. Use os filtros de data UTC, origem, área, usuário e loja; apenas os campos aplicáveis à aba permanecem habilitados.
+6. Use **Atualizar** para recarregar os últimos 100 resultados por consulta. O painel não faz polling contínuo.
+
+## Correlação de incidentes
+- Para falhas HTTP 5xx, a API informa `X-Error-Id`; o navegador reutiliza o identificador no seu evento de falha de importação.
+- Pesquisar o UUID completo no campo retornado pela API ou correlacionar o prefixo da interface com o Cloudflare Observability.
+- `GET /api/admin/diagnostics?operacao=importacao&nivel=error&date=2026-10-22` retorna os eventos filtrados ao administrador.
+- Códigos técnicos não registram a mensagem real da exceção; em caso complexo, correlacione com monitoramento do Worker, respeitando a política de dados.
+- Eventos `browser` são autodeclarados por clientes autenticados e não substituem comprovantes de gravação nem registros `worker` ou `auditoria`.
+- O navegador ignora falha de telemetria, sem interromper a operação principal.
+
+## Política de publicação e validação
+- A nova migration é **aditiva** e só será aplicada ao D1 remoto pelo fluxo de deploy regular **após** eventual integração à main.
+- Não subir eventos falsos nem acionar a API de produção para testes.
+- Validar em Preview isolado, com D1 local de CI e papéis admin/visualizador/conferente.
+- Código e documentação permanecem na branch até CI + CodeQL + Preview verdes.
+- A feature de arrastar/soltar CSV/PDF está em **PR #120** e é independente destes diagnósticos.

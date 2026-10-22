@@ -88,15 +88,23 @@ describe("Diagnósticos seguros", () => {
       assert.equal((await f.call("admin1","/api/diagnostics/events","POST",{...body,senha:"segredo"})).status,400);
       assert.equal((await f.call("admin1","/api/diagnostics/events","POST",{...body,evento:"INVENTADO"})).status,400);
       assert.equal((await f.call("admin1","/api/diagnostics/events","POST",body)).status,204);
+      assert.equal((await f.call("clerk1","/api/diagnostics/events","POST",body)).status,204);
+      const storeLog=await f.call("admin1","/api/admin/diagnostics?storeId=store1&userId=clerk1");
+      assert.equal(storeLog.status,200);
+      const storeRows=await storeLog.json();
+      assert.equal(storeRows.length,1);
+      assert.equal(storeRows[0].storeId,"store1");
+      assert.equal((await f.call("admin1","/api/admin/audit?storeId=store1&userId=admin1")).status,200);
       assert.equal((await f.call("viewer1","/api/admin/diagnostics")).status,403);
       assert.equal((await f.call("clerk1","/api/admin/diagnostics")).status,403);
       assert.equal((await f.call(null,"/api/admin/diagnostics")).status,401);
       const answer=await f.call("admin1","/api/admin/diagnostics?nivel=error&operacao=importacao");
       assert.equal(answer.status,200);
       const rows=await answer.json();
-      assert.equal(rows.length,1);
+      assert.equal(rows.length,2);
       assert.equal(rows[0].event,"IMPORT_READ_FAILED");
-      assert.equal(rows[0].user.id,"admin1");
+      assert.ok(rows.some(row=>row.user.id==="admin1"));
+      assert.ok(rows.some(row=>row.user.id==="clerk1"));
       assert.equal("senha" in rows[0],false);
       assert.equal((await f.call("admin1","/api/admin/diagnostics?nivel=INVALIDO")).status,400);
     } finally { f.sql.close(); }
