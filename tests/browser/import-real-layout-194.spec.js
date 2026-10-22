@@ -21,7 +21,8 @@ function layoutExportado() {
       const store = code.startsWith("CD") ? "CD" : code + " - LOJA TESTE";
       const dock = "DOCA 01";
       const start = String(7 + Math.floor(n / 8)).padStart(2, "0") + ":" + String((n % 6) * 10).padStart(2, "0");
-      const end = String(7 + Math.floor(n / 8)).padStart(2, "0") + ":" + String((n % 6) * 10 + 10).padStart(2, "0");
+      const endMinutes = (7 + Math.floor(n / 8)) * 60 + (n % 6) * 10 + 10;
+      const end = String(Math.floor(endMinutes / 60)).padStart(2, "0") + ":" + String(endMinutes % 60).padStart(2, "0");
       lines.push([
         String(++protocol), "22/10/2026 " + start + " às " + end, "FORNECEDOR SINTÉTICO " + n,
         store, dock, String(n % 25), String(n % 50), String(n % 4),
@@ -95,7 +96,7 @@ test("prévia não some após atualização do dashboard", async ({page}) => {
   await expect(page.locator(".preview-summary")).toContainText("194 agendamentos");
   // Atualização de dados e visibilidade não devem descartar o modal.
   await page.evaluate(() => document.dispatchEvent(new Event("visibilitychange")));
-  await page.locator("[data-refresh]").click();
+  await page.locator("[data-refresh]").dispatchEvent("click");
   await expect(page.locator(".preview-summary")).toContainText("194 agendamentos");
   await expect(page.getByRole("dialog", {name:"Importar agenda"})).toBeVisible();
 });
