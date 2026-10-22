@@ -127,7 +127,7 @@ export function renderImportAgenda(root,{
       </div>
       ${modal?'<button class="ghost-button" type="button" data-import-close>Fechar</button>':""}
     </header>
-    <div class="upload-card"><div class="file-field"><span>Arquivo CSV ou PDF</span>
+    <div class="upload-card import-drop-zone" role="group" aria-label="Área para arrastar arquivos de agenda"><div class="file-field"><span>Arquivo CSV ou PDF</span>
       <div class="file-picker-controls">
         <input id="import-agenda-file" type="file" data-import-file hidden
           accept=".csv,text/csv,.pdf,application/pdf">
@@ -135,7 +135,7 @@ export function renderImportAgenda(root,{
           aria-controls="import-agenda-file">Selecionar arquivo</button>
         <span class="file-picker-name" data-import-file-name aria-live="polite">Nenhum arquivo selecionado</span>
       </div></div>
-      <p class="field-help">O arquivo é interpretado no navegador. Nenhuma agenda é gravada até você conferir a prévia e confirmar.</p>
+      <p class="field-help">Arraste e solte um CSV ou PDF nesta área ou use Selecionar arquivo. Nenhuma agenda é gravada até você conferir a prévia e confirmar.</p>
     </div>
     <p class="muted-state" data-import-loading hidden>Lendo arquivo...</p>
     <p data-import-message role="status" aria-live="polite" hidden></p>
@@ -151,9 +151,11 @@ export function renderImportAgenda(root,{
       ?previewHtml(preview,file,submitting,replacePending):"";
   };
   const close=(force=false)=>{if((submitting&&!force)||disposed)return;disposed=true;selectionToken++;releaseFocus();onClose();};
-  const changeFile=async event=>{
-    const selected=event.target.files?.[0]??null;
+  const changeFile=async selected=>{
+    if(disposed||submitting)return;
     const token=++selectionToken;
+    // Uma seleção nova cancela o estado de leitura anterior, inclusive se o novo arquivo for inválido.
+    loading=false;
     file=selected;preview=null;message=null;success=false;replacePending=false;
     if(!selected){render();return;}
     if(selected.size>MAX_SOURCE_FILE_BYTES){message="O arquivo excede o limite de 10 MB.";render();return;}
@@ -203,15 +205,56 @@ export function renderImportAgenda(root,{
   };
   const onChange=event=>{
     if(event.target.matches("[data-import-file]")){
-      void changeFile(event);
-      // Permite selecionar novamente o mesmo arquivo após uma correção.
-      event.target.value="";
+      // Não limpe o input durante o evento change: alguns navegadores ainda estão lendo o arquivo.
+      void changeFile(event.target.files?.[0]??null);
     }
+  };
+  const isDraggingFiles=event=>Array.from(event.dataTransfer?.types??[]).includes("Files");
+  let dragDepth=0;
+  const dragZone=body.querySelector(".import-drop-zone");
+  const resetDrag=()=>{dragDepth=0;dragZone?.classList.remove("is-drag-over");};
+  const onDragEnter=event=>{
+    if(!isDraggingFiles(event))return;
+    event.preventDefault();
+    dragDepth++;
+    dragZone?.classList.add("is-drag-over");
+  };
+  const onDragOver=event=>{
+    if(!isDraggingFiles(event))return;
+    event.preventDefault();
+    if(event.dataTransfer)event.dataTransfer.dropEffect="copy";
+    dragZone?.classList.add("is-drag-over");
+  };
+  const onDragLeave=event=>{
+    if(!isDraggingFiles(event))return;
+    dragDepth=Math.max(0,dragDepth-1);
+    if(dragDepth===0)resetDrag();
+  };
+  const onDrop=event=>{
+    if(!isDraggingFiles(event)&&!event.dataTransfer?.files?.length)return;
+    event.preventDefault();
+    resetDrag();
+    if(disposed||submitting)return;
+    const files=Array.from(event.dataTransfer?.files??[]);
+    if(files.length!==1){
+      ++selectionToken;
+      loading=false;file=null;preview=null;replacePending=false;success=false;
+      message="Arraste apenas um arquivo CSV ou PDF por vez.";
+      render();
+      return;
+    }
+    void changeFile(files[0]);
   };
   const onClick=event=>{
     const button=event.target.closest?.("button");
     if(!button||!root.contains(button))return;
-    if(button.matches("[data-import-browse]"))return body.querySelector("[data-import-file]").click();
+    if(button.matches("[data-import-browse]")){
+      const input=body.querySelector("[data-import-file]");
+      // Limpa antes de abrir, não durante a leitura. Permite reenviar o mesmo arquivo.
+      input.value="";
+      input.click();
+      return;
+    }
     if(button.matches("[data-import-close]"))close();
     else if(button.matches("[data-import-submit]"))void submit(false);
     else if(button.matches("[data-import-replace]"))void submit(true);
@@ -222,6 +265,10 @@ export function renderImportAgenda(root,{
   };
   root.addEventListener("change",onChange);
   root.addEventListener("click",onClick);
+  root.addEventListener("dragenter",onDragEnter);
+  root.addEventListener("dragover",onDragOver);
+  root.addEventListener("dragleave",onDragLeave);
+  root.addEventListener("drop",onDrop);
   root.querySelector("[data-import-backdrop]")?.addEventListener("mousedown",onBackdrop);
   render();
   if(modal)releaseFocus=activateModal(()=>root.querySelector('[data-import-backdrop] [role="dialog"]'),{
@@ -232,6 +279,10 @@ export function renderImportAgenda(root,{
     releaseFocus();
     root.removeEventListener("change",onChange);
     root.removeEventListener("click",onClick);
+    root.removeEventListener("dragenter",onDragEnter);
+    root.removeEventListener("dragover",onDragOver);
+    root.removeEventListener("dragleave",onDragLeave);
+    root.removeEventListener("drop",onDrop);
     root.querySelector("[data-import-backdrop]")?.removeEventListener("mousedown",onBackdrop);
   };
 }

@@ -1241,6 +1241,12 @@ td {
   gap: 0.45rem;
   padding: 1rem;
 }
+.import-drop-zone { transition: background-color .15s ease, outline-color .15s ease; }
+.import-drop-zone.is-drag-over {
+  background: var(--color-primary-soft);
+  outline: 2px dashed var(--color-primary);
+  outline-offset: -4px;
+}
 
 .preview-stack {
   display: grid;
