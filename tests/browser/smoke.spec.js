@@ -11,6 +11,7 @@ async function mocks(page, initial=null) {
     const url = new URL(route.request().url());
     const path = url.pathname, method = route.request().method();
     const json = data => route.fulfill({json:data});
+    if(path==="/api/diagnostics/events")return route.fulfill({status:204});
     if(path==="/api/auth/me")return initial?json(initial):route.fulfill({status:401,json:{error:"UNAUTHORIZED"}});
     if(path==="/api/auth/login")return json(admin);
     if(path==="/api/auth/logout"||path==="/api/store/presence")return route.fulfill({status:204});
