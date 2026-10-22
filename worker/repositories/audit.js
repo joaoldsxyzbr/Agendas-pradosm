@@ -55,6 +55,14 @@ async function listAudit(db, filters = {}) {
     clauses.push("a.usuario_id = ?");
     values.push(filters.userId);
   }
+  if (filters.storeId) {
+    clauses.push("a.loja_id = ?");
+    values.push(filters.storeId);
+  }
+  if (filters.date) {
+    clauses.push("a.criado_em >= ? AND a.criado_em < ?");
+    values.push(filters.date + "T00:00:00.000Z", filters.date + "T23:59:59.999Z");
+  }
   const limit = Math.min(Math.max(filters.limit ?? 200, 1), 500);
   const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
   const result = await db.prepare(
