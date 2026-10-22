@@ -25,6 +25,9 @@ export function safeDiagnosticPayload(evento, input = {}) {
   if (Number.isInteger(input.quantidade) && input.quantidade >= 0 && input.quantidade <= 700) {
     payload.quantidade = input.quantidade;
   }
+  if (Number.isInteger(input.duracaoMs) && input.duracaoMs >= 0 && input.duracaoMs <= 120000) {
+    payload.duracaoMs = input.duracaoMs;
+  }
   if (Number.isInteger(input.httpStatus) && input.httpStatus >= 100 && input.httpStatus <= 599) {
     payload.httpStatus = input.httpStatus;
   }

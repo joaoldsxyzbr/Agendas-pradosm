@@ -158,6 +158,7 @@ export function renderImportAgenda(root,{
   };
   const close=(force=false)=>{if((submitting&&!force)||disposed)return;disposed=true;selectionToken++;releaseFocus();onClose();};
   const changeFile=async event=>{
+    const startedAt=Date.now();
     const selected=event.target.files?.[0]??null;
     const token=++selectionToken;
     file=selected;preview=null;message=null;success=false;replacePending=false;
@@ -175,10 +176,12 @@ export function renderImportAgenda(root,{
       if(parsed.blockingErrors?.length){
         message="O arquivo foi lido, mas precisa de correções. Confira os erros da prévia.";
         log("IMPORT_VALIDATION_FAILED","warning");
-      } else log("IMPORT_PREVIEW_READY","info",{quantidade:parsed.totalAppointments});
+      } else log("IMPORT_PREVIEW_READY","info",{
+        quantidade:parsed.totalAppointments,duracaoMs:Math.min(120000,Date.now()-startedAt)
+      });
     }catch{
       if(disposed||token!==selectionToken)return;
-      log("IMPORT_READ_FAILED","error");
+      log("IMPORT_READ_FAILED","error",{duracaoMs:Math.min(120000,Date.now()-startedAt)});
       message=isCsvAgenda(selected)?"Não foi possível ler o CSV selecionado."
         :"Não foi possível ler o PDF selecionado.";
     }finally{
@@ -189,6 +192,7 @@ export function renderImportAgenda(root,{
     if(submitting||!canConfirmImport(file,preview))return;
     const payload=buildImportPayload(file,preview,replace);
     if(!payload)return;
+    const startedAt=Date.now();
     submitting=true;message=null;success=false;render();
     try{
       const response=await request("/api/admin/agendas/import/bulk",{
@@ -197,7 +201,9 @@ export function renderImportAgenda(root,{
       });
       if(disposed)return;
       replacePending=false;
-      log("IMPORT_SUCCEEDED","info",{quantidade:response.totalAppointments});
+      log("IMPORT_SUCCEEDED","info",{
+        quantidade:response.totalAppointments,duracaoMs:Math.min(120000,Date.now()-startedAt)
+      });
       success=true;
       message=`Importação concluída: ${countStoreLabel(response.totalAgendas)} e ${countAgendaLabel(response.totalAppointments)}.`;
       onImported();
@@ -206,7 +212,8 @@ export function renderImportAgenda(root,{
       if(disposed)return;
       if(err instanceof ApiError && err.correlationId)correlacao=err.correlationId;
       log("IMPORT_REQUEST_FAILED",err instanceof ApiError&&err.status===409?"warning":"error",{
-        httpStatus:err instanceof ApiError?err.status:undefined
+        httpStatus:err instanceof ApiError?err.status:undefined,
+        duracaoMs:Math.min(120000,Date.now()-startedAt)
       });
       if(err instanceof ApiError&&err.status===409){
         replacePending=true;

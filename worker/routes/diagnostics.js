@@ -10,6 +10,7 @@ const DiagnosticInput = z.object({
   operacao: z.enum(["importacao", "aplicativo", "api"]),
   formato: z.enum(["csv", "pdf", "outro"]).nullable().optional(),
   quantidade: z.number().int().min(0).max(700).nullable().optional(),
+  duracaoMs: z.number().int().min(0).max(120000).nullable().optional(),
   httpStatus: z.number().int().min(100).max(599).nullable().optional(),
   correlacao: z.string().uuid().optional()
 }).strict();
@@ -58,7 +59,7 @@ adminDiagnosticRoutes.get("/", async c => {
   return c.json(rows.map(x => ({
     id: x.id, user: x.usuario_id ? { id: x.usuario_id, name: x.usuario_nome ?? "Usuário" } : null,
     source: x.origem, level: x.nivel, event: x.evento, operation: x.operacao,
-    format: x.formato, count: x.quantidade, httpStatus: x.http_status,
+    format: x.formato, count: x.quantidade, durationMs: x.duracao_ms, httpStatus: x.http_status,
     correlationId: x.correlacao, storeId: x.loja_id, createdAt: x.criado_em
   })));
 });

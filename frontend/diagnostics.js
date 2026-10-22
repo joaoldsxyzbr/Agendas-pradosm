@@ -86,6 +86,7 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
           <td>${text(item.details)}</td></tr>`;
       }
       const details = [item.format?.toUpperCase(), item.count == null ? null : item.count + " registros",
+        item.durationMs == null ? null : item.durationMs + " ms",
         item.httpStatus == null ? null : "HTTP " + item.httpStatus].filter(Boolean).join(" · ");
       return `<tr><td>${text(dateBR(item.createdAt))}</td>
         <td><strong>${text(LABELS[item.event] ?? item.event)}</strong><small>${text(item.operation)} · ${text(item.source)}</small></td>

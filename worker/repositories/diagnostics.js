@@ -23,13 +23,17 @@ export function normalizeDiagnostic(input) {
   if (quantidade !== null && (!Number.isInteger(quantidade) || quantidade < 0 || quantidade > 700)) {
     throw new TypeError("Quantidade inválida");
   }
+  const duracaoMs = input.duracaoMs == null ? null : input.duracaoMs;
+  if (duracaoMs !== null && (!Number.isInteger(duracaoMs) || duracaoMs < 0 || duracaoMs > 120000)) {
+    throw new TypeError("Duração inválida");
+  }
   const httpStatus = input.httpStatus == null ? null : input.httpStatus;
   if (httpStatus !== null && (!Number.isInteger(httpStatus) || httpStatus < 100 || httpStatus > 599)) {
     throw new TypeError("Status inválido");
   }
   return {
     origem: input.origem, nivel: input.nivel, evento: input.evento,
-    operacao: input.operacao, formato, quantidade, httpStatus,
+    operacao: input.operacao, formato, quantidade, duracaoMs, httpStatus,
     correlacao: uuid.test(input.correlacao ?? "") ? input.correlacao : crypto.randomUUID()
   };
 }
@@ -39,10 +43,10 @@ export async function recordDiagnostic(db, data) {
   const id = crypto.randomUUID();
   await db.prepare(`INSERT INTO diagnosticos
     (id, usuario_id, loja_id, origem, nivel, evento, operacao, formato,
-     quantidade, http_status, correlacao, criado_em)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+     quantidade, duracao_ms, http_status, correlacao, criado_em)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
     id, data.userId ?? null, data.storeId ?? null, item.origem, item.nivel, item.evento,
-    item.operacao, item.formato, item.quantidade, item.httpStatus,
+    item.operacao, item.formato, item.quantidade, item.duracaoMs, item.httpStatus,
     item.correlacao, new Date().toISOString()
   ).run();
   return { id, correlacao: item.correlacao };
@@ -68,7 +72,7 @@ export async function listDiagnostics(db, filters = {}) {
   const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
   const result = await db.prepare(`SELECT d.id, d.usuario_id, u.nome AS usuario_nome,
     d.origem, d.nivel, d.evento, d.operacao, d.formato, d.quantidade,
-    d.http_status, d.correlacao, d.criado_em, d.loja_id
+    d.http_status, d.duracao_ms, d.correlacao, d.criado_em, d.loja_id
     FROM diagnosticos d LEFT JOIN usuarios u ON u.id = d.usuario_id
     ${where} ORDER BY d.criado_em DESC, d.id DESC LIMIT ?`
   ).bind(...values, limit).all();

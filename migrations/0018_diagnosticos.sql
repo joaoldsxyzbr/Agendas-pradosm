@@ -10,6 +10,7 @@ CREATE TABLE diagnosticos (
   operacao TEXT NOT NULL,
   formato TEXT,
   quantidade INTEGER,
+  duracao_ms INTEGER,
   http_status INTEGER,
   correlacao TEXT NOT NULL,
   criado_em TEXT NOT NULL
