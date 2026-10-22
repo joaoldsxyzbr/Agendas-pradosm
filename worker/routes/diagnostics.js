@@ -17,6 +17,8 @@ const FilterInput = z.object({
   nivel: z.enum(["info", "warning", "error"]).optional(),
   operacao: z.enum(["importacao", "aplicativo", "api"]).optional(),
   origem: z.enum(["browser", "worker"]).optional(),
+  userId: z.string().trim().min(1).max(80).optional(),
+  storeId: z.string().trim().min(1).max(80).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   limit: z.coerce.number().int().min(1).max(200).optional()
 });
@@ -32,7 +34,9 @@ diagnosticRoutes.post("/events", async c => {
     "SELECT COUNT(*) AS n FROM diagnosticos WHERE usuario_id = ? AND criado_em >= ?"
   ).bind(user.id, since).first();
   if (Number(count?.n ?? 0) >= 30) return c.json({ error: "LIMITE_DE_EVENTOS" }, 429);
-  await recordDiagnostic(c.env.DB, { ...parsed.data, origem: "browser", userId: user.id });
+  await recordDiagnostic(c.env.DB, {
+    ...parsed.data, origem: "browser", userId: user.id, storeId: user.lojaId ?? null
+  });
   return c.body(null, 204);
 });
 
@@ -44,6 +48,8 @@ adminDiagnosticRoutes.get("/", async c => {
     nivel: c.req.query("nivel") || undefined,
     operacao: c.req.query("operacao") || undefined,
     origem: c.req.query("origem") || undefined,
+    userId: c.req.query("userId") || undefined,
+    storeId: c.req.query("storeId") || undefined,
     date: c.req.query("date") || undefined,
     limit: c.req.query("limit") || undefined
   });
@@ -53,6 +59,6 @@ adminDiagnosticRoutes.get("/", async c => {
     id: x.id, user: x.usuario_id ? { id: x.usuario_id, name: x.usuario_nome ?? "Usuário" } : null,
     source: x.origem, level: x.nivel, event: x.evento, operation: x.operacao,
     format: x.formato, count: x.quantidade, httpStatus: x.http_status,
-    correlationId: x.correlacao, createdAt: x.criado_em
+    correlationId: x.correlacao, storeId: x.loja_id, createdAt: x.criado_em
   })));
 });

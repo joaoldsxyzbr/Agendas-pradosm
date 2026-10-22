@@ -39,7 +39,8 @@ app.onError(async (error, c) => {
   console.error("Unhandled API error", { type: error?.name ?? "Error", correlacao });
   await recordDiagnosticSafe(c.env.DB, {
     origem: "worker", nivel: "error", evento: "WORKER_EXCEPTION",
-    operacao: "api", userId: c.get("authUser")?.id ?? null, correlacao
+    operacao: "api", userId: c.get("authUser")?.id ?? null,
+    storeId: c.get("authUser")?.lojaId ?? null, correlacao
   });
   c.header("X-Error-Id", correlacao);
   return internalServerError(c);

@@ -38,10 +38,10 @@ export async function recordDiagnostic(db, data) {
   const item = normalizeDiagnostic(data);
   const id = crypto.randomUUID();
   await db.prepare(`INSERT INTO diagnosticos
-    (id, usuario_id, origem, nivel, evento, operacao, formato,
+    (id, usuario_id, loja_id, origem, nivel, evento, operacao, formato,
      quantidade, http_status, correlacao, criado_em)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
-    id, data.userId ?? null, item.origem, item.nivel, item.evento,
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(
+    id, data.userId ?? null, data.storeId ?? null, item.origem, item.nivel, item.evento,
     item.operacao, item.formato, item.quantidade, item.httpStatus,
     item.correlacao, new Date().toISOString()
   ).run();
@@ -58,6 +58,8 @@ export async function listDiagnostics(db, filters = {}) {
   if (filters.nivel) { clauses.push("d.nivel = ?"); values.push(filters.nivel); }
   if (filters.operacao) { clauses.push("d.operacao = ?"); values.push(filters.operacao); }
   if (filters.origem) { clauses.push("d.origem = ?"); values.push(filters.origem); }
+  if (filters.userId) { clauses.push("d.usuario_id = ?"); values.push(filters.userId); }
+  if (filters.storeId) { clauses.push("d.loja_id = ?"); values.push(filters.storeId); }
   if (filters.date) {
     clauses.push("d.criado_em >= ? AND d.criado_em < ?");
     values.push(filters.date + "T00:00:00.000Z", filters.date + "T23:59:59.999Z");
@@ -66,7 +68,7 @@ export async function listDiagnostics(db, filters = {}) {
   const where = clauses.length ? "WHERE " + clauses.join(" AND ") : "";
   const result = await db.prepare(`SELECT d.id, d.usuario_id, u.nome AS usuario_nome,
     d.origem, d.nivel, d.evento, d.operacao, d.formato, d.quantidade,
-    d.http_status, d.correlacao, d.criado_em
+    d.http_status, d.correlacao, d.criado_em, d.loja_id
     FROM diagnosticos d LEFT JOIN usuarios u ON u.id = d.usuario_id
     ${where} ORDER BY d.criado_em DESC, d.id DESC LIMIT ?`
   ).bind(...values, limit).all();
