@@ -9,17 +9,18 @@ import { agendaPdfFileName, buildAgendaPdf } from "../../frontend/agenda/exportA
 
 describe("Rotas nativas com paridade da main", () => {
   it("mantém os caminhos da aplicação React", () => {
-    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/app"]);
+    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/admin/diagnostics", "/app"]);
     assert.equal(homeForRole("conferente"), "/app");
     assert.equal(homeForRole("admin"), "/admin");
   });
   it("não permite que visualizador entre em cadastros ou históricos", () => {
-    for (const path of ["/admin/users", "/admin/stores", "/admin/import", "/admin/history"]) {
+    for (const path of ["/admin/users", "/admin/stores", "/admin/import", "/admin/history", "/admin/diagnostics"]) {
       assert.deepEqual(resolveRoute(path, { papel: "visualizador" }), { redirect: "/admin" });
     }
     assert.equal(resolveRoute("/admin", { papel: "visualizador" }).readOnly, true);
     assert.deepEqual(resolveRoute("/admin/reports",{papel:"visualizador"}),{view:"reports",layout:"admin",readOnly:true});
     assert.equal(resolveRoute("/admin/reports",{papel:"admin"}).view,"reports");
+    assert.equal(resolveRoute("/admin/diagnostics",{papel:"admin"}).view,"diagnostics");
     assert.deepEqual(resolveRoute("/admin/reports",{papel:"conferente"}),{redirect:"/app"});
     assert.deepEqual(resolveRoute("/app", { papel: "admin" }), { redirect: "/admin" });
     assert.deepEqual(resolveRoute("/admin", { papel: "conferente" }), { redirect: "/app" });

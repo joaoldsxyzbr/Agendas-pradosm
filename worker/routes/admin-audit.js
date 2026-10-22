@@ -6,7 +6,9 @@ const AuditFilters = z.object({
   entity: z.enum(["agenda", "agendamento", "loja", "usuario"]).optional(),
   entityId: z.string().trim().min(1).optional(),
   agendaId: z.string().trim().min(1).optional(),
-  userId: z.string().trim().min(1).optional(),
+  userId: z.string().trim().min(1).max(80).optional(),
+  storeId: z.string().trim().min(1).max(80).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   limit: z.coerce.number().int().min(1).max(500).optional()
 });
 adminAuditRoutes.get("/", async (c) => {
@@ -15,6 +17,8 @@ adminAuditRoutes.get("/", async (c) => {
     entityId: c.req.query("entityId") || void 0,
     agendaId: c.req.query("agendaId") || void 0,
     userId: c.req.query("userId") || void 0,
+    storeId: c.req.query("storeId") || void 0,
+    date: c.req.query("date") || void 0,
     limit: c.req.query("limit") || void 0
   });
   if (!parsed.success) {

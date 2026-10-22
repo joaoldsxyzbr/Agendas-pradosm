@@ -1,10 +1,11 @@
 // Conversão fiel de src/lib/api.ts da main. Nenhum endpoint novo.
 export class ApiError extends Error {
-  constructor(status, code, message) {
+  constructor(status, code, message, correlationId = null) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.correlationId = correlationId;
   }
 
   static async fromResponse(response) {
@@ -17,7 +18,8 @@ export class ApiError extends Error {
     return new ApiError(
       response.status,
       typeof body?.error === "string" ? body.error : null,
-      typeof body?.message === "string" ? body.message : "Não foi possível concluir a operação."
+      typeof body?.message === "string" ? body.message : "Não foi possível concluir a operação.",
+      response.headers?.get?.("X-Error-Id") ?? null
     );
   }
 }
