@@ -179,10 +179,12 @@ adminAgendaRoutes.post("/import", async (c) => {
         409
       );
     }
-    console.error("Agenda import failed", { type: error?.name ?? "Error" });
+    const correlacao = crypto.randomUUID();
+    c.header("X-Error-Id", correlacao);
+    console.error("Agenda import failed", { type: error?.name ?? "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
-      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500
+      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao, correlacao
     });
     return c.json(
       {
@@ -298,7 +300,9 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
         409
       );
     }
-    console.error("Agenda batch import failed", { type: error?.name ?? "Error" });
+    const correlacao = crypto.randomUUID();
+    c.header("X-Error-Id", correlacao);
+    console.error("Agenda batch import failed", { type: error?.name ?? "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
       operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500

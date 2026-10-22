@@ -204,6 +204,7 @@ export function renderImportAgenda(root,{
       if(modal)close(true);
     }catch(err){
       if(disposed)return;
+      if(err instanceof ApiError && err.correlationId)correlacao=err.correlationId;
       log("IMPORT_REQUEST_FAILED",err instanceof ApiError&&err.status===409?"warning":"error",{
         httpStatus:err instanceof ApiError?err.status:undefined
       });
