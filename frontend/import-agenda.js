@@ -2,6 +2,7 @@ import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { extractPdfText } from "./import/extractPdfText.js";
 import { readCsvText } from "./import/readCsvText.js";
+import { sendDiagnostic, newCorrelationId } from "./diagnostic-client.js";
 import { parseAgendaCsv, parseAgendaPdfText } from "./import/parseAgendaBatch.js";
 import { activateModal } from "./dialog-focus.js";
 
@@ -112,6 +113,11 @@ export function renderImportAgenda(root,{
 }={}) {
   let disposed=false,preview=null,file=null,loading=false,submitting=false;
   let replacePending=false,message=null,success=false,selectionToken=0;
+  let correlacao=newCorrelationId();
+  const formatOf=selected=>isCsvAgenda(selected)?"csv":isPdfAgenda(selected)?"pdf":"outro";
+  const log=(evento,nivel,extra={})=>void sendDiagnostic(evento,{
+    nivel, operacao:"importacao", correlacao, formato:formatOf(file), ...extra
+  });
   const dialogTrigger=modal?root.ownerDocument.activeElement:null;
   let releaseFocus=()=>{};
   if(modal)root.innerHTML=`<div class="modal-backdrop" role="presentation" data-import-backdrop>
@@ -155,19 +161,24 @@ export function renderImportAgenda(root,{
     const selected=event.target.files?.[0]??null;
     const token=++selectionToken;
     file=selected;preview=null;message=null;success=false;replacePending=false;
+    if(selected){correlacao=newCorrelationId();log("IMPORT_SELECTED","info");}
     if(!selected){render();return;}
-    if(selected.size>MAX_SOURCE_FILE_BYTES){message="O arquivo excede o limite de 10 MB.";render();return;}
-    if(selected.size===0){message="O arquivo está vazio. Selecione um CSV ou PDF com dados.";render();return;}
-    if(!isCsvAgenda(selected)&&!isPdfAgenda(selected)){message="Selecione um arquivo CSV ou PDF.";render();return;}
+    if(selected.size>MAX_SOURCE_FILE_BYTES){message="O arquivo excede o limite de 10 MB.";log("IMPORT_VALIDATION_FAILED","warning");render();return;}
+    if(selected.size===0){message="O arquivo está vazio. Selecione um CSV ou PDF com dados.";log("IMPORT_VALIDATION_FAILED","warning");render();return;}
+    if(!isCsvAgenda(selected)&&!isPdfAgenda(selected)){message="Selecione um arquivo CSV ou PDF.";log("IMPORT_VALIDATION_FAILED","warning");render();return;}
     loading=true;render();
     try{
       const parsed=isCsvAgenda(selected) ?parseCsv(await readCsvText(selected))
         :parsePdf(await extractPdf(selected));
       if(disposed||token!==selectionToken)return;
       preview=parsed;
-      if(parsed.blockingErrors?.length){message="O arquivo foi lido, mas precisa de correções. Confira os erros da prévia.";}
+      if(parsed.blockingErrors?.length){
+        message="O arquivo foi lido, mas precisa de correções. Confira os erros da prévia.";
+        log("IMPORT_VALIDATION_FAILED","warning");
+      } else log("IMPORT_PREVIEW_READY","info",{quantidade:parsed.totalAppointments});
     }catch{
       if(disposed||token!==selectionToken)return;
+      log("IMPORT_READ_FAILED","error");
       message=isCsvAgenda(selected)?"Não foi possível ler o CSV selecionado."
         :"Não foi possível ler o PDF selecionado.";
     }finally{
@@ -186,12 +197,16 @@ export function renderImportAgenda(root,{
       });
       if(disposed)return;
       replacePending=false;
+      log("IMPORT_SUCCEEDED","info",{quantidade:response.totalAppointments});
       success=true;
       message=`Importação concluída: ${countStoreLabel(response.totalAgendas)} e ${countAgendaLabel(response.totalAppointments)}.`;
       onImported();
       if(modal)close(true);
     }catch(err){
       if(disposed)return;
+      log("IMPORT_REQUEST_FAILED",err instanceof ApiError&&err.status===409?"warning":"error",{
+        httpStatus:err instanceof ApiError?err.status:undefined
+      });
       if(err instanceof ApiError&&err.status===409){
         replacePending=true;
         message="Já existe agenda para uma ou mais lojas e datas deste arquivo.";
