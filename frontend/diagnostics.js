@@ -38,6 +38,8 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
       <label>Data (UTC)<input type="date" name="date"></label>
       <label>Origem<select name="origem"><option value="">Todas</option><option value="browser">Navegador</option><option value="worker">Worker</option></select></label>
       <label>Área<select name="operacao"><option value="">Todas</option><option value="importacao">Importação</option><option value="aplicativo">Aplicativo</option><option value="api">API</option></select></label>
+      <label>Usuário<select name="userId"><option value="">Todos</option></select></label>
+      <label>Loja<select name="storeId"><option value="">Todas</option></select></label>
       <button type="submit" class="primary-button">Filtrar</button>
     </form>
     <p class="muted-state" data-diagnostics-summary></p>
@@ -48,6 +50,18 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
   const results = root.querySelector("[data-diagnostics-results]");
   const summary = root.querySelector("[data-diagnostics-summary]");
   const form = root.querySelector("[data-diagnostics-form]");
+  const loadChoices = async () => {
+    try {
+      const [users,stores] = await Promise.all([
+        request("/api/admin/users"), request("/api/admin/stores")
+      ]);
+      if (disposed) return;
+      form.elements.userId.innerHTML = '<option value="">Todos</option>' + users.map(u =>
+        `<option value="${text(u.id)}">${text(u.nome)}</option>`).join("");
+      form.elements.storeId.innerHTML = '<option value="">Todas</option>' + stores.map(s =>
+        `<option value="${text(s.id)}">${text(s.codigo)} · ${text(s.nome)}</option>`).join("");
+    } catch { /* Falha de filtros adicionais não impede a consulta de registros. */ }
+  };
   const draw = () => {
     if (disposed) return;
     root.querySelectorAll("[data-diagnostics-tab]").forEach(button => {
@@ -55,7 +69,7 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
       button.setAttribute("aria-selected", String(active));
       button.classList.toggle("is-active", active);
     });
-    for (const field of ["date", "origem", "operacao"]) {
+    for (const field of ["origem", "operacao"]) {
       form.elements[field].disabled = tab === "audit";
     }
     errorEl.hidden = !issue;
@@ -91,13 +105,13 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
     try {
       const params = new URLSearchParams({limit:"100"});
       if (tab === "errors") params.set("nivel", "error");
-      if (tab !== "audit") {
-        for (const k of ["date","origem","operacao"]) {
-          const value = form.elements[k].value;
-          if (value) params.set(k, value);
-        }
+      const filters = tab === "audit" ? ["date","userId","storeId"] :
+        ["date","origem","operacao","userId","storeId"];
+      for (const k of filters) {
+        const value = form.elements[k].value;
+        if (value) params.set(k, value);
       }
-      const url = tab === "audit" ? "/api/admin/audit?limit=100" :
+      const url = tab === "audit" ? "/api/admin/audit?" + params.toString() :
         "/api/admin/diagnostics?" + params.toString();
       const response = await request(url);
       if (disposed || seq !== generation) return;
@@ -124,6 +138,7 @@ export function renderDiagnostics(root, {request = apiFetch} = {}) {
   const onSubmit = event => { event.preventDefault(); void load(); };
   root.addEventListener("click", onClick);
   form.addEventListener("submit", onSubmit);
+  void loadChoices();
   void load();
   return () => {
     disposed = true; ++generation;
