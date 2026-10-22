@@ -128,3 +128,33 @@ test("Lote com loja não cadastrada rejeita tudo sem gravação parcial", async 
   expect(agendas.status()).toBe(200);
   expect(await agendas.json()).toEqual([]);
 });
+test("Logs técnicos usam Worker/D1 local com roles e filtragem reais", async ({request}) => {
+  const endpoint="/api/diagnostics/events";
+  const body={evento:"IMPORT_VALIDATION_FAILED",nivel:"warning",
+    operacao:"importacao",formato:"csv",quantidade:0};
+  const headers={...await auth("admin"),Origin:"http://127.0.0.1:8789"};
+  const saved=await request.post(endpoint,{headers,data:body});
+  expect(saved.status()).toBe(204);
+  const raw=await request.post(endpoint,{headers,data:{...body,filename:"nao-guardar.csv"}});
+  expect(raw.status()).toBe(400);
+  const forbidden=await request.post(endpoint,{
+    headers:{...await auth("admin"),Origin:"https://externo.example"},data:body
+  });
+  expect(forbidden.status()).toBe(403);
+  const response=await request.get("/api/admin/diagnostics?operacao=importacao&nivel=warning",{
+    headers:await auth("admin")
+  });
+  expect(response.status()).toBe(200);
+  const events=await response.json();
+  const found=events.find(e=>e.event==="IMPORT_VALIDATION_FAILED");
+  expect(found).toBeTruthy();
+  expect(found.format).toBe("csv");
+  expect(found.user.id).toBe(ids.admin);
+  expect(JSON.stringify(events)).not.toContain("nao-guardar.csv");
+  expect((await request.get("/api/admin/diagnostics",{
+    headers:await auth("viewer")
+  })).status()).toBe(403);
+  expect((await request.get("/api/admin/diagnostics",{
+    headers:await auth("clerk")
+  })).status()).toBe(403);
+});
