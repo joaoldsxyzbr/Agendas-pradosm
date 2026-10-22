@@ -1,13 +1,13 @@
 # Logs, diagnósticos e auditoria — plano e operação
 
-**Branch:** `feat/logs-auditoria-diagnosticos-20261022` (base `main` df43f841). Este trabalho não altera produção.
+**Integração:** PR [#122](https://github.com/joaoldsxyzbr/Agendas-pradosm/pull/122), branch `feat/logs-auditoria-integracao-20261022`, criada sobre `main` com a correção drag-and-drop [#120](https://github.com/joaoldsxyzbr/Agendas-pradosm/pull/120). Substitui a PR #121 por conflito entre as duas implementações. O código desta PR não escreve dados em produção antes da publicação.
 
 ## Objetivo
 Preservar a auditoria de alterações de usuários e recebimentos e acrescentar diagnóstico das falhas de frontend, importação, Worker e operação, consultável pelo administrador.
 
 ## Arquitetura
 - A tabela `auditoria` e o endpoint `/api/admin/audit` permanecem intactos.
-- Migration aditiva `0018_diagnosticos.sql` cria tabela própria e índices.
+- Migrations aditivas `0018_diagnosticos.sql` e `0019_diagnosticos_contexto.sql` criam a tabela própria e os campos de loja/duração, preservando o histórico de migrations do ambiente Preview.
 - `POST /api/diagnostics/events`: exige sessão, proteção de origem, esquema estrito e limite de 30 eventos/usuário/minuto; somente códigos e métricas tipados.
 - `GET /api/admin/diagnostics`: somente perfil administrador, filtros nível, operação, origem e data; máximo 200.
 - Erros inesperados do Worker e erros de importação geram eventos identificáveis por UUID. Cloudflare Observability continua para rastros do runtime.
@@ -50,6 +50,6 @@ Antes da integração a produção, a branch pode ser encerrada sem efeito na op
 - Não subir eventos falsos nem acionar a API de produção para testes.
 - Validar em Preview isolado, com D1 local de CI e papéis admin/visualizador/conferente.
 - Código e documentação permanecem na branch até CI + CodeQL + Preview verdes.
-- A feature de arrastar/soltar CSV/PDF está em **PR #120** e é independente destes diagnósticos.
+- A funcionalidade de arrastar/soltar CSV/PDF foi integrada na **PR #120** e é preservada nesta integração. O evento `IMPORT_DROP_REJECTED` informa recusas sem guardar nomes ou dados dos arquivos.
 ## Compatibilidade de migrations
 A migration `0018` é preservada no estado original porque previews anteriores podem tê-la aplicado. Os campos `loja_id` e `duracao_ms` entram exclusivamente na `0019`, evitando divergência no D1 da Preview. Nunca reescrever migrations já aplicadas em outros ambientes. O cron remove somente diagnósticos com mais de 30 dias, não a auditoria de negócios.
