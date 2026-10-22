@@ -8,6 +8,8 @@ test("administrador vê abas e filtra diagnósticos sem exibir segredos", async 
     const path=new URL(route.request().url()).pathname;
     if(path==="/api/auth/me")return route.fulfill({json:admin});
     if(path==="/api/realtime/config")return route.fulfill({json:{mode:"off"}});
+    if(path==="/api/admin/users")return route.fulfill({json:[{id:"admin1",nome:"Administrador teste"}]});
+    if(path==="/api/admin/stores")return route.fulfill({json:[{id:"store1",codigo:"F01",nome:"Loja de teste"}]});
     if(path==="/api/admin/diagnostics"){
       requests.push(route.request().url());
       return route.fulfill({json:[{
@@ -28,8 +30,10 @@ test("administrador vê abas e filtra diagnósticos sem exibir segredos", async 
   await expect(page.getByText("Falha na leitura do arquivo")).toBeVisible();
   await expect(page.locator("[data-diagnostics-results]")).not.toContainText("segredo");
   await page.locator('[name="operacao"]').selectOption("importacao");
+  await page.locator('[name="userId"]').selectOption("admin1");
+  await page.locator('[name="storeId"]').selectOption("store1");
   await page.locator("[data-diagnostics-form] button").click();
-  await expect.poll(()=>requests.some(x=>x.includes("operacao=importacao"))).toBe(true);
+  await expect.poll(()=>requests.some(x=>x.includes("operacao=importacao") && x.includes("userId=admin1") && x.includes("storeId=store1"))).toBe(true);
   await page.locator('[data-diagnostics-tab="audit"]').click();
   await expect(page.getByText("agenda_importada")).toBeVisible();
   await page.locator('[data-diagnostics-tab="operations"]').click();
