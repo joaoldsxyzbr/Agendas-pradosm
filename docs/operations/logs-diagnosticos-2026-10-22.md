@@ -51,3 +51,5 @@ Antes da integração a produção, a branch pode ser encerrada sem efeito na op
 - Validar em Preview isolado, com D1 local de CI e papéis admin/visualizador/conferente.
 - Código e documentação permanecem na branch até CI + CodeQL + Preview verdes.
 - A feature de arrastar/soltar CSV/PDF está em **PR #120** e é independente destes diagnósticos.
+## Compatibilidade de migrations
+A migration `0018` é preservada no estado original porque previews anteriores podem tê-la aplicado. Os campos `loja_id` e `duracao_ms` entram exclusivamente na `0019`, evitando divergência no D1 da Preview. Nunca reescrever migrations já aplicadas em outros ambientes. O cron remove somente diagnósticos com mais de 30 dias, não a auditoria de negócios.

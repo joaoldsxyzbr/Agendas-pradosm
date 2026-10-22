@@ -20,6 +20,7 @@ function fixture() {
       entidade_id TEXT, loja_id TEXT, agenda_id TEXT, agendamento_id TEXT,
       antes TEXT, depois TEXT, detalhes TEXT, criado_em TEXT);`);
   sql.exec(readFileSync(new URL("../../migrations/0018_diagnosticos.sql", import.meta.url), "utf8"));
+  sql.exec(readFileSync(new URL("../../migrations/0019_diagnosticos_contexto.sql", import.meta.url), "utf8"));
   sql.prepare("INSERT INTO lojas (id,codigo,nome,ativo) VALUES ('store1','F01','Loja sintética',1)").run();
   const ins = sql.prepare("INSERT INTO usuarios (id,loja_id,nome,login,senha_hash,papel,ativo,session_version) VALUES (?,?,?,?,?,?,1,1)");
   ins.run("admin1",null,"Admin sintético","admin","hash-sintetico","admin");
@@ -58,6 +59,7 @@ describe("Diagnósticos seguros", () => {
     });
     assert.deepEqual(Object.keys(payload).sort(),["correlacao","evento","formato","nivel","operacao"]);
     assert.equal(normalizeDiagnostic({...payload,origem:"browser"}).evento,"IMPORT_READ_FAILED");
+    assert.equal(safeDiagnosticPayload("IMPORT_SUCCEEDED",{duracaoMs:257}).duracaoMs,257);
     assert.equal(safeDiagnosticPayload("EVENTO_FALSO",{message:"senha"}),null);
     assert.throws(()=>normalizeDiagnostic({
       origem:"browser",nivel:"error",evento:"EXEMPLO_INVENTADO",operacao:"api"
