@@ -135,7 +135,7 @@ export function renderImportAgenda(root,{
           aria-controls="import-agenda-file">Selecionar arquivo</button>
         <span class="file-picker-name" data-import-file-name aria-live="polite">Nenhum arquivo selecionado</span>
       </div></div>
-      <p class="field-help">Arraste e solte um CSV ou PDF nesta área ou use Selecionar arquivo. Confira a prévia antes de confirmar a importação.</p>
+      <p class="field-help">Arraste e solte um CSV ou PDF nesta área ou use Selecionar arquivo. Nenhuma agenda é gravada até você conferir a prévia e confirmar.</p>
     </div>
     <p class="muted-state" data-import-loading hidden>Lendo arquivo...</p>
     <p data-import-message role="status" aria-live="polite" hidden></p>
