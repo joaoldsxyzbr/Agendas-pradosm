@@ -154,6 +154,8 @@ export function renderImportAgenda(root,{
   const changeFile=async event=>{
     const selected=event.target.files?.[0]??null;
     const token=++selectionToken;
+    // Uma seleção nova cancela o estado de leitura anterior, inclusive se o novo arquivo for inválido.
+    loading=false;
     file=selected;preview=null;message=null;success=false;replacePending=false;
     if(!selected){render();return;}
     if(selected.size>MAX_SOURCE_FILE_BYTES){message="O arquivo excede o limite de 10 MB.";render();return;}
@@ -203,15 +205,20 @@ export function renderImportAgenda(root,{
   };
   const onChange=event=>{
     if(event.target.matches("[data-import-file]")){
+      // Não limpe o input durante o evento change: alguns navegadores ainda estão lendo o arquivo.
       void changeFile(event);
-      // Permite selecionar novamente o mesmo arquivo após uma correção.
-      event.target.value="";
     }
   };
   const onClick=event=>{
     const button=event.target.closest?.("button");
     if(!button||!root.contains(button))return;
-    if(button.matches("[data-import-browse]"))return body.querySelector("[data-import-file]").click();
+    if(button.matches("[data-import-browse]")){
+      const input=body.querySelector("[data-import-file]");
+      // Limpa antes de abrir, não durante a leitura. Permite reenviar o mesmo arquivo.
+      input.value="";
+      input.click();
+      return;
+    }
     if(button.matches("[data-import-close]"))close();
     else if(button.matches("[data-import-submit]"))void submit(false);
     else if(button.matches("[data-import-replace]"))void submit(true);
