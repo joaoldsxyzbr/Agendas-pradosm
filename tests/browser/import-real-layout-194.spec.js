@@ -100,3 +100,54 @@ test("prévia não some após atualização do dashboard", async ({page}) => {
   await expect(page.locator(".preview-summary")).toContainText("194 agendamentos");
   await expect(page.getByRole("dialog", {name:"Importar agenda"})).toBeVisible();
 });
+
+test("arrastar CSV na área abre a prévia e só grava após confirmação", async ({page}) => {
+  const requests=await visit(page);
+  const data=layoutExportado().toString("base64");
+  const transfer=await page.evaluateHandle(encoded=>{
+    const bytes=Uint8Array.from(atob(encoded),c=>c.charCodeAt(0));
+    const dt=new DataTransfer();
+    dt.items.add(new File([bytes],"agenda-solta.csv",{type:"text/csv"}));
+    return dt;
+  },data);
+  const dropZone=page.locator(".import-drop-zone");
+  await dropZone.dispatchEvent("dragenter",{dataTransfer:transfer});
+  await expect(dropZone).toHaveClass(/is-drag-over/);
+  await dropZone.dispatchEvent("dragover",{dataTransfer:transfer});
+  await dropZone.dispatchEvent("drop",{dataTransfer:transfer});
+  await expect(dropZone).not.toHaveClass(/is-drag-over/);
+  await expect(page.locator("[data-import-file-name]")).toContainText("agenda-solta.csv");
+  await expect(page.locator(".preview-summary")).toContainText("194 agendamentos");
+  await expect(page.locator(".preview-summary")).toContainText("9 lojas");
+  expect(requests).toHaveLength(0);
+  await page.locator("[data-import-submit]").click();
+  expect(requests).toHaveLength(1);
+  expect(requests[0].agendas.reduce((n,a)=>n+a.appointments.length,0)).toBe(194);
+});
+
+test("soltar dois arquivos não importa nem permite confirmar", async ({page}) => {
+  const requests=await visit(page);
+  const transfer=await page.evaluateHandle(()=>{
+    const dt=new DataTransfer();
+    dt.items.add(new File(["a;b"],"primeiro.csv",{type:"text/csv"}));
+    dt.items.add(new File(["a;b"],"segundo.csv",{type:"text/csv"}));
+    return dt;
+  });
+  await page.locator(".import-drop-zone").dispatchEvent("drop",{dataTransfer:transfer});
+  await expect(page.locator("[data-import-message]")).toContainText("apenas um arquivo");
+  await expect(page.locator(".preview-summary")).toHaveCount(0);
+  await expect(page.locator("[data-import-submit]")).toHaveCount(0);
+  expect(requests).toHaveLength(0);
+});
+
+test("soltar arquivo inválido mostra erro e mantém modal", async ({page})=>{
+  await visit(page);
+  const transfer=await page.evaluateHandle(()=>{
+    const dt=new DataTransfer();
+    dt.items.add(new File(["teste"],"arquivo.exe",{type:"application/octet-stream"}));
+    return dt;
+  });
+  await page.locator(".import-drop-zone").dispatchEvent("drop",{dataTransfer:transfer});
+  await expect(page.locator("[data-import-message]")).toContainText("Selecione um arquivo CSV ou PDF");
+  await expect(page.getByRole("dialog",{name:"Importar agenda"})).toBeVisible();
+});
