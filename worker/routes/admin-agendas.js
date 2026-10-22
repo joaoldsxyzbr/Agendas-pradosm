@@ -184,7 +184,7 @@ adminAgendaRoutes.post("/import", async (c) => {
     console.error("Agenda import failed", { type: error?.name ?? "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
-      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao, correlacao
+      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
     });
     return c.json(
       {
@@ -305,7 +305,7 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
     console.error("Agenda batch import failed", { type: error?.name ?? "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
-      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500
+      operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
     });
     return c.json(
       {
