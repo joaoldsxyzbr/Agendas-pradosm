@@ -6,6 +6,7 @@ import { renderAgendaList } from "./agenda-list.js";
 import { openAgendaDetails } from "./agenda-details.js";
 import { openSupplierModal, openCompleteDayModal } from "./store-modals.js";
 import { downloadAgendaPdf } from "./agenda/exportAgendaPdf.js";
+import { openCrossViewer } from "./cross.js";
 import {
   storeAgendaMetrics, filterStoreAppointments, storeAgendaEndpoint,
   formatStoreDate, addStoreDays
@@ -14,11 +15,11 @@ import {
 // TodayPage da main, com DOM estável (sem o piscar de uma navegação global).
 export function renderToday(root,{
   request=apiFetch, realtime=null, commandSlot=null,
-  doc=document, win=window, exportPdf=downloadAgendaPdf
+  doc=document, win=window, exportPdf=downloadAgendaPdf, canSeeCross=false
 }={}) {
   let disposed=false, loading=true, selectedDate, agenda=null, error=null;
   let searchQuery="", generation=0, refreshTimer=null, list=null;
-  let closeModal=null, closeDetails=null;
+  let closeModal=null, closeDetails=null, closeCross=null;
   const monitor=createBusinessDateMonitor({
     doc,timers:win,
     onChange:next=>{
@@ -83,6 +84,7 @@ export function renderToday(root,{
     <button class="ghost-button agenda-today-button" type="button" data-store-today hidden>Hoje</button>
     <button class="primary-button agenda-complete-button" type="button" data-store-complete hidden>Concluir dia</button>
     <button class="ghost-button agenda-export-button" type="button" data-store-pdf hidden>Exportar PDF</button>
+    ${canSeeCross ? '<button class="ghost-button" type="button" data-store-cross>Ver Cross</button>' : ""}
   </div>`;
   const fallback=root.querySelector("[data-command-fallback]");
   (commandSlot || fallback).appendChild(commandHost);
@@ -219,7 +221,9 @@ export function renderToday(root,{
     if(button.matches("[data-store-previous]"))changeDate(addStoreDays(selectedDate,-1));
     else if(button.matches("[data-store-next]"))changeDate(addStoreDays(selectedDate,1));
     else if(button.matches("[data-store-today]"))changeDate(today);
-    else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
+    else if(button.matches("[data-store-cross]")&&canSeeCross){
+      if(!closeCross)closeCross=openCrossViewer(root,{request,date:selectedDate});
+    }else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
       exportPdf(agenda.agenda,[...agenda.appointments].sort(
         (a,b)=>a.startTime.localeCompare(b.startTime)||a.protocol.localeCompare(b.protocol)));
     }else if(button.matches("[data-store-complete]")&&editable()){
@@ -269,7 +273,7 @@ export function renderToday(root,{
     if(refreshTimer!==null)win.clearTimeout(refreshTimer);
     monitor.stop();datePicker.destroy();
     destroyList();
-    closeModal?.();closeDetails?.();
+    closeModal?.();closeDetails?.();closeCross?.();
     commandHost.removeEventListener("click",onCommandClick);
     root.removeEventListener("click",onPageClick);
     root.removeEventListener("input",onSearch);
