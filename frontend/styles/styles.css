@@ -2483,3 +2483,29 @@ td {
 .admin-agenda-preview .agenda-metrics > .agenda-metric strong {
   color: inherit;
 }
+
+/* Acesso rápido de homologação: a API decide se esta seção fica visível. */
+.quick-login-area {
+  margin-top: 1.2rem;
+  padding: 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-muted);
+  display: grid;
+  gap: .65rem;
+}
+.quick-login-area[hidden] { display: none; }
+.quick-login-area h2 { margin: 0; color: var(--color-text-strong); font-size: 1rem; }
+.quick-login-area p { margin: 0; color: var(--color-text-muted); font-size: .86rem; }
+.quick-login-area label { color: var(--color-text); font-size: .83rem; font-weight: 600; }
+.quick-login-area input {
+  width: 100%;
+  padding: .65rem;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-text);
+  background: var(--color-surface);
+}
+.quick-login-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.quick-login-actions > button { flex: 1 1 95px; min-width: 0; }
+.quick-login-area [data-quick-error] { color: var(--color-danger); }
