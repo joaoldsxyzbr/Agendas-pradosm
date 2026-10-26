@@ -4,6 +4,7 @@ import { renderAgendaList,normalizeAgendaSearch,sortAgendaAppointments } from ".
 import { storeAgendaMetrics,formatStoreDate } from "./store-agenda-model.js";
 import { openAdminManualDialog } from "./admin-manual-dialog.js";
 import { activateModal } from "./dialog-focus.js";
+import { openCrossAgendaImport } from "./cross-agenda-import.js";
 
 // Popup AdminAgendaPreview da main: consulta primeiro, edita só após autorização manual.
 export function openAdminAgendaPreview(root,{
@@ -11,7 +12,7 @@ export function openAdminAgendaPreview(root,{
   realtime=null,onAgendaChanged=()=>{},onClose=()=>{}
 }={}) {
   let disposed=false,loading=true,error=null,detail=null,editMode=false;
-  let reopening=false,search="",list=null,manualClose=null,requestToken=0;
+  let reopening=false,search="",list=null,manualClose=null,crossClose=null,requestToken=0;
   let releaseFocus=()=>{};
   const backdrop=root.ownerDocument.createElement("div");
   backdrop.className="modal-backdrop";
@@ -31,6 +32,8 @@ export function openAdminAgendaPreview(root,{
         <button class="status-pill warning agenda-preview-reopen" type="button"
           data-preview-reopen hidden>Reabrir para conferente</button>
         <span class="status-pill agenda-preview-day-status" data-preview-day-status></span>
+        ${canEdit ? '<button class="ghost-button" type="button" data-preview-cross-import hidden>Importar Cross</button>' : ""}
+        <span class="status-pill muted" data-preview-cross-note hidden>Cross importado</span>
         ${canEdit ? '<button class="ghost-button" type="button" aria-pressed="false" data-preview-edit>Editar agenda</button>':""}
         <span class="status-pill muted" data-preview-edit-state>Somente leitura</span>
       </div></div>
@@ -61,6 +64,7 @@ export function openAdminAgendaPreview(root,{
     if(disposed)return;
     disposed=true;requestToken++;
     body.style.overflow=previousBodyOverflow;
+    crossClose?.();crossClose=null;
     manualClose?.();list?.destroy();
     offRealtime();
     releaseFocus();
@@ -73,6 +77,18 @@ export function openAdminAgendaPreview(root,{
     field("[data-preview-error]").hidden=!error;
   };
   const effectiveEditable=()=>canEdit&&editMode;
+  const isDock01=()=>detail?.agenda?.storeCode?.trim().toUpperCase()==="CD DOCA 01";
+  const openCross=()=>{
+    if(!canEdit||!isDock01()||!detail||detail.agenda.dayStatus==="concluido"||crossClose)return;
+    crossClose=openCrossAgendaImport(root,{
+      agenda:detail.agenda,appointments:detail.appointments,request,
+      onClose:()=>{crossClose=null;},
+      onImported:()=>{
+        const badge=field("[data-preview-cross-note]");
+        if(badge)badge.hidden=false;
+      }
+    });
+  };
   const appointmentChanged=updated=>{
     if(!detail||!effectiveEditable())return;
     detail={...detail,appointments:detail.appointments.map(x=>x.id===updated.id?updated:x)};
@@ -120,6 +136,12 @@ export function openAdminAgendaPreview(root,{
       toggle.className=editMode?"primary-button":"ghost-button";
       toggle.textContent=editMode?"Sair da edição":"Editar agenda";
       toggle.setAttribute("aria-pressed",String(editMode));
+    }
+    const crossButton=field("[data-preview-cross-import]");
+    if(crossButton){
+      crossButton.hidden=!isDock01();
+      crossButton.disabled=completed;
+      crossButton.title=completed?"Agenda concluída: Cross disponível apenas para consulta.":"Importar Cross para um fornecedor da Doca 1";
     }
     const reopen=field("[data-preview-reopen]");
     reopen.hidden=!(canReopen&&editMode&&completed);
@@ -183,6 +205,7 @@ export function openAdminAgendaPreview(root,{
       if(!editMode){manualClose?.();manualClose=null;}
       renderDetail();
     }else if(button.matches("[data-preview-reopen]"))void reopen();
+    else if(button.matches("[data-preview-cross-import]"))openCross();
     else if(button.matches("[data-preview-add]"))openManual(null);
   };
   const onInput=event=>{
