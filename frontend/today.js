@@ -222,7 +222,7 @@ export function renderToday(root,{
     else if(button.matches("[data-store-next]"))changeDate(addStoreDays(selectedDate,1));
     else if(button.matches("[data-store-today]"))changeDate(today);
     else if(button.matches("[data-store-cross]")&&canSeeCross){
-      if(!closeCross)closeCross=openCrossViewer(root,{request,date:selectedDate});
+      if(!closeCross)closeCross=openCrossViewer(root,{request,date:selectedDate,onClose:()=>{closeCross=null;}});
     }else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
       exportPdf(agenda.agenda,[...agenda.appointments].sort(
         (a,b)=>a.startTime.localeCompare(b.startTime)||a.protocol.localeCompare(b.protocol)));
