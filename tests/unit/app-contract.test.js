@@ -8,7 +8,7 @@ describe("Worker em JavaScript preserva a main", () => {
     const js = source("../../worker/app.js");
     const paths = body => [...body.matchAll(/app\.(?:get|use|route)\(\s*["']([^"']+)["']/g)].map(hit => hit[0]);
     const actual = paths(js);
-    const newRoutes = ['app.route("/api/admin/cross"', 'app.route("/api/store/cross"'];
+    const newRoutes = ['app.route("/api/admin/cross"', 'app.route("/api/store/cross"', 'app.route("/api/auth/quick-login"'];
     assert.deepEqual(actual.filter(path => !newRoutes.includes(path)), expected);
     for (const route of newRoutes) assert.ok(actual.includes(route), route);
     assert.ok(actual.indexOf('app.route("/api/admin/cross"') > actual.indexOf('app.use("/api/admin/*"'));
