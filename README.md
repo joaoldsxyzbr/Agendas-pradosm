@@ -171,6 +171,40 @@ fora dos dois domínios de testes o endpoint retorna 404. Antes de considerar
 esta funcionalidade disponível, validar a publicação da Preview com a branch
 atual e confirmar o funcionamento no D1 isolado, não apenas o CI.
 
+### P1 — Cross vinculado ao agendamento (somente branch `testes`)
+
+Foi adicionada a migration aditiva `0021_cross_agendamento_vinculo.sql`
+para incluir `agenda_id`, `agendamento_id`, `versao` e `ativo` nos
+relatórios de Cross. Relatórios legados permanecem sem vínculo; não são
+associados automaticamente a fornecedores. O índice parcial impede dois
+relatórios ativos para o mesmo agendamento. Triggers validam que o agendamento
+pertence à agenda correta, ao dia operacional e à `CD DOCA 01`.
+
+Novas rotas REST sob `/api/admin/cross`:
+- `GET /agendas/:agendaId`: fornecedores da agenda com Cross ativo;
+- `GET /agendas/:agendaId/appointments/:appointmentId`: Cross ativo e itens;
+- `GET /agendas/:agendaId/appointments/:appointmentId/history`: versões;
+- `GET /agendas/:agendaId/appointments/:appointmentId/history/:reportId`: versão histórica;
+- `POST /agendas/:agendaId/appointments/:appointmentId`: importar Cross vinculando
+  o PDF ao agendamento real (payload do Scm405 atual). A data operacional deve
+  corresponder à agenda. Uma substituição exige `replaceActiveReportId` igual
+  ao relatório ativo consultado antes da operação.
+
+Para conferentes da Doca 1 existem somente as duas rotas de leitura equivalentes
+sob `/api/store/cross`. O backend confere código e ID da doca. Todas as outras
+docas são bloqueadas. O acesso de ADM é validado no servidor; visualizadores
+não recebem permissão de Cross.
+
+O histórico é imutável: ao substituir, a versão anterior fica inativa e todos
+os itens e auditorias são mantidos. Gravações de relatório, itens, substituição
+da versão ativa e auditoria são atômicas via `D1.batch`.
+
+**Compatibilidade temporária:** nesta etapa P1, as rotas independentes antigas
+continuam existentes e a interface atual ainda não usa os novos endpoints.
+A integração na janela da agenda será feita em P2/P3; P4 removerá a navegação
+antiga. Até P5, não considerar a Preview pronta para validação do Cross sem a
+aplicação controlada das migrations `0018`–`0021` no D1 de homologação.
+
 ## Cross-Docking (somente branch testes)
 
 Módulo independente de agendamentos, em homologação até validação operacional.
