@@ -32,7 +32,7 @@ function rowsByStore(rows) {
   return [...stores.values()];
 }
 
-function previewHtml(report) {
+export function previewHtml(report) {
   if (!report) return "";
   const warning = report.errors?.length
     ? `<div class="form-error" role="alert">Importação bloqueada: ${report.errors.map(esc).join(", ")}</div>`
