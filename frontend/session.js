@@ -33,6 +33,16 @@ export function createAuthController({ request = apiFetch, onChange = () => {} }
       changed();
       return authenticated;
     },
+    async quickLogin(role, code) {
+      const authenticated = await request("/api/auth/quick-login", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role, code })
+      });
+      user = authenticated;
+      loading = false;
+      changed();
+      return authenticated;
+    },
     async logout() {
       try {
         await request("/api/auth/logout", { method: "POST" });
