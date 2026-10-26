@@ -60,7 +60,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-metric")).toHaveCount(7);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
-   await expect(page.locator('[data-report-date-display="start"]')).toHaveText(/^\d{2}\/\d{2}\/\d{4}$/);
+   await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
    await expect(page.locator(".manager-report")).toContainText("Sem conferência");
@@ -88,15 +88,15 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
-test("Relatório: mostra datas em dd/mm/aaaa e esclarece comparação sem base anterior",async({page})=>{
+test("Relatório: edita datas diretamente e esclarece comparação sem base anterior",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   await mocks(page,admin,{emptyPrevious:true});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
   await page.locator("[name=start]").fill("2026-10-01");
   await page.locator("[name=end]").fill("2026-10-19");
-  await expect(page.locator('[data-report-date-display="start"]')).toHaveText("01/10/2026");
-  await expect(page.locator('[data-report-date-display="end"]')).toHaveText("19/10/2026");
+  await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
+  await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator(".report-insight")).toContainText("0 agendamentos");
   await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
