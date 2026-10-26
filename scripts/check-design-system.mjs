@@ -23,4 +23,29 @@ assert.ok(
   "ações compactas do rodapé da sidebar ausentes",
 );
 
-console.log("Design system light/dark validado.");
+// Conferir as folhas de estilo efetivamente carregadas pelo HTML.
+const html = readFileSync(new URL("../index.html", import.meta.url), "utf8");
+const linkedStyles = [...html.matchAll(
+  /<link\b[^>]*\brel="stylesheet"[^>]*\bhref="(\/frontend\/styles\/[^"]+\.css)"[^>]*>/g,
+)].map(match => match[1]);
+
+assert.ok(linkedStyles.length > 0, "Nenhuma folha CSS referenciada no HTML");
+assert.equal(new Set(linkedStyles).size, linkedStyles.length, "Link CSS duplicado");
+
+const sheets = linkedStyles.map(path => ({
+  path,
+  source: readFileSync(new URL(".." + path, import.meta.url), "utf8").trimEnd(),
+}));
+
+// Uma folha que repete integralmente o sufixo de outra gera carga redundante.
+for (let i = 0; i < sheets.length; i++) {
+  for (let j = 0; j < sheets.length; j++) {
+    if (i === j) continue;
+    assert.ok(
+      !sheets[i].source.endsWith(sheets[j].source),
+      "CSS duplicado: " + sheets[j].path + " ja existe no fim de " + sheets[i].path,
+    );
+  }
+}
+
+console.log("Design system e integridade dos estilos carregados validados.");

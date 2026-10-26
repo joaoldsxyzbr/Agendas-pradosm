@@ -35,3 +35,10 @@ Ambiente local: `wrangler.local.jsonc`. Produção: `wrangler.jsonc`. O comando 
 ## Alterações estruturais
 
 Preferir mudanças pequenas: criar o novo caminho, atualizar imports e scripts, executar CI e testes, remover somente as duplicatas antigas, arquivar documentação histórica, e então mesclar a PR. Não mexer em credenciais, sessões, permissões, banco de produção ou Worker de negócio numa reorganização de arquivos.
+## Folhas de estilo em produção
+
+O `index.html` define explicitamente a ordem das folhas CSS, parte da cascata visual. Não reordene ou consolide os arquivos sem testar os perfis administrador, visualizador e conferente.
+
+Na primeira limpeza, removemos o carregamento redundante de `palette-refresh.css`, cujo conteúdo era o sufixo idêntico de `enterprise-gray.css`, imediatamente anterior na sequência. A paleta final permanece em `enterprise-gray.css`. O comando `npm run test:design` também verifica os links CSS reais do HTML, a existência dos arquivos e a duplicação de folhas por sufixo.
+
+Consolidar outras regras somente por etapas verificáveis com testes de navegador. Plano e evidências: [Melhoria CSS e manutenção](operations/melhoria-css-manutencao-2026-10-25.md).
