@@ -73,3 +73,35 @@ html[data-theme="dark"] .cross-explorer-header input { color-scheme: dark; }
   .cross-report-row button { flex-shrink: 0; }
   .cross-modal { width: 100%; max-height: 95vh; padding: .8rem; }
 }
+
+
+/* P2: importação contextual na janela da agenda, isolada da tela antiga. */
+.cross-agenda-modal { width: min(1080px, calc(100vw - 2rem)); }
+.cross-agenda-modal .cross-form { margin: 1rem 0; }
+.cross-agenda-modal .cross-form select {
+  width: 100%; min-height: 44px; border-radius: 8px;
+  background: var(--color-surface-muted); color: var(--color-text);
+  border: 1px solid var(--color-border); padding: .65rem;
+}
+.cross-agenda-modal .cross-form input[type="file"] { min-height: 44px; }
+.cross-agenda-modal .cross-panel { margin: 1rem 0; }
+.cross-agenda-modal .cross-actions { gap: .75rem; flex-wrap: wrap; }
+.cross-agenda-existing {
+  background: var(--color-surface-muted); border: 1px solid var(--color-border);
+  padding: .85rem 1rem; border-radius: 10px; margin: .75rem 0;
+}
+.cross-agenda-existing[hidden] { display: none; }
+.cross-agenda-check {
+  display: flex; gap: .65rem; align-items: flex-start;
+  cursor: pointer; margin-top: .65rem;
+  line-height: 1.45; color: var(--color-text);
+}
+.cross-agenda-check input { margin-top: .25rem; flex-shrink: 0; }
+.cross-agenda-modal [data-cross-agenda-status] { margin: .9rem 0; }
+.cross-agenda-modal [data-cross-agenda-preview] {
+  max-height: min(48vh, 620px); overflow: auto; overscroll-behavior: contain;
+}
+@media (max-width: 640px) {
+  .cross-agenda-modal { width: 100%; }
+  .cross-agenda-modal .cross-actions button { flex: 1 1 140px; }
+}
