@@ -16,6 +16,19 @@ const loginView = () => `<main class="login-page">
       <p class="form-error" role="alert" data-login-error hidden></p>
       <button type="submit">Entrar</button>
     </form>
+    <section class="quick-login-area" data-quick-login hidden aria-label="Acesso rápido de homologação">
+      <h2>Acesso rápido — testes</h2>
+      <p>Use o código de homologação para entrar com uma conta de teste.</p>
+      <label for="preview-quick-code">Código de testes</label>
+      <input id="preview-quick-code" type="password" autocomplete="off"
+        placeholder="Informe somente na primeira entrada" data-quick-code>
+      <div class="quick-login-actions">
+        <button type="button" class="ghost-button" data-quick-role="admin">ADM</button>
+        <button type="button" class="ghost-button" data-quick-role="doca1">Doca 1</button>
+        <button type="button" class="ghost-button" data-quick-role="visualizador">Visualizador</button>
+      </div>
+      <p class="form-error" role="alert" data-quick-error hidden></p>
+    </section>
     <button type="button" class="ghost-button" data-bootstrap-entry hidden>Preparar primeiro administrador</button>
   </section>
 </main>`;
@@ -47,6 +60,11 @@ function setMessage(element, message) {
 export function renderLogin(root, { auth, navigate, request = apiFetch }) {
   let disposed = false;
   let bootstrapAvailable = false;
+  let quickAvailable = false;
+  const QUICK_SESSION_KEY = "agenda-prado-preview-quick-code";
+  const session = () => {
+    try { return root.ownerDocument.defaultView?.sessionStorage ?? null; } catch { return null; }
+  };
   let bootstrapSuccess = null;
   const isCurrent = () => !disposed && Boolean(root.querySelector("[data-login-form], [data-bootstrap-form]"));
 
@@ -58,6 +76,38 @@ export function renderLogin(root, { auth, navigate, request = apiFetch }) {
     const errorNode = root.querySelector("[data-login-error]");
     const entry = root.querySelector("[data-bootstrap-entry]");
     entry.hidden = !bootstrapAvailable;
+    const quick = root.querySelector("[data-quick-login]");
+    quick.hidden = !quickAvailable;
+    const codeInput = quick.querySelector("[data-quick-code]");
+    if (session()?.getItem(QUICK_SESSION_KEY)) {
+      codeInput.placeholder = "Código salvo nesta aba; selecione um perfil";
+    }
+    for (const button of quick.querySelectorAll("[data-quick-role]")) {
+      button.addEventListener("click", async () => {
+        const stored = session()?.getItem(QUICK_SESSION_KEY) || "";
+        const code = codeInput.value.trim() || stored;
+        const error = quick.querySelector("[data-quick-error]");
+        setMessage(error, null);
+        if (!code) { setMessage(error, "Informe o código do ambiente de testes."); return; }
+        const buttons = quick.querySelectorAll("[data-quick-role]");
+        buttons.forEach(item => { item.disabled = true; });
+        try {
+          const user = await auth.quickLogin(button.dataset.quickRole, code);
+          session()?.setItem(QUICK_SESSION_KEY, code);
+          if (isCurrent()) navigate(homeForRole(user.papel), { replace: true });
+        } catch (caught) {
+          if (!isCurrent()) return;
+          if (caught instanceof ApiError && caught.code === "CODIGO_INVALIDO") {
+            session()?.removeItem(QUICK_SESSION_KEY);
+            setMessage(error, "Código incorreto.");
+          } else {
+            setMessage(error, "Não foi possível entrar no ambiente de testes.");
+          }
+        } finally {
+          buttons.forEach(item => { item.disabled = false; });
+        }
+      });
+    }
     setMessage(root.querySelector("[data-login-success]"), bootstrapSuccess);
     entry.addEventListener("click", showBootstrap);
     form.addEventListener("submit", async event => {
@@ -134,6 +184,14 @@ export function renderLogin(root, { auth, navigate, request = apiFetch }) {
     });
   };
   showLogin();
+  void request("/api/auth/quick-login/status")
+    .then(status => {
+      if (disposed) return;
+      quickAvailable = status.enabled === true;
+      const section = root.querySelector("[data-quick-login]");
+      if (section) section.hidden = !quickAvailable;
+    })
+    .catch(() => { quickAvailable = false; });
   void request("/api/auth/bootstrap-status")
     .then(status => {
       if (disposed) return;
