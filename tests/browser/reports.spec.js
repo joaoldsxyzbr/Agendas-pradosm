@@ -170,3 +170,33 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   expect(geometry.leftOffset).toBeLessThanOrEqual(2);
   expect(geometry.pageOverflow).toBeLessThanOrEqual(2);
 });
+
+// Regressão: o overlay invisível não pode bloquear a digitação nem o calendário nativo.
+test("Relatório: datas são campos nativos visíveis, editáveis e com calendário clicável",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  const {searches}=await mocks(page,admin);
+  await page.goto("/admin/reports");
+  await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  for(const theme of ["dark","light"]){
+    await page.evaluate(value=>{document.documentElement.dataset.theme=value;},theme);
+    for(const name of ["start","end"]){
+      const input=page.locator('[data-report-date-input="'+name+'"]');
+      await expect(input).toHaveAttribute("type","date");
+      await expect(input).toBeVisible();
+      await expect(input).toHaveCSS("opacity","1");
+      await expect(input).toHaveCSS("pointer-events","auto");
+      await input.click({position:{x:14,y:20}});
+      await expect(input).toBeFocused();
+      // O indicador deve estar no próprio campo, acessível com o mouse.
+      const bounds=await input.boundingBox();
+      await input.click({position:{x:Math.floor(bounds.width)-16,y:20}});
+      await input.press("Escape");
+    }
+  }
+  await page.locator('[data-report-date-input="start"]').fill("2026-10-01");
+  await page.locator('[data-report-date-input="end"]').fill("2026-10-19");
+  await page.getByRole("button",{name:"Aplicar filtros"}).click();
+  await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
+  await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
+  await expect.poll(()=>searches.some(q=>q.includes("start=2026-10-01")&&q.includes("end=2026-10-19"))).toBe(true);
+});
