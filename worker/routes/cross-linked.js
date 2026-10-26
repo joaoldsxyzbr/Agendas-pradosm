@@ -21,11 +21,12 @@ async function findDockAgenda(db, agendaId) {
     .bind(agendaId, DOCK_CODE).first();
 }
 
-async function findActiveAppointment(db, agendaId, appointmentId) {
+async function findAppointment(db, agendaId, appointmentId, allowInactive = false) {
   if (!uuidLike(appointmentId)) return null;
-  return db.prepare(`SELECT id, agenda_id, protocolo, fornecedor, horario_inicio, horario_fim
-    FROM agendamentos WHERE id = ? AND agenda_id = ? AND ativo = 1 LIMIT 1`)
-    .bind(appointmentId, agendaId).first();
+  const sql = `SELECT id, agenda_id, protocolo, fornecedor, horario_inicio, horario_fim
+    FROM agendamentos WHERE id = ? AND agenda_id = ?` +
+    (allowInactive ? " LIMIT 1" : " AND ativo = 1 LIMIT 1");
+  return db.prepare(sql).bind(appointmentId, agendaId).first();
 }
 
 function authorized(c, agenda) {
@@ -85,10 +86,10 @@ async function getAgenda(c) {
   return { agenda };
 }
 
-async function getAppointment(c) {
+async function getAppointment(c, { allowInactive = false } = {}) {
   const context = await getAgenda(c);
   if (context.error) return context;
-  const appointment = await findActiveAppointment(c.env.DB, context.agenda.id, c.req.param("appointmentId"));
+  const appointment = await findAppointment(c.env.DB, context.agenda.id, c.req.param("appointmentId"), allowInactive);
   if (!appointment) return { error: fail(c, "AGENDAMENTO_NAO_ENCONTRADO", 404) };
   return { ...context, appointment };
 }
@@ -121,7 +122,7 @@ async function activeByAppointment(c) {
 }
 
 async function historyByAppointment(c) {
-  const { agenda, appointment, error } = await getAppointment(c);
+  const { agenda, appointment, error } = await getAppointment(c, { allowInactive: true });
   if (error) return error;
   const versions = await c.env.DB.prepare(`SELECT * FROM cross_relatorios
     WHERE agenda_id = ? AND agendamento_id = ? ORDER BY versao DESC`)
@@ -130,7 +131,7 @@ async function historyByAppointment(c) {
 }
 
 async function historyDetails(c) {
-  const { agenda, appointment, error } = await getAppointment(c);
+  const { agenda, appointment, error } = await getAppointment(c, { allowInactive: true });
   if (error) return error;
   const report = await findLinkedReport(c.env.DB, agenda.id, appointment.id, c.req.param("reportId"));
   if (!report) return fail(c, "CROSS_NAO_ENCONTRADO", 404);
