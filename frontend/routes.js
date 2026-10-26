@@ -1,7 +1,7 @@
 // Caminhos copiados de App.tsx da main. URL real (History API), nunca hash.
 export const APP_PATHS = Object.freeze([
   "/login", "/admin", "/admin/history", "/admin/import", "/admin/stores",
-  "/admin/users", "/admin/reports", "/admin/diagnostics", "/app"
+  "/admin/users", "/admin/reports", "/admin/cross", "/admin/diagnostics", "/app"
 ]);
 
 export function homeForRole(role) {
@@ -31,6 +31,7 @@ export function resolveRoute(pathname, user) {
       "/admin/stores": "stores",
       "/admin/users": "users",
       "/admin/reports": "reports",
+      "/admin/cross": "cross",
       "/admin/diagnostics": "diagnostics"
     };
     const page = pages[path];
