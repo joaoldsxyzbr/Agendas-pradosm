@@ -5,7 +5,7 @@ function isSensitiveApiPath(path) {
   return path.startsWith("/api/auth/") || path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path.startsWith("/api/diagnostics/");
 }
 function isMutationOriginProtectedPath(path) {
-  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path.startsWith("/api/diagnostics/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/login" || path === "/api/auth/logout";
+  return path.startsWith("/api/admin/") || path.startsWith("/api/store/") || path.startsWith("/api/diagnostics/") || path === "/api/auth/bootstrap-register" || path === "/api/auth/login" || path === "/api/auth/logout" || path === "/api/auth/quick-login";
 }
 function originMatchesRequest(requestUrl, origin) {
   try {
