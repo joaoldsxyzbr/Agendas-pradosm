@@ -7,7 +7,12 @@ describe("Worker em JavaScript preserva a main", () => {
     const expected = JSON.parse(source("./legacy-route-contracts.json")).app;
     const js = source("../../worker/app.js");
     const paths = body => [...body.matchAll(/app\.(?:get|use|route)\(\s*["']([^"']+)["']/g)].map(hit => hit[0]);
-    assert.deepEqual(paths(js), expected);
+    const actual = paths(js);
+    const newRoutes = ['app.route("/api/admin/cross"', 'app.route("/api/store/cross"'];
+    assert.deepEqual(actual.filter(path => !newRoutes.includes(path)), expected);
+    for (const route of newRoutes) assert.ok(actual.includes(route), route);
+    assert.ok(actual.indexOf('app.route("/api/admin/cross"') > actual.indexOf('app.use("/api/admin/*"'));
+    assert.ok(actual.indexOf('app.route("/api/store/cross"') > actual.indexOf('app.use("/api/store/*"'));
     assert.match(js,/app\.route\("\/api\/admin\/reports"/);
     for (const forbidden of ["/api/auth/demo-login", "PREVIEW_DEMO_LOGIN"]) assert.equal(js.includes(forbidden), false);
   });
