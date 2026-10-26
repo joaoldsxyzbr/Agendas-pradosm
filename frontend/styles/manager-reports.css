@@ -184,3 +184,8 @@
 .manager-report .report-store-table tbody tr:hover td:first-child {
   background: var(--color-surface-muted, #252930);
 }
+
+/* Datas editáveis por teclado, com indicador nativo clicável. */
+.manager-report .report-date-control{min-width:0}
+.manager-report .report-date-control input[type="date"]{width:100%;cursor:text;color-scheme:light}
+.manager-report .report-date-control input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer}

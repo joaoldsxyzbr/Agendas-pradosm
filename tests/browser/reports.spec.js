@@ -60,7 +60,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-metric")).toHaveCount(7);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
-   await expect(page.locator('[data-report-date-display="start"]')).toHaveText(/^\d{2}\/\d{2}\/\d{4}$/);
+   await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
    await expect(page.locator(".manager-report")).toContainText("Sem conferência");
@@ -88,15 +88,15 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
-test("Relatório: mostra datas em dd/mm/aaaa e esclarece comparação sem base anterior",async({page})=>{
+test("Relatório: edita datas diretamente e esclarece comparação sem base anterior",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   await mocks(page,admin,{emptyPrevious:true});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
   await page.locator("[name=start]").fill("2026-10-01");
   await page.locator("[name=end]").fill("2026-10-19");
-  await expect(page.locator('[data-report-date-display="start"]')).toHaveText("01/10/2026");
-  await expect(page.locator('[data-report-date-display="end"]')).toHaveText("19/10/2026");
+  await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
+  await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator(".report-insight")).toContainText("0 agendamentos");
   await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
@@ -169,4 +169,34 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   expect(geometry.leftOffset).toBeGreaterThanOrEqual(-1);
   expect(geometry.leftOffset).toBeLessThanOrEqual(2);
   expect(geometry.pageOverflow).toBeLessThanOrEqual(2);
+});
+
+// Regressão: o overlay invisível não pode bloquear a digitação nem o calendário nativo.
+test("Relatório: datas são campos nativos visíveis, editáveis e com calendário clicável",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  const {searches}=await mocks(page,admin);
+  await page.goto("/admin/reports");
+  await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  for(const theme of ["dark","light"]){
+    await page.evaluate(value=>{document.documentElement.dataset.theme=value;},theme);
+    for(const name of ["start","end"]){
+      const input=page.locator('[data-report-date-input="'+name+'"]');
+      await expect(input).toHaveAttribute("type","date");
+      await expect(input).toBeVisible();
+      await expect(input).toHaveCSS("opacity","1");
+      await expect(input).toHaveCSS("pointer-events","auto");
+      await input.click({position:{x:14,y:20}});
+      await expect(input).toBeFocused();
+      // O indicador deve estar no próprio campo, acessível com o mouse.
+      const bounds=await input.boundingBox();
+      await input.click({position:{x:Math.floor(bounds.width)-16,y:20}});
+      await input.press("Escape");
+    }
+  }
+  await page.locator('[data-report-date-input="start"]').fill("2026-10-01");
+  await page.locator('[data-report-date-input="end"]').fill("2026-10-19");
+  await page.getByRole("button",{name:"Aplicar filtros"}).click();
+  await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
+  await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
+  await expect.poll(()=>searches.some(q=>q.includes("start=2026-10-01")&&q.includes("end=2026-10-19"))).toBe(true);
 });
