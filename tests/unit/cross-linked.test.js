@@ -121,7 +121,7 @@ describe("Cross P1: migração aditiva e API por agendamento", () => {
          VALUES ('legacy',?,?,?,?,?,?,?,?,?,?,?)`)
         .run(DATE, DATE, "Scm405", "legado.pdf", "legacyhash", 1, 1, 1, 24, "admin1", DATE);
       const legacy = sqlite.prepare("SELECT agenda_id,agendamento_id,versao,ativo FROM cross_relatorios WHERE id = 'legacy'").get();
-      assert.deepEqual(legacy, { agenda_id: null, agendamento_id: null, versao: 1, ativo: 1 });
+      assert.deepEqual({ ...legacy }, { agenda_id: null, agendamento_id: null, versao: 1, ativo: 1 });
       const get = client(d1, ADMIN, adminLinkedCrossRoutes);
       const result = await get("/agendas/agenda1");
       assert.equal(result.status, 200);
