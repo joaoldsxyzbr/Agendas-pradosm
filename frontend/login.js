@@ -184,6 +184,9 @@ export function renderLogin(root, { auth, navigate, request = apiFetch }) {
     });
   };
   showLogin();
+  if (["testes.agendaspradosm.joaolds.xyz.br",
+    "testes-agendas-pradosm.contato-24f.workers.dev"].includes(
+    root.ownerDocument.defaultView?.location?.hostname?.toLowerCase())) {
   void request("/api/auth/quick-login/status")
     .then(status => {
       if (disposed) return;
@@ -192,6 +195,7 @@ export function renderLogin(root, { auth, navigate, request = apiFetch }) {
       if (section) section.hidden = !quickAvailable;
     })
     .catch(() => { quickAvailable = false; });
+  }
   void request("/api/auth/bootstrap-status")
     .then(status => {
       if (disposed) return;
