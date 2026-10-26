@@ -22,6 +22,7 @@ import { adminReportRoutes } from "./routes/admin-reports.js";
 import { adminStoreRoutes } from "./routes/admin-stores.js";
 import { adminUserRoutes } from "./routes/admin-users.js";
 import { authRoutes } from "./routes/auth.js";
+import { quickLoginRoutes } from "./routes/preview-quick-login.js";
 import { realtimeRoutes } from "./routes/realtime.js";
 import { adminPresenceRoutes, storePresenceRoutes } from "./routes/presence.js";
 import {
@@ -79,6 +80,7 @@ app.get("/api/health", async (c) => {
 });
 app.use("/api/auth/*", validateMutationOrigin);
 app.route("/api/auth", authRoutes);
+app.route("/api/auth/quick-login", quickLoginRoutes);
 
 app.use("/api/diagnostics/*", requireAuth, validateMutationOrigin);
 app.route("/api/diagnostics", diagnosticRoutes);
