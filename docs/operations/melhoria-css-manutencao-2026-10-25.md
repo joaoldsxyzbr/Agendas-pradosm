@@ -29,3 +29,9 @@ O HTML de produção carregava 12 arquivos CSS. Verificou-se, comparando as font
 ## Segurança e publicação
 
 Mudanças exclusivamente na branch. Nenhum deploy, consulta a D1 remoto, alteração de sessão, credenciais ou migrations. Abrir PR e aguardar CI/Preview antes de considerar integração. Não interpretar CI verde como prova de implantação na Cloudflare.
+
+## Bloqueio de segurança descoberto no CI da PR
+
+A primeira execução do CI do commit `a4ae86c9fc5a` foi bloqueada por `npm audit --omit=dev`: Zod 4.6.5 (advisory **GHSA-mrhx-c7xc-m3w5**, alta gravidade, correção em 4.6.6). Não se alterou o gate de segurança. A declaração direta e o `package-lock.json` foram atualizados para **Zod 4.6.7**, dentro da major 4 já utilizada. O checksum do pacote foi conferido em registros públicos de lockfile e será verificado efetivamente por `npm ci` no CI. Reexecutar os testes integrados/CodeQL; não presumir sucesso enquanto não concluírem.
+
+Referência da vulnerabilidade: https://github.com/advisories/GHSA-mrhx-c7xc-m3w5.
