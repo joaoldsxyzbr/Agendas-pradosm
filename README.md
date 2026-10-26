@@ -171,6 +171,27 @@ fora dos dois domínios de testes o endpoint retorna 404. Antes de considerar
 esta funcionalidade disponível, validar a publicação da Preview com a branch
 atual e confirmar o funcionamento no D1 isolado, não apenas o CI.
 
+### P2 — Importar Cross pela agenda da Doca 1 (somente `testes`)
+
+- Na janela de **consulta da agenda** do ADM, o botão **Importar Cross** aparece
+  exclusivamente para `CD DOCA 01`, independentemente do modo `Editar agenda`.
+  A importação fica desabilitada quando a agenda estiver concluída.
+- O modal oferece apenas os agendamentos ativos daquela agenda, identificados por
+  **horário, fornecedor e protocolo**, inclusive quando há nomes repetidos.
+- O ADM seleciona o agendamento e o PDF Scm405, confere os dados agrupados por loja
+  e confirma. O envio utiliza `POST /api/admin/cross/agendas/:agendaId/appointments/:appointmentId`
+  da etapa P1, com `operationalDate` obtida da própria agenda.
+- Antes de liberar o formulário, a interface consulta os relatórios ativos e exige
+  confirmação explícita para substituir um Cross já vinculado; versões anteriores
+  continuam preservadas. PDFs com data diferente da agenda também exigem confirmação.
+- Falhas no parser, PDF acima de 10 MB, relatórios incompletos, falta de migrações
+  e erros de concorrência bloqueiam a gravação e exibem mensagem ao ADM.
+- A interface antiga `/admin/cross` segue disponível durante a transição do P2,
+  para ser retirada na etapa P4. O botão `Ver Cross` do conferente não foi alterado;
+  a sua nova navegação por fornecedor é a etapa P3.
+- Testes E2E usam dados sintéticos e leitura de PDF simulada, sem acessar D1 remoto.
+  A leitura real do PDF no navegador ainda precisa de homologação.
+
 ### P1 — Cross vinculado ao agendamento (somente branch `testes`)
 
 Foi adicionada a migration aditiva `0021_cross_agendamento_vinculo.sql`
