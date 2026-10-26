@@ -17,7 +17,7 @@ const CrossItem = z.object({
   separateQty: z.number().int().min(0).max(1000000)
 }).strict();
 
-const CrossInput = z.object({
+export const CrossInput = z.object({
   operationalDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reportDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   reportCode: z.literal("Scm405"),
