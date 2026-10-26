@@ -119,8 +119,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<form class="report-filters" data-report-filters>'+ 
       '<div class="report-filter-intro"><div><strong>Período e filtros</strong><span>Escolha os dados que deseja analisar.</span></div><small>Intervalo máximo de 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
-      '<label>De<div class="report-date-control"><span aria-hidden="true" data-report-date-display="start">'+esc(date(settings.start))+'</span><span class="report-date-calendar" aria-hidden="true">▦</span><input type="date" lang="pt-BR" name="start" data-report-date-input="start" value="'+esc(settings.start)+'"></div></label>'+
-      '<label>Até<div class="report-date-control"><span aria-hidden="true" data-report-date-display="end">'+esc(date(settings.end))+'</span><span class="report-date-calendar" aria-hidden="true">▦</span><input type="date" lang="pt-BR" name="end" data-report-date-input="end" value="'+esc(settings.end)+'"></div></label>'+
+      '<label>De<div class="report-date-control"><input type="date" lang="pt-BR" name="start" data-report-date-input="start" value="'+esc(settings.start)+'"></div></label>'+
+      '<label>Até<div class="report-date-control"><input type="date" lang="pt-BR" name="end" data-report-date-input="end" value="'+esc(settings.end)+'"></div></label>'+
       '<label class="report-store-filter">Loja<select name="store"><option value="">Todas as lojas</option>'+options+'</select></label>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
       '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
@@ -245,12 +245,6 @@ export function renderReports(root,{request=apiFetch}={}) {
     persistFilters();
     void load();
   };
-  const syncDateDisplay=e=>{
-    const input=e.target;
-    if(!input.matches?.("[data-report-date-input]"))return;
-    const output=root.querySelector(`[data-report-date-display="${input.dataset.reportDateInput}"]`);
-    if(output)output.textContent=input.value?date(input.value):"dd/mm/aaaa";
-  };
   const click=e=>{
     const pagerButton=e.target.closest?.("[data-report-prev],[data-report-next]");
     if(pagerButton&&root.contains(pagerButton)&&!pagerButton.disabled){
@@ -284,8 +278,6 @@ export function renderReports(root,{request=apiFetch}={}) {
   };
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
-  root.addEventListener("input",syncDateDisplay);
-  root.addEventListener("change",syncDateDisplay);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("input",syncDateDisplay);root.removeEventListener("change",syncDateDisplay);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
 }
