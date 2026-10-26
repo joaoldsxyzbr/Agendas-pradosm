@@ -8,6 +8,7 @@ export function escapeHtml(value) {
 const NAV_ITEMS = [
   { to: "/admin", label: "Recebimento", icon: "layout-dashboard" },
   { to: "/admin/reports", label: "Relatório Gerencial", icon: "chart-no-axes-column-increasing" },
+  { to: "/admin/cross", label: "Cross-Docking", icon: "clipboard-check" },
   { to: "/admin/stores", label: "Lojas", icon: "store" },
   { to: "/admin/users", label: "Usuários", icon: "users" },
   { to: "/admin/diagnostics", label: "Logs e Auditoria", icon: "info" }
