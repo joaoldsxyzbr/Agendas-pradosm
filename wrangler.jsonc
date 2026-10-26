@@ -73,7 +73,9 @@
   },
   "previews": {
     "vars": {
-      "REALTIME_MODE": "off"
+      "REALTIME_MODE": "off",
+      "PREVIEW_QUICK_LOGIN_ENABLED": "on",
+      "PREVIEW_QUICK_LOGIN_HASH": "a20366a69b21de430ee5b757a984ed1109fe258cbc768bf80b8487f0eb5e8ae6"
     },
     "d1_databases": [
       {
