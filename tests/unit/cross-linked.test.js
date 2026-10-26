@@ -202,6 +202,11 @@ describe("Cross P1: migração aditiva e API por agendamento", () => {
       const old = await json(await adm(path()+"/history/"+first.id));
       assert.equal(old.rows[0].description, "PRODUTO SINTETICO");
       assert.equal((await adm(path(), { ...revised, replaceActiveReportId: first.id })).status, 409);
+      sqlite.prepare("UPDATE agendamentos SET ativo = 0 WHERE id = ?").run("ap1");
+      assert.equal((await adm(path())).status, 404, "O Cross inativo não participa da consulta corrente");
+      const archived = await adm(path()+"/history");
+      assert.equal(archived.status, 200, "O ADM pode auditar Cross de agendamento inativo");
+      assert.equal((await json(archived)).versions.length, 2);
       assert.equal(sqlite.prepare("SELECT COUNT(*) n FROM auditoria").get().n,2);
     } finally { sqlite.close(); }
   });
