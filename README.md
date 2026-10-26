@@ -144,6 +144,33 @@ A importação administrativa aceita **CSV e PDF**.
 
 Os arquivos reais exportados não devem ser versionados. Testes usam dados sintéticos, inclusive um lote de 121 agendamentos distribuídos em 9 unidades.
 
+## Acesso rápido na homologação (somente `testes`)
+
+O login normal da produção permanece intocado. No endereço
+`testes.agendaspradosm.joaolds.xyz.br` existe uma seção de acesso rápido
+com os perfis **ADM**, **Doca 1** e **Visualizador**. Para reduzir o risco
+de uso não autorizado em um endereço público, o operador informa um código
+de homologação de alta entropia uma vez por aba; a sessão da aba guarda o
+código temporariamente para alternar entre perfis após sair.
+
+O código de acesso **não** deve ser armazenado no repositório nem em
+documentação. O arquivo `wrangler.jsonc` habilita o recurso apenas nas
+`previews.vars` e armazena somente o SHA-256 do código. O backend exige
+o hostname específico da Preview, o código correto e rate limiting antes
+de criar contas sintéticas. Só cria os logins reservados
+`preview-quick-admin`, `preview-quick-doca01` e
+`preview-quick-viewer`, com senha comum deliberadamente inutilizável.
+Ao entrar na Doca 1, o banco de Preview recebe a loja sintética
+`CD DOCA 01` quando ainda não existe; usuários e loja existentes nunca
+são sobrescritos. As sessões passam pela mesma verificação de autenticação
+que as contas normais. A operação registra auditoria sem incluir o código.
+
+Para desabilitar, retirar `PREVIEW_QUICK_LOGIN_ENABLED` de
+`previews.vars` e publicar somente a Preview de testes; sem a flag ou
+fora dos dois domínios de testes o endpoint retorna 404. Antes de considerar
+esta funcionalidade disponível, validar a publicação da Preview com a branch
+atual e confirmar o funcionamento no D1 isolado, não apenas o CI.
+
 ## Cross-Docking (somente branch testes)
 
 Módulo independente de agendamentos, em homologação até validação operacional.
