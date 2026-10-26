@@ -14,7 +14,7 @@ const brazilToday = () => {
 const formatDate = date => date?.split("-").reverse().join("/") || "—";
 const formatNumber = value => Number(value || 0).toLocaleString("pt-BR");
 const errorMessage = error => {
-  const code = error?.message || error?.error || error;
+  const code = error?.code || error?.message || error?.error || error;
   if (String(code).includes("CROSS_DUPLICADO")) return "Este relatório já foi importado. Consulte o histórico.";
   return "Não foi possível concluir a operação. Confira os dados e tente novamente.";
 };
@@ -220,7 +220,7 @@ export function renderCrossAdmin(root, { request = apiFetch } = {}) {
     root.removeEventListener("click", onSubmit); };
 }
 
-export function openCrossViewer(root, { request = apiFetch, date = brazilToday() } = {}) {
+export function openCrossViewer(root, { request = apiFetch, date = brazilToday(), onClose = () => {} } = {}) {
   const doc = root.ownerDocument, host = doc.createElement("div");
   root.append(host);
   host.innerHTML = `<div class="modal-backdrop cross-backdrop" data-cross-backdrop>
@@ -236,7 +236,7 @@ export function openCrossViewer(root, { request = apiFetch, date = brazilToday()
   const dialog = host.querySelector("[role=dialog]");
   let disposed = false, releaseFocus = () => {};
   const close = () => { if (disposed) return; disposed = true; explorer.destroy();
-    releaseFocus(); host.remove(); };
+    releaseFocus(); host.remove(); onClose(); };
   releaseFocus = activateModal(dialog, { onEscape: close, trigger: doc.activeElement });
   const onClick = event => {
     if (event.target.closest?.("[data-cross-close]") ||
