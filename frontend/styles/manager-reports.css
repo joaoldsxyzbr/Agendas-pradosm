@@ -6,7 +6,7 @@
 .manager-report .report-chip[aria-pressed="true"]{background:var(--color-primary,#1558a6);border-color:var(--color-primary,#1558a6);color:#fff}
 .manager-report .report-filters>label:not(.report-compare){display:grid;gap:7px;flex:1 1 145px;min-width:115px;font-size:12px;font-weight:650;color:var(--color-text-muted,#bac0ca)}
 .manager-report .report-filters>label:nth-child(3){flex:1.8 1 190px}
-.manager-report .report-filters input[type="date"],.manager-report .report-filters select{height:39px;width:100%;min-width:0;border:1px solid var(--color-border,#454a54);border-radius:7px;padding:7px 10px;background:var(--color-background,#14161b);color:var(--color-text,#f1f2f4);color-scheme:dark;font:inherit}
+.manager-report .report-filters input[type="date"],.manager-report .report-filters select{height:39px;width:100%;min-width:0;border:1px solid var(--color-border,#454a54);border-radius:7px;padding:7px 10px;background:var(--color-background,#14161b);color:var(--color-text,#f1f2f4);color-scheme:light;font:inherit}
 .manager-report .report-compare{display:flex;align-items:center;gap:8px;min-height:39px;color:var(--color-text-muted,#bac0ca);font-size:12px}
 .manager-report .report-filters>.primary-button{height:39px}
 .manager-report .report-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;margin-bottom:16px}
@@ -184,3 +184,8 @@
 .manager-report .report-store-table tbody tr:hover td:first-child {
   background: var(--color-surface-muted, #252930);
 }
+
+/* Datas editáveis por teclado, com indicador nativo clicável. */
+.manager-report .report-date-control{min-width:0}
+.manager-report .report-date-control input[type="date"]{width:100%;cursor:text}
+.manager-report .report-date-control input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer}
