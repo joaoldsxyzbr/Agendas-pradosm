@@ -144,6 +144,36 @@ A importação administrativa aceita **CSV e PDF**.
 
 Os arquivos reais exportados não devem ser versionados. Testes usam dados sintéticos, inclusive um lote de 121 agendamentos distribuídos em 9 unidades.
 
+## Cross-Docking (somente branch testes)
+
+Módulo independente de agendamentos, em homologação até validação operacional.
+
+- O administrador acessa **Cross-Docking** no menu e importa PDF do tipo **Scm405**.
+- O navegador extrai o texto usando o motor PDF já incluído no projeto. O parser
+  `frontend/import/parseCrossReport.js` identifica empresas/lojas de destino,
+  produtos, GTIN, pedidos, embalagens e quantidades de separação.
+- A prévia deve conferir todos os totais por loja e o total geral antes de habilitar
+  a confirmação. Erros bloqueiam a importação inteira.
+- O Worker revalida campos, quantidades e totais; detecta arquivo já importado
+  por hash do conteúdo e grava todos os itens e auditoria em lote atômico no D1.
+- O conferente de código **CD DOCA 01** vê o botão **Ver Cross** mesmo sem agenda.
+  A consulta é somente leitura e protegida no backend. Outras docas e lojas não
+  possuem acesso. O administrador consulta o histórico na sua própria tela.
+- Os números de loja 01/02/etc. indicam destinos no relatório; não correspondem
+  ao código de acesso **CD DOCA 01**. Não existe criação automática de agendas.
+- As tabelas `cross_relatorios` e `cross_itens` são criadas por
+  `migrations/0020_cross_docking.sql`, sem modificar agendamentos existentes.
+- Testar somente com D1 sintético/Preview; nenhum PDF comercial deve ser incluído
+  em fixtures, logs ou commits. O PDF original não é armazenado, apenas dados
+  estruturados, nome e histórico de importação.
+- Em caso de necessidade de desativação operacional, remover a navegação do
+  módulo ou voltar a release da Preview; a migration é aditiva e os dados
+  importados não devem ser apagados automaticamente.
+
+**Ainda depende de homologação com o PDF real no navegador, publicação Preview e
+conferência de permissões no ambiente isolado.** A branch `main` permanece
+exclusivamente dedicada à produção.
+
 ## Dashboard
 
 Os dados de agenda do dashboard não usam polling periódico. Eles atualizam:
