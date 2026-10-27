@@ -221,6 +221,8 @@ test("P4: ADM consulta Cross dentro da agenda, sem menu separado", async ({ page
   await page.locator('[data-agenda-id="agenda1"]').click();
   const parent=page.locator(".agenda-preview-modal");
   await expect(parent.locator("[data-preview-cross-view]")).toBeVisible();
+  await expect(parent.locator("[data-preview-cross-view]")).toHaveText("Ver Cross (1)");
+  await expect(parent.locator("[data-preview-cross-note]")).toContainText("1 fornecedor com Cross");
   await parent.locator("[data-preview-cross-view]").click();
   const modal=page.getByRole("dialog",{name:"Ver Cross"});
   await expect(modal.locator("[data-cross-supplier]")).toHaveCount(1);
