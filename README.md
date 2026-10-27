@@ -226,12 +226,30 @@ de integridade. Nunca modificar/apagar essas migrations nem os dados
 já salvos. A entrada é validada no navegador e no Worker; registro,
 itens, inativação da versão anterior e auditoria são transacionais.
 
-**P5 / homologação pendente:** aplicar de forma controlada as migrations
-`0018` a `0021` **somente** no D1 isolado da Preview; conferir
-login, permissões, importação real do PDF no navegador, consulta por
-fornecedor, histórico e CI. Os testes automatizados usam dados sintéticos;
-não substituem teste real na Preview. `main` permanece intocada até
-autorização separada para eventual produção.
+**P5 / estado da homologação (26/10/2026):**
+
+- As migrations `0018`–`0021` foram aplicadas **somente**
+  no D1 `agendas-pradosm-preview` via API oficial Cloudflare.
+  Antes da operação, foi confirmado um bookmark de recuperação do D1.
+  Cada SQL original da branch `testes` foi executado e registrado na tabela
+  `d1_migrations` no mesmo lote atômico, em sequência. Última migration
+  confirmada: `0021_cross_agendamento_vinculo.sql`.
+- Pós-aplicação: `cross_relatorios`, `cross_itens`, índices e triggers
+  presentes; `PRAGMA foreign_key_check` sem irregularidades.
+  As 5 agendas e 17 agendamentos pré-existentes foram preservados.
+  Não houve importação automática de Cross, nem modificação na `main`.
+- O site de Preview da branch `testes` está publicado e o formulário
+  de login rápido foi visualizado por renderização HTML da Cloudflare.
+  O último CI completo anterior a esta documentação passou.
+- **Pendente:** confirmar login operacional com perfis ADM/Doca 1,
+  importar um PDF real Scm405 por agendamento, visualizar produtos e
+  quantidades na Doca 1, testar substituição/histórico e autorização
+  negativa de outras docas diretamente na Preview. Não marcar a
+  homologação como concluída sem essas verificações.
+
+Os testes de CI com dados sintéticos são uma etapa separada e não
+substituem a validação operacional na Preview. A produção permanece
+fora de escopo até autorização específica.
 
 ## Dashboard
 
