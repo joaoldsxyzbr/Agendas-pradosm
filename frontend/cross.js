@@ -49,7 +49,7 @@ export function previewHtml(report) {
   </section>`;
 }
 
-function rowsDetailHtml(rows) {
+export function rowsDetailHtml(rows) {
   if (!rows?.length) return '<p class="muted-state">Nenhum produto disponível.</p>';
   return `<div class="cross-store-list">${rowsByStore(rows).map(group => `
     <details class="cross-store">
