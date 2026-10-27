@@ -105,3 +105,39 @@ html[data-theme="dark"] .cross-explorer-header input { color-scheme: dark; }
   .cross-agenda-modal { width: 100%; }
   .cross-agenda-modal .cross-actions button { flex: 1 1 140px; }
 }
+
+
+/* P3: consulta do conferente por fornecedor e protocolo, somente leitura. */
+.cross-agenda-viewer { width: min(1050px,calc(100vw - 2rem)); }
+.cross-agenda-viewer .cross-supplier-list { display: grid; gap: .55rem; margin: 1rem 0; }
+.cross-agenda-viewer .cross-supplier-choice {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; gap: 1rem; padding: 1rem 1.1rem;
+  border-radius: 10px; border: 1px solid var(--color-border);
+  background: var(--color-surface-muted); color: var(--color-text);
+  text-align: left; cursor: pointer; font: inherit;
+}
+.cross-agenda-viewer .cross-supplier-choice:hover {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface-strong);
+}
+.cross-agenda-viewer .cross-supplier-choice:focus-visible {
+  outline: 2px solid var(--color-primary); outline-offset: 2px;
+}
+.cross-agenda-viewer .cross-supplier-primary { display: grid; gap: .35rem; flex: 1; min-width: 0; }
+.cross-agenda-viewer .cross-supplier-primary strong { overflow-wrap: anywhere; }
+.cross-agenda-viewer .cross-supplier-secondary { display: grid; gap: .3rem; text-align: right; }
+.cross-agenda-viewer .cross-supplier-choice small {
+  font-size: .78rem; color: var(--color-text-muted);
+}
+.cross-agenda-viewer .cross-panel h3 { margin: .3rem 0; font-size: 1.15rem; overflow-wrap: anywhere; }
+.cross-agenda-viewer .cross-back-button { margin: .5rem 0; }
+.cross-agenda-viewer [data-cross-supplier-detail][hidden],
+.cross-agenda-viewer [data-cross-supplier-list][hidden] { display: none; }
+.cross-agenda-viewer .cross-panel { border: none; padding: .8rem 0; }
+@media (max-width: 640px) {
+  .cross-agenda-viewer { width: 100%; }
+  .cross-agenda-viewer .cross-supplier-choice { padding: .8rem; flex-wrap: wrap; }
+  .cross-agenda-viewer .cross-supplier-secondary { text-align: left; }
+  .cross-agenda-viewer .cross-supplier-choice > span:last-child { margin-left: auto; }
+}
