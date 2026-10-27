@@ -6,7 +6,7 @@ import { renderAgendaList } from "./agenda-list.js";
 import { openAgendaDetails } from "./agenda-details.js";
 import { openSupplierModal, openCompleteDayModal } from "./store-modals.js";
 import { downloadAgendaPdf } from "./agenda/exportAgendaPdf.js";
-import { openCrossViewer } from "./cross.js";
+import { openCrossAgendaViewer } from "./cross-agenda-viewer.js";
 import {
   storeAgendaMetrics, filterStoreAppointments, storeAgendaEndpoint,
   formatStoreDate, addStoreDays
@@ -84,7 +84,7 @@ export function renderToday(root,{
     <button class="ghost-button agenda-today-button" type="button" data-store-today hidden>Hoje</button>
     <button class="primary-button agenda-complete-button" type="button" data-store-complete hidden>Concluir dia</button>
     <button class="ghost-button agenda-export-button" type="button" data-store-pdf hidden>Exportar PDF</button>
-    ${canSeeCross ? '<button class="ghost-button" type="button" data-store-cross>Ver Cross</button>' : ""}
+    ${canSeeCross ? '<button class="ghost-button" type="button" data-store-cross hidden>Ver Cross</button>' : ""}
   </div>`;
   const fallback=root.querySelector("[data-command-fallback]");
   (commandSlot || fallback).appendChild(commandHost);
@@ -102,6 +102,9 @@ export function renderToday(root,{
     commandHost.querySelector("[data-store-today]").hidden=isToday();
     commandHost.querySelector("[data-store-complete]").hidden=!hasAgenda||!editable();
     commandHost.querySelector("[data-store-pdf]").hidden=!hasAgenda;
+    const crossButton=commandHost.querySelector("[data-store-cross]");
+    if(crossButton)crossButton.hidden=!hasAgenda||
+      agenda.agenda?.storeCode?.trim().toUpperCase()!=="CD DOCA 01";
   };
   const updateError=()=>{
     const node=root.querySelector("[data-store-error]");
@@ -115,6 +118,7 @@ export function renderToday(root,{
     if(input)input.value="";
     closeModal?.();closeModal=null;
     closeDetails?.();closeDetails=null;
+    closeCross?.();closeCross=null;
     destroyList();
   };
   const changeDate=value=>{
@@ -181,6 +185,9 @@ export function renderToday(root,{
     try{
       const data=await request(storeAgendaEndpoint(requested,today));
       if(disposed||token!==generation)return;
+      if(closeCross&&agenda?.agenda?.id!==data?.agenda?.id){
+        closeCross();closeCross=null;
+      }
       agenda=data;error=null;
     }catch(err){
       if(disposed||token!==generation)return;
@@ -221,8 +228,11 @@ export function renderToday(root,{
     if(button.matches("[data-store-previous]"))changeDate(addStoreDays(selectedDate,-1));
     else if(button.matches("[data-store-next]"))changeDate(addStoreDays(selectedDate,1));
     else if(button.matches("[data-store-today]"))changeDate(today);
-    else if(button.matches("[data-store-cross]")&&canSeeCross){
-      if(!closeCross)closeCross=openCrossViewer(root,{request,date:selectedDate,onClose:()=>{closeCross=null;}});
+    else if(button.matches("[data-store-cross]")&&canSeeCross&&
+      agenda?.agenda?.id&&agenda.agenda.storeCode?.trim().toUpperCase()==="CD DOCA 01"){
+      if(!closeCross)closeCross=openCrossAgendaViewer(root,{
+        agenda:agenda.agenda,request,onClose:()=>{closeCross=null;}
+      });
     }else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
       exportPdf(agenda.agenda,[...agenda.appointments].sort(
         (a,b)=>a.startTime.localeCompare(b.startTime)||a.protocol.localeCompare(b.protocol)));
