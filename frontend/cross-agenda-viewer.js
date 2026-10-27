@@ -6,8 +6,8 @@ import { rowsDetailHtml } from "./cross.js";
 const formatDate = value => String(value ?? "").split("-").reverse().join("/");
 const number = value => Number(value ?? 0).toLocaleString("pt-BR");
 const dock01 = agenda => agenda?.storeCode?.trim().toUpperCase() === "CD DOCA 01";
-const endpoint = agendaId =>
-  `/api/store/cross/agendas/${encodeURIComponent(agendaId)}`;
+const endpoint = (agendaId, mode) =>
+  `/api/${mode === "admin" ? "admin" : "store"}/cross/agendas/${encodeURIComponent(agendaId)}`;
 
 function suppliersHtml(entries) {
   if (!entries.length) return `<p class="muted-state cross-agenda-empty">
@@ -28,11 +28,11 @@ function suppliersHtml(entries) {
 }
 
 /**
- * P3: visualização de Cross limitada à agenda que o conferente abriu.
+ * P3/P4: visualização limitada à agenda do conferente ou do ADM.
  * Nenhum relatório independente/legado aparece nesta tela.
  */
 export function openCrossAgendaViewer(root, {
-  agenda, request = apiFetch, onClose = () => {}
+  agenda, request = apiFetch, mode = "store", onClose = () => {}
 } = {}) {
   if (!dock01(agenda) || !agenda.id) return () => {};
   const doc = root.ownerDocument;
@@ -83,7 +83,7 @@ export function openCrossAgendaViewer(root, {
   const loadSuppliers = async () => {
     const token = ++requestToken;
     try {
-      const result = await request(endpoint(agenda.id));
+      const result = await request(endpoint(agenda.id, mode));
       if (disposed || token !== requestToken) return;
       if (result.agendaId !== agenda.id || result.date !== agenda.date ||
           !Array.isArray(result.suppliers)) throw new Error("AGENDA_CROSS_INCONSISTENTE");
@@ -107,7 +107,7 @@ export function openCrossAgendaViewer(root, {
     detail.innerHTML = `<button type="button" class="ghost-button cross-back-button" data-cross-back>Voltar aos fornecedores</button>
       <p class="muted-state">Carregando Cross do fornecedor...</p>`;
     try {
-      const result = await request(`${endpoint(agenda.id)}/appointments/${encodeURIComponent(appointmentId)}`);
+      const result = await request(`${endpoint(agenda.id, mode)}/appointments/${encodeURIComponent(appointmentId)}`);
       if (disposed || token !== requestToken) return;
       if (result.appointment?.id !== appointmentId ||
           result.report?.agendaId !== agenda.id ||
