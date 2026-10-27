@@ -142,6 +142,8 @@ describe("Cross P1: migração aditiva e API por agendamento", () => {
       assert.equal(saved.version, 1);
       const list = await json(await store("/agendas/agenda1"));
       assert.equal(list.suppliers.length, 1);
+      assert.equal(list.suppliers[0].appointment.id, "ap1", "A lista deve retornar o ID do agendamento, não do relatório Cross");
+      assert.equal(list.suppliers[0].cross.id, saved.id);
       assert.equal(list.suppliers[0].appointment.supplier, "TESTE - ALFA");
       const detail = await store(path());
       assert.equal(detail.status, 200);
