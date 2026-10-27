@@ -6,7 +6,6 @@ import { renderHistory } from "./history.js";
 import { renderToday } from "./today.js";
 import { renderImportAgenda } from "./import-agenda.js";
 import { renderDiagnostics } from "./diagnostics.js";
-import { renderCrossAdmin } from "./cross.js";
 import { openAdminAgendaPreview } from "./admin-agenda-preview.js";
 
 // Registro das páginas da aplicação atual em JavaScript nativo, sem React/TSX.
@@ -48,7 +47,6 @@ export function createMigratedPageRenderers({ realtime } = {}) {
     },
     reports(ctx) { return renderReports(ctx.root, {request:ctx.request}); },
     diagnostics(ctx) { return renderDiagnostics(ctx.root, {request:ctx.request}); },
-    cross(ctx) { return renderCrossAdmin(ctx.root, { request: ctx.request }); },
     stores(ctx) { return renderStores(ctx.root, { request: ctx.request }); },
     users(ctx) { return renderUsers(ctx.root, { request: ctx.request }); },
     history(ctx) { return renderHistory(ctx.root, { request: ctx.request }); },
