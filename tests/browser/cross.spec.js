@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 
 const date = "2026-10-26";
 const report = {
-  id: "r1", agendaId: "agenda1", appointmentId: "ap1", version: 1,
+  id: "r1", agendaId: "agenda1", appointmentId: "ap1", version: 1, active: true,
   date, reportDate: date, reportCode: "Scm405",
   fileName: "cross-sintetico.pdf", reference: "Carga teste",
   stores: 1, lines: 1, dispatchQty: 1, separateQty: 24
