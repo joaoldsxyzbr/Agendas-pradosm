@@ -15,7 +15,7 @@ import {
   adminAppointmentRoutes,
 } from "./routes/admin-agendas.js";
 import { adminAuditRoutes } from "./routes/admin-audit.js";
-import { adminCrossRoutes, storeCrossRoutes } from "./routes/cross.js";
+import { adminLegacyCrossArchiveRoutes } from "./routes/cross.js";
 import { adminLinkedCrossRoutes, storeLinkedCrossRoutes } from "./routes/cross-linked.js";
 import { diagnosticRoutes, adminDiagnosticRoutes } from "./routes/diagnostics.js";
 import { recordDiagnosticSafe } from "./repositories/diagnostics.js";
@@ -110,7 +110,7 @@ app.route("/api/admin/appointments", adminAppointmentRoutes);
 app.route("/api/admin/audit", adminAuditRoutes);
 app.route("/api/admin/diagnostics", adminDiagnosticRoutes);
 app.route("/api/admin/reports", adminReportRoutes);
-app.route("/api/admin/cross", adminCrossRoutes);
+app.route("/api/admin/cross", adminLegacyCrossArchiveRoutes);
 app.route("/api/admin/cross", adminLinkedCrossRoutes);
 app.route("/api/admin/presence", adminPresenceRoutes);
 
@@ -120,7 +120,6 @@ app.use("/api/store/today", async (c, next) => {
   await next();
 });
 app.route("/api/store", storeAgendaRoutes);
-app.route("/api/store/cross", storeCrossRoutes);
 app.route("/api/store/cross", storeLinkedCrossRoutes);
 app.route("/api/store/presence", storePresenceRoutes);
 app.route("/api/store/appointments", storeAppointmentRoutes);
