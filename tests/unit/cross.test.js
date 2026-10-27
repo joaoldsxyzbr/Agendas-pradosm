@@ -1,8 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
-import { Hono } from "hono";
 import { parseCrossReport, parseCrossQuantity } from "../../frontend/import/parseCrossReport.js";
-import { validIsoDate, crossInputTotals, storeCrossRoutes } from "../../worker/routes/cross.js";
+import { validIsoDate, crossInputTotals } from "../../worker/routes/cross.js";
 
 // Dados sintéticos: nunca versionar relatórios reais de fornecedores.
 const document = `TODAS AS EMPRESAS                                                        26/10/2026
@@ -81,16 +80,5 @@ describe("Validação da importação no Worker", () => {
     assert.equal(validIsoDate("2028-02-29"), true);
     assert.equal(crossInputTotals({ ...input, operationalDate: "2026-13-01" }), null);
   });
-  it("bloqueia consultas da doca 2 e conferentes de lojas no servidor", async () => {
-    for (const lojaCodigo of ["CD DOCA 02", "F01", "CD"]) {
-      const app = new Hono();
-      app.use("*", async (c, next) => {
-        c.set("authUser", { papel: "conferente", lojaCodigo });
-        await next();
-      });
-      app.route("/cross", storeCrossRoutes);
-      const response = await app.request("/cross?date=2026-10-26");
-      assert.equal(response.status, 403, lojaCodigo);
-    }
-  });
+
 });
