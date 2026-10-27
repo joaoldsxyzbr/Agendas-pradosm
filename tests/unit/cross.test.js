@@ -59,6 +59,46 @@ describe("Cross-Docking Scm405", () => {
     assert.ok(result.errors.includes("PRODUTO_NAO_INTERPRETADO"));
     assert.ok(result.errors.includes("TOTAL_GERAL_DIVERGENTE"));
   });
+  it("regressão sintética com 8 lojas e 34 produtos em duas páginas", () => {
+    // Reproduz o volume e a quebra de página sem versionar nomes ou itens reais.
+    const batches = [4, 4, 4, 4, 4, 4, 5, 5];
+    const decimal = value => value.toLocaleString("pt-BR", {
+      minimumFractionDigits: 3, maximumFractionDigits: 3
+    });
+    const lines = [
+      "TODAS AS EMPRESAS                                             26/10/2026",
+      "Scm405",
+      "Código Descrição GTIN Pedido Cod. expedição Embe Qnt. expedição Separar"
+    ];
+    let product = 0;
+    batches.forEach((count, storeIndex) => {
+      const store = String(storeIndex + 1).padStart(2, "0");
+      lines.push(`EMPRESA DO PEDIDO : ${storeIndex + 1} - LOJA SINTETICA ${store}`);
+      lines.push("DEPARTAMENTO : 1 - MERCEARIA");
+      for (let index = 0; index < count; index++) {
+        if (storeIndex === 4 && index === 2) {
+          lines.push("Processado por: EXEMPLO                                    1/2");
+          lines.push("TODAS AS EMPRESAS                                         26/10/2026");
+          lines.push("Scm405");
+          lines.push("Código Descrição GTIN Pedido Cod. expedição Embe Qnt. expedição Separar");
+        }
+        product += 1;
+        lines.push(`${10000 + product} PRODUTO SINTETICO ${product} ${7896000000000 + product} ${80000 + product} ${27890000000000 + product} 36 1,000 36,000`);
+      }
+      lines.push(`TOTAL DO DEPARTAMENTO (${count}) ${decimal(count)} ${decimal(count * 36)}`);
+      lines.push(`TOTAL DA EMPRESA DO PEDIDO (${count}) ${decimal(count)} ${decimal(count * 36)}`);
+    });
+    lines.push("TOTAL GERAL (34) 34,000 1.224,000");
+    const result = parseCrossReport(lines.join("\n"));
+    assert.deepEqual(result.errors, []);
+    assert.equal(result.storeCount, 8);
+    assert.equal(result.lines, 34);
+    assert.equal(result.dispatchQty, 34);
+    assert.equal(result.separateQty, 1224);
+    assert.deepEqual([...new Set(result.rows.map(item => item.storeNumber))],
+      ["01", "02", "03", "04", "05", "06", "07", "08"]);
+  });
+
   it("rejeita documento sem código de relatório", () => {
     assert.ok(parseCrossReport(document.replaceAll("Scm405", "Outra coisa")).errors.includes("FORMATO_CROSS_NAO_RECONHECIDO"));
   });
