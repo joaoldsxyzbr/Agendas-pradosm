@@ -50,6 +50,9 @@ async function mockDashboard(page, {
       return unavailable ? route.fulfill({ status: 503, json: { error: "D1_MIGRATION_MISSING" } })
         : json({ agendaId: "agenda1", date, suppliers: linked });
     }
+    if (path === "/api/admin/cross/agendas/agenda1/appointments/appt1" && method === "GET") {
+      return json({ appointment: linked[0]?.appointment, report: linked[0]?.cross, rows: [row] });
+    }
     if (path.startsWith("/api/admin/cross/agendas/agenda1/appointments/") && method === "POST") {
       calls.push({ path, payload: route.request().postDataJSON() });
       return json({ id: "cross1", version: 1 });
@@ -204,4 +207,39 @@ test("P2: para substituir um Cross, exige confirmação e envia o ID da versão 
   const sent = await page.evaluate(() => window.__replacementP2.calls);
   expect(sent).toHaveLength(1);
   expect(sent[0].payload.replaceActiveReportId).toBe("cross-atual");
+});
+
+test("P4: ADM consulta Cross dentro da agenda, sem menu separado", async ({ page }) => {
+  const linked = [{
+    appointment: { id: "appt1", protocol: "99026101", supplier: "DISTRIBUIDORA ALFA",
+      startTime: "07:00", endTime: "08:30" },
+    cross: { id: "r1", agendaId: "agenda1", appointmentId: "appt1", active: true,
+      stores: 1, lines: 1, separateQty: 24, dispatchQty: 1, reportDate: date, version: 1 }
+  }];
+  await mockDashboard(page, { linked });
+  await expect(page.locator('a[href="/admin/cross"]')).toHaveCount(0);
+  await page.locator('[data-agenda-id="agenda1"]').click();
+  const parent=page.locator(".agenda-preview-modal");
+  await expect(parent.locator("[data-preview-cross-view]")).toBeVisible();
+  await parent.locator("[data-preview-cross-view]").click();
+  const modal=page.getByRole("dialog",{name:"Ver Cross"});
+  await expect(modal.locator("[data-cross-supplier]")).toHaveCount(1);
+  await modal.locator("[data-cross-supplier='appt1']").click();
+  await modal.locator(".cross-store summary").click();
+  await expect(modal.getByText("PRODUTO SINTETICO")).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(parent).toBeVisible();
+  await expect(parent.locator("[data-preview-cross-view]")).toBeFocused();
+});
+
+test("P4: outras docas e visualizador não recebem consulta Cross administrativa",async({page})=>{
+  await mockDashboard(page,{storeCode:"F01"});
+  await page.locator('[data-agenda-id="agenda1"]').click();
+  await expect(page.locator("[data-preview-cross-view]")).toBeHidden();
+});
+
+test("P4: visualizador não tem consulta administrativa Cross",async({page})=>{
+  await mockDashboard(page,{role:viewer});
+  await page.locator('[data-agenda-id="agenda1"]').click();
+  await expect(page.locator("[data-preview-cross-view]")).toHaveCount(0);
 });
