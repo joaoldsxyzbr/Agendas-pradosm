@@ -87,9 +87,15 @@ export function openCrossAgendaViewer(root, {
       if (disposed || token !== requestToken) return;
       if (result.agendaId !== agenda.id || result.date !== agenda.date ||
           !Array.isArray(result.suppliers)) throw new Error("AGENDA_CROSS_INCONSISTENTE");
-      suppliers = result.suppliers.filter(entry => entry?.appointment?.id &&
-        entry?.cross?.appointmentId === entry.appointment.id &&
-        entry?.cross?.agendaId === agenda.id && entry?.cross?.active === true);
+      // A API já limita a lista aos Cross ativos da agenda autenticada.
+      // Contrato inconsistente é erro visível; não transformar em "lista vazia".
+      const inconsistent = result.suppliers.some(entry =>
+        !entry?.appointment?.id || !entry?.cross?.id ||
+        entry.cross.appointmentId !== entry.appointment.id ||
+        entry.cross.agendaId !== agenda.id || entry.cross.active !== true
+      );
+      if (inconsistent) throw new Error("CROSS_FORNECEDORES_INCONSISTENTES");
+      suppliers = result.suppliers;
       showList();
     } catch {
       if (!disposed && token === requestToken) {
