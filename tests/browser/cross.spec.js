@@ -76,9 +76,10 @@ test("P4: página separada de Cross redireciona ao painel e menu desaparece", as
 test("Doca 1 consulta somente Cross dos agendamentos da data e distingue protocolos iguais", async ({ page }) => {
   const paths = await mocks(page, user("conferente", "CD DOCA 01"));
   await page.goto("/app");
-  await expect(page.getByRole("button", { name: "Ver Cross" })).toBeVisible();
+  await expect(page.locator("[data-store-cross-context]")).toBeVisible();
+  await expect(page.locator("[data-store-cross]")).toBeVisible();
   expect(paths.some(x => x.startsWith("/api/store/cross"))).toBe(false);
-  await page.getByRole("button", { name: "Ver Cross" }).click();
+  await page.locator("[data-store-cross-context]").click();
   const modal = page.getByRole("dialog", { name: "Ver Cross" });
   await expect(modal).toBeVisible();
   await expect(modal.locator("[data-cross-supplier]")).toHaveCount(2);
@@ -95,8 +96,8 @@ test("Doca 1 consulta somente Cross dos agendamentos da data e distingue protoco
   await expect(modal.locator("[data-cross-supplier]")).toHaveCount(2);
   await page.keyboard.press("Escape");
   await expect(modal).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Ver Cross" })).toBeFocused();
-  await page.getByRole("button", { name: "Ver Cross" }).click();
+  await expect(page.locator("[data-store-cross-context]")).toBeFocused();
+  await page.locator("[data-store-cross-context]").click();
   await expect(page.getByRole("dialog", { name: "Ver Cross" })).toBeVisible();
 });
 
@@ -105,12 +106,13 @@ test("Doca 1 não exibe Cross sem agenda e fecha ao trocar o dia", async ({ page
   await page.goto("/app");
   await expect(page.getByText(/Nenhuma agenda para hoje/)).toBeVisible();
   await expect(page.locator("[data-store-cross]")).toBeHidden();
+  await expect(page.locator("[data-store-cross-context]")).toBeHidden();
 });
 
 test("Doca 1 fecha o Cross ao mudar a data da agenda", async ({ page }) => {
   const paths = await mocks(page, user("conferente", "CD DOCA 01"));
   await page.goto("/app");
-  await page.getByRole("button", { name: "Ver Cross" }).click();
+  await page.locator("[data-store-cross-context]").click();
   const modal = page.getByRole("dialog", { name: "Ver Cross" });
   await expect(modal).toBeVisible();
   await page.keyboard.press("Escape");
@@ -122,7 +124,7 @@ test("Doca 1 fecha o Cross ao mudar a data da agenda", async ({ page }) => {
 test("Lista vazia e falha de consulta exibem aviso sem abrir relatório", async ({ page }) => {
   await mocks(page, user("conferente", "CD DOCA 01"), { suppliers: [] });
   await page.goto("/app");
-  await page.getByRole("button", { name: "Ver Cross" }).click();
+  await page.locator("[data-store-cross-context]").click();
   await expect(page.getByRole("dialog", { name: "Ver Cross" })
     .getByText(/Nenhum fornecedor desta agenda possui Cross/)).toBeVisible();
 });
@@ -130,9 +132,20 @@ test("Lista vazia e falha de consulta exibem aviso sem abrir relatório", async 
 test("Falha no D1 é tratada com mensagem de indisponibilidade", async ({ page }) => {
   await mocks(page, user("conferente", "CD DOCA 01"), { unavailable: true });
   await page.goto("/app");
-  await page.getByRole("button", { name: "Ver Cross" }).click();
+  await page.locator("[data-store-cross-context]").click();
   await expect(page.getByRole("dialog", { name: "Ver Cross" })
     .getByText(/Não foi possível consultar o Cross/)).toBeVisible();
+});
+
+test("Doca 1 mostra aviso em caso de resposta inconsistente, em vez de ocultar fornecedores", async ({ page }) => {
+  await mocks(page, user("conferente", "CD DOCA 01"), {
+    suppliers: [{ appointment: linked[0].appointment, cross: { ...report, active: false } }]
+  });
+  await page.goto("/app");
+  await page.locator("[data-store-cross-context]").click();
+  await expect(page.getByRole("dialog", { name: "Ver Cross" })
+    .getByText(/Não foi possível consultar o Cross/)).toBeVisible();
+  await expect(page.getByText(/Nenhum fornecedor desta agenda possui Cross/)).toHaveCount(0);
 });
 
 test("Outras docas não recebem botão Cross", async ({ page }) => {
