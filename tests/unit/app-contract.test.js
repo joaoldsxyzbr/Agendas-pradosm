@@ -10,7 +10,8 @@ describe("Worker em JavaScript preserva a main", () => {
     const actual = paths(js);
     const newRoutes = ['app.route("/api/admin/cross"', 'app.route("/api/store/cross"', 'app.route("/api/auth/quick-login"'];
     const crossRouteCount = actual.filter(path => path === 'app.route("/api/admin/cross"' || path === 'app.route("/api/store/cross"').length;
-    assert.equal(crossRouteCount, 4, "Rotas atuais e vinculadas devem coexistir durante P1");
+    assert.equal(crossRouteCount, 3, "P4 mantém somente rotas vinculadas e o arquivo legado ADM");
+    assert.doesNotMatch(js, /storeCrossRoutes|adminCrossRoutes\b/);
     assert.deepEqual(actual.filter(path => !newRoutes.includes(path)), expected);
     for (const route of newRoutes) assert.ok(actual.includes(route), route);
     assert.ok(actual.indexOf('app.route("/api/admin/cross"') > actual.indexOf('app.use("/api/admin/*"'));
