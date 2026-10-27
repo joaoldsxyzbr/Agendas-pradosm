@@ -184,6 +184,7 @@ test("P5: Worker e D1 locais validam Cross, três perfis, interface, versões e 
   await clerkModal.locator("[data-cross-supplier]").click();
   await clerkModal.locator(".cross-store summary").click();
   await expect(clerkModal.getByText("PRODUTO CROSS REVISADO")).toBeVisible();
+  await expect(clerkModal.locator("[data-cross-history]")).toHaveCount(0);
 
   await browseAs(page, ADMIN_ID, "/admin");
   await page.locator('[data-agenda-id="' + agendaId + '"]').click();
@@ -192,6 +193,19 @@ test("P5: Worker e D1 locais validam Cross, três perfis, interface, versões e 
   await preview.locator("[data-preview-cross-view]").click();
   const adminModal = page.getByRole("dialog", { name: "Ver Cross" });
   await adminModal.locator("[data-cross-supplier]").click();
+  await adminModal.locator(".cross-store summary").click();
+  await expect(adminModal.getByText("PRODUTO CROSS REVISADO")).toBeVisible();
+
+  // Histórico operacional deve ser consultável pelo ADM na interface,
+  // sem restaurar nem modificar o relatório ativo.
+  await adminModal.locator("[data-cross-history]").click();
+  await expect(adminModal.locator("[data-cross-version]")).toHaveCount(2);
+  await adminModal.locator('[data-cross-version="1"]').click();
+  await adminModal.locator(".cross-store summary").click();
+  await expect(adminModal.getByText("PRODUTO CROSS SINTETICO")).toBeVisible();
+  await expect(adminModal.getByText("PRODUTO CROSS REVISADO")).toHaveCount(0);
+  await adminModal.locator("[data-cross-history-back]").click();
+  await adminModal.locator('[data-cross-version="2"]').click();
   await adminModal.locator(".cross-store summary").click();
   await expect(adminModal.getByText("PRODUTO CROSS REVISADO")).toBeVisible();
 
