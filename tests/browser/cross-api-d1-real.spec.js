@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { createSessionToken } from "../../worker/lib/session.js";
 import { businessDate } from "../../shared/time.js";
+import { syntheticCrossPdf } from "../e2e/synthetic-cross-pdf.js";
 
 // A execução compartilha um D1 local: uma tentativa falha não pode repetir seeds no mesmo banco.
 test.describe.configure({ retries: 0 });
@@ -208,6 +209,39 @@ test("P5: Worker e D1 locais validam Cross, três perfis, interface, versões e 
   await adminModal.locator('[data-cross-version="2"]').click();
   await adminModal.locator(".cross-store summary").click();
   await expect(adminModal.getByText("PRODUTO CROSS REVISADO")).toBeVisible();
+
+  // Importação real na UI: PDF 1.4 sintético -> LiteParse WASM -> prévia ->
+  // confirmação de substituição -> POST no Worker e persistência no D1 local.
+  await adminModal.locator("[data-cross-close]").click();
+  await preview.locator("[data-preview-cross-import]").click();
+  const importModal = page.getByRole("dialog", { name: "Importar Cross" });
+  await expect(importModal).toBeVisible();
+  await importModal.locator("[data-cross-agenda-appointment]").selectOption(appointmentId);
+  await expect(importModal.locator("[data-cross-agenda-existing]")).toBeVisible();
+  await importModal.locator("[data-cross-agenda-file]").setInputFiles({
+    name: "scm405-sintetico.pdf",
+    mimeType: "application/pdf",
+    buffer: syntheticCrossPdf(date)
+  });
+  await expect(importModal.locator("[data-cross-agenda-preview]"))
+    .toContainText("PRODUTO IMPORTADO VIA PDF", { timeout: 30000 });
+  await expect(importModal.locator("[data-cross-agenda-submit]")).toBeDisabled();
+  await importModal.locator("[data-cross-agenda-replace]").check();
+  await expect(importModal.locator("[data-cross-agenda-submit]")).toBeEnabled();
+  await importModal.locator("[data-cross-agenda-submit]").click();
+  await expect(importModal).toHaveCount(0);
+  const importedFromPdf = await request.get(crossPath, { headers: await headers(ADMIN_ID) });
+  expect(importedFromPdf.status()).toBe(200);
+  const importedPdfReport = await importedFromPdf.json();
+  expect(importedPdfReport.report.version).toBe(3);
+  expect(importedPdfReport.rows[0].description).toBe("PRODUTO IMPORTADO VIA PDF");
+  expect(importedPdfReport.report.lines).toBe(1);
+  expect(importedPdfReport.report.separateQty).toBe(24);
+  const finalHistory = await request.get(crossPath + "/history", {
+    headers: await headers(ADMIN_ID)
+  });
+  expect((await finalHistory.json()).versions.map(item => [item.version, item.active]))
+    .toEqual([[3, true], [2, false], [1, false]]);
 
   const finish = await request.patch("/api/admin/agendas/" + agendaId + "/status", {
     headers: admin, data: { status: "concluido" }
