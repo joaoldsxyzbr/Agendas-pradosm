@@ -79,15 +79,30 @@ export function openAdminAgendaPreview(root,{
   };
   const effectiveEditable=()=>canEdit&&editMode;
   const isDock01=()=>detail?.agenda?.storeCode?.trim().toUpperCase()==="CD DOCA 01";
+  const refreshCrossCount=async()=>{
+    const currentAgendaId=detail?.agenda?.id;
+    if(!canEdit||!isDock01()||!currentAgendaId)return;
+    try{
+      const response=await request(`/api/admin/cross/agendas/${encodeURIComponent(currentAgendaId)}`);
+      if(disposed||detail?.agenda?.id!==currentAgendaId||!Array.isArray(response.suppliers))return;
+      const count=response.suppliers.length;
+      const badge=field("[data-preview-cross-note]");
+      const button=field("[data-preview-cross-view]");
+      if(badge){
+        badge.hidden=count===0;
+        badge.textContent=`${count} ${count===1?"fornecedor com Cross":"fornecedores com Cross"}`;
+      }
+      if(button)button.textContent=count?`Ver Cross (${count})`:"Ver Cross";
+    }catch{
+      // A consulta operacional permanece disponível, com tratamento de erro no modal.
+    }
+  };
   const openCross=()=>{
     if(!canEdit||!isDock01()||!detail||detail.agenda.dayStatus==="concluido"||crossClose)return;
     crossClose=openCrossAgendaImport(root,{
       agenda:detail.agenda,appointments:detail.appointments,request,
       onClose:()=>{crossClose=null;},
-      onImported:()=>{
-        const badge=field("[data-preview-cross-note]");
-        if(badge)badge.hidden=false;
-      }
+      onImported:()=>{void refreshCrossCount();}
     });
   };
   const openCrossView=()=>{
@@ -184,6 +199,7 @@ export function openAdminAgendaPreview(root,{
       const data=await request(`/api/admin/agendas/${encodeURIComponent(agendaId)}`);
       if(disposed||token!==requestToken)return;
       detail=data;setError(null);
+      void refreshCrossCount();
     }catch{
       if(!disposed&&token===requestToken&&!silent)setError("Não foi possível carregar os detalhes desta agenda.");
     }finally{
