@@ -47,7 +47,8 @@ function reportDTO(row) {
 }
 
 function appointmentDTO(row) {
-  return { id: row.id, protocol: row.protocolo, supplier: row.fornecedor,
+  // A listagem faz JOIN com cross_relatorios: row.id é o relatório, não o agendamento.
+  return { id: row.appointment_id ?? row.id, protocol: row.protocolo, supplier: row.fornecedor,
     startTime: row.horario_inicio, endTime: row.horario_fim };
 }
 
