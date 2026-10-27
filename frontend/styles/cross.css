@@ -141,3 +141,19 @@ html[data-theme="dark"] .cross-explorer-header input { color-scheme: dark; }
   .cross-agenda-viewer .cross-supplier-secondary { text-align: left; }
   .cross-agenda-viewer .cross-supplier-choice > span:last-child { margin-left: auto; }
 }
+
+
+/* Cross visível também na barra da agenda do conferente, sem depender do topo. */
+.store-page .store-cross-context-button {
+  flex-shrink: 0;
+  min-height: 38px;
+  white-space: nowrap;
+  padding-inline: 1rem;
+}
+.store-page .store-cross-context-button[hidden] { display: none; }
+@media (max-width: 640px) {
+  .store-page .store-cross-context-button {
+    width: 100%;
+    justify-content: center;
+  }
+}
