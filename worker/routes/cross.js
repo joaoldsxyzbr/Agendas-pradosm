@@ -1,7 +1,5 @@
 import { Hono } from "hono";
 import { z } from "zod";
-import { businessDate } from "../lib/time.js";
-import { auditStatement } from "../repositories/audit.js";
 
 const CrossItem = z.object({
   storeNumber: z.string().regex(/^\d{2,3}$/),
@@ -57,112 +55,54 @@ export function crossInputTotals(input) {
     ? totals : null;
 }
 
-const toReport = row => ({
+
+// P4: arquivos anteriores ao vínculo P1 permanecem consultáveis exclusivamente
+// pelo ADM. Nenhuma dessas rotas permite gravação, associação ou edição.
+const legacyReport = row => ({
   id: row.id, date: row.data_operacional, reportDate: row.data_relatorio,
   reportCode: row.codigo_relatorio, reference: row.referencia,
   fileName: row.arquivo_original, stores: row.lojas, lines: row.linhas,
   dispatchQty: row.quantidade_expedicao, separateQty: row.quantidade_separar,
-  createdAt: row.criado_em
+  createdAt: row.criado_em, archived: true
 });
-const forbidden = c => c.json({ error: "ACESSO_NEGADO", message: "Acesso não permitido." }, 403);
-const isDock01 = c => {
-  const user = c.get("authUser");
-  return user?.papel === "conferente" && user.lojaCodigo?.trim().toUpperCase() === "CD DOCA 01";
-};
-const validDateFilter = c => {
-  const date = c.req.query("date");
-  return !date || validIsoDate(date);
-};
-const MAX_BODY = 512 * 1024;
+const legacyItem = row => ({
+  storeNumber: row.loja_numero, storeName: row.loja_nome,
+  department: row.departamento, orderCode: row.pedido,
+  productCode: row.produto_codigo, description: row.descricao, gtin: row.gtin,
+  dispatchCode: row.expedicao_codigo, packageSize: row.embalagem,
+  dispatchQty: row.quantidade_expedicao, separateQty: row.quantidade_separar
+});
+const onlyAdmin = c => c.get("authUser")?.papel === "admin";
+const denied = c => c.json({ error: "ACESSO_NEGADO" }, 403);
+const isLegacy = "agenda_id IS NULL AND agendamento_id IS NULL";
+export const adminLegacyCrossArchiveRoutes = new Hono();
 
-async function listReports(c) {
-  if (!validDateFilter(c)) return c.json({ error: "DATA_INVALIDA" }, 400);
+adminLegacyCrossArchiveRoutes.get("/legacy", async c => {
+  if (!onlyAdmin(c)) return denied(c);
   const date = c.req.query("date");
-  const statement = date
-    ? c.env.DB.prepare("SELECT * FROM cross_relatorios WHERE data_operacional = ? ORDER BY criado_em DESC LIMIT 100").bind(date)
-    : c.env.DB.prepare("SELECT * FROM cross_relatorios ORDER BY criado_em DESC LIMIT 40");
-  const result = await statement.all();
-  return c.json({ reports: result.results.map(toReport) });
-}
+  if (date && !validIsoDate(date)) return c.json({ error: "DATA_INVALIDA" }, 400);
+  const offset = Number(c.req.query("offset") ?? "0");
+  if (!Number.isSafeInteger(offset) || offset < 0 || offset > 100000) {
+    return c.json({ error: "PAGINACAO_INVALIDA" }, 400);
+  }
+  const query = date
+    ? c.env.DB.prepare(`SELECT * FROM cross_relatorios
+        WHERE ${isLegacy} AND data_operacional = ?
+        ORDER BY criado_em DESC, id DESC LIMIT 100 OFFSET ?`).bind(date, offset)
+    : c.env.DB.prepare(`SELECT * FROM cross_relatorios
+        WHERE ${isLegacy} ORDER BY criado_em DESC, id DESC LIMIT 100 OFFSET ?`).bind(offset);
+  const result = await query.all();
+  return c.json({ reports: result.results.map(legacyReport), offset, hasMore: result.results.length === 100 });
+});
 
-async function getReport(c) {
-  const report = await c.env.DB.prepare("SELECT * FROM cross_relatorios WHERE id = ? LIMIT 1")
-    .bind(c.req.param("id")).first();
+adminLegacyCrossArchiveRoutes.get("/legacy/:id", async c => {
+  if (!onlyAdmin(c)) return denied(c);
+  const id = c.req.param("id");
+  if (!/^[a-zA-Z0-9-]{1,100}$/.test(id)) return c.json({ error: "CROSS_NAO_ENCONTRADO" }, 404);
+  const report = await c.env.DB.prepare(`SELECT * FROM cross_relatorios
+    WHERE id = ? AND ${isLegacy} LIMIT 1`).bind(id).first();
   if (!report) return c.json({ error: "CROSS_NAO_ENCONTRADO" }, 404);
-  const items = await c.env.DB.prepare("SELECT * FROM cross_itens WHERE relatorio_id = ? ORDER BY ordem")
-    .bind(report.id).all();
-  return c.json({ report: toReport(report), rows: items.results.map(row => ({
-    storeNumber: row.loja_numero, storeName: row.loja_nome,
-    department: row.departamento, orderCode: row.pedido,
-    productCode: row.produto_codigo, description: row.descricao, gtin: row.gtin,
-    dispatchCode: row.expedicao_codigo, packageSize: row.embalagem,
-    dispatchQty: row.quantidade_expedicao, separateQty: row.quantidade_separar
-  })) });
-}
-
-export const adminCrossRoutes = new Hono();
-export const storeCrossRoutes = new Hono();
-
-adminCrossRoutes.get("/", listReports);
-adminCrossRoutes.get("/:id", getReport);
-storeCrossRoutes.get("/", c => isDock01(c) ? listReports(c) : forbidden(c));
-storeCrossRoutes.get("/:id", c => isDock01(c) ? getReport(c) : forbidden(c));
-
-adminCrossRoutes.post("/", async c => {
-  const length = Number(c.req.header("content-length") ?? 0);
-  if (length > MAX_BODY) return c.json({ error: "ARQUIVO_MUITO_GRANDE" }, 413);
-  const source = await c.req.text();
-  if (new TextEncoder().encode(source).length > MAX_BODY) {
-    return c.json({ error: "ARQUIVO_MUITO_GRANDE" }, 413);
-  }
-  let input;
-  try { input = JSON.parse(source); } catch { return c.json({ error: "JSON_INVALIDO" }, 400); }
-  const parsed = CrossInput.safeParse(input);
-  if (!parsed.success) return c.json({ error: "CROSS_INVALIDO", message: "Revise os dados do relatório." }, 422);
-  const data = parsed.data;
-  const totals = crossInputTotals(data);
-  if (!totals) return c.json({ error: "TOTAIS_DIVERGENTES" }, 422);
-
-  // Duplicidade baseada no conteúdo validado, não no nome do arquivo recebido.
-  const canonical = JSON.stringify({ reportDate: data.reportDate, reportCode: data.reportCode, rows: data.rows });
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonical));
-  const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
-  const duplicate = await c.env.DB.prepare("SELECT id FROM cross_relatorios WHERE hash_conteudo = ?")
-    .bind(fingerprint).first();
-  if (duplicate) return c.json({ error: "CROSS_DUPLICADO", reportId: duplicate.id }, 409);
-
-  const id = crypto.randomUUID(), now = new Date().toISOString();
-  const user = c.get("authUser");
-  const statements = [
-    c.env.DB.prepare(`INSERT INTO cross_relatorios
-      (id, data_operacional, data_relatorio, codigo_relatorio, referencia, arquivo_original,
-       hash_conteudo, lojas, linhas, quantidade_expedicao, quantidade_separar, criado_por, criado_em)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(id, data.operationalDate, data.reportDate, data.reportCode, data.reference || null,
-        data.fileName, fingerprint, totals.stores, totals.lines, totals.dispatchQty, totals.separateQty,
-        user.id, now),
-    ...data.rows.map((row, index) => c.env.DB.prepare(`INSERT INTO cross_itens
-      (id, relatorio_id, ordem, loja_numero, loja_nome, departamento, pedido,
-       produto_codigo, descricao, gtin, expedicao_codigo, embalagem, quantidade_expedicao, quantidade_separar)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
-      .bind(crypto.randomUUID(), id, index, row.storeNumber, row.storeName,
-        row.department, row.orderCode, row.productCode, row.description, row.gtin,
-        row.dispatchCode, row.packageSize, row.dispatchQty, row.separateQty)),
-    auditStatement(c.env.DB, {
-      userId: user.id, action: "cross_importado", entity: "cross_relatorio", entityId: id,
-      details: "Importação de Cross-Docking confirmada.", createdAt: now,
-      after: { operationalDate: data.operationalDate, rows: totals.lines, stores: totals.stores }
-    })
-  ];
-  try {
-    // Gravação indivisível: não há relatório incompleto quando algum item falha.
-    await c.env.DB.batch(statements);
-  } catch (error) {
-    if (String(error?.message ?? "").includes("UNIQUE constraint failed: cross_relatorios.hash_conteudo")) {
-      return c.json({ error: "CROSS_DUPLICADO" }, 409);
-    }
-    throw error;
-  }
-  return c.json({ id, stores: totals.stores, lines: totals.lines,
-    dispatchQty: totals.dispatchQty, separateQty: totals.separateQty }, 201);
+  const items = await c.env.DB.prepare(`SELECT * FROM cross_itens
+    WHERE relatorio_id = ? ORDER BY ordem`).bind(report.id).all();
+  return c.json({ report: legacyReport(report), rows: items.results.map(legacyItem) });
 });
