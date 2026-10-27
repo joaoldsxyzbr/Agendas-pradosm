@@ -35,6 +35,9 @@ async function mocks(page, actor, { hasAgenda = true, suppliers = linked, unavai
     paths.push(pathname);
     const json = data => route.fulfill({ json: data });
     if (pathname === "/api/auth/me") return json(actor);
+    if (pathname === "/api/admin/stores") return json([]);
+    if (pathname === "/api/admin/agendas") return json([]);
+    if (pathname === "/api/admin/presence") return json([]);
     if (pathname === "/api/realtime/config") return json({ mode: "off", protocolVersion: 1 });
     if (pathname === "/api/store/today") return json({
       agenda: hasAgenda ? { id: "agenda1", date, storeCode: actor.lojaCodigo,
@@ -57,22 +60,17 @@ async function mocks(page, actor, { hasAgenda = true, suppliers = linked, unavai
       return json({ appointment: linked[1].appointment, report: { ...report, id: "r2", appointmentId: "ap2" }, rows: [
         { ...items[0], storeNumber: "02", storeName: "LOJA 02 LTDA", description: "PRODUTO DO SEGUNDO CROSS" }
       ] });
-    if (pathname === "/api/admin/cross") return json({ reports: [report] });
-    if (pathname === "/api/admin/cross/r1") return json({ report, rows: items });
     throw Error("Rota inesperada: " + pathname);
   });
   return paths;
 }
 
-test("ADM ainda tem o módulo antigo durante P3, sem mudança no P4", async ({ page }) => {
-  await mocks(page, user("admin", null));
+test("P4: página separada de Cross redireciona ao painel e menu desaparece", async ({ page }) => {
+  const paths = await mocks(page, user("admin", null));
   await page.goto("/admin/cross");
-  await expect(page.getByRole("heading", { name: "Cross-Docking", exact: true })).toBeVisible();
-  await expect(page.locator("[data-cross-import]")).toBeDisabled();
-  await expect(page.getByRole("link", { name: "Cross-Docking" }).first()).toBeVisible();
-  await page.locator("[data-cross-open='r1']").click();
-  await page.locator(".cross-store summary").click();
-  await expect(page.getByText("PRODUTO SINTETICO")).toBeVisible();
+  await expect(page).toHaveURL(/\/admin$/);
+  await expect(page.locator('a[href="/admin/cross"]')).toHaveCount(0);
+  expect(paths.some(path => path === "/api/admin/cross")).toBe(false);
 });
 
 test("Doca 1 consulta somente Cross dos agendamentos da data e distingue protocolos iguais", async ({ page }) => {
