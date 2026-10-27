@@ -61,6 +61,7 @@ export function renderToday(root,{
                 placeholder="Pesquisar fornecedor ou protocolo" autocomplete="off"></label>
             <button class="ghost-button agenda-manual-button" type="button"
               data-add-manual hidden>+ Fornecedor sem agenda</button>
+            ${canSeeCross ? '<button class="primary-button store-cross-context-button" type="button" data-store-cross-context hidden>Ver Cross</button>' : ""}
           </div>
         </div>
         <div data-agenda-list></div>
@@ -103,8 +104,11 @@ export function renderToday(root,{
     commandHost.querySelector("[data-store-complete]").hidden=!hasAgenda||!editable();
     commandHost.querySelector("[data-store-pdf]").hidden=!hasAgenda;
     const crossButton=commandHost.querySelector("[data-store-cross]");
-    if(crossButton)crossButton.hidden=!hasAgenda||
-      agenda.agenda?.storeCode?.trim().toUpperCase()!=="CD DOCA 01";
+    const crossAvailable=Boolean(canSeeCross && hasAgenda &&
+      agenda.agenda?.storeCode?.trim().toUpperCase()==="CD DOCA 01");
+    if(crossButton)crossButton.hidden=!crossAvailable;
+    const contextCross=root.querySelector("[data-store-cross-context]");
+    if(contextCross)contextCross.hidden=!crossAvailable;
   };
   const updateError=()=>{
     const node=root.querySelector("[data-store-error]");
@@ -222,18 +226,21 @@ export function renderToday(root,{
     closeDetails?.();
     closeDetails=openAgendaDetails(root.querySelector("[data-appointment-details]"),id,{request});
   };
+  const openSelectedCross=()=>{
+    if(!canSeeCross||!agenda?.agenda?.id||
+      agenda.agenda.storeCode?.trim().toUpperCase()!=="CD DOCA 01")return;
+    if(!closeCross)closeCross=openCrossAgendaViewer(root,{
+      agenda:agenda.agenda,request,onClose:()=>{closeCross=null;}
+    });
+  };
   const onCommandClick=event=>{
     const button=event.target.closest?.("button");
     if(!button||!commandHost.contains(button))return;
     if(button.matches("[data-store-previous]"))changeDate(addStoreDays(selectedDate,-1));
     else if(button.matches("[data-store-next]"))changeDate(addStoreDays(selectedDate,1));
     else if(button.matches("[data-store-today]"))changeDate(today);
-    else if(button.matches("[data-store-cross]")&&canSeeCross&&
-      agenda?.agenda?.id&&agenda.agenda.storeCode?.trim().toUpperCase()==="CD DOCA 01"){
-      if(!closeCross)closeCross=openCrossAgendaViewer(root,{
-        agenda:agenda.agenda,request,onClose:()=>{closeCross=null;}
-      });
-    }else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
+    else if(button.matches("[data-store-cross]"))openSelectedCross();
+    else if(button.matches("[data-store-pdf]")&&agenda?.agenda){
       exportPdf(agenda.agenda,[...agenda.appointments].sort(
         (a,b)=>a.startTime.localeCompare(b.startTime)||a.protocol.localeCompare(b.protocol)));
     }else if(button.matches("[data-store-complete]")&&editable()){
@@ -247,6 +254,7 @@ export function renderToday(root,{
   };
   const onPageClick=event=>{
     const button=event.target.closest?.("button");
+    if(button?.matches("[data-store-cross-context]"))return openSelectedCross();
     if(button?.matches("[data-add-manual]")&&editable()){
       openModal(()=>openSupplierModal(root,{
         selectedDate,request,
