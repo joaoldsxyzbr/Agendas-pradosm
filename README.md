@@ -171,6 +171,35 @@ fora dos dois domínios de testes o endpoint retorna 404. Antes de considerar
 esta funcionalidade disponível, validar a publicação da Preview com a branch
 atual e confirmar o funcionamento no D1 isolado, não apenas o CI.
 
+### P3 — Conferente consulta Cross pela agenda e pelo fornecedor (somente `testes`)
+
+- O botão **Ver Cross** aparece na barra da conferência somente para o
+  conferente vinculado à `CD DOCA 01` **e somente quando existe agenda
+  selecionada**. Sem agenda, o botão permanece oculto.
+- Ao abrir, o modal consulta `GET /api/store/cross/agendas/:agendaId` e
+  mostra somente fornecedores/protocolos com relatório **ativo** vinculado
+  àquela agenda. Fornecedores sem Cross não são listados; nomes repetidos
+  são distinguidos por agendamento e protocolo.
+- Selecionar um fornecedor consulta
+  `GET /api/store/cross/agendas/:agendaId/appointments/:appointmentId`
+  e abre os detalhes por loja (descrição, pedido, GTIN, embalagem e
+  quantidades) **somente leitura**. Há botão de voltar à lista.
+- O modal mantém o foco acessível, aceita Escape, pode ser reaberto e é
+  encerrado quando a data ou a agenda são alteradas. Falha no banco
+  exibe mensagem, sem consultar relatórios globais como fallback.
+- Permissões permanecem no Worker: o conferente deve pertencer ao ID
+  da Doca 1 e ter o código de loja correspondente. Nenhuma outra doca
+  possui acesso. As antigas APIs/telas independentes permanecem
+  temporariamente até P4; a consulta do conferente já usa apenas as
+  rotas vinculadas de P1.
+- Testes Playwright usam agendas e relatórios sintéticos, incluindo
+  escolha entre fornecedores com nomes iguais e protocolos diferentes,
+  ausência de agenda, listas vazias e falhas de API.
+
+**Homologação pendente:** o D1 Preview ainda precisa das migrations
+`0018`–`0021`, e é necessário testar leitura de PDF real após P4/P5.
+Não executar migrations remotas de produção.
+
 ### P2 — Importar Cross pela agenda da Doca 1 (somente `testes`)
 
 - Na janela de **consulta da agenda** do ADM, o botão **Importar Cross** aparece
