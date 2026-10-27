@@ -2,6 +2,9 @@ import { test, expect } from "@playwright/test";
 import { createSessionToken } from "../../worker/lib/session.js";
 import { businessDate } from "../../shared/time.js";
 
+// A execução compartilha um D1 local: uma tentativa falha não pode repetir seeds no mesmo banco.
+test.describe.configure({ retries: 0 });
+
 // Integração P5: nenhuma interceptação de API nem acesso ao D1 remoto.
 // O Playwright usa o Worker real e o D1 local preparado por prepare-e2e.mjs.
 const BASE = "http://127.0.0.1:8789";
