@@ -9,7 +9,7 @@ import { agendaPdfFileName, buildAgendaPdf } from "../../frontend/agenda/exportA
 
 describe("Rotas nativas com paridade da main", () => {
   it("mantém os caminhos da aplicação React", () => {
-    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/admin/cross", "/admin/diagnostics", "/app"]);
+    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/admin/diagnostics", "/app"]);
     assert.equal(homeForRole("conferente"), "/app");
     assert.equal(homeForRole("admin"), "/admin");
   });
@@ -20,8 +20,9 @@ describe("Rotas nativas com paridade da main", () => {
     assert.equal(resolveRoute("/admin", { papel: "visualizador" }).readOnly, true);
     assert.deepEqual(resolveRoute("/admin/reports",{papel:"visualizador"}),{view:"reports",layout:"admin",readOnly:true});
     assert.equal(resolveRoute("/admin/reports",{papel:"admin"}).view,"reports");
-    assert.equal(resolveRoute("/admin/cross",{papel:"admin"}).view,"cross");
+    assert.deepEqual(resolveRoute("/admin/cross",{papel:"admin"}),{redirect:"/admin"});
     assert.deepEqual(resolveRoute("/admin/cross",{papel:"conferente"}),{redirect:"/app"});
+    assert.doesNotMatch(adminShell({papel:"admin",nome:"Administrador"},"/admin"), /href="\/admin\/cross"/);
     assert.equal(resolveRoute("/admin/diagnostics",{papel:"admin"}).view,"diagnostics");
     assert.deepEqual(resolveRoute("/admin/reports",{papel:"conferente"}),{redirect:"/app"});
     assert.deepEqual(resolveRoute("/app", { papel: "admin" }), { redirect: "/admin" });
