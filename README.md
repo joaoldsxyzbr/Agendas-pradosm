@@ -171,119 +171,67 @@ fora dos dois domínios de testes o endpoint retorna 404. Antes de considerar
 esta funcionalidade disponível, validar a publicação da Preview com a branch
 atual e confirmar o funcionamento no D1 isolado, não apenas o CI.
 
-### P3 — Conferente consulta Cross pela agenda e pelo fornecedor (somente `testes`)
+## Cross-Docking por agendamento — P1 a P4 (`testes`)
 
-- O botão **Ver Cross** aparece na barra da conferência somente para o
-  conferente vinculado à `CD DOCA 01` **e somente quando existe agenda
-  selecionada**. Sem agenda, o botão permanece oculto.
-- Ao abrir, o modal consulta `GET /api/store/cross/agendas/:agendaId` e
-  mostra somente fornecedores/protocolos com relatório **ativo** vinculado
-  àquela agenda. Fornecedores sem Cross não são listados; nomes repetidos
-  são distinguidos por agendamento e protocolo.
-- Selecionar um fornecedor consulta
-  `GET /api/store/cross/agendas/:agendaId/appointments/:appointmentId`
-  e abre os detalhes por loja (descrição, pedido, GTIN, embalagem e
-  quantidades) **somente leitura**. Há botão de voltar à lista.
-- O modal mantém o foco acessível, aceita Escape, pode ser reaberto e é
-  encerrado quando a data ou a agenda são alteradas. Falha no banco
-  exibe mensagem, sem consultar relatórios globais como fallback.
-- Permissões permanecem no Worker: o conferente deve pertencer ao ID
-  da Doca 1 e ter o código de loja correspondente. Nenhuma outra doca
-  possui acesso. As antigas APIs/telas independentes permanecem
-  temporariamente até P4; a consulta do conferente já usa apenas as
-  rotas vinculadas de P1.
-- Testes Playwright usam agendas e relatórios sintéticos, incluindo
-  escolha entre fornecedores com nomes iguais e protocolos diferentes,
-  ausência de agenda, listas vazias e falhas de API.
+**Escopo operacional:** somente a `CD DOCA 01`, com cada relatório Scm405
+vinculado a um `agenda_id` e um `agendamento_id` real. O PDF organiza
+lojas de destino, pedidos, produtos, embalagens e unidades a separar;
+essas lojas de destino não são códigos de doca.
 
-**Homologação pendente:** o D1 Preview ainda precisa das migrations
-`0018`–`0021`, e é necessário testar leitura de PDF real após P4/P5.
-Não executar migrations remotas de produção.
+**ADM:** no popup da agenda da Doca 1 pode **Importar Cross**, escolhendo
+horário, fornecedor e protocolo, conferindo a prévia do PDF e confirmando o
+vínculo ao agendamento. A versão ativa pode ser substituída somente após
+confirmação explícita; versões anteriores permanecem arquivadas. O botão
+**Ver Cross** permite consultar os fornecedores com Cross na própria agenda,
+inclusive depois do dia concluído. O botão de importação fica desabilitado
+quando a agenda está concluída.
 
-### P2 — Importar Cross pela agenda da Doca 1 (somente `testes`)
+**Conferente da Doca 1:** **Ver Cross** só aparece quando há uma agenda
+selecionada. A janela lista apenas fornecedores daquela agenda com
+Cross ativo e apresenta o detalhe somente leitura por loja. Outras docas
+e visualizadores não acessam esses dados, incluindo pela API.
 
-- Na janela de **consulta da agenda** do ADM, o botão **Importar Cross** aparece
-  exclusivamente para `CD DOCA 01`, independentemente do modo `Editar agenda`.
-  A importação fica desabilitada quando a agenda estiver concluída.
-- O modal oferece apenas os agendamentos ativos daquela agenda, identificados por
-  **horário, fornecedor e protocolo**, inclusive quando há nomes repetidos.
-- O ADM seleciona o agendamento e o PDF Scm405, confere os dados agrupados por loja
-  e confirma. O envio utiliza `POST /api/admin/cross/agendas/:agendaId/appointments/:appointmentId`
-  da etapa P1, com `operationalDate` obtida da própria agenda.
-- Antes de liberar o formulário, a interface consulta os relatórios ativos e exige
-  confirmação explícita para substituir um Cross já vinculado; versões anteriores
-  continuam preservadas. PDFs com data diferente da agenda também exigem confirmação.
-- Falhas no parser, PDF acima de 10 MB, relatórios incompletos, falta de migrações
-  e erros de concorrência bloqueiam a gravação e exibem mensagem ao ADM.
-- A interface antiga `/admin/cross` segue disponível durante a transição do P2,
-  para ser retirada na etapa P4. O botão `Ver Cross` do conferente não foi alterado;
-  a sua nova navegação por fornecedor é a etapa P3.
-- Testes E2E usam dados sintéticos e leitura de PDF simulada, sem acessar D1 remoto.
-  A leitura real do PDF no navegador ainda precisa de homologação.
+**Fluxo antigo retirado em P4:** não existem mais tela, menu ou rota
+`/admin/cross` nem importação independente `POST /api/admin/cross`.
+A consulta geral `GET /api/admin/cross` e a consulta antiga
+`GET /api/store/cross` também foram retiradas. As migrations e tabelas
+existentes **não foram apagadas**; nenhum registro foi migrado
+automaticamente para agendamento, pois não há associação inequívoca
+entre PDFs antigos e fornecedores.
 
-### P1 — Cross vinculado ao agendamento (somente branch `testes`)
+**APIs atualmente utilizadas:**
 
-Foi adicionada a migration aditiva `0021_cross_agendamento_vinculo.sql`
-para incluir `agenda_id`, `agendamento_id`, `versao` e `ativo` nos
-relatórios de Cross. Relatórios legados permanecem sem vínculo; não são
-associados automaticamente a fornecedores. O índice parcial impede dois
-relatórios ativos para o mesmo agendamento. Triggers validam que o agendamento
-pertence à agenda correta, ao dia operacional e à `CD DOCA 01`.
+- `GET /api/admin/cross/agendas/:agendaId` — fornecedores com Cross ativo;
+- `POST /api/admin/cross/agendas/:agendaId/appointments/:appointmentId` — gravação
+  atômica com auditoria e controle de versão;
+- `GET /api/admin/cross/agendas/:agendaId/appointments/:appointmentId` — relatório ativo;
+- `GET /api/admin/cross/agendas/:agendaId/appointments/:appointmentId/history` e
+  `.../history/:reportId` — histórico de versões de um fornecedor;
+- `GET /api/store/cross/agendas/:agendaId` e
+  `.../appointments/:appointmentId` — conferente da Doca 1, somente leitura.
 
-Novas rotas REST sob `/api/admin/cross`:
-- `GET /agendas/:agendaId`: fornecedores da agenda com Cross ativo;
-- `GET /agendas/:agendaId/appointments/:appointmentId`: Cross ativo e itens;
-- `GET /agendas/:agendaId/appointments/:appointmentId/history`: versões;
-- `GET /agendas/:agendaId/appointments/:appointmentId/history/:reportId`: versão histórica;
-- `POST /agendas/:agendaId/appointments/:appointmentId`: importar Cross vinculando
-  o PDF ao agendamento real (payload do Scm405 atual). A data operacional deve
-  corresponder à agenda. Uma substituição exige `replaceActiveReportId` igual
-  ao relatório ativo consultado antes da operação.
+**Arquivo legado (ADM, somente leitura):** PDFs que já foram importados
+**sem vínculo** (`agenda_id` e `agendamento_id` nulos) continuam
+armazenados e podem ser recuperados por `GET /api/admin/cross/legacy`
+(com filtros opcionais `date` e `offset`) e
+`GET /api/admin/cross/legacy/:id`. Não existe importação ou edição
+nesse arquivo e ele não aparece na operação do conferente. O histórico
+de relatórios vinculados fica nas rotas `history` por agendamento.
+Apenas administradores autenticados acessam o arquivo legado.
 
-Para conferentes da Doca 1 existem somente as duas rotas de leitura equivalentes
-sob `/api/store/cross`. O backend confere código e ID da doca. Todas as outras
-docas são bloqueadas. O acesso de ADM é validado no servidor; visualizadores
-não recebem permissão de Cross.
+**Persistência:** `migrations/0020_cross_docking.sql` cria
+`cross_relatorios` e `cross_itens`; `0021_cross_agendamento_vinculo.sql`
+acrescenta campos de vínculo, versão, índice único de ativo e triggers
+de integridade. Nunca modificar/apagar essas migrations nem os dados
+já salvos. A entrada é validada no navegador e no Worker; registro,
+itens, inativação da versão anterior e auditoria são transacionais.
 
-O histórico é imutável: ao substituir, a versão anterior fica inativa e todos
-os itens e auditorias são mantidos. Gravações de relatório, itens, substituição
-da versão ativa e auditoria são atômicas via `D1.batch`.
-
-**Compatibilidade temporária:** nesta etapa P1, as rotas independentes antigas
-continuam existentes e a interface atual ainda não usa os novos endpoints.
-A integração na janela da agenda será feita em P2/P3; P4 removerá a navegação
-antiga. Até P5, não considerar a Preview pronta para validação do Cross sem a
-aplicação controlada das migrations `0018`–`0021` no D1 de homologação.
-
-## Cross-Docking (somente branch testes)
-
-Módulo independente de agendamentos, em homologação até validação operacional.
-
-- O administrador acessa **Cross-Docking** no menu e importa PDF do tipo **Scm405**.
-- O navegador extrai o texto usando o motor PDF já incluído no projeto. O parser
-  `frontend/import/parseCrossReport.js` identifica empresas/lojas de destino,
-  produtos, GTIN, pedidos, embalagens e quantidades de separação.
-- A prévia deve conferir todos os totais por loja e o total geral antes de habilitar
-  a confirmação. Erros bloqueiam a importação inteira.
-- O Worker revalida campos, quantidades e totais; detecta arquivo já importado
-  por hash do conteúdo e grava todos os itens e auditoria em lote atômico no D1.
-- O conferente de código **CD DOCA 01** vê o botão **Ver Cross** mesmo sem agenda.
-  A consulta é somente leitura e protegida no backend. Outras docas e lojas não
-  possuem acesso. O administrador consulta o histórico na sua própria tela.
-- Os números de loja 01/02/etc. indicam destinos no relatório; não correspondem
-  ao código de acesso **CD DOCA 01**. Não existe criação automática de agendas.
-- As tabelas `cross_relatorios` e `cross_itens` são criadas por
-  `migrations/0020_cross_docking.sql`, sem modificar agendamentos existentes.
-- Testar somente com D1 sintético/Preview; nenhum PDF comercial deve ser incluído
-  em fixtures, logs ou commits. O PDF original não é armazenado, apenas dados
-  estruturados, nome e histórico de importação.
-- Em caso de necessidade de desativação operacional, remover a navegação do
-  módulo ou voltar a release da Preview; a migration é aditiva e os dados
-  importados não devem ser apagados automaticamente.
-
-**Ainda depende de homologação com o PDF real no navegador, publicação Preview e
-conferência de permissões no ambiente isolado.** A branch `main` permanece
-exclusivamente dedicada à produção.
+**P5 / homologação pendente:** aplicar de forma controlada as migrations
+`0018` a `0021` **somente** no D1 isolado da Preview; conferir
+login, permissões, importação real do PDF no navegador, consulta por
+fornecedor, histórico e CI. Os testes automatizados usam dados sintéticos;
+não substituem teste real na Preview. `main` permanece intocada até
+autorização separada para eventual produção.
 
 ## Dashboard
 
