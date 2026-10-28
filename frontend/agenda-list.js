@@ -258,13 +258,14 @@ export function renderAgendaList(root, initialOptions = {}) {
         <button class="ghost-button" type="button" data-observation-cancel aria-label="Fechar">Fechar</button>
       </div>
       <p class="observation-dialog-supplier">${escapeHtml(item.supplier)}</p>
-      <label class="observation-field">Motivo ${required ? "(obrigatório)" : "(opcional)"}
-        <select data-observation-reason ${required ? "required" : ""}>
-          <option value="">${required ? "Selecione um motivo" : "Sem observação"}</option>
-          ${OBSERVATION_REASONS.map(reason => `<option value="${escapeHtml(reason)}">${escapeHtml(reason)}</option>`).join("")}
-          <option value="Outros">Outros (personalizado)</option>
-        </select>
-      </label>
+      <fieldset class="observation-fieldset">
+        <legend>Motivo ${required ? "(obrigatório)" : "(opcional)"}</legend>
+        <div class="observation-reasons" role="group" aria-label="Escolha um motivo">
+          ${!required ? `<button class="observation-reason" type="button" data-observation-reason data-reason="" aria-pressed="false">Sem observação</button>` : ""}
+          ${OBSERVATION_REASONS.map(reason => `<button class="observation-reason" type="button" data-observation-reason data-reason="${escapeHtml(reason)}" aria-pressed="false">${escapeHtml(reason)}</button>`).join("")}
+          <button class="observation-reason" type="button" data-observation-reason data-reason="Outros" aria-pressed="false">Personalizado</button>
+        </div>
+      </fieldset>
       <label class="observation-field" data-observation-custom-wrap hidden>Descreva o motivo
         <textarea data-observation-custom maxlength="242" rows="3" placeholder="Descreva o motivo"></textarea>
       </label>
@@ -274,19 +275,27 @@ export function renderAgendaList(root, initialOptions = {}) {
         <button class="primary-button" type="submit" data-observation-save>Confirmar</button>
       </div>
     </form>`;
-    const select = backdrop.querySelector("[data-observation-reason]");
+    const reasonButtons = [...backdrop.querySelectorAll("[data-observation-reason]")];
+    let selectedReason = preset;
     const textarea = backdrop.querySelector("[data-observation-custom]");
     const customWrap = backdrop.querySelector("[data-observation-custom-wrap]");
     const errorNode = backdrop.querySelector("[data-observation-error]");
     const submit = backdrop.querySelector("[data-observation-save]");
-    select.value = preset;
     textarea.value = custom;
     const sync = () => {
-      customWrap.hidden = select.value !== "Outros";
-      textarea.required = select.value === "Outros";
+      const personalized = selectedReason === "Outros";
+      customWrap.hidden = !personalized;
+      textarea.required = personalized;
+      for (const button of reasonButtons)
+        button.setAttribute("aria-pressed", String(button.dataset.reason === selectedReason));
     };
     sync();
-    select.addEventListener("change", sync);
+    for (const button of reasonButtons) button.addEventListener("click", () => {
+      selectedReason = button.dataset.reason;
+      sync();
+      errorNode.hidden = true;
+      if (selectedReason === "Outros") textarea.focus();
+    });
     const onKey = event => { if (event.key === "Escape") { event.preventDefault(); close(); } };
     const close = () => {
       backdrop.remove();
@@ -303,7 +312,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       errorNode.hidden=true;
       let note;
       try {
-        const input = select.value === "Outros" ? "Outros: " + textarea.value.trim() : select.value;
+        const input = selectedReason === "Outros" ? "Outros: " + textarea.value.trim() : selectedReason;
         note = required ? validateStatusObservation(status ?? item.status,input) : normalizeObservation(input);
       } catch (error) {
         errorNode.textContent = error.message;
@@ -321,7 +330,7 @@ export function renderAgendaList(root, initialOptions = {}) {
       }
     });
     root.ownerDocument.body.appendChild(backdrop);
-    select.focus();
+    (reasonButtons.find(button => button.dataset.reason === selectedReason) ?? reasonButtons[0])?.focus();
   };
   const onClick = event => {
     const button = event.target.closest?.("button");
