@@ -4,7 +4,8 @@ export const OBSERVATION_REASONS = Object.freeze([
   "Sem pedido",
   "Sem boleto",
   "Prazo de pagamento incorreto",
-  "Temperatura acima do OK"
+  "Temperatura acima do OK",
+  "Não veio"
 ]);
 export const MAX_OBSERVATION_LENGTH = 250;
 export function normalizeObservation(value) {
@@ -16,7 +17,7 @@ export function normalizeObservation(value) {
   if (OBSERVATION_REASONS.includes(note)) return note;
   const custom = /^Outros:\s*(.+)$/i.exec(note);
   if (custom && custom[1].trim()) return "Outros: " + custom[1].trim();
-  throw new Error("Selecione um motivo da lista ou preencha Outros.");
+  throw new Error("Selecione um motivo ou preencha Personalizado.");
 }
 export function validateStatusObservation(status, value) {
   const note = normalizeObservation(value);
