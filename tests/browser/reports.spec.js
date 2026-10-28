@@ -8,8 +8,10 @@ const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",
  total:2,recebido:1,naoChegou:0,aguardando:0,semConferencia:1,recusado:0,semAgenda:0}],
  suppliers:[{supplier:"Fornecedor Teste",total:4,recebido:3,naoChegou:1}]};
-const occ={total:1,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
- supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado"}]};
+const occ={total:2,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
+ supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido"},
+ {date:"2026-10-18",storeCode:"F01",storeName:"Centro",supplier:"Fornecedor B",
+ protocol:"654321",observation:null,origin:"importado",occurrenceType:"sem_conferencia"}]};
 async function mocks(page,user,{emptyPrevious=false}={}){
  const requests=[];const searches=[];
  await page.route("**/api/**",route=>{
@@ -73,6 +75,13 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    });
    expect(data).toEqual({type:"bar",received:1,missed:0});
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
+   const occurrences=page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})});
+   await expect(occurrences.locator("tbody tr")).toHaveCount(2);
+   await expect(occurrences).toContainText("Não recebido");
+   await expect(occurrences).toContainText("Sem conferência");
+   await expect(occurrences).toContainText("Concluído sem conferência");
+   await expect(occurrences).toContainText("Fornecedor B");
+   await expect(occurrences).toContainText("2 ocorrência(s)");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
    await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
    const comparison=page.locator(".report-analytics-grid .report-panel").filter({hasText:"Comparativo por loja"});
