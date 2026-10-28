@@ -40,9 +40,9 @@ function chart(days) {
   const maximum=Math.max(1,...days.map(x=>x.total));
   const bars=days.map((d,i)=>{
     const total=d.total||0,height=total?Math.max(2,total/maximum*100):0;
-    const segments=["recebido","naoChegou","aguardando","semConferencia","recusado"].map(k=>
+    const segments=["recebido","naoChegou","aguardando","naoCompareceu","recusado"].map(k=>
       '<span class="report-segment-'+k+'" style="height:'+(total?((d[k]||0)/total*100).toFixed(2):0)+'%"></span>').join("");
-    const description=date(d.date)+": "+num(d.total)+" agendamentos; "+num(d.recebido)+" recebidos; "+num(d.naoChegou)+" não recebidos; "+num(d.aguardando)+" aguardando; "+num(d.semConferencia)+" sem conferência";
+    const description=date(d.date)+": "+num(d.total)+" agendamentos; "+num(d.recebido)+" recebidos; "+num(d.naoChegou)+" não recebidos; "+num(d.aguardando)+" aguardando; "+num(d.naoCompareceu)+" não compareceu";
     return '<div class="report-day" role="img" aria-label="'+esc(description)+'" title="'+esc(description)+'">'+
       '<div class="report-bar-area"><div class="report-bar" style="height:'+height.toFixed(2)+'%">'+segments+'</div></div>'+
       '<small>'+(i%Math.max(1,Math.ceil(days.length/12))===0?esc(d.date.slice(8)+"/"+d.date.slice(5,7)):"&nbsp;")+'</small></div>';
@@ -56,7 +56,7 @@ function chart(days) {
   }).join("");
   return '<div class="report-chart-scroll" data-report-native-chart>'+
     '<div class="report-legend">'+
-    [["recebido","Recebidos"],["naoChegou","Não recebidos"],["aguardando","Aguardando"],["semConferencia","Sem conferência"],["recusado","Recusados"]]
+    [["recebido","Recebidos"],["naoChegou","Não recebidos"],["aguardando","Aguardando"],["naoCompareceu","Não compareceu"],["recusado","Recusados"]]
     .map(([k,t])=>'<span><i class="report-segment-'+k+'"></i>'+t+'</span>').join("")+'</div>'+
     '<div class="report-chart">'+bars+'</div></div>'+
     '<div class="report-chart-scroll" data-report-rate-native hidden><div class="report-chart">'+rateBars+'</div></div>'+
@@ -186,12 +186,14 @@ export function renderReports(root,{request=apiFetch}={}) {
         '<div class="report-progress"><span style="width:'+weekdayRate.toFixed(2)+'%"></span></div>'+
         '<small>'+num(w.total)+' agendamento(s) em '+num(w.days)+' dia(s) · '+num(w.recebido)+' recebidos</small></div>';
     }).join("")||'<p class="report-empty">Sem movimentação no período.</p>';
-    const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.semConferencia,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+cell(rate(u),true)+'</tr>');
+    const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.naoCompareceu,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+cell(rate(u),true)+'</tr>');
     const rows=occurrences.rows.map(r=>{
-      const semConferencia=r.occurrenceType==="sem_conferencia";
+      const automatic=r.occurrenceType==="nao_compareceu";
+      const source=r.classificationOrigin==="historico"?"Sistema · agenda antiga concluída":
+        automatic?"Sistema · fechamento do dia":"Registrado manualmente";
       return '<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.supplier)+cell(r.protocol)+
-        cell(semConferencia?"Sem conferência":"Não recebido")+
-        cell(r.observation||(semConferencia?"Concluído sem conferência":"Motivo não registrado"))+'</tr>';
+        cell(automatic?"Não compareceu":"Não recebido")+
+        cell(automatic?"Não compareceu":r.observation||"Motivo não registrado")+cell(source)+'</tr>';
     });
     const pager='<div class="report-pagination"><span>'+num(occurrences.total)+' ocorrência(s) · '+
       num(occurrences.total?settings.offset+1:0)+'–'+num(Math.min(settings.offset+50,occurrences.total))+'</span><div>'+
@@ -214,7 +216,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       metric("Não recebidos",num(sum.naoChegou),"Não chegaram",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
       metric("Taxa de recebimento",rate(sum),"Recebidos / total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary")+
       metric("Aguardando",num(sum.aguardando),"Agendas abertas",delta(sum.aguardando,prev?.aguardando))+
-      metric("Sem conferência",num(sum.semConferencia),"Agendas concluídas",delta(sum.semConferencia,prev?.semConferencia))+
+      metric("Não compareceu",num(sum.naoCompareceu),"Agendas concluídas",delta(sum.naoCompareceu,prev?.naoCompareceu))+
       metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+compare+open+
       '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
@@ -224,8 +226,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
       '</div>'+
       '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
-      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
-      panel("Ocorrências e observações","Não recebidos e agendamentos concluídos sem conferência",table(["Data","Loja","Fornecedor","Protocolo","Situação","Observação"],rows)+pager,search);
+      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
+      panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
   }
   async function load(){
