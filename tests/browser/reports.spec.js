@@ -1,7 +1,8 @@
 import { test,expect } from "@playwright/test";
 const viewer={id:"v1",nome:"Visualizador",papel:"visualizador",login:"viewer"};
 const admin={id:"a1",nome:"Administrador",papel:"admin",login:"admin"};
-const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:true}];
+const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:true},
+ {id:"s2",codigo:"F02",nome:"Sul",ativo:true,temConferenteAtivo:true}];
 const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",
  total:5,recebido:3,naoChegou:1,aguardando:1,semConferencia:0,recusado:0,semAgenda:1},
@@ -90,13 +91,59 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-store-table")).toBeVisible();
    await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
    const filter=page.locator("[data-report-filters]");
-   await filter.locator('[name="store"]').selectOption("F01");
+   await filter.locator("[data-report-store-select] summary").click();
+   await filter.locator('input[name="stores"][value="F01"]').check();
+   await expect(filter.locator("[data-report-store-select] summary")).toContainText("F01");
    await filter.getByRole("button",{name:"Aplicar filtros"}).click();
    await expect(page.locator(".report-kpis")).toBeVisible();
    expect(requests.filter(x=>x==="/api/admin/reports").length).toBeGreaterThan(0);
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
+test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorrências",async({page})=>{
+ await page.setViewportSize({width:1366,height:900});
+ const {searches}=await mocks(page,admin);
+ await page.goto("/admin/reports");
+ const filters=page.locator("[data-report-filters]");
+ const picker=filters.locator("[data-report-store-select]");
+ await picker.locator("summary").click();
+ await expect(picker.locator('input[name="stores"]')).toHaveCount(2);
+ await picker.locator('input[value="F01"]').check();
+ await picker.locator('input[value="F02"]').check();
+ await expect(picker.locator("summary")).toHaveText("2 lojas selecionadas");
+ await expect(picker.locator("[data-report-store-all]")).not.toBeChecked();
+ await filters.getByRole("button",{name:"Aplicar filtros"}).click();
+ await expect(page.locator(".report-range-summary")).toContainText("2 lojas selecionadas");
+ const scoped=searches.filter(q=>new URLSearchParams(q).getAll("storeCode").length===2);
+ expect(scoped.length).toBeGreaterThanOrEqual(3);
+ for(const q of scoped)expect(new URLSearchParams(q).getAll("storeCode")).toEqual(["F01","F02"]);
+ await page.reload();
+ await expect(filters.locator("[data-report-store-select] summary")).toHaveText("2 lojas selecionadas");
+ await picker.locator("summary").click();
+ await expect(picker.locator('input[value="F01"]')).toBeChecked();
+ await expect(picker.locator('input[value="F02"]')).toBeChecked();
+ await picker.locator("[data-report-store-all]").check();
+ await expect(picker.locator('input[name="stores"]:checked')).toHaveCount(0);
+ await expect(picker.locator("summary")).toHaveText("Todas as lojas");
+ await filters.getByRole("button",{name:"Aplicar filtros"}).click();
+ await expect(page.locator(".report-range-summary")).toContainText("Todas as lojas");
+ expect(searches.slice(-3).every(q=>!new URLSearchParams(q).has("storeCode"))).toBe(true);
+});
+test("Filtro múltiplo é operável no celular com teclado e sem rolagem horizontal da página",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await mocks(page,viewer);
+ await page.goto("/admin/reports");
+ const picker=page.locator("[data-report-store-select]");
+ await picker.locator("summary").click();
+ await expect(picker).toHaveAttribute("open","");
+ await picker.locator('input[value="F02"]').check();
+ await expect(picker.locator("summary")).toContainText("F02");
+ await picker.locator('input[value="F02"]').press("Escape");
+ await expect(picker).not.toHaveAttribute("open","");
+ await expect(picker.locator("summary")).toBeFocused();
+ const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2);
+ expect(noOverflow).toBe(true);
+});
 test("Relatório: edita datas diretamente e esclarece comparação sem base anterior",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   await mocks(page,admin,{emptyPrevious:true});
