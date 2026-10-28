@@ -623,6 +623,29 @@ async function changeAppointmentStatus(db, appointment, userId, status, adminAdj
   return updated;
 }
 
+// Registra a classificação do sistema antes da mudança de estado.
+function nonattendanceStatements(db, agendaSelection, bindArgs, now) {
+  const pending = "ag.ativo = 1 AND ag.status = 'aguardando' AND ag.agenda_id IN (" + agendaSelection + ")";
+  return [
+    db.prepare(
+      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, observacao, alterado_em) " +
+      "SELECT lower(hex(randomblob(16))), ag.id, NULL, 'aguardando', 'nao_chegou', 'Não compareceu', ? " +
+      "FROM agendamentos ag WHERE " + pending
+    ).bind(now, ...bindArgs),
+    db.prepare(
+      "INSERT INTO auditoria (id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id, agendamento_id, antes, depois, detalhes, criado_em) " +
+      "SELECT lower(hex(randomblob(16))), NULL, 'nao_compareceu_automaticamente', 'agendamento', ag.id, a.loja_id, " +
+      "a.id, ag.id, '{\"status\":\"aguardando\"}', '{\"status\":\"nao_chegou\",\"observation\":\"Não compareceu\"}', " +
+      "'Classificado automaticamente pelo sistema ao concluir a agenda.', ? " +
+      "FROM agendamentos ag JOIN agendas a ON a.id = ag.agenda_id WHERE " + pending
+    ).bind(now, ...bindArgs),
+    db.prepare(
+      "UPDATE agendamentos SET status = 'nao_chegou', observacao = 'Não compareceu', atualizado_em = ? " +
+      "WHERE id IN (SELECT ag.id FROM agendamentos ag WHERE " + pending + ")"
+    ).bind(now, ...bindArgs)
+  ];
+}
+
 async function changeAgendaDayStatus(db, agenda, userId, status) {
   if (agenda.status_dia === status) {
     const current = await findAgendaById(db, agenda.id);
@@ -632,6 +655,9 @@ async function changeAgendaDayStatus(db, agenda, userId, status) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const action = status === "concluido" ? "concluido" : "reaberto";
   await db.batch([
+    ...(status === "concluido"
+      ? nonattendanceStatements(db, "SELECT id FROM agendas WHERE id = ? AND status_dia = 'aberto'", [agenda.id], now)
+      : []),
     db.prepare(
       status === "concluido" ? "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ?, atualizado_em = ? WHERE id = ?" : "UPDATE agendas SET status_dia = 'aberto', concluido_em = NULL, concluido_por = NULL, atualizado_em = ? WHERE id = ?"
     ).bind(
@@ -694,6 +720,7 @@ async function listAgendaHistory(db, agendaId) {
   return result.results;
 }
 export {
+  nonattendanceStatements,
   AgendaBatchQueryBudgetError,
   changeAgendaDayStatus,
   changeAppointmentExchanges,
