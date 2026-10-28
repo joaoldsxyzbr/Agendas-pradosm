@@ -71,12 +71,12 @@ describe("Relatório Gerencial",()=>{
        async first(){return {total:2};}
      };
    }};
-   const response=await adminReportRoutes.request("http://localhost/occurrences?start=2026-10-01&end=2026-10-19&storeCode=F01&limit=1&offset=1",{}, {DB:db});
+   const response=await adminReportRoutes.request("http://localhost/occurrences?start=2026-10-01&end=2026-10-19&storeCode=F01&limit=2&offset=0",{}, {DB:db});
    assert.equal(response.status,200);
    const data=await response.json();
    assert.equal(data.total,2);
-   assert.equal(data.limit,1);
-   assert.equal(data.offset,1);
+   assert.equal(data.limit,2);
+   assert.equal(data.offset,0);
    assert.deepEqual(data.rows.map(row=>row.occurrenceType),["sem_conferencia","nao_recebido"]);
    const filter="AND ag.ativo = 1 AND (ag.status = 'nao_chegou' OR (ag.status = 'aguardando' AND a.status_dia = 'concluido'))";
    assert.equal(statements.length,2);
@@ -85,7 +85,7 @@ describe("Relatório Gerencial",()=>{
      assert.deepEqual(item.params.slice(0,4),["2026-10-01","2026-10-19","F01","F01"]);
    }
    assert.match(statements[1].sql,/AS occurrenceType/);
-   assert.deepEqual(statements[1].params.slice(-2),[1,1]);
+   assert.deepEqual(statements[1].params.slice(-2),[2,0]);
  });
  it("agrupa por dia da semana na ordem operacional e conta os dias",()=>{
    const daily=groupDailyReport(rows);
