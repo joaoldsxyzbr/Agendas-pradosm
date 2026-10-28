@@ -75,7 +75,7 @@ export function renderReports(root,{request=apiFetch}={}) {
   let disposeChart=()=>{};
   let cached=null;
   const disposeInfo=setupReportInfo(root);
-  let settings={end:businessDate(),start:"",store:"",compare:true,offset:0,occurrenceQuery:"",chartMode:"volume"};
+  let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume"};
   settings.start=shift(settings.end,-29);
   const restoreFilters=()=>{
     if(typeof window==="undefined")return null;
@@ -84,14 +84,17 @@ export function renderReports(root,{request=apiFetch}={}) {
       if(!raw)return null;
       const saved=JSON.parse(raw);
       if(!saved||!validReportRange(String(saved.start),String(saved.end)))return null;
-      return {start:String(saved.start),end:String(saved.end),store:String(saved.store||""),compare:!!saved.compare};
+      // Compatível com o filtro anterior, que salvava uma única loja.
+      const previous=Array.isArray(saved.stores)?saved.stores:(saved.store?[saved.store]:[]);
+      const selected=[...new Set(previous.filter(code=>typeof code==="string"&&code.trim().length>0&&code.length<=20))];
+      return {start:String(saved.start),end:String(saved.end),stores:selected,compare:!!saved.compare};
     }catch{return null;}
   };
   const savedFilters=restoreFilters();
   if(savedFilters)Object.assign(settings,savedFilters);
   const persistFilters=()=>{
     if(typeof window==="undefined")return;
-    try{window.localStorage.setItem(FILTERS_STORAGE_KEY,JSON.stringify({start:settings.start,end:settings.end,store:settings.store,compare:settings.compare}));}catch{}
+    try{window.localStorage.setItem(FILTERS_STORAGE_KEY,JSON.stringify({start:settings.start,end:settings.end,stores:settings.stores,compare:settings.compare}));}catch{}
   };
   const presetRange=key=>{
     // Atalhos baseados no dia atual, mesmo se houver filtros salvos.
@@ -102,13 +105,29 @@ export function renderReports(root,{request=apiFetch}={}) {
   };
   const params=(start,end,offset=null)=>{
     const q=new URLSearchParams({start,end});
-    if(settings.store)q.set("storeCode",settings.store);
+    for(const code of settings.stores)q.append("storeCode",code);
     if(offset!==null){q.set("limit","50");q.set("offset",String(offset));if(settings.occurrenceQuery)q.set("q",settings.occurrenceQuery);}
     return q.toString();
   };
+  const storeLabel=codes=>{
+    if(!codes.length)return "Todas as lojas";
+    if(codes.length===1){
+      const store=stores.find(s=>s.codigo===codes[0]);
+      return store?store.codigo+" · "+store.nome:codes[0];
+    }
+    return codes.length+" lojas selecionadas";
+  };
+  const syncStorePicker=()=>{
+    const picker=root.querySelector("[data-report-store-select]");
+    if(!picker)return;
+    const selected=[...picker.querySelectorAll('input[name="stores"]:checked')].map(input=>input.value);
+    picker.querySelector("[data-report-store-all]").checked=selected.length===0;
+    picker.querySelector("[data-report-store-summary]").textContent=storeLabel(selected);
+  };
   const paintShell=()=>{
     const options=stores.slice().sort((a,b)=>a.codigo.localeCompare(b.codigo,"pt-BR",{numeric:true}))
-      .map(s=>'<option value="'+esc(s.codigo)+'"'+(s.codigo===settings.store?' selected':'')+'>'+esc(s.codigo+" · "+s.nome)+'</option>').join("");
+      .map(s=>'<label class="report-store-option"><input type="checkbox" name="stores" value="'+esc(s.codigo)+'"'+(settings.stores.includes(s.codigo)?' checked':'')+'><span>'+esc(s.codigo+" · "+s.nome)+'</span></label>').join("");
+    const selectedLabel=storeLabel(settings.stores);
     const chips=PRESETS.map(([key,label])=>{
       const [chipStart,chipEnd]=presetRange(key);
       return '<button type="button" class="ghost-button report-chip" data-report-preset="'+key+'" aria-pressed="'+(chipStart===settings.start&&chipEnd===settings.end)+'">'+esc(label)+'</button>';
@@ -121,7 +140,11 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
       '<label>De<div class="report-date-control"><input type="date" lang="pt-BR" name="start" data-report-date-input="start" value="'+esc(settings.start)+'"></div></label>'+
       '<label>Até<div class="report-date-control"><input type="date" lang="pt-BR" name="end" data-report-date-input="end" value="'+esc(settings.end)+'"></div></label>'+
-      '<label class="report-store-filter">Loja<select name="store"><option value="">Todas as lojas</option>'+options+'</select></label>'+
+      '<div class="report-store-filter"><span>Lojas</span><details class="report-store-select" data-report-store-select>'+
+        '<summary data-report-store-summary>'+esc(selectedLabel)+'</summary>'+
+        '<div class="report-store-menu">'+
+          '<label class="report-store-option report-store-all"><input type="checkbox" data-report-store-all'+(settings.stores.length?'':' checked')+'><span>Todas as lojas</span></label>'+options+
+        '</div></details></div>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
       '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
       '<p class="form-error" role="alert" data-report-error'+(error?'':' hidden')+'>'+esc(error)+'</p>'+
@@ -184,7 +207,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       '</form>';
     root.querySelector("[data-report-content]").innerHTML=
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
-      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(settings.store||"Todas as lojas")+'</span></div>'+ 
+      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span></div>'+ 
       '<div class="report-kpis">'+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
@@ -211,6 +234,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       if(!storePromise)storePromise=request("/api/admin/stores").catch(e=>{storePromise=null;throw e;});
       stores=await storePromise;
       if(closed||id!==sequence)return;
+      // Evita filtros obsoletos caso uma loja tenha sido removida.
+      settings.stores=settings.stores.filter(code=>stores.some(store=>store.codigo===code));
       paintShell();
       const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
       const before=shift(settings.start,-1),earlier=shift(before,-days+1);
@@ -246,7 +271,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       const node=root.querySelector("[data-report-error]");
       node.textContent="Selecione um período válido de até 93 dias.";node.hidden=false;return;
     }
-    settings={...settings,start,end,store:String(form.get("store")||""),compare:form.has("compare"),offset:0};
+    settings={...settings,start,end,stores:form.getAll("stores").map(String),compare:form.has("compare"),offset:0};
     persistFilters();
     void load();
   };
@@ -281,8 +306,31 @@ export function renderReports(root,{request=apiFetch}={}) {
       void load();
     }
   };
+  const change=e=>{
+    const target=e.target;
+    if(!target.matches?.('[data-report-store-all],input[name="stores"]'))return;
+    const picker=target.closest("[data-report-store-select]");
+    if(!picker)return;
+    if(target.matches("[data-report-store-all]")&&target.checked)
+      for(const input of picker.querySelectorAll('input[name="stores"]'))input.checked=false;
+    if(target.matches('input[name="stores"]')&&target.checked)
+      picker.querySelector("[data-report-store-all]").checked=false;
+    syncStorePicker();
+  };
+  const dismissPicker=e=>{
+    const picker=root.querySelector("[data-report-store-select]");
+    if(picker?.open&&!picker.contains(e.target))picker.open=false;
+  };
+  const keyboard=e=>{
+    if(e.key!=="Escape")return;
+    const picker=root.querySelector("[data-report-store-select]");
+    if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();}
+  };
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
+  root.addEventListener("change",change);
+  root.addEventListener("keydown",keyboard);
+  root.ownerDocument.addEventListener("click",dismissPicker);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);};
 }
