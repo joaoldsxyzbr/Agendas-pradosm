@@ -205,3 +205,6 @@
 .manager-report .report-store-all{border-bottom:1px solid var(--color-border-soft);border-radius:0;font-weight:700}
 @media(max-width:1150px){.manager-report .report-filters>.report-store-filter{grid-column:span 2}}
 @media(max-width:720px){.manager-report .report-filters>.report-store-filter{grid-column:1/-1}.manager-report .report-store-menu{width:100%;max-width:100%}}
+
+/* Não compareceu passa a representar pendências classificadas no fechamento. */
+.manager-report .report-segment-naoCompareceu{background:#ebc486}
