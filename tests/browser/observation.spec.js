@@ -36,7 +36,7 @@ test("Não recebido exige motivo e outros exige texto",async({page})=>{
  const dialog=page.locator(".observation-dialog");
  await expect(dialog).toBeVisible();
  expect(calls).toHaveLength(0);
- await dialog.locator("[data-observation-reason]").selectOption("Outros");
+ await dialog.locator('[data-observation-reason][data-reason="Outros"]').click();
  await expect(dialog.locator("[data-observation-custom-wrap]")).toBeVisible();
  await dialog.locator("[data-observation-custom]").fill("Motorista sem documento");
  await dialog.locator("[data-observation-save]").click();
@@ -44,7 +44,7 @@ test("Não recebido exige motivo e outros exige texto",async({page})=>{
  await expect(page.locator(".agenda-observation-cell")).toContainText("Outros: Motorista sem documento");
  expect(calls).toEqual([{status:"nao_chegou",observation:"Outros: Motorista sem documento"}]);
  await page.locator('[data-testid="agenda-desktop-row"] [data-edit-observation="appt1"]').click();
- await expect(page.locator("[data-observation-reason]")).toHaveValue("Outros");
+ await expect(page.locator('[data-observation-reason][data-reason="Outros"]')).toHaveAttribute("aria-pressed","true");
  await expect(page.locator("[data-observation-custom]")).toHaveValue("Motorista sem documento");
  await page.locator("[data-observation-cancel]").last().click();
  await page.locator('[data-testid="agenda-desktop-row"] [data-status="nao_chegou"]').click();
@@ -52,17 +52,34 @@ test("Não recebido exige motivo e outros exige texto",async({page})=>{
  await expect.poll(()=>calls.length).toBe(2);
  expect(calls[1]).toEqual({status:"aguardando",observation:null});
 });
-test("Cancelamento não altera status e cinco motivos aparecem no mobile",async({page})=>{
+test("Cancelamento não altera status e sete botões aparecem no mobile",async({page})=>{
  appointment.status="aguardando";appointment.observation=null;
  await page.setViewportSize({width:390,height:844});
  await mocks(page);await page.goto("/app");
  await page.locator('[data-testid="agenda-mobile-card"] [data-status="nao_chegou"]').click();
  const dialog=page.locator(".observation-dialog");
  await expect(dialog).toBeVisible();
- await expect(dialog.locator("option")).toHaveCount(7);
+ await expect(dialog.locator("[data-observation-reason]")).toHaveCount(7);
+ await expect(dialog.locator("select")).toHaveCount(0);
  await dialog.locator("[data-observation-cancel]").last().click();
  expect(calls).toHaveLength(0);
  await expect(page.locator('[data-testid="agenda-mobile-card"] .status-aguardando')).toBeVisible();
+});
+
+test("Não veio é selecionável por teclado e gravado somente após confirmação",async({page})=>{
+ appointment.status="aguardando";appointment.observation=null;
+ await page.setViewportSize({width:1440,height:900});
+ await mocks(page);await page.goto("/app");
+ await page.locator('[data-testid="agenda-desktop-row"] [data-status="nao_chegou"]').click();
+ const dialog=page.locator(".observation-dialog");
+ const choice=dialog.locator('[data-observation-reason][data-reason="Não veio"]');
+ await choice.focus();await choice.press("Enter");
+ await expect(choice).toHaveAttribute("aria-pressed","true");
+ await expect(dialog.locator("[data-observation-custom-wrap]")).toBeHidden();
+ expect(calls).toHaveLength(0);
+ await dialog.locator("[data-observation-save]").click();
+ expect(calls).toEqual([{status:"nao_chegou",observation:"Não veio"}]);
+ await expect(page.locator(".agenda-observation-cell")).toContainText("Não veio");
 });
 
 for (const scenario of [
@@ -79,14 +96,15 @@ for (const scenario of [
   const custom=dialog.locator("[data-observation-custom-wrap]");
   await expect(dialog).toBeVisible();
   await expect(custom).toBeHidden();
-  for(const preset of ["Sem agenda","Sem pedido","Sem boleto","Prazo de pagamento incorreto","Temperatura acima do OK"]) {
-   await reason.selectOption(preset);
+  for(const preset of ["Sem agenda","Sem pedido","Sem boleto","Prazo de pagamento incorreto","Temperatura acima do OK","Não veio"]) {
+   await dialog.locator("[data-observation-reason]").filter({hasText:preset}).click();
+   await expect(dialog.locator("[data-observation-reason]").filter({hasText:preset})).toHaveAttribute("aria-pressed","true");
    await expect(custom).toBeHidden();
   }
-  await reason.selectOption("Outros");
+  await dialog.locator('[data-observation-reason][data-reason="Outros"]').click();
   await expect(custom).toBeVisible();
   await expect(dialog.locator("[data-observation-custom]")).toHaveAttribute("required","");
-  await reason.selectOption("Sem pedido");
+  await dialog.locator('[data-observation-reason][data-reason="Sem pedido"]').click();
   await expect(custom).toBeHidden();
   await expect(dialog.locator("[data-observation-custom]")).not.toHaveAttribute("required","");
   await dialog.locator("[data-observation-save]").click();

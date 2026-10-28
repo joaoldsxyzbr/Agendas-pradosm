@@ -490,3 +490,13 @@ html[data-theme="dark"] .admin-agenda-preview .agenda-desktop td:last-child {wid
 
 /* Respeitar o atributo hidden no campo condicional, apesar do display:grid de .observation-field. */
 .observation-dialog [data-observation-custom-wrap][hidden] { display: none !important; }
+
+/* Motivos de não recebimento: opções visíveis, selecionáveis e responsivas. */
+.observation-dialog .observation-fieldset {border:0;margin:0;padding:0;min-width:0;}
+.observation-dialog .observation-fieldset legend {padding:0;color:var(--color-text);font-size:13px;font-weight:650;}
+.observation-reasons {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:9px;}
+.observation-reason {min-width:0;min-height:54px;padding:9px 11px;border:1px solid var(--color-border);border-radius:9px;background:var(--color-surface);color:var(--color-text);font:inherit;font-size:13px;font-weight:600;line-height:1.35;text-align:center;white-space:normal;cursor:pointer;}
+.observation-reason:hover {background:var(--color-surface-strong);}
+.observation-reason[aria-pressed="true"] {border-color:var(--color-primary);background:var(--color-primary-soft);box-shadow:inset 0 0 0 1px var(--color-primary);}
+.observation-reason:focus-visible {outline:2px solid var(--color-primary);outline-offset:2px;}
+@media(min-width:520px) {.observation-dialog {width:min(560px,calc(100vw - 26px));}.observation-reasons {grid-template-columns:repeat(3,minmax(0,1fr));}}
