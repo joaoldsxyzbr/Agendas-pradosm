@@ -41,7 +41,9 @@ export function requestedAgendaStatus(current, selected) {
   return current === selected ? "aguardando" : selected;
 }
 function statusBadge(item) {
-  return `<span class="store-status status-${escapeHtml(item.status)}">${escapeHtml(STATUS_LABELS[item.status])}</span>`;
+  const automatic=item.status==="nao_chegou"&&item.observation==="Não compareceu";
+  const label=automatic?"Não compareceu":STATUS_LABELS[item.status];
+  return `<span class="store-status status-${escapeHtml(item.status)}" title="${automatic?"Classificado automaticamente ao concluir o dia":""}">${escapeHtml(label)}</span>`;
 }
 function actions(item, { editable, onChanged, onEditManual, onDeleteManual, onOpen }) {
   const esc = escapeHtml;
