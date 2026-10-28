@@ -1,4 +1,5 @@
 import { businessDate } from "../lib/time.js";
+import { nonattendanceStatements } from "../repositories/agendas.js";
 const AUTO_CLOSE_ELIGIBILITY = `
   status_dia = 'aberto'
   AND data_agenda < ?
@@ -18,6 +19,7 @@ async function closePastOpenAgendas(db, now = /* @__PURE__ */ new Date()) {
   const today = businessDate(now);
   const completedAt = now.toISOString();
   await db.batch([
+    ...nonattendanceStatements(db, "SELECT id FROM agendas WHERE " + AUTO_CLOSE_ELIGIBILITY, [today], completedAt),
     db.prepare(
       `INSERT INTO auditoria (
           id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id,

@@ -71,20 +71,22 @@ async function findAppointmentById(db, id) {
 }
 async function listAppointmentHistory(db, appointmentId) {
   const result = await db.prepare(
-    `SELECT
-         h.id,
-         h.agendamento_id,
-         h.usuario_id,
-         u.nome AS usuario_nome,
-         h.status_anterior,
-         h.status_novo,
-         h.observacao,
-         h.alterado_em
-       FROM historico_status h
-       JOIN usuarios u ON u.id = h.usuario_id
-       WHERE h.agendamento_id = ?
-       ORDER BY h.alterado_em ASC, h.id ASC`
-  ).bind(appointmentId).all();
+    `SELECT id, agendamento_id, usuario_id, usuario_nome, status_anterior, status_novo, observacao, alterado_em
+       FROM (
+         SELECT h.id, h.agendamento_id, h.usuario_id, u.nome AS usuario_nome,
+                h.status_anterior, h.status_novo, h.observacao, h.alterado_em
+         FROM historico_status h
+         LEFT JOIN usuarios u ON u.id = h.usuario_id
+         WHERE h.agendamento_id = ?
+         UNION ALL
+         SELECT a.id, a.agendamento_id, NULL AS usuario_id, 'Sistema' AS usuario_nome,
+                'aguardando' AS status_anterior, 'nao_chegou' AS status_novo,
+                'Não compareceu' AS observacao, a.criado_em AS alterado_em
+         FROM auditoria a
+         WHERE a.agendamento_id = ? AND a.acao = 'nao_compareceu_automaticamente'
+       )
+       ORDER BY alterado_em ASC, id ASC`
+  ).bind(appointmentId, appointmentId).all();
   return result.results;
 }
 function appointmentInsert(db, agendaId, appointment, now) {
@@ -623,6 +625,24 @@ async function changeAppointmentStatus(db, appointment, userId, status, adminAdj
   return updated;
 }
 
+// Registra a classificação do sistema antes da mudança de estado.
+function nonattendanceStatements(db, agendaSelection, bindArgs, now) {
+  const pending = "ag.ativo = 1 AND ag.status = 'aguardando' AND ag.agenda_id IN (" + agendaSelection + ")";
+  return [
+    db.prepare(
+      "INSERT INTO auditoria (id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id, agendamento_id, antes, depois, detalhes, criado_em) " +
+      "SELECT lower(hex(randomblob(16))), NULL, 'nao_compareceu_automaticamente', 'agendamento', ag.id, a.loja_id, " +
+      "a.id, ag.id, '{\"status\":\"aguardando\"}', '{\"status\":\"nao_chegou\",\"observation\":\"Não compareceu\"}', " +
+      "'Classificado automaticamente pelo sistema ao concluir a agenda.', ? " +
+      "FROM agendamentos ag JOIN agendas a ON a.id = ag.agenda_id WHERE " + pending
+    ).bind(now, ...bindArgs),
+    db.prepare(
+      "UPDATE agendamentos SET status = 'nao_chegou', observacao = 'Não compareceu', atualizado_em = ? " +
+      "WHERE id IN (SELECT ag.id FROM agendamentos ag WHERE " + pending + ")"
+    ).bind(now, ...bindArgs)
+  ];
+}
+
 async function changeAgendaDayStatus(db, agenda, userId, status) {
   if (agenda.status_dia === status) {
     const current = await findAgendaById(db, agenda.id);
@@ -632,6 +652,9 @@ async function changeAgendaDayStatus(db, agenda, userId, status) {
   const now = (/* @__PURE__ */ new Date()).toISOString();
   const action = status === "concluido" ? "concluido" : "reaberto";
   await db.batch([
+    ...(status === "concluido"
+      ? nonattendanceStatements(db, "SELECT id FROM agendas WHERE id = ? AND status_dia = 'aberto'", [agenda.id], now)
+      : []),
     db.prepare(
       status === "concluido" ? "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ?, atualizado_em = ? WHERE id = ?" : "UPDATE agendas SET status_dia = 'aberto', concluido_em = NULL, concluido_por = NULL, atualizado_em = ? WHERE id = ?"
     ).bind(
@@ -694,6 +717,7 @@ async function listAgendaHistory(db, agendaId) {
   return result.results;
 }
 export {
+  nonattendanceStatements,
   AgendaBatchQueryBudgetError,
   changeAgendaDayStatus,
   changeAppointmentExchanges,

@@ -1,13 +1,13 @@
 // Agregações em JavaScript puro. Sem dependências de UI ou D1.
 export function sumReportRows(rows = []) {
   return rows.reduce((sum, row) => {
-    for (const key of ["total", "recebido", "naoChegou", "aguardando", "semConferencia", "recusado", "semAgenda"]) {
+    for (const key of ["total", "recebido", "naoChegou", "aguardando", "naoCompareceu", "recusado", "semAgenda"]) {
       sum[key] += Number(row[key] || 0);
     }
     sum.agendas += 1;
     if (row.dayStatus === "aberto") sum.abertas += 1;
     return sum;
-  }, { total: 0, recebido: 0, naoChegou: 0, aguardando: 0, semConferencia: 0, recusado: 0, semAgenda: 0, agendas: 0, abertas: 0 });
+  }, { total: 0, recebido: 0, naoChegou: 0, aguardando: 0, naoCompareceu: 0, recusado: 0, semAgenda: 0, agendas: 0, abertas: 0 });
 }
 
 export function reportRate(row) {
@@ -19,10 +19,10 @@ export function groupDailyReport(rows = []) {
   for (const row of rows) {
     let day = grouped.get(row.date);
     if (!day) {
-      day = { date: row.date, total: 0, recebido: 0, naoChegou: 0, aguardando: 0, semConferencia: 0, recusado: 0 };
+      day = { date: row.date, total: 0, recebido: 0, naoChegou: 0, aguardando: 0, naoCompareceu: 0, recusado: 0 };
       grouped.set(row.date, day);
     }
-    for (const key of ["total", "recebido", "naoChegou", "aguardando", "semConferencia", "recusado"]) {
+    for (const key of ["total", "recebido", "naoChegou", "aguardando", "naoCompareceu", "recusado"]) {
       day[key] += Number(row[key] || 0);
     }
   }
@@ -54,10 +54,10 @@ export function groupStoreReport(rows = []) {
   for (const row of rows) {
     let store = grouped.get(row.storeCode);
     if (!store) {
-      store = { code: row.storeCode, name: row.storeName, total: 0, recebido: 0, naoChegou: 0, aguardando: 0, semConferencia: 0, recusado: 0, semAgenda: 0 };
+      store = { code: row.storeCode, name: row.storeName, total: 0, recebido: 0, naoChegou: 0, aguardando: 0, naoCompareceu: 0, recusado: 0, semAgenda: 0 };
       grouped.set(row.storeCode, store);
     }
-    for (const key of ["total", "recebido", "naoChegou", "aguardando", "semConferencia", "recusado", "semAgenda"]) {
+    for (const key of ["total", "recebido", "naoChegou", "aguardando", "naoCompareceu", "recusado", "semAgenda"]) {
       store[key] += Number(row[key] || 0);
     }
   }

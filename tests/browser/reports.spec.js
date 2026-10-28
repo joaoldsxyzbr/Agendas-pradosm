@@ -1,17 +1,18 @@
 import { test,expect } from "@playwright/test";
 const viewer={id:"v1",nome:"Visualizador",papel:"visualizador",login:"viewer"};
 const admin={id:"a1",nome:"Administrador",papel:"admin",login:"admin"};
-const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:true}];
+const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:true},
+ {id:"s2",codigo:"F02",nome:"Sul",ativo:true,temConferenteAtivo:true}];
 const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",
- total:5,recebido:3,naoChegou:1,aguardando:1,semConferencia:0,recusado:0,semAgenda:1},
+ total:5,recebido:3,naoChegou:1,aguardando:1,naoCompareceu:0,recusado:0,semAgenda:1},
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",
- total:2,recebido:1,naoChegou:0,aguardando:0,semConferencia:1,recusado:0,semAgenda:0}],
+ total:2,recebido:1,naoChegou:0,aguardando:0,naoCompareceu:1,recusado:0,semAgenda:0}],
  suppliers:[{supplier:"Fornecedor Teste",total:4,recebido:3,naoChegou:1}]};
 const occ={total:2,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
- supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido"},
+ supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido",classificationOrigin:"manual"},
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",supplier:"Fornecedor B",
- protocol:"654321",observation:null,origin:"importado",occurrenceType:"sem_conferencia"}]};
+ protocol:"654321",observation:null,origin:"importado",occurrenceType:"nao_compareceu",classificationOrigin:"historico"}]};
 async function mocks(page,user,{emptyPrevious=false}={}){
  const requests=[];const searches=[];
  await page.route("**/api/**",route=>{
@@ -60,12 +61,13 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Taxa de recebimento","Aguardando","Não compareceu","Recusados"]);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
-   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
-   await expect(page.locator(".manager-report")).toContainText("Sem conferência");
+   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Não compareceu$/})})).toContainText("1");
+   await expect(page.locator(".manager-report")).toContainText("Não compareceu");
    await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
    await expect(page.locator("[data-report-native-chart]")).toBeHidden();
    const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
@@ -78,9 +80,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    const occurrences=page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})});
    await expect(occurrences.locator("tbody tr")).toHaveCount(2);
    await expect(occurrences).toContainText("Não recebido");
-   await expect(occurrences).toContainText("Sem conferência");
-   await expect(occurrences).toContainText("Concluído sem conferência");
+   await expect(occurrences).toContainText("Não compareceu");
+   await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
    await expect(occurrences).toContainText("Fornecedor B");
+   await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
    await expect(occurrences).toContainText("2 ocorrência(s)");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
    await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
@@ -90,13 +93,59 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-store-table")).toBeVisible();
    await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
    const filter=page.locator("[data-report-filters]");
-   await filter.locator('[name="store"]').selectOption("F01");
+   await filter.locator("[data-report-store-select] summary").click();
+   await filter.locator('input[name="stores"][value="F01"]').check();
+   await expect(filter.locator("[data-report-store-select] summary")).toContainText("F01");
    await filter.getByRole("button",{name:"Aplicar filtros"}).click();
    await expect(page.locator(".report-kpis")).toBeVisible();
    expect(requests.filter(x=>x==="/api/admin/reports").length).toBeGreaterThan(0);
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
+test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorrências",async({page})=>{
+ await page.setViewportSize({width:1366,height:900});
+ const {searches}=await mocks(page,admin);
+ await page.goto("/admin/reports");
+ const filters=page.locator("[data-report-filters]");
+ const picker=filters.locator("[data-report-store-select]");
+ await picker.locator("summary").click();
+ await expect(picker.locator('input[name="stores"]')).toHaveCount(2);
+ await picker.locator('input[value="F01"]').check();
+ await picker.locator('input[value="F02"]').check();
+ await expect(picker.locator("summary")).toHaveText("2 lojas selecionadas");
+ await expect(picker.locator("[data-report-store-all]")).not.toBeChecked();
+ await filters.getByRole("button",{name:"Aplicar filtros"}).click();
+ await expect(page.locator(".report-range-summary")).toContainText("2 lojas selecionadas");
+ const scoped=searches.filter(q=>new URLSearchParams(q).getAll("storeCode").length===2);
+ expect(scoped.length).toBeGreaterThanOrEqual(3);
+ for(const q of scoped)expect(new URLSearchParams(q).getAll("storeCode")).toEqual(["F01","F02"]);
+ await page.reload();
+ await expect(filters.locator("[data-report-store-select] summary")).toHaveText("2 lojas selecionadas");
+ await picker.locator("summary").click();
+ await expect(picker.locator('input[value="F01"]')).toBeChecked();
+ await expect(picker.locator('input[value="F02"]')).toBeChecked();
+ await picker.locator("[data-report-store-all]").check();
+ await expect(picker.locator('input[name="stores"]:checked')).toHaveCount(0);
+ await expect(picker.locator("summary")).toHaveText("Todas as lojas");
+ await filters.getByRole("button",{name:"Aplicar filtros"}).click();
+ await expect(page.locator(".report-range-summary")).toContainText("Todas as lojas");
+ expect(searches.slice(-3).every(q=>!new URLSearchParams(q).has("storeCode"))).toBe(true);
+});
+test("Filtro múltiplo é operável no celular com teclado e sem rolagem horizontal da página",async({page})=>{
+ await page.setViewportSize({width:390,height:844});
+ await mocks(page,viewer);
+ await page.goto("/admin/reports");
+ const picker=page.locator("[data-report-store-select]");
+ await picker.locator("summary").click();
+ await expect(picker).toHaveAttribute("open","");
+ await picker.locator('input[value="F02"]').check();
+ await expect(picker.locator("summary")).toContainText("F02");
+ await picker.locator('input[value="F02"]').press("Escape");
+ await expect(picker).not.toHaveAttribute("open","");
+ await expect(picker.locator("summary")).toBeFocused();
+ const noOverflow=await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2);
+ expect(noOverflow).toBe(true);
+});
 test("Relatório: edita datas diretamente e esclarece comparação sem base anterior",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   await mocks(page,admin,{emptyPrevious:true});

@@ -5,12 +5,16 @@ import { STATUS_LABELS } from "./agenda-list.js";
 function display(value) {
   return value === null || value === undefined || value === "" ? "-" : String(value);
 }
+function statusLabel(status, observation) {
+  if (status === "nao_chegou" && observation === "Não compareceu") return "Não compareceu";
+  return STATUS_LABELS[status] || status;
+}
 export function agendaDetailHtml(item) {
   const esc = escapeHtml;
   const fields = [
     ["Horário", `${item.startTime} - ${item.endTime}`],
     ["Protocolo", item.protocol], ["Fornecedor", item.supplier],
-    ["Status", STATUS_LABELS[item.status] || item.status],
+    ["Status", statusLabel(item.status,item.observation)],
     ["Obs.", display(item.observation)],
     ["Tipo", display(item.type)], ["Itens", display(item.items)],
     ["Volumes", display(item.volumes)], ["Paletes", display(item.pallets)],
@@ -30,7 +34,7 @@ export function agendaDetailHtml(item) {
     <section class="history-box">
       <h3>Histórico de alterações</h3>
       ${item.history?.length ? `<ul>${item.history.map(entry=>`<li>
-        <strong>${esc(entry.statusAnterior)} → ${esc(entry.statusNovo)}</strong>
+        <strong>${esc(entry.statusAnterior)} → ${esc(statusLabel(entry.statusNovo,entry.observation))}</strong>
         <span>${esc(entry.usuario?.nome)}</span>
         ${entry.observation ? `<span>Obs.: ${esc(entry.observation)}</span>` : ""}</li>`).join("")}</ul>`
         : '<p>Nenhuma alteração de status registrada.</p>'}

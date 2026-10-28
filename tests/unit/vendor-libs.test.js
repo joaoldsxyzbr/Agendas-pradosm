@@ -30,8 +30,8 @@ describe("Chart.js e Lucide Static em JavaScript puro",()=>{
   });
   it("gera séries empilhadas com valores corretos",()=>{
     const cfg=reportChartConfig([
-      {date:"2026-10-18",recebido:3,naoChegou:1,aguardando:2,semConferencia:0,recusado:0},
-      {date:"2026-10-19",recebido:7,naoChegou:0,aguardando:0,semConferencia:1,recusado:1}
+      {date:"2026-10-18",recebido:3,naoChegou:1,aguardando:2,naoCompareceu:0,recusado:0},
+      {date:"2026-10-19",recebido:7,naoChegou:0,aguardando:0,naoCompareceu:1,recusado:1}
     ]);
     assert.equal(cfg.type,"bar");
     assert.deepEqual(cfg.data.labels,["18/10","19/10"]);

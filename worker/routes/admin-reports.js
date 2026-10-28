@@ -12,7 +12,7 @@ const dateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(
 const reportFilters = z.object({
   start: dateSchema,
   end: dateSchema,
-  storeCode: z.string().trim().min(1).max(20).optional()
+  storeCodes: z.array(z.string().trim().min(1).max(20)).max(50)
 }).refine(
   ({ start, end }) => {
     const span = (Date.parse(end + "T00:00:00Z") - Date.parse(start + "T00:00:00Z")) / DAY_MS;
@@ -20,51 +20,52 @@ const reportFilters = z.object({
   },
   { message: "Selecione um intervalo de 1 a 93 dias." }
 );
-function parseFilters(query) {
+function parseFilters(req) {
   return reportFilters.safeParse({
-    start: query("start"),
-    end: query("end"),
-    storeCode: query("storeCode") || void 0
+    start: req.query("start"),
+    end: req.query("end"),
+    // Mantém a API de uma loja e permite repetir storeCode para múltiplas.
+    storeCodes: req.queries("storeCode") ?? []
   });
 }
-const dateWhere = [
-  "a.data_agenda BETWEEN ? AND ?",
-  "AND (? IS NULL OR l.codigo = ? COLLATE NOCASE)"
-].join(" ");
-function args(start, end, storeCode) {
-  return [start, end, storeCode ?? null, storeCode ?? null];
+function storeFilter({ start, end, storeCodes }) {
+  const codes=[...new Set(storeCodes.map(code=>code.toLocaleUpperCase("pt-BR")))];
+  const where=["a.data_agenda BETWEEN ? AND ?"];
+  if(codes.length===1)where.push("AND l.codigo = ? COLLATE NOCASE");
+  else if(codes.length>1)where.push("AND l.codigo COLLATE NOCASE IN ("+codes.map(()=>"?").join(",")+")");
+  return {where:where.join(" "),args:[start,end,...codes],codes};
 }
 adminReportRoutes.get("/", async (c) => {
-  const parsed = parseFilters((key) => c.req.query(key));
+  const parsed = parseFilters(c.req);
   if (!parsed.success) {
     return c.json({ error: "FILTROS_INVALIDOS", message: "Informe um per\xEDodo v\xE1lido de at\xE9 93 dias." }, 400);
   }
-  const { start, end, storeCode } = parsed.data;
-  const filters = args(start, end, storeCode);
+  const { start, end } = parsed.data;
+  const {where,args:filters,codes}=storeFilter(parsed.data);
   const rows = await c.env.DB.prepare([
     "SELECT a.data_agenda AS date, l.codigo AS storeCode, l.nome AS storeName,",
     "a.status_dia AS dayStatus, COUNT(ag.id) AS total,",
     "SUM(CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'aberto' THEN 1 ELSE 0 END) AS aguardando,",
-    "SUM(CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'concluido' THEN 1 ELSE 0 END) AS semConferencia,",
+    "SUM(CASE WHEN (ag.status = 'aguardando' AND a.status_dia = 'concluido') OR (ag.status = 'nao_chegou' AND ag.observacao = 'Não compareceu') THEN 1 ELSE 0 END) AS naoCompareceu,",
     "SUM(CASE WHEN ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,",
-    "SUM(CASE WHEN ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS naoChegou,",
+    "SUM(CASE WHEN ag.status = 'nao_chegou' AND COALESCE(ag.observacao, '') <> 'Não compareceu' THEN 1 ELSE 0 END) AS naoChegou,",
     "SUM(CASE WHEN ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado,",
     "SUM(CASE WHEN ag.origem = 'manual' THEN 1 ELSE 0 END) AS semAgenda",
     "FROM agendas a JOIN lojas l ON l.id = a.loja_id",
     "LEFT JOIN agendamentos ag ON ag.agenda_id = a.id AND ag.ativo = 1",
     "WHERE",
-    dateWhere,
+    where,
     "GROUP BY a.id ORDER BY a.data_agenda ASC, l.codigo ASC"
   ].join(" ")).bind(...filters).all();
   const suppliers = await c.env.DB.prepare([
     "SELECT ag.fornecedor AS supplier, COUNT(*) AS total,",
     "SUM(CASE WHEN ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,",
-    "SUM(CASE WHEN ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS naoChegou",
+    "SUM(CASE WHEN ag.status = 'nao_chegou' AND COALESCE(ag.observacao, '') <> 'Não compareceu' THEN 1 ELSE 0 END) AS naoChegou",
     "FROM agendamentos ag",
     "JOIN agendas a ON a.id = ag.agenda_id",
     "JOIN lojas l ON l.id = a.loja_id",
     "WHERE",
-    dateWhere,
+    where,
     "AND ag.ativo = 1",
     "GROUP BY ag.fornecedor",
     "HAVING naoChegou > 0",
@@ -73,12 +74,13 @@ adminReportRoutes.get("/", async (c) => {
   return c.json({
     start,
     end,
-    storeCode: storeCode ?? null,
+    storeCode: codes.length===1?codes[0]:null,
+    storeCodes: codes,
     rows: rows.results.map((row) => ({
       ...row,
       total: Number(row.total),
       aguardando: Number(row.aguardando),
-      semConferencia: Number(row.semConferencia),
+      naoCompareceu: Number(row.naoCompareceu),
       recebido: Number(row.recebido),
       naoChegou: Number(row.naoChegou),
       recusado: Number(row.recusado),
@@ -98,7 +100,7 @@ const occurrencesFilters = z.object({
   q: z.string().trim().min(1).max(80).optional()
 });
 adminReportRoutes.get("/occurrences", async (c) => {
-  const parsed = parseFilters((key) => c.req.query(key));
+  const parsed = parseFilters(c.req);
   const paging = occurrencesFilters.safeParse({
     limit: c.req.query("limit") ?? void 0,
     offset: c.req.query("offset") ?? void 0,
@@ -107,14 +109,13 @@ adminReportRoutes.get("/occurrences", async (c) => {
   if (!parsed.success || !paging.success) {
     return c.json({ error: "FILTROS_INVALIDOS", message: "Filtros ou pagina\xE7\xE3o inv\xE1lidos." }, 400);
   }
-  const { start, end, storeCode } = parsed.data;
-  const filters = args(start, end, storeCode);
+  const {where,args:filters}=storeFilter(parsed.data);
   const base = [
     "FROM agendamentos ag",
     "JOIN agendas a ON a.id = ag.agenda_id",
     "JOIN lojas l ON l.id = a.loja_id",
     "WHERE",
-    dateWhere,
+    where,
     "AND ag.ativo = 1 AND (ag.status = 'nao_chegou' OR (ag.status = 'aguardando' AND a.status_dia = 'concluido'))"
   ].join(" ");
   const hasSearch = typeof paging.data.q === "string" && paging.data.q.length > 0;
@@ -130,7 +131,8 @@ adminReportRoutes.get("/occurrences", async (c) => {
       "l.nome AS storeName, ag.protocolo AS protocol,",
       "ag.fornecedor AS supplier, ag.observacao AS observation,",
       "ag.origem AS origin,",
-      "CASE WHEN ag.status = 'aguardando' THEN 'sem_conferencia' ELSE 'nao_recebido' END AS occurrenceType",
+      "CASE WHEN (ag.status = 'aguardando' AND a.status_dia = 'concluido') OR ag.observacao = 'Não compareceu' THEN 'nao_compareceu' ELSE 'nao_recebido' END AS occurrenceType,",
+      "CASE WHEN ag.status = 'aguardando' THEN 'historico' WHEN ag.observacao = 'Não compareceu' THEN 'sistema' ELSE 'manual' END AS classificationOrigin",
       base,
       searchClause,
       "ORDER BY a.data_agenda DESC, l.codigo ASC, ag.horario_inicio ASC, ag.id ASC",

@@ -719,7 +719,7 @@ adminAppointmentRoutes.get("/:id/history", async (c) => {
       alteradoEm: item.alterado_em,
       usuario: {
         id: item.usuario_id,
-        nome: item.usuario_nome
+        nome: item.usuario_nome ?? (item.usuario_id ? "Usuário" : "Sistema")
       }
     }))
   );

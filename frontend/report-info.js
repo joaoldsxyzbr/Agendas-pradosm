@@ -6,13 +6,13 @@ export const REPORT_HELP = Object.freeze({
   "Não recebidos": "Quantidade marcada como não recebida. Os motivos aparecem em Ocorrências e observações.",
   "Taxa de recebimento": "Recebidos ÷ total de agendamentos × 100. Os agendamentos pendentes também entram no total.",
   "Aguardando": "Agendamentos pendentes de recebimento em agendas que continuam abertas.",
-  "Sem conferência": "Agendamentos que permaneceram aguardando quando a agenda foi concluída. Não significa que o caminhão não foi recebido.",
+  "Não compareceu": "Pendências classificadas como não comparecimento pelo sistema ao concluir o dia. Inclui agendas antigas encerradas com pendências; não comprova ausência física do fornecedor.",
   "Recusados": "Agendamentos com status recusado no período filtrado.",
-  "Evolução diária": "Volume diário por resultado: recebidos, não recebidos, aguardando em dias abertos, sem conferência em dias concluídos e recusados. A alternância mostra o volume por status ou a taxa de recebimento de cada dia.",
+  "Evolução diária": "Volume diário por resultado: recebidos, não recebidos, aguardando em dias abertos, não comparecimentos do sistema e recusados. A alternância mostra o volume por status ou a taxa de recebimento de cada dia.",
   "Comparativo por loja": "Taxa de recebimento de cada loja: recebidos ÷ total da unidade × 100. A barra representa esse percentual.",
   "Fornecedores com ocorrências": "Fornecedores com mais não recebidos. A barra compara a quantidade de cada um com a do líder do ranking e mostra também a taxa de recebimento do fornecedor no período.",
-  "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de sem conferência em agendas concluídas.",
-  "Ocorrências e observações": "Lista dos não recebimentos com fornecedor, protocolo e motivo. Registros antigos podem não ter motivo. Use a busca para filtrar por fornecedor ou protocolo.",
+  "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de não comparecimentos de fechamento.",
+  "Ocorrências e observações": "Lista de não recebidos e não comparecimentos, com origem manual ou automática. Pendências antigas de dias concluídos são identificadas como classificação retrospectiva.",
   "Padrão por dia da semana": "Taxa de recebimento agrupada por dia da semana no período, somando todas as lojas. Ajuda a identificar dias que concentram problemas de entrega."
 });
 
