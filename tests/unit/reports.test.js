@@ -46,7 +46,7 @@ describe("Relatório Gerencial",()=>{
    const data=await ok.json();
    assert.equal(data.rows[0].total,6);
    assert.equal(data.rows[0].aguardando,1);
-   assert.deepEqual(statements[0].params,["2026-10-01","2026-10-19","F01","F01"]);
+   assert.deepEqual(statements[0].params,["2026-10-01","2026-10-19","F01"]);
    assert.ok(statements[0].sql.includes("ag.ativo = 1"));
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'aberto'/);
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'concluido'/);
@@ -58,6 +58,32 @@ describe("Relatório Gerencial",()=>{
    assert.equal(data.suppliers[0].naoChegou,2);
    const badPage=await fetch("/occurrences?start=2026-10-01&end=2026-10-19&limit=200");
    assert.equal(badPage.status,400);
+ });
+ it("consulta todas as seções com múltiplas lojas sem concatenar valores no SQL",async()=>{
+   const statements=[];
+   const db={prepare(sql){const item={sql,params:[]};statements.push(item);
+     return{bind(...params){item.params=params;return this;},
+       async all(){return {results:[]};},
+       async first(){return {total:0};}
+     };
+   }};
+   const base="start=2026-10-01&end=2026-10-19&storeCode=F01&storeCode=F02";
+   const fetch=path=>adminReportRoutes.request("http://localhost"+path,{}, {DB:db});
+   assert.equal((await fetch("/?"+base)).status,200);
+   assert.equal((await fetch("/occurrences?"+base+"&q=Fornecedor")).status,200);
+   assert.equal(statements.length,4);
+   for(const item of statements){
+     assert.ok(item.sql.includes("l.codigo COLLATE NOCASE IN (?,?)"));
+     assert.deepEqual(item.params.slice(0,4),["2026-10-01","2026-10-19","F01","F02"]);
+   }
+   assert.deepEqual(statements[3].params.slice(-4),["%Fornecedor%","%Fornecedor%",50,0]);
+   assert.equal((await fetch("/?"+base+"&storeCode=f01")).status,200);
+   assert.ok(statements.at(-1).sql.includes("IN (?,?)"));
+   assert.deepEqual(statements.at(-1).params.slice(2),["F01","F02"]);
+   assert.equal((await fetch("/?"+base+"&storeCode=")).status,400);
+   assert.equal((await fetch("/?start=2026-10-01&end=2026-10-19")).status,200);
+   assert.ok(!statements.at(-1).sql.includes("l.codigo COLLATE NOCASE IN"));
+   assert.deepEqual(statements.at(-1).params,["2026-10-01","2026-10-19"]);
  });
  it("inclui sem conferência de agenda concluída nas ocorrências, sem incluir pendentes de agenda aberta",async()=>{
    const statements=[];
@@ -82,7 +108,7 @@ describe("Relatório Gerencial",()=>{
    assert.equal(statements.length,2);
    for(const item of statements){
      assert.ok(item.sql.includes(filter),"contagem e listagem devem usar o mesmo filtro");
-     assert.deepEqual(item.params.slice(0,4),["2026-10-01","2026-10-19","F01","F01"]);
+     assert.deepEqual(item.params.slice(0,3),["2026-10-01","2026-10-19","F01"]);
    }
    assert.match(statements[1].sql,/AS occurrenceType/);
    assert.deepEqual(statements[1].params.slice(-2),[2,0]);
