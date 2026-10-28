@@ -493,3 +493,129 @@
   .manager-report .report-featured-meter,.manager-report .report-rate-track{border:1px solid #999}
   .manager-report .report-panel{break-inside:avoid}
 }
+
+/*
+ * O tema grafite possui seletores html[data-theme="dark"] de maior
+ * especificidade. Essas regras mantêm a mesma hierarquia executiva
+ * nos dois temas, sem alterar o grafite das outras telas.
+ */
+html[data-theme="dark"] .manager-report .report-kpis{
+  grid-template-columns:repeat(12,minmax(0,1fr));
+  gap:12px;
+  margin-bottom:0;
+}
+html[data-theme="dark"] .manager-report .report-metric-primary,
+html[data-theme="dark"] .manager-report .report-metric-supporting{
+  grid-column:span 4;
+  grid-row:auto;
+  min-height:136px;
+  padding:20px 21px;
+  border-color:var(--color-border-soft);
+  background:var(--color-surface);
+}
+html[data-theme="dark"] .manager-report .report-metric:first-child{
+  grid-column:span 4;
+  grid-row:span 2;
+  min-height:285px;
+  padding:25px 25px 24px;
+  border-color:var(--color-primary);
+  background:linear-gradient(160deg,var(--color-primary-soft),var(--color-surface) 65%);
+}
+html[data-theme="dark"] .manager-report .report-metric:nth-child(6),
+html[data-theme="dark"] .manager-report .report-metric:nth-child(7){
+  grid-column:span 6;
+  min-height:113px;
+}
+html[data-theme="dark"] .manager-report .report-metric-primary strong,
+html[data-theme="dark"] .manager-report .report-metric-supporting strong{
+  margin:12px 0 9px;
+  font-size:clamp(28px,2.5vw,38px);
+}
+html[data-theme="dark"] .manager-report .report-metric-featured strong{
+  font-size:clamp(42px,4vw,57px);
+  color:var(--color-primary-strong);
+  margin:24px 0 16px;
+}
+html[data-theme="dark"] .manager-report .report-metric-supporting small{
+  font-size:12px;
+}
+html[data-theme="dark"] .manager-report .report-section-heading{
+  margin-top:32px;
+}
+html[data-theme="dark"] .manager-report .report-panel{
+  margin-bottom:16px;
+}
+html[data-theme="dark"] .manager-report .report-panel>header{
+  padding:19px 22px;
+  min-height:78px;
+}
+html[data-theme="dark"] .manager-report .report-progress-item{
+  padding:16px 0;
+}
+html[data-theme="dark"] .manager-report th{
+  padding:15px 18px;
+}
+html[data-theme="dark"] .manager-report td{
+  padding:16px 18px;
+}
+@media(max-width:1150px){
+  html[data-theme="dark"] .manager-report .report-kpis{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  html[data-theme="dark"] .manager-report .report-metric-primary,
+  html[data-theme="dark"] .manager-report .report-metric-supporting,
+  html[data-theme="dark"] .manager-report .report-metric:nth-child(6),
+  html[data-theme="dark"] .manager-report .report-metric:nth-child(7){
+    grid-column:span 1;
+    grid-row:auto;
+    min-height:134px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric:first-child{
+    grid-column:1/-1;
+    grid-row:auto;
+    min-height:186px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric-featured strong{
+    font-size:43px;
+    margin:12px 0;
+  }
+}
+@media(max-width:720px){
+  html[data-theme="dark"] .manager-report .report-metric-primary,
+  html[data-theme="dark"] .manager-report .report-metric-supporting{
+    min-height:118px;
+    padding:16px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric:first-child{
+    padding:20px;
+    min-height:172px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric-primary strong,
+  html[data-theme="dark"] .manager-report .report-metric-supporting strong{
+    font-size:clamp(24px,6vw,32px);
+  }
+  html[data-theme="dark"] .manager-report .report-metric-featured strong{
+    font-size:42px;
+  }
+  html[data-theme="dark"] .manager-report .report-panel>header{
+    padding:17px;
+  }
+  html[data-theme="dark"] .manager-report th,
+  html[data-theme="dark"] .manager-report td{
+    padding:13px 15px;
+  }
+}
+@media(max-width:430px){
+  html[data-theme="dark"] .manager-report .report-kpis{
+    grid-template-columns:minmax(0,1fr);
+    gap:10px;
+  }
+  html[data-theme="dark"] .manager-report .report-metric-primary,
+  html[data-theme="dark"] .manager-report .report-metric-supporting,
+  html[data-theme="dark"] .manager-report .report-metric:first-child,
+  html[data-theme="dark"] .manager-report .report-metric:nth-child(6),
+  html[data-theme="dark"] .manager-report .report-metric:nth-child(7){
+    grid-column:1/-1;
+    grid-row:auto;
+  }
+}
