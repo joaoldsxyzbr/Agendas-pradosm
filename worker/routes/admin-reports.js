@@ -115,7 +115,7 @@ adminReportRoutes.get("/occurrences", async (c) => {
     "JOIN lojas l ON l.id = a.loja_id",
     "WHERE",
     dateWhere,
-    "AND ag.ativo = 1 AND ag.status = 'nao_chegou'"
+    "AND ag.ativo = 1 AND (ag.status = 'nao_chegou' OR (ag.status = 'aguardando' AND a.status_dia = 'concluido'))"
   ].join(" ");
   const hasSearch = typeof paging.data.q === "string" && paging.data.q.length > 0;
   const like = hasSearch ? "%" + paging.data.q.replace(/[\\%_]/g, (char) => "\\" + char) + "%" : null;
@@ -129,7 +129,8 @@ adminReportRoutes.get("/occurrences", async (c) => {
       "SELECT a.data_agenda AS date, l.codigo AS storeCode,",
       "l.nome AS storeName, ag.protocolo AS protocol,",
       "ag.fornecedor AS supplier, ag.observacao AS observation,",
-      "ag.origem AS origin",
+      "ag.origem AS origin,",
+      "CASE WHEN ag.status = 'aguardando' THEN 'sem_conferencia' ELSE 'nao_recebido' END AS occurrenceType",
       base,
       searchClause,
       "ORDER BY a.data_agenda DESC, l.codigo ASC, ag.horario_inicio ASC, ag.id ASC",
