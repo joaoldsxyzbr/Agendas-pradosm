@@ -6,22 +6,41 @@ import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, groupWee
 import { validReportRange } from "../../frontend/reports.js";
 
 const rows=[
- {date:"2026-10-01",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",total:6,recebido:4,naoChegou:1,aguardando:1,semConferencia:0,recusado:0,semAgenda:1},
- {date:"2026-10-02",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",total:4,recebido:2,naoChegou:1,aguardando:0,semConferencia:1,recusado:0,semAgenda:0}
+ {date:"2026-10-01",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",total:6,recebido:4,naoChegou:1,aguardando:1,naoCompareceu:0,recusado:0,semAgenda:1},
+ {date:"2026-10-02",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",total:4,recebido:2,naoChegou:1,aguardando:0,naoCompareceu:1,recusado:0,semAgenda:0}
 ];
 const read=p=>readFileSync(new URL(p,import.meta.url),"utf8");
 describe("Relatório Gerencial",()=>{
  it("consolida status, datas e lojas sem misturar resultados",()=>{
    const s=sumReportRows(rows);
-   assert.deepEqual(s,{total:10,recebido:6,naoChegou:2,aguardando:1,semConferencia:1,recusado:0,semAgenda:1,agendas:2,abertas:1});
+   assert.deepEqual(s,{total:10,recebido:6,naoChegou:2,aguardando:1,naoCompareceu:1,recusado:0,semAgenda:1,agendas:2,abertas:1});
    assert.equal(reportRate(s),60);
    assert.equal(reportRate({total:0,recebido:0}),0);
    assert.equal(groupDailyReport(rows).length,2);
-   assert.deepEqual(groupDailyReport(rows).map(x=>[x.aguardando,x.semConferencia]),[[1,0],[0,1]]);
+   assert.deepEqual(groupDailyReport(rows).map(x=>[x.aguardando,x.naoCompareceu]),[[1,0],[0,1]]);
    assert.equal(groupStoreReport(rows)[0].aguardando,1);
-   assert.equal(groupStoreReport(rows)[0].semConferencia,1);
-   assert.equal(s.total,s.recebido+s.naoChegou+s.aguardando+s.semConferencia+s.recusado);
+   assert.equal(groupStoreReport(rows)[0].naoCompareceu,1);
+   assert.equal(s.total,s.recebido+s.naoChegou+s.aguardando+s.naoCompareceu+s.recusado);
    assert.equal(groupStoreReport(rows)[0].total,10);
+ });
+ it("mantém não recebidos separados dos não comparecimentos automáticos e históricos",async()=>{
+   const statements=[];
+   const db={prepare(sql){const statement={sql,params:[]};statements.push(statement);
+     return {bind(...params){statement.params=params;return this;},
+       async all(){return {results:[]};},
+       async first(){return {total:0};}
+     };
+   }};
+   const response=await adminReportRoutes.request("http://localhost/?start=2026-10-01&end=2026-10-19",{}, {DB:db});
+   assert.equal(response.status,200);
+   assert.equal(statements.length,2);
+   const totals=statements[0].sql;
+   assert.ok(totals.includes("AS naoCompareceu"));
+   assert.ok(totals.includes("ag.observacao = 'Não compareceu'"));
+   assert.ok(totals.includes("a.status_dia = 'concluido'"));
+   assert.ok(totals.includes("COALESCE(ag.observacao, '') <> 'Não compareceu'"));
+   const ranking=statements[1].sql;
+   assert.ok(ranking.includes("COALESCE(ag.observacao, '') <> 'Não compareceu'"));
  });
  it("valida datas reais e intervalo máximo de 93 dias",()=>{
    assert.equal(validReportRange("2026-10-01","2026-10-19"),true);
@@ -50,7 +69,9 @@ describe("Relatório Gerencial",()=>{
    assert.ok(statements[0].sql.includes("ag.ativo = 1"));
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'aberto'/);
    assert.match(statements[0].sql,/ag\.status = 'aguardando' AND a\.status_dia = 'concluido'/);
-   assert.equal(data.rows[0].semConferencia,0);
+   assert.ok(statements[0].sql.includes("ag.observacao = 'Não compareceu'"));
+   assert.ok(statements[0].sql.includes("AS naoCompareceu"));
+   assert.equal(data.rows[0].naoCompareceu,0);
    assert.match(statements[1].sql,/HAVING naoChegou > 0/);
    assert.match(statements[1].sql,/ag\.status = 'recebido'/);
    assert.equal(data.suppliers[0].total,5);
@@ -85,10 +106,10 @@ describe("Relatório Gerencial",()=>{
    assert.ok(!statements.at(-1).sql.includes("l.codigo COLLATE NOCASE IN"));
    assert.deepEqual(statements.at(-1).params,["2026-10-01","2026-10-19"]);
  });
- it("inclui sem conferência de agenda concluída nas ocorrências, sem incluir pendentes de agenda aberta",async()=>{
+ it("inclui não compareceu de agenda concluída nas ocorrências, sem incluir pendentes de agenda aberta",async()=>{
    const statements=[];
    const exampleRows=[
-     {date:"2026-10-18",storeCode:"F01",storeName:"Centro",protocol:"P02",supplier:"Fornecedor B",observation:null,origin:"importado",occurrenceType:"sem_conferencia"},
+     {date:"2026-10-18",storeCode:"F01",storeName:"Centro",protocol:"P02",supplier:"Fornecedor B",observation:null,origin:"importado",occurrenceType:"nao_compareceu"},
      {date:"2026-10-17",storeCode:"F01",storeName:"Centro",protocol:"P01",supplier:"Fornecedor A",observation:"Não chegou",origin:"importado",occurrenceType:"nao_recebido"}
    ];
    const db={prepare(sql){const item={sql,params:[]};statements.push(item);
@@ -103,7 +124,7 @@ describe("Relatório Gerencial",()=>{
    assert.equal(data.total,2);
    assert.equal(data.limit,2);
    assert.equal(data.offset,0);
-   assert.deepEqual(data.rows.map(row=>row.occurrenceType),["sem_conferencia","nao_recebido"]);
+   assert.deepEqual(data.rows.map(row=>row.occurrenceType),["nao_compareceu","nao_recebido"]);
    const filter="AND ag.ativo = 1 AND (ag.status = 'nao_chegou' OR (ag.status = 'aguardando' AND a.status_dia = 'concluido'))";
    assert.equal(statements.length,2);
    for(const item of statements){
@@ -111,6 +132,7 @@ describe("Relatório Gerencial",()=>{
      assert.deepEqual(item.params.slice(0,3),["2026-10-01","2026-10-19","F01"]);
    }
    assert.match(statements[1].sql,/AS occurrenceType/);
+   assert.match(statements[1].sql,/AS classificationOrigin/);
    assert.deepEqual(statements[1].params.slice(-2),[2,0]);
  });
  it("agrupa por dia da semana na ordem operacional e conta os dias",()=>{
