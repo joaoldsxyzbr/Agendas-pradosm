@@ -5,14 +5,14 @@ const stores=[{id:"s1",codigo:"F01",nome:"Centro",ativo:true,temConferenteAtivo:
  {id:"s2",codigo:"F02",nome:"Sul",ativo:true,temConferenteAtivo:true}];
 const report={start:"2026-10-01",end:"2026-10-19",storeCode:null,
  rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",
- total:5,recebido:3,naoChegou:1,aguardando:1,semConferencia:0,recusado:0,semAgenda:1},
+ total:5,recebido:3,naoChegou:1,aguardando:1,naoCompareceu:0,recusado:0,semAgenda:1},
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",dayStatus:"concluido",
- total:2,recebido:1,naoChegou:0,aguardando:0,semConferencia:1,recusado:0,semAgenda:0}],
+ total:2,recebido:1,naoChegou:0,aguardando:0,naoCompareceu:1,recusado:0,semAgenda:0}],
  suppliers:[{supplier:"Fornecedor Teste",total:4,recebido:3,naoChegou:1}]};
 const occ={total:2,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",storeName:"Centro",
- supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido"},
+ supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido",classificationOrigin:"manual"},
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",supplier:"Fornecedor B",
- protocol:"654321",observation:null,origin:"importado",occurrenceType:"sem_conferencia"}]};
+ protocol:"654321",observation:null,origin:"importado",occurrenceType:"nao_compareceu",classificationOrigin:"historico"}]};
 async function mocks(page,user,{emptyPrevious=false}={}){
  const requests=[];const searches=[];
  await page.route("**/api/**",route=>{
@@ -61,12 +61,13 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Taxa de recebimento","Aguardando","Não compareceu","Recusados"]);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
-   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Sem conferência$/})})).toContainText("1");
-   await expect(page.locator(".manager-report")).toContainText("Sem conferência");
+   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Não compareceu$/})})).toContainText("1");
+   await expect(page.locator(".manager-report")).toContainText("Não compareceu");
    await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
    await expect(page.locator("[data-report-native-chart]")).toBeHidden();
    const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
@@ -79,9 +80,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    const occurrences=page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})});
    await expect(occurrences.locator("tbody tr")).toHaveCount(2);
    await expect(occurrences).toContainText("Não recebido");
-   await expect(occurrences).toContainText("Sem conferência");
-   await expect(occurrences).toContainText("Concluído sem conferência");
+   await expect(occurrences).toContainText("Não compareceu");
+   await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
    await expect(occurrences).toContainText("Fornecedor B");
+   await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
    await expect(occurrences).toContainText("2 ocorrência(s)");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
    await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
