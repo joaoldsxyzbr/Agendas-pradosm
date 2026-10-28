@@ -189,3 +189,19 @@
 .manager-report .report-date-control{min-width:0}
 .manager-report .report-date-control input[type="date"]{width:100%;cursor:text;color-scheme:light}
 .manager-report .report-date-control input[type="date"]::-webkit-calendar-picker-indicator{cursor:pointer}
+
+/* Filtro de várias lojas: lista acessível sem teclas modificadoras. */
+.manager-report .report-filters>.report-store-filter{grid-column:span 3;display:grid;gap:7px;min-width:0;color:var(--color-text-muted,#bac0ca);font-size:12px;font-weight:650}
+.manager-report .report-store-select{position:relative;min-width:0}
+.manager-report .report-store-select summary{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;height:43px;padding:10px;border:1px solid var(--color-border,#454a54);border-radius:9px;background:var(--color-background,#14161b);color:var(--color-text,#f1f2f4);font:inherit;cursor:pointer;list-style:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.manager-report .report-store-select summary::-webkit-details-marker{display:none}
+.manager-report .report-store-select summary::after{content:"⌄";flex-shrink:0;font-size:18px;line-height:1}
+.manager-report .report-store-select summary:focus-visible{outline:2px solid var(--color-primary);outline-offset:2px}
+.manager-report .report-store-select[open] summary{border-color:var(--color-primary)}
+.manager-report .report-store-menu{position:absolute;z-index:30;top:calc(100% + 4px);left:0;width:max(100%,250px);max-width:min(360px,calc(100vw - 44px));max-height:265px;overflow-y:auto;padding:5px;background:var(--color-background,#14161b);border:1px solid var(--color-border,#454a54);border-radius:9px;box-shadow:0 12px 25px rgba(0,0,0,.3)}
+.manager-report .report-store-option{display:flex;align-items:center;gap:10px;min-height:38px;padding:8px 10px;border-radius:6px;font:inherit;font-size:12px;font-weight:500;color:var(--color-text,#f1f2f4);cursor:pointer}
+.manager-report .report-store-option:hover,.manager-report .report-store-option:focus-within{background:var(--color-surface-strong,#2b3038)}
+.manager-report .report-store-option input{flex:0 0 auto;width:16px;height:16px;margin:0;accent-color:var(--color-primary)}
+.manager-report .report-store-all{border-bottom:1px solid var(--color-border-soft);border-radius:0;font-weight:700}
+@media(max-width:1150px){.manager-report .report-filters>.report-store-filter{grid-column:span 2}}
+@media(max-width:720px){.manager-report .report-filters>.report-store-filter{grid-column:1/-1}.manager-report .report-store-menu{width:100%;max-width:100%}}
