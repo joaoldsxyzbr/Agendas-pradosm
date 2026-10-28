@@ -71,20 +71,22 @@ async function findAppointmentById(db, id) {
 }
 async function listAppointmentHistory(db, appointmentId) {
   const result = await db.prepare(
-    `SELECT
-         h.id,
-         h.agendamento_id,
-         h.usuario_id,
-         u.nome AS usuario_nome,
-         h.status_anterior,
-         h.status_novo,
-         h.observacao,
-         h.alterado_em
-       FROM historico_status h
-       JOIN usuarios u ON u.id = h.usuario_id
-       WHERE h.agendamento_id = ?
-       ORDER BY h.alterado_em ASC, h.id ASC`
-  ).bind(appointmentId).all();
+    `SELECT id, agendamento_id, usuario_id, usuario_nome, status_anterior, status_novo, observacao, alterado_em
+       FROM (
+         SELECT h.id, h.agendamento_id, h.usuario_id, u.nome AS usuario_nome,
+                h.status_anterior, h.status_novo, h.observacao, h.alterado_em
+         FROM historico_status h
+         LEFT JOIN usuarios u ON u.id = h.usuario_id
+         WHERE h.agendamento_id = ?
+         UNION ALL
+         SELECT a.id, a.agendamento_id, NULL AS usuario_id, 'Sistema' AS usuario_nome,
+                'aguardando' AS status_anterior, 'nao_chegou' AS status_novo,
+                'Não compareceu' AS observacao, a.criado_em AS alterado_em
+         FROM auditoria a
+         WHERE a.agendamento_id = ? AND a.acao = 'nao_compareceu_automaticamente'
+       )
+       ORDER BY alterado_em ASC, id ASC`
+  ).bind(appointmentId, appointmentId).all();
   return result.results;
 }
 function appointmentInsert(db, agendaId, appointment, now) {
@@ -627,11 +629,6 @@ async function changeAppointmentStatus(db, appointment, userId, status, adminAdj
 function nonattendanceStatements(db, agendaSelection, bindArgs, now) {
   const pending = "ag.ativo = 1 AND ag.status = 'aguardando' AND ag.agenda_id IN (" + agendaSelection + ")";
   return [
-    db.prepare(
-      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, observacao, alterado_em) " +
-      "SELECT lower(hex(randomblob(16))), ag.id, NULL, 'aguardando', 'nao_chegou', 'Não compareceu', ? " +
-      "FROM agendamentos ag WHERE " + pending
-    ).bind(now, ...bindArgs),
     db.prepare(
       "INSERT INTO auditoria (id, usuario_id, acao, entidade, entidade_id, loja_id, agenda_id, agendamento_id, antes, depois, detalhes, criado_em) " +
       "SELECT lower(hex(randomblob(16))), NULL, 'nao_compareceu_automaticamente', 'agendamento', ag.id, a.loja_id, " +
