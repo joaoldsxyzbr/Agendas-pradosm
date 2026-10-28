@@ -1,6 +1,6 @@
 import { describe,it } from "node:test";
 import assert from "node:assert/strict";
-import { changeAgendaDayStatus } from "../../worker/repositories/agendas.js";
+import { changeAgendaDayStatus, listAppointmentHistory } from "../../worker/repositories/agendas.js";
 import { closePastOpenAgendas } from "../../worker/services/agenda-maintenance.js";
 
 function fakeDb() {
@@ -47,6 +47,25 @@ describe("Não compareceu automático",()=>{
    assert.equal(batches.length,1);
    assert.equal(batches[0].length,3);
    assert.ok(batches[0].every(s=>!s.sql.includes("Não compareceu")));
+ });
+ it("histórico expõe o evento automático pela auditoria, sem usuário humano",async()=>{
+   let query="",params=[];
+   const db={prepare(sql){query=sql;return{
+     bind(...args){params=args;return this;},
+     async all(){return{results:[{
+       id:"audit-1",agendamento_id:"appt1",usuario_id:null,usuario_nome:"Sistema",
+       status_anterior:"aguardando",status_novo:"nao_chegou",
+       observacao:"Não compareceu",alterado_em:"2026-10-28T23:00:00Z"
+     }]};}
+   };}};
+   const rows=await listAppointmentHistory(db,"appt1");
+   assert.deepEqual(params,["appt1","appt1"]);
+   assert.match(query,/FROM historico_status/);
+   assert.match(query,/UNION ALL/);
+   assert.match(query,/a.acao = 'nao_compareceu_automaticamente'/);
+   assert.equal(rows[0].usuario_nome,"Sistema");
+   assert.equal(rows[0].usuario_id,null);
+   assert.equal(rows[0].observacao,"Não compareceu");
  });
  it("cron classifica somente pendentes de dias elegíveis, sem reprocessar dias reabertos",async()=>{
    const {db,batches}=fakeDb();
