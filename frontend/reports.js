@@ -164,7 +164,12 @@ export function renderReports(root,{request=apiFetch}={}) {
         '<small>'+num(w.total)+' agendamento(s) em '+num(w.days)+' dia(s) · '+num(w.recebido)+' recebidos</small></div>';
     }).join("")||'<p class="report-empty">Sem movimentação no período.</p>';
     const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.semConferencia,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+cell(rate(u),true)+'</tr>');
-    const rows=occurrences.rows.map(r=>'<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.supplier)+cell(r.protocol)+cell(r.observation||"Motivo não registrado")+'</tr>');
+    const rows=occurrences.rows.map(r=>{
+      const semConferencia=r.occurrenceType==="sem_conferencia";
+      return '<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.supplier)+cell(r.protocol)+
+        cell(semConferencia?"Sem conferência":"Não recebido")+
+        cell(r.observation||(semConferencia?"Concluído sem conferência":"Motivo não registrado"))+'</tr>';
+    });
     const pager='<div class="report-pagination"><span>'+num(occurrences.total)+' ocorrência(s) · '+
       num(occurrences.total?settings.offset+1:0)+'–'+num(Math.min(settings.offset+50,occurrences.total))+'</span><div>'+
       '<button type="button" class="ghost-button" data-report-prev'+(settings.offset===0?' disabled':'')+'>Anterior</button> '+
@@ -197,7 +202,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       '</div>'+
       '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Sem conferência","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
-      panel("Ocorrências e observações","Motivos dos não recebimentos",table(["Data","Loja","Fornecedor","Protocolo","Motivo"],rows)+pager,search);
+      panel("Ocorrências e observações","Não recebidos e agendamentos concluídos sem conferência",table(["Data","Loja","Fornecedor","Protocolo","Situação","Observação"],rows)+pager,search);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
   }
   async function load(){
