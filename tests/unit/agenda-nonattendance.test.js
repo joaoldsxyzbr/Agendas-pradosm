@@ -25,17 +25,15 @@ function fakeDb() {
 }
 
 describe("Não compareceu automático",()=>{
- it("ao concluir, grava status, motivo, autoria do sistema, auditoria e dia em batch único",async()=>{
+ it("ao concluir, grava status, motivo e auditoria do sistema em batch único",async()=>{
    const {db,batches}=fakeDb();
    const agenda={id:"ag1",loja_id:"store1",status_dia:"aberto"};
    const result=await changeAgendaDayStatus(db,agenda,"conf1","concluido");
    assert.equal(result.status_dia,"concluido");
    assert.equal(batches.length,1);
-   assert.equal(batches[0].length,6);
-   const [history,audit,update,day]=batches[0];
-   assert.match(history.sql,/INSERT INTO historico_status/);
-   assert.match(history.sql,/NULL, 'aguardando', 'nao_chegou', 'Não compareceu'/);
-   assert.deepEqual(history.params.slice(1),["ag1"]);
+   assert.equal(batches[0].length,5);
+   const [audit,update,day]=batches[0];
+   assert.deepEqual(audit.params.slice(1),["ag1"]);
    assert.match(audit.sql,/nao_compareceu_automaticamente/);
    assert.match(audit.sql,/NULL, 'nao_compareceu_automaticamente'/);
    assert.match(update.sql,/UPDATE agendamentos SET status = 'nao_chegou', observacao = 'Não compareceu'/);
@@ -54,16 +52,15 @@ describe("Não compareceu automático",()=>{
    const {db,batches}=fakeDb();
    await closePastOpenAgendas(db,new Date("2026-10-29T12:00:00Z"));
    assert.equal(batches.length,1);
-   assert.equal(batches[0].length,5);
-   const [history,audit,update,agendaAudit,close]=batches[0];
-   assert.match(history.sql,/INSERT INTO historico_status/);
-   assert.match(history.sql,/status_dia = 'aberto'/);
-   assert.match(history.sql,/<> 'reaberto'/);
+   assert.equal(batches[0].length,4);
+   const [audit,update,agendaAudit,close]=batches[0];
+   assert.match(audit.sql,/status_dia = 'aberto'/);
+   assert.match(audit.sql,/<> 'reaberto'/);
    assert.match(update.sql,/ag\.ativo = 1 AND ag\.status = 'aguardando'/);
    assert.match(audit.sql,/nao_compareceu_automaticamente/);
    assert.match(agendaAudit.sql,/dia_concluido_automaticamente/);
    assert.match(close.sql,/UPDATE agendas/);
-   assert.equal(history.params[1],"2026-10-29");
+   assert.equal(audit.params[1],"2026-10-29");
    assert.equal(close.params.at(-1),"2026-10-29");
  });
 });
