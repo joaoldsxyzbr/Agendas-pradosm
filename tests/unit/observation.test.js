@@ -6,12 +6,13 @@ import { agendaRowHtml } from "../../frontend/agenda-list.js";
 import { agendaDetailHtml } from "../../frontend/agenda-details.js";
 
 describe("Observação de recebimento — motivos", () => {
-  it("oferece os cinco motivos e Outros", () => {
+  it("oferece os seis motivos e Personalizado", () => {
     assert.deepEqual(OBSERVATION_REASONS, [
-      "Sem agenda", "Sem pedido", "Sem boleto", "Prazo de pagamento incorreto", "Temperatura acima do OK"
+      "Sem agenda", "Sem pedido", "Sem boleto", "Prazo de pagamento incorreto", "Temperatura acima do OK", "Não veio"
     ]);
     assert.equal(normalizeObservation(" Outros:   Sem documentação  "), "Outros: Sem documentação");
     assert.equal(validateStatusObservation("nao_chegou", "Sem pedido"), "Sem pedido");
+    assert.equal(validateStatusObservation("nao_chegou", "Não veio"), "Não veio");
   });
   it("impede não recebido sem motivo ou Outros vazio", () => {
     assert.throws(() => validateStatusObservation("nao_chegou", null), /Selecione um motivo/);
@@ -38,9 +39,11 @@ describe("Observação de recebimento — motivos", () => {
     assert.match(html,/Sem pedido/);
     assert.equal(html.toLowerCase().includes("<script"),false);
   });
-  it("mantém seletor e não recebimento bloqueado na API", () => {
+  it("usa botões para motivos e preserva bloqueio de não recebido na API", () => {
     const html = readFileSync(new URL("../../frontend/agenda-list.js",import.meta.url),"utf8");
     assert.match(html,/data-observation-reason/);
+    assert.match(html,/aria-pressed/);
+    assert.doesNotMatch(html,/<select data-observation-reason/);
     assert.match(html,/data-observation-custom/);
     assert.match(html,/observation-modal-backdrop/);
     const store = readFileSync(new URL("../../worker/routes/store-agendas.js",import.meta.url),"utf8");
