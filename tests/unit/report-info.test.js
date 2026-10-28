@@ -10,7 +10,7 @@ describe("Ajuda contextual do Relatório Gerencial", () => {
       assert.ok(REPORT_HELP[title].length > 50, title);
     }
     assert.match(REPORT_HELP["Comparativo por loja"], /recebidos.*total/);
-    assert.match(REPORT_HELP["Sem conferência"], /concluída/);
+    assert.match(REPORT_HELP["Não compareceu"], /concluir o dia/);
     assert.match(REPORT_HELP["Fornecedores com ocorrências"], /quantidade/);
   });
   it("gera botão acessível vinculado ao tooltip correto", () => {
