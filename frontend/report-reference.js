@@ -112,8 +112,9 @@ function recentAppointments(latest){
 }
 export function renderReferenceOverview({sum,daily,stores,occurrences,latest,prior=null}){
   const rate=safePercent(reportRate(sum));
-  const comparison=prior&&prior.total>0
-    ?'<p class="report-reference-rate-compare">'+esc((reportRate(sum)-reportRate(prior)>=0?"+":"")+pct(reportRate(sum)-reportRate(prior))+' p.p. em relação ao período anterior</p>'
+  const difference=prior&&prior.total>0?reportRate(sum)-reportRate(prior):null;
+  const comparison=difference!==null
+    ?'<p class="report-reference-rate-compare">'+esc((difference>=0?"+":"")+difference.toLocaleString("pt-BR",{maximumFractionDigits:1}))+' p.p. em relação ao período anterior</p>'
     :'<p class="report-reference-rate-compare report-reference-muted">Sem comparação disponível</p>';
   const rateBody='<div class="report-reference-rate"><strong>'+pct(rate)+'</strong><p>'+n(sum.recebido)+' de '+n(sum.total)+' agendamentos</p>'+
     '<div class="report-reference-rate-track" aria-hidden="true"><span style="width:'+rate.toFixed(1)+'%"></span></div>'+comparison+'</div>';
