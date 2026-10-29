@@ -333,3 +333,47 @@ test("Relatório: datas são campos nativos visíveis, editáveis e com calendá
   await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
   await expect.poll(()=>searches.some(q=>q.includes("start=2026-10-01")&&q.includes("end=2026-10-19"))).toBe(true);
 });
+
+
+test("Abas do relatório alternam conteúdo sem novas chamadas e mantêm filtro acessível",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  const {requests}=await mocks(page,admin);
+  await page.goto("/admin/reports");
+  const nav=page.getByRole("tablist",{name:"Seções do relatório"});
+  const overview=page.locator("#report-panel-overview");
+  const performance=page.locator("#report-panel-trends");
+  const details=page.locator("#report-panel-details");
+  await expect(overview).toBeVisible();
+  await expect(performance).toBeHidden();
+  await expect(details).toBeHidden();
+  await expect(page.locator("[data-report-tab-panel]:visible")).toHaveCount(1);
+  const before=requests.filter(p=>p==="/api/admin/reports").length;
+
+  await nav.getByRole("tab",{name:"Desempenho"}).click();
+  await expect(performance).toBeVisible();
+  await expect(overview).toBeHidden();
+  await expect(page.locator("#report-trends [data-report-popover]")).toHaveCount(1);
+  await expect(page.getByRole("heading",{name:"Evolução diária"})).toBeVisible();
+
+  await nav.getByRole("tab",{name:"Detalhamento"}).click();
+  await expect(details).toBeVisible();
+  await expect(performance).toBeHidden();
+  await expect(page.locator("#report-details [data-report-popover]")).toHaveCount(1);
+  await page.locator("#report-details .report-filter-trigger").click();
+  await expect(page.locator("#report-details [data-report-filters]")).toBeVisible();
+  await page.locator("#report-details .report-filter-trigger").click();
+  await expect(page.locator("#report-details [data-report-filters]")).toBeHidden();
+
+  await nav.getByRole("tab",{name:"Detalhamento"}).focus();
+  await page.keyboard.press("Home");
+  await expect(nav.getByRole("tab",{name:"Visão geral"})).toHaveAttribute("aria-selected","true");
+  await expect(overview).toBeVisible();
+  await expect(page).toHaveURL(/#report-overview$/);
+  expect(requests.filter(p=>p==="/api/admin/reports").length).toBe(before);
+
+  await nav.getByRole("tab",{name:"Detalhamento"}).click();
+  await page.reload();
+  await expect(details).toBeVisible();
+  await expect(overview).toBeHidden();
+  await expect(nav.getByRole("tab",{name:"Detalhamento"})).toHaveAttribute("aria-selected","true");
+});
