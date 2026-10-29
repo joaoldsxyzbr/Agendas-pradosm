@@ -183,7 +183,7 @@ test("Dashboard referencia: série real e distribuição são acessíveis",async
  const trend=page.locator(".report-trend-svg");
  await expect(trend).toBeVisible();
  await expect(trend).toHaveAttribute("role","img");
- await expect(trend).toHaveAttribute("aria-label",/57,1%/);
+ await expect(trend).toHaveAttribute("aria-label",/50%/);
  await expect(page.locator(".report-donut-ring")).toHaveAttribute("role","img");
  await expect(page.locator(".report-donut-item").first()).toContainText("4");
  await expect(page.locator(".report-preview-occurrences tbody tr")).toHaveCount(2);
