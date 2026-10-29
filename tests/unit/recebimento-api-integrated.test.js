@@ -30,6 +30,7 @@ function createFixture() {
     .run("agend1", "agenda1", "001", "08:00", "08:30", "Fornecedor sintético", "[]", "[]", "aguardando", 0, null, "importado", 1, now, now);
 
   let simulateAuditFailure = false;
+  let simulateConcurrentUpdate = false;
   const db = {
     prepare(sql) {
       const statement = sqlite.prepare(sql);
@@ -37,7 +38,15 @@ function createFixture() {
       const request = {
         sql,
         bind(...values) { bindings = values; return request; },
-        async first() { return statement.get(...bindings) ?? null; },
+        async first() {
+          const row = statement.get(...bindings) ?? null;
+          // Replica outra solicitação que grava após a leitura da primeira.
+          if (simulateConcurrentUpdate && sql.includes("FROM agendamentos ag")) {
+            simulateConcurrentUpdate = false;
+            sqlite.prepare("UPDATE agendamentos SET status='recusado' WHERE id='agend1'").run();
+          }
+          return row;
+        },
         async all() { return { results: statement.all(...bindings) }; },
         async run() {
           if (simulateAuditFailure && sql.includes("INSERT INTO auditoria")) {
@@ -79,7 +88,11 @@ function createFixture() {
   const status = () => ({ ...sqlite.prepare("SELECT status,observacao FROM agendamentos WHERE id='agend1'").get() });
   const historyCount = () => sqlite.prepare("SELECT count(*) AS n FROM historico_status").get().n;
   const auditCount = () => sqlite.prepare("SELECT count(*) AS n FROM auditoria").get().n;
-  return { sqlite, callAs, status, historyCount, auditCount, failAudit: () => { simulateAuditFailure = true; } };
+  return {
+    sqlite, callAs, status, historyCount, auditCount,
+    failAudit: () => { simulateAuditFailure = true; },
+    concurrentUpdateOnNextRead: () => { simulateConcurrentUpdate = true; }
+  };
 }
 
 describe("Recebimento integrado: Worker + SQLite sintético, sem mocks de endpoints", () => {
@@ -121,4 +134,19 @@ describe("Recebimento integrado: Worker + SQLite sintético, sem mocks de endpoi
       f.sqlite.close();
     }
   });
+  it("devolve HTTP 409 quando outra requisição alterou o status", async () => {
+    const f = createFixture();
+    try {
+      f.concurrentUpdateOnNextRead();
+      const response = await f.callAs("conf1", "/api/store/appointments/agend1/status", { status: "recebido" });
+      assert.equal(response.status, 409);
+      assert.equal((await response.json()).error, "CONFLITO_ESTADO");
+      assert.deepEqual(f.status(), { status: "recusado", observacao: null });
+      assert.equal(f.historyCount(), 0);
+      assert.equal(f.auditCount(), 0);
+    } finally {
+      f.sqlite.close();
+    }
+  });
+
 });
