@@ -57,8 +57,8 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-filter-intro")).toContainText("Filtros da análise");
    await expect(page.locator(".report-section-heading")).toHaveCount(3);
    await expect(page.getByRole("heading",{name:"Resumo do período"})).toBeVisible();
-   await expect(page.getByRole("heading",{name:"Tendências e comparativos"})).toBeVisible();
-   await expect(page.getByRole("heading",{name:"Lojas e ocorrências"})).toBeVisible();
+   await expect(page.getByRole("heading",{name:"Tendências e comparativos"})).toBeHidden();
+   await expect(page.getByRole("heading",{name:"Lojas e ocorrências"})).toBeHidden();
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
@@ -69,6 +69,8 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Não compareceu$/})})).toContainText("1");
    await expect(page.locator(".manager-report")).toContainText("Não compareceu");
+   await expect(page.locator("[data-report-chart-wrap]")).toBeHidden();
+   await page.getByRole("tab",{name:"Desempenho"}).click();
    await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
    await expect(page.locator("[data-report-native-chart]")).toBeHidden();
    const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
@@ -77,6 +79,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
        missed:instance?.data.datasets?.[1]?.data?.[0]};
    });
    expect(data).toEqual({type:"bar",received:1,missed:0});
+   await page.getByRole("tab",{name:"Detalhamento"}).click();
    await expect(page.locator(".manager-report")).toContainText("Sem pedido");
    const occurrences=page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})});
    await expect(occurrences.locator("tbody tr")).toHaveCount(2);
@@ -122,11 +125,16 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
  expect(card.width).toBeGreaterThan(200);
  expect(card.height).toBeLessThanOrEqual(next.height+16);
  expect(card.y).toBeGreaterThanOrEqual(next.y);
- const nav=page.getByRole("navigation",{name:"Seções do relatório"});
- await expect(nav.getByRole("link")).toHaveCount(3);
- await nav.getByRole("link",{name:"Desempenho"}).click();
+ const nav=page.getByRole("tablist",{name:"Seções do relatório"});
+ await expect(nav.getByRole("tab")).toHaveCount(3);
+ await nav.getByRole("tab",{name:"Desempenho"}).click();
  await expect(page).toHaveURL(/#report-trends$/);
  await expect(page.locator("#report-trends")).toBeVisible();
+ await expect(page.locator("#report-overview")).toBeHidden();
+ await expect(nav.getByRole("tab",{name:"Desempenho"})).toHaveAttribute("aria-selected","true");
+ await nav.getByRole("tab",{name:"Detalhamento"}).click();
+ await expect(page.locator("#report-trends")).toBeHidden();
+ await expect(page.locator("#report-details")).toBeVisible();
  await expect(page.locator(".report-store-table .report-rate-cell")).toHaveCount(1);
  await expect(page.locator(".report-store-table .report-rate-track i")).toHaveAttribute("style",/57\.1%/);
  await expect(page.locator(".report-status-tag.is-automatic")).toContainText("Não compareceu");
@@ -229,7 +237,7 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator("[data-report-preset]")).toHaveCount(4);
   await expect(page.locator("[data-report-preset=\"30\"]")).toHaveAttribute("aria-pressed","true");
   await expect(page.locator(".report-metric-delta").first()).toContainText("vs. período anterior");
-  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeHidden();
   await expect(page.locator(".report-weekdays .report-progress-item span").first()).toHaveText("Segunda-feira");
   await expect(page.locator(".manager-report")).toContainText("Taxa de recebimento no período");
   const today=businessDay();
@@ -246,6 +254,8 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator("[data-report-preset=\"30\"]")).toHaveAttribute("aria-pressed","false");
   const chartRequests=()=>requests.filter(x=>x==="/api/admin/reports").length;
   const beforeToggle=chartRequests();
+  await page.getByRole("tab",{name:"Desempenho"}).click();
+  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
   await page.locator("[data-report-chart-mode=\"rate\"]").click();
   const lineType=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>window.Chart?.getChart(canvas)?.config.type);
   expect(lineType).toBe("line");
@@ -255,6 +265,7 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   const barType=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>window.Chart?.getChart(canvas)?.config.type);
   expect(barType).toBe("bar");
   expect(chartRequests()).toBe(beforeToggle);
+  await page.getByRole("tab",{name:"Detalhamento"}).click();
   await page.getByLabel("Buscar ocorrência por fornecedor ou protocolo").fill("Fornecedor");
   await page.locator("[data-report-search] button[type=\"submit\"]").click();
   await expect.poll(()=>searches.filter(x=>x.includes("q=Fornecedor")).length).toBeGreaterThan(0);
@@ -266,6 +277,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await page.route("**/vendor/chart.umd.min.js",route=>route.abort());
   await mocks(page,viewer);
   await page.goto("/admin/reports");
+  await page.getByRole("tab",{name:"Desempenho"}).click();
   await expect(page.locator("[data-report-native-chart] .report-chart")).toBeVisible();
   await expect(page.locator("[data-report-chart-wrap]")).toBeHidden();
   await expect(page.locator(".report-kpis")).toContainText("Recebidos");
@@ -273,6 +285,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await page.setViewportSize({width:390,height:844});
   await mocks(page,viewer);
   await page.goto("/admin/reports");
+  await page.getByRole("tab",{name:"Detalhamento"}).click();
   await expect(page.getByRole("heading",{name:"Por loja",exact:true})).toBeVisible();
   await page.evaluate(()=>{document.documentElement.dataset.theme="dark";});
   const geometry=await page.locator(".report-store-table").evaluate(el=>{
@@ -296,6 +309,7 @@ test("Relatório: datas são campos nativos visíveis, editáveis e com calendá
   const {searches}=await mocks(page,admin);
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  await page.locator("#report-overview .report-filter-trigger").click();
   for(const theme of ["dark","light"]){
     await page.evaluate(value=>{document.documentElement.dataset.theme=value;},theme);
     for(const name of ["start","end"]){
