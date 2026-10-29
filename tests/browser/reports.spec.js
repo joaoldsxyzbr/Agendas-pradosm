@@ -137,8 +137,8 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
  await expect(page.locator("#report-trends")).toBeVisible();
  await expect(page.locator(".report-store-table .report-rate-cell")).toHaveCount(1);
  await expect(page.locator(".report-store-table .report-rate-track i")).toHaveAttribute("style",/57\.1%/);
- await expect(page.locator(".report-status-tag.is-automatic")).toContainText("Não compareceu");
- await expect(page.locator(".report-status-tag.is-manual")).toContainText("Não recebido");
+ await expect(page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})}).locator(".report-status-tag.is-automatic")).toContainText("Não compareceu");
+ await expect(page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})}).locator(".report-status-tag.is-manual")).toContainText("Não recebido");
  await expect(page.locator(".report-origin-cell")).toContainText(["Registrado manualmente","Sistema · agenda antiga concluída"]);
 });
 test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({page})=>{
