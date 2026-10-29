@@ -13,7 +13,12 @@ export const REPORT_HELP = Object.freeze({
   "Fornecedores com ocorrências": "Fornecedores com mais não recebidos. A barra compara a quantidade de cada um com a do líder do ranking e mostra também a taxa de recebimento do fornecedor no período.",
   "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de não comparecimentos de fechamento.",
   "Ocorrências e observações": "Lista de não recebidos e não comparecimentos, com origem manual ou automática. Pendências antigas de dias concluídos são identificadas como classificação retrospectiva.",
-  "Padrão por dia da semana": "Taxa de recebimento agrupada por dia da semana no período, somando todas as lojas. Ajuda a identificar dias que concentram problemas de entrega."
+  "Padrão por dia da semana": "Taxa de recebimento agrupada por dia da semana no período, somando todas as lojas. Ajuda a identificar dias que concentram problemas de entrega.",
+  "Evolução dos recebimentos": "Taxa diária de recebimento: total recebido dividido pelo total de agendamentos de cada dia. Dias sem movimentação não entram na linha.",
+  "Distribuição das situações": "Participação de cada situação no total do período: recebidos, não recebidos, não compareceu, aguardando e recusados. Não compareceu é classificação do sistema.",
+  "Agendamentos por situação (por dia)": "Quantidade diária de agendamentos por situação. Alterne entre volume e taxa diária sem buscar novos dados.",
+  "Ocorrências recentes": "Amostra das primeiras ocorrências da página atual. A tabela completa fica na seção Ocorrências e observações.",
+  "Últimos agendamentos": "Os seis registros mais recentes no período e nas lojas selecionadas. Não compareceu indica classificação automática do fechamento."
 });
 
 export function reportInfo(title) {
