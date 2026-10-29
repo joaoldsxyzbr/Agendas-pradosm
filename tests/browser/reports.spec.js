@@ -73,6 +73,8 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await page.locator("#report-overview .report-filter-trigger").click();
    await filters.locator("[data-report-store-select] summary").click();
    await filters.locator('input[name="stores"][value="F01"]').check();
+   await expect(page.locator("[data-report-popover]")).toHaveAttribute("open","");
+   await filters.locator("[data-report-store-select] summary").click();
    await filters.getByRole("button",{name:"Aplicar filtros"}).click();
    await expect(page.locator(".report-kpis")).toBeVisible();
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
@@ -138,6 +140,8 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  await picker.locator('input[value="F02"]').check();
  await expect(picker.locator("summary")).toHaveText("2 lojas selecionadas");
  await expect(picker.locator("[data-report-store-all]")).not.toBeChecked();
+ await expect(page.locator("[data-report-popover]")).toHaveAttribute("open","");
+ await picker.locator("summary").click();
  await filters.getByRole("button",{name:"Aplicar filtros"}).click();
  await expect(page.locator(".report-range-summary")).toContainText("2 lojas selecionadas");
  const scoped=searches.filter(q=>new URLSearchParams(q).getAll("storeCode").length===2);
@@ -152,6 +156,8 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  await picker.locator("[data-report-store-all]").check();
  await expect(picker.locator('input[name="stores"]:checked')).toHaveCount(0);
  await expect(picker.locator("summary")).toHaveText("Todas as lojas");
+ await expect(page.locator("[data-report-popover]")).toHaveAttribute("open","");
+ await picker.locator("summary").click();
  await filters.getByRole("button",{name:"Aplicar filtros"}).click();
  await expect(page.locator(".report-range-summary")).toContainText("Todas as lojas");
  expect(searches.slice(-3).every(q=>!new URLSearchParams(q).has("storeCode"))).toBe(true);
