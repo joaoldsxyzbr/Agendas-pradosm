@@ -230,11 +230,16 @@ html:not([data-theme="dark"]) .manager-report .report-status-tag.is-received{bac
 html:not([data-theme="dark"]) .manager-report .report-status-tag.is-missed{background:#ffe4e6;color:#a5313b}
 html:not([data-theme="dark"]) .manager-report .report-status-tag.is-automatic{background:#fff0ca;color:#875809}
 html:not([data-theme="dark"]) .manager-report .report-status-tag.is-pending{background:#efe6ff;color:#6540a6}
+/* Grafite legado usa seletores de tema mais específicos. */
+html[data-theme="dark"] .manager-report .report-filters{
+  background:var(--dash-panel);
+  border-color:var(--dash-border);
+}
 @media(max-width:1450px){
   .manager-report .report-kpis,
   html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
   html .manager-report .report-kpis > .report-metric:nth-child(n){min-height:118px}
-  .manager-report .report-kpis>.report-metric:nth-child(7){grid-column:span 2}
+  html .manager-report .report-kpis>.report-metric:nth-child(7){grid-column:span 2}
 }
 @media(max-width:1100px){
   .manager-report .report-main-grid,
@@ -247,7 +252,7 @@ html:not([data-theme="dark"]) .manager-report .report-status-tag.is-pending{back
   .manager-report .report-kpis,
   html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   html .manager-report .report-kpis > .report-metric:nth-child(n){grid-column:auto;min-height:120px;padding:14px 11px}
-  .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
+  html .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
   .manager-report .report-navigation{gap:5px}
   .manager-report .report-navigation a{min-width:0;flex:1;padding:8px 5px;font-size:11px}
   .manager-report .report-filter-intro span{display:none}
@@ -261,7 +266,7 @@ html:not([data-theme="dark"]) .manager-report .report-status-tag.is-pending{back
   .manager-report .report-kpis,
   html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
   html .manager-report .report-kpis > .report-metric:nth-child(n){grid-column:auto;min-height:126px}
-  .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
+  html .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
   .manager-report .report-kpi-top{flex-direction:column;gap:8px}
   .manager-report .report-kpi-icon{width:31px;height:31px;flex-basis:31px}
   html .manager-report .report-kpis > .report-metric:nth-child(n) strong{font-size:23px}
