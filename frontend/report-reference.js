@@ -68,9 +68,25 @@ function storesRanking(stores){
       '<strong>'+pct(rate)+'</strong><span class="report-reference-store-count">'+n(store.recebido)+' / '+n(store.total)+'</span></div>';
   }).join("")+'</div><button type="button" class="report-reference-link" data-report-dialog-open="stores">Ver todas as lojas <span aria-hidden="true">→</span></button>';
 }
-function stacked(daily){
-  const days=daily.slice(-7);
-  if(!days.length)return empty("Sem movimentação no período.");
+// Datas consecutivas, inclusive dias sem agendas. Não altera as agregações do D1.
+export function lastSevenCalendarDays(daily,{start,end}={}){
+  const first=start||daily[0]?.date;
+  const last=end||daily[daily.length-1]?.date;
+  if(!first||!last)return [];
+  const begin=Date.parse(first+"T00:00:00Z");
+  const finish=Date.parse(last+"T00:00:00Z");
+  if(!Number.isFinite(begin)||!Number.isFinite(finish)||begin>finish)return [];
+  const lookup=new Map(daily.map(row=>[row.date,row]));
+  const days=[];
+  for(let t=Math.max(begin,finish-6*86400000);t<=finish;t+=86400000){
+    const date=new Date(t).toISOString().slice(0,10);
+    days.push(lookup.get(date)||{date,total:0,recebido:0,naoChegou:0,naoCompareceu:0,aguardando:0,recusado:0});
+  }
+  return days;
+}
+function stacked(daily,range){
+  const days=lastSevenCalendarDays(daily,range);
+  if(!days.length)return empty("Sem datas no período.");
   const max=Math.max(1,...days.map(x=>Number(x.total)||0));
   const bars=days.map(day=>{
     const total=Number(day.total)||0;
@@ -90,13 +106,18 @@ function shortOccurrences(occurrences){
     const automatic=o.occurrenceType==="nao_compareceu";
     const label=automatic?"Não compareceu":"Não recebido";
     const origin=automatic?"Sistema":"Conferente";
-    return '<tr><td>'+esc(shortDate(o.date))+'</td><td>'+esc(o.storeCode)+'</td><td>'+esc(o.supplier||"—")+'</td>'+
-      '<td><span class="report-reference-status '+(automatic?"is-absent":"is-missed")+'">'+esc(label)+'</span></td>'+
-      '<td class="report-reference-text-limit" title="'+esc(o.observation||"")+'">'+esc(automatic?"Classificação no fechamento":o.observation||"Motivo não informado")+'</td>'+
-      '<td>'+esc(origin)+'</td></tr>';
+    const reason=automatic?"Classificação no fechamento":o.observation||"Motivo não informado";
+    return '<div class="report-reference-compact-item report-reference-occurrence-item" role="listitem">'+
+      '<div class="report-reference-compact-primary">'+
+      '<span class="report-reference-when">'+esc(shortDate(o.date))+'</span>'+
+      '<span class="report-reference-store">'+esc(o.storeCode||"—")+'</span>'+
+      '<span class="report-reference-party" title="'+esc(o.supplier||"—")+'">'+esc(o.supplier||"—")+'</span>'+
+      '<span class="report-reference-status '+(automatic?"is-absent":"is-missed")+'">'+esc(label)+'</span></div>'+
+      '<div class="report-reference-compact-secondary"><span title="'+esc(reason)+'">'+esc("Motivo: "+reason)+'</span>'+
+      '<span>Origem: '+esc(origin)+'</span></div></div>';
   }).join("");
-  return '<div class="report-reference-table-scroll"><table><thead><tr><th>Data</th><th>Loja</th><th>Fornecedor</th><th>Situação</th><th>Motivo</th><th>Origem</th></tr></thead><tbody>'+
-    rows+'</tbody></table></div><button type="button" class="report-reference-link" data-report-dialog-open="occurrences">Ver todas as ocorrências <span aria-hidden="true">→</span></button>';
+  return '<div class="report-reference-compact-list" role="list" aria-label="Ocorrências recentes">'+rows+'</div>'+
+    '<button type="button" class="report-reference-link" data-report-dialog-open="occurrences">Ver todas as ocorrências <span aria-hidden="true">→</span></button>';
 }
 function recentAppointments(latest){
   const list=Array.isArray(latest?.rows)?latest.rows.slice(0,5):[];
@@ -105,13 +126,18 @@ function recentAppointments(latest){
   const rows=list.map(a=>{
     const status=statusNames[a.status]||"Aguardando";
     const tag=a.status==="recebido"?"is-received":a.status==="nao_compareceu"?"is-absent":a.status==="nao_recebido"?"is-missed":a.status==="recusado"?"is-refused":"is-pending";
-    return '<tr><td>'+esc(shortDate(a.date))+'</td><td>'+esc(a.time||"—")+'</td><td>'+esc(a.storeCode)+'</td><td>'+esc(a.supplier||"—")+'</td>'+
-      '<td><span class="report-reference-status '+tag+'">'+esc(status)+'</span></td></tr>';
+    return '<div class="report-reference-compact-item report-reference-appointment-item" role="listitem">'+
+      '<div class="report-reference-compact-primary">'+
+      '<span class="report-reference-when" title="Data e hora da entrega">'+esc(shortDate(a.date))+' · '+esc(a.time||"—")+'</span>'+
+      '<span class="report-reference-store">'+esc(a.storeCode||"—")+'</span>'+
+      '<span class="report-reference-party" title="'+esc(a.supplier||"—")+'">'+esc(a.supplier||"—")+'</span>'+
+      '<span class="report-reference-status '+tag+'">'+esc(status)+'</span></div></div>';
   }).join("");
-  return '<div class="report-reference-table-scroll"><table><thead><tr><th>Data</th><th>Hora</th><th>Loja</th><th>Fornecedor</th><th>Situação</th></tr></thead><tbody>'+
-    rows+'</tbody></table></div><button type="button" class="report-reference-link" data-report-dialog-open="appointments">Ver detalhamento <span aria-hidden="true">→</span></button>';
+  return '<p class="report-reference-table-hint">Ordenados pela data e hora da entrega, do mais recente para o mais antigo.</p>'+
+    '<div class="report-reference-compact-list" role="list" aria-label="Agendamentos recentes por data de entrega">'+rows+'</div>'+
+    '<button type="button" class="report-reference-link" data-report-dialog-open="appointments">Ver detalhamento <span aria-hidden="true">→</span></button>';
 }
-export function renderReferenceOverview({sum,daily,stores,occurrences,latest,prior=null}){
+export function renderReferenceOverview({sum,daily,stores,occurrences,latest,prior=null,start,end}){
   const rate=safePercent(reportRate(sum));
   const difference=prior&&prior.total>0?reportRate(sum)-reportRate(prior):null;
   const comparison=difference!==null
@@ -126,8 +152,8 @@ export function renderReferenceOverview({sum,daily,stores,occurrences,latest,pri
     card("Distribuição das situações",distribution(sum),"report-reference-donut-card")+'</div>'+
     '<div class="report-reference-row report-reference-row-analysis">'+
     card("Desempenho por loja",storesRanking(stores),"report-reference-store-card")+
-    card("Agendamentos por situação (por dia)",stacked(daily),"report-reference-stack-card")+'</div>'+
+    card("Agendamentos por situação (por dia)",stacked(daily,{start,end}),"report-reference-stack-card")+'</div>'+
     '<div class="report-reference-row report-reference-row-tables">'+
     card("Ocorrências recentes",shortOccurrences(occurrences),"report-reference-occurrences-card")+
-    card("Últimos agendamentos",recentAppointments(latest),"report-reference-latest-card")+'</div></div>';
+    card("Agendamentos recentes por data de entrega",recentAppointments(latest),"report-reference-latest-card")+'</div></div>';
 }
