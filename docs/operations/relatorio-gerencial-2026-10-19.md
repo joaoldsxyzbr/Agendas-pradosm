@@ -32,3 +32,14 @@ A apresentação usa `frontend/styles/manager-reports-executive.css`, carregado 
 - O desenho inicial de 19/10/2026 retirou a tabela redundante Por data.
 - Em 28/10/2026, foram incluídos a seleção de várias lojas e o tratamento de Não compareceu.
 - A reformulação visual fica separada da produção até aprovação.
+
+## Evolução visual fiel à referência — 29/10/2026 (branch `design/dashboard-gerencial-referencia`)
+- Os 7 cartões passam à faixa de indicadores com ícones vetoriais e cores específicas: agendamentos, recebidos, não recebidos, não compareceu, aguardando, recusados e taxa.
+- A visão geral apresenta **linha de taxa diária** e **rosca por situação**, calculadas dos `rows` retornados pela API. Valores da imagem não são usados nem versionados.
+- O desempenho apresenta o ranking das 5 lojas por taxa e o gráfico de barras empilhadas por situação; fornecedores e padrão semanal continuam disponíveis.
+- Detalhamento contém resumos de ocorrências e de últimos agendamentos, além das tabelas completas já existentes, busca, paginação, filtros e comparativo.
+- **GET `/api/admin/reports/latest?start=...&end=...&storeCode=...`**: últimos 6 agendamentos ativos, mesmo intervalo de até 93 dias e mesmo filtro multiloja; status `nao_compareceu` calculado para pendências encerradas sem conferência; somente GET para administrador e visualizador. Retorno `{rows:[{date,startTime,storeCode,storeName,supplier,protocol,origin,status,classificationOrigin}]}`.
+- Falha específica da consulta de recentes gera mensagem nesse painel, não bloqueia as métricas/ocorrências.
+- Nenhum write D1, migration ou dependência adicionada; CSS escopado em `.manager-report` e carregado depois da camada executiva.
+- Validação proposta: CI `verify`, CodeQL, Playwright 390/768/1440 em claro e escuro, mock de falha de recentes, integração e inspeção da Preview. A imagem é referência estética, não screenshot real.
+
