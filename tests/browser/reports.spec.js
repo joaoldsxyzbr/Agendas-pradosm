@@ -61,10 +61,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.getByRole("heading",{name:"Lojas e ocorrências"})).toBeHidden();
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
-   await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados","Taxa de recebimento"]);
-   await expect(page.locator(".report-metric-primary")).toHaveCount(4);
-   await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
+   await expect(page.locator(".report-metric")).toHaveCount(5);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando"]);
+   await expect(page.locator(".report-metric-primary")).toHaveCount(3);
+   await expect(page.locator(".report-metric-supporting")).toHaveCount(2);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
    await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Não compareceu$/})})).toContainText("1");
@@ -115,16 +115,19 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
  await mocks(page,admin);
  await page.goto("/admin/reports");
  const metrics=page.locator(".report-metric");
- await expect(metrics).toHaveCount(7);
- const featured=page.locator(".report-metric-featured");
+ await expect(metrics).toHaveCount(5);
+ await expect(metrics.filter({hasText:"Recusados"})).toHaveCount(0);
+ await expect(metrics.filter({hasText:"Taxa de recebimento"})).toHaveCount(0);
+ const featured=page.locator(".report-reference-rate-card");
  await expect(featured).toContainText("Taxa de recebimento");
  await expect(featured).toContainText("57,1%");
- await expect(featured.locator(".report-featured-meter span")).toHaveAttribute("style",/57\.1%/);
- const card=await featured.boundingBox();
+ await expect(featured.locator(".report-reference-rate-track span")).toHaveAttribute("style",/57\.1%/);
+ const card=await metrics.first().boundingBox();
  const next=await metrics.nth(1).boundingBox();
- expect(card.width).toBeGreaterThan(200);
+ expect(card.width).toBeGreaterThan(150);
  expect(card.height).toBeLessThanOrEqual(next.height+16);
  expect(card.y).toBeGreaterThanOrEqual(next.y);
+ await expect(page.locator(".report-reference-distribution-list")).toContainText("Recusados");
  const nav=page.getByRole("tablist",{name:"Seções do relatório"});
  await expect(nav.getByRole("tab")).toHaveCount(3);
  await nav.getByRole("tab",{name:"Desempenho"}).click();
@@ -144,14 +147,14 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
 test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({page})=>{
  await mocks(page,viewer);
  await page.goto("/admin/reports");
- await expect(page.locator(".report-metric-featured")).toBeVisible();
+ await expect(page.locator(".report-reference-rate-card")).toBeVisible();
  await expect(page.locator(".report-reference-latest-card")).toContainText("Fornecedor Teste");
  for(const theme of ["dark","light"]){
    await page.evaluate(value=>document.documentElement.dataset.theme=value,theme);
    for(const width of [390,768,1440]){
      await page.setViewportSize({width,height:900});
      const geometry=await page.locator(".report-kpis").evaluate(el=>{
-       const hero=el.querySelector(".report-metric-featured");
+       const hero=el.querySelector(".report-metric");
        const rect=hero.getBoundingClientRect();
        const grid=el.getBoundingClientRect();
        return {heroWidth:rect.width,gridWidth:grid.width,
@@ -225,8 +228,8 @@ test("Relatório: edita datas diretamente e esclarece comparação sem base ante
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator(".report-insight")).toContainText("0 agendamentos");
   await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
-  const rateMetric=page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span",{hasText:/^Taxa de recebimento$/})});
-  await expect(rateMetric.locator(".report-metric-delta")).toHaveCount(0);
+  await expect(page.locator(".report-kpis")).not.toContainText("Taxa de recebimento");
+  await expect(page.locator(".report-reference-rate-card")).toContainText("Sem comparação disponível");
   await expect(page.locator(".report-metric-delta")).toHaveCount(0);
 });
 test("Atalhos de período, alternância do gráfico, busca de ocorrências e padrão semanal",async({page})=>{
