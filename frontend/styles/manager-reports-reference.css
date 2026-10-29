@@ -105,7 +105,7 @@ html[data-theme="light"] .manager-report{
 .manager-report .report-kpis,
 html[data-theme="dark"] .manager-report .report-kpis{
   display:grid;
-  grid-template-columns:repeat(7,minmax(0,1fr));
+  grid-template-columns:repeat(5,minmax(0,1fr));
   gap:9px;
   margin:0 0 12px;
 }
@@ -265,9 +265,9 @@ html[data-theme="dark"] .manager-report .report-panel>header{padding:16px 18px;m
   .manager-report>[data-report-loading],.manager-report>[data-report-error],
   .manager-report>[data-report-content]{grid-column:1/-1}
 }
-@media (max-width:1439px){
+@media (max-width:1120px){
   .manager-report .report-kpis,html[data-theme="dark"] .manager-report .report-kpis{
-    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-columns:repeat(3,minmax(0,1fr));
   }
 }
 @media(max-width:1220px){
