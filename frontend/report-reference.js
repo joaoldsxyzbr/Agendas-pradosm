@@ -92,9 +92,10 @@ function stacked(daily,range){
     const total=Number(day.total)||0;
     const height=total?Math.max(3,total/max*100):0;
     return '<div class="report-reference-day" role="img" aria-label="'+esc(shortDate(day.date)+": "+n(total)+" agendamentos")+'">'+
-      '<div class="report-reference-stack-space"><div class="report-reference-stack" style="height:'+height.toFixed(2)+'%">'+
-      statuses.map(s=>'<span title="'+esc(s.name)+': '+n(day[s.key])+'" style="height:'+(total?Number(day[s.key]||0)/total*100:0).toFixed(3)+'%;background:'+s.color+'"></span>').join("")+
-      '</div></div><small>'+esc(shortDate(day.date))+'</small></div>';
+      '<div class="report-reference-stack-space">'+(total?'<div class="report-reference-stack" style="height:'+height.toFixed(2)+'%">'+
+      statuses.map(s=>'<span title="'+esc(s.name)+': '+n(day[s.key])+'" style="height:'+(Number(day[s.key]||0)/total*100).toFixed(3)+'%;background:'+s.color+'"></span>').join("")+
+      '</div>':'<span class="report-reference-zero" aria-hidden="true">0</span>')+'</div>'+
+      '<small>'+esc(shortDate(day.date))+'</small></div>';
   }).join("");
   return '<div class="report-reference-stacked">'+bars+'</div><div class="report-reference-stacked-legend">'+
     statuses.map(s=>'<span><i style="background:'+s.color+'"></i>'+esc(s.name)+'</span>').join("")+'</div>';
