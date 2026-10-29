@@ -3,6 +3,12 @@ function jsonValue(value) {
 }
 function auditStatement(db, input) {
   const createdAt = input.createdAt ?? (/* @__PURE__ */ new Date()).toISOString();
+  // Dentro de D1.batch(), changes() identifica se o UPDATE anterior
+  // realmente alterou a linha. Sem alteração não deve existir auditoria.
+  const values = Array(12).fill("?").join(", ");
+  const insert = input.onlyIfPreviousWrite
+    ? `SELECT ${values} WHERE changes() = 1`
+    : `VALUES (${values})`;
   return db.prepare(
     `INSERT INTO auditoria (
         id,
@@ -17,9 +23,9 @@ function auditStatement(db, input) {
         depois,
         detalhes,
         criado_em
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ) ${insert}`
   ).bind(
-    crypto.randomUUID(),
+    input.id ?? crypto.randomUUID(),
     input.userId,
     input.action,
     input.entity,
