@@ -94,6 +94,31 @@ adminReportRoutes.get("/", async (c) => {
     }))
   });
 });
+// Amostra resumida do mesmo período e das mesmas lojas dos indicadores.
+// Seleção limitada no servidor; os campos fiscais não são expostos.
+adminReportRoutes.get("/latest", async (c) => {
+  const parsed = parseFilters(c.req);
+  if (!parsed.success) {
+    return c.json({ error: "FILTROS_INVALIDOS", message: "Informe um período válido de até 93 dias." }, 400);
+  }
+  const {where,args} = storeFilter(parsed.data);
+  const result = await c.env.DB.prepare([
+    "SELECT a.data_agenda AS date, l.codigo AS storeCode, ag.horario_inicio AS time,",
+    "ag.fornecedor AS supplier,",
+    "CASE",
+    "WHEN (ag.status = 'aguardando' AND a.status_dia = 'concluido') OR",
+    "(ag.status = 'nao_chegou' AND ag.observacao = 'Não compareceu') THEN 'nao_compareceu'",
+    "WHEN ag.status = 'nao_chegou' THEN 'nao_recebido'",
+    "ELSE ag.status END AS status",
+    "FROM agendamentos ag",
+    "JOIN agendas a ON a.id = ag.agenda_id",
+    "JOIN lojas l ON l.id = a.loja_id",
+    "WHERE",where,"AND ag.ativo = 1",
+    "ORDER BY a.data_agenda DESC, ag.horario_inicio DESC, ag.id DESC LIMIT 5"
+  ].join(" ")).bind(...args).all();
+  return c.json({ rows: result.results });
+});
+
 const occurrencesFilters = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).max(1e5).default(0),
