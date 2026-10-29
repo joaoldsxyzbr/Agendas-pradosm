@@ -50,7 +50,7 @@ describe("Chart.js e Lucide Static em JavaScript puro",()=>{
     assert.match(build,/await copy\("frontend", "frontend"\)/);
     assert.match(loader,/script\.src = "\/vendor\/chart\.umd\.min\.js"/);
     assert.match(reports,/data-report-native-chart/);
-    assert.match(reports,/mountReportChart\(root,daily/);
+    assert.match(reports,/mountReportChart\(root,lastDaily/);
     assert.match(reports,/disposeChart\(\)/);
     assert.doesNotMatch(read("../../index.html"),/https?:\/\/(?:cdn|unpkg|jsdelivr)/i);
   });
