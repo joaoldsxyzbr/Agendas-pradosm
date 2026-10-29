@@ -274,9 +274,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
       metric("Não recebidos",num(sum.naoChegou),"Registrados na conferência",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
       metric("Não compareceu",num(sum.naoCompareceu),"Classificados no fechamento",delta(sum.naoCompareceu,prev?.naoCompareceu))+
-      metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+
-      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+
-      metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+'</div>'+
+      metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+'</div>'+
       renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
       '</section>'+
