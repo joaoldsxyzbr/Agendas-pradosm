@@ -1,0 +1,273 @@
+/*
+ * Dashboard Gerencial: referência visual fornecida pelo usuário.
+ * Camada de apresentação isolada e posterior aos estilos globais.
+ */
+.manager-report{
+  --dash-bg:#0c1726;
+  --dash-panel:#121f30;
+  --dash-border:#283951;
+  --dash-text:#eaf2ff;
+  --dash-muted:#a5b6ca;
+  --dash-blue:#429dff;
+  --dash-green:#26d39b;
+  --dash-red:#fd6972;
+  --dash-amber:#ffc551;
+  --dash-violet:#a784fa;
+  --dash-track:#23344b;
+  max-width:1600px;
+  color:var(--dash-text);
+}
+html:not([data-theme="dark"]) .manager-report{
+  --dash-bg:#f1f6fc;
+  --dash-panel:#fff;
+  --dash-border:#d9e4f0;
+  --dash-text:#1d304c;
+  --dash-muted:#5d7087;
+  --dash-blue:#166ec2;
+  --dash-green:#087d5a;
+  --dash-red:#b93440;
+  --dash-amber:#94610b;
+  --dash-violet:#6b44b6;
+  --dash-track:#e6edf5;
+}
+.manager-report .page-heading{border:0;margin-bottom:12px;padding:4px 0 6px}
+.manager-report .page-heading h1{font-size:clamp(27px,2.4vw,37px);font-weight:780}
+.manager-report .page-heading p{color:var(--dash-muted);font-size:13px;margin-top:5px}
+.manager-report .page-heading .eyebrow{color:var(--dash-blue);font-size:10px}
+.manager-report .report-heading-tag{border:1px solid var(--dash-border);background:var(--dash-panel);color:var(--dash-muted)}
+.manager-report .report-navigation{
+  padding:4px;border:0;background:transparent;gap:8px;margin:0 0 13px;
+  max-width:100%;width:100%;
+}
+.manager-report .report-navigation a{
+  color:var(--dash-muted);
+  min-width:160px;
+  min-height:41px;
+  border:1px solid var(--dash-border);
+  background:var(--dash-panel);
+  border-radius:9px;
+  font-weight:750;
+}
+.manager-report .report-navigation a:first-child{
+  background:linear-gradient(130deg,#0d4f97,#1667bf);
+  color:#fff;
+  border-color:#1e6cbb;
+}
+.manager-report .report-navigation a:hover,
+.manager-report .report-navigation a:focus-visible{color:var(--dash-text);border-color:var(--dash-blue)}
+.manager-report .report-filters{
+  background:var(--dash-panel);
+  border:1px solid var(--dash-border);
+  padding:13px 17px;
+  border-radius:12px;
+  margin-bottom:18px;
+  gap:10px 12px;
+}
+.manager-report .report-filter-intro{flex-basis:100%;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.manager-report .report-filter-intro strong{color:var(--dash-text);font-size:13px}
+.manager-report .report-filter-intro span{display:inline;color:var(--dash-muted);margin-left:10px}
+.manager-report .report-presets{flex-basis:100%;margin-bottom:0}
+.manager-report .report-chip{min-height:29px;border-color:var(--dash-border);color:var(--dash-muted)}
+.manager-report .report-filters>label:not(.report-compare),
+.manager-report .report-filters>.report-store-filter{color:var(--dash-muted)}
+.manager-report .report-section-heading{margin:24px 0 12px}
+.manager-report .report-section-heading:first-child{margin-top:8px}
+.manager-report .report-section-kicker{font-size:10px;color:var(--dash-blue);letter-spacing:.13em}
+.manager-report .report-section-heading h2{font-size:21px}
+.manager-report .report-section-heading p{font-size:12px;color:var(--dash-muted)}
+.manager-report .report-range-summary{color:var(--dash-muted);border:1px solid var(--dash-border);border-radius:8px;background:var(--dash-panel)}
+.manager-report .report-context-notes{margin:13px 0 16px}
+.manager-report .report-context-notes>p{background:var(--dash-panel);border-color:var(--dash-border);color:var(--dash-muted)}
+/* Mantém os sete indicadores em uma faixa no desktop grande. */
+.manager-report .report-kpis,
+html[data-theme="dark"] .manager-report .report-kpis{
+  grid-template-columns:repeat(7,minmax(0,1fr));
+  gap:9px;
+  margin-bottom:14px;
+  align-items:stretch;
+}
+html .manager-report .report-kpis > .report-metric:nth-child(n){
+  grid-column:auto;
+  grid-row:auto;
+  min-width:0;
+  min-height:126px;
+  padding:15px 13px;
+  border-radius:11px;
+  background:linear-gradient(135deg,var(--dash-panel),var(--dash-panel));
+  border:1px solid var(--dash-border);
+  box-shadow:0 8px 28px rgba(1,12,25,.12);
+}
+.manager-report .report-kpi-top{display:flex;align-items:flex-start;gap:11px;min-width:0}
+.manager-report .report-kpi-meta{display:flex;min-width:0;flex-direction:column;flex:1}
+.manager-report .report-kpi-icon{
+  flex:0 0 36px;width:36px;height:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  background:rgba(66,157,255,.17);color:var(--dash-blue);
+}
+.manager-report .report-kpi-icon svg{width:22px;height:22px}
+.manager-report .report-metric-heading{min-width:0;gap:3px;justify-content:space-between;align-items:flex-start}
+.manager-report .report-metric-heading>span{font-size:11px;line-height:1.35;font-weight:730;color:var(--dash-muted);overflow-wrap:anywhere}
+.manager-report .report-metric .report-info-button{width:18px;height:18px;font-size:10px}
+html .manager-report .report-kpis > .report-metric:nth-child(n) strong{
+  color:var(--dash-blue);
+  font-size:clamp(22px,2vw,31px);
+  font-weight:800;line-height:1.2;
+  margin:7px 0 5px;
+}
+html .manager-report .report-kpis > .report-metric:nth-child(n) small{
+  color:var(--dash-muted);
+  font-size:10px;
+  line-height:1.45;
+  font-weight:550;
+}
+.manager-report .report-kpis > .report-metric:nth-child(2) .report-kpi-icon{background:rgba(38,211,155,.16);color:var(--dash-green)}
+html .manager-report .report-kpis > .report-metric:nth-child(2) strong{color:var(--dash-green)}
+.manager-report .report-kpis > .report-metric:nth-child(3) .report-kpi-icon{background:rgba(253,105,114,.16);color:var(--dash-red)}
+html .manager-report .report-kpis > .report-metric:nth-child(3) strong{color:var(--dash-red)}
+.manager-report .report-kpis > .report-metric:nth-child(4) .report-kpi-icon{background:rgba(255,197,81,.17);color:var(--dash-amber)}
+html .manager-report .report-kpis > .report-metric:nth-child(4) strong{color:var(--dash-amber)}
+.manager-report .report-kpis > .report-metric:nth-child(5) .report-kpi-icon{background:rgba(167,132,250,.17);color:var(--dash-violet)}
+html .manager-report .report-kpis > .report-metric:nth-child(5) strong{color:var(--dash-violet)}
+.manager-report .report-kpis > .report-metric:nth-child(6) .report-kpi-icon{background:rgba(150,160,176,.15);color:var(--dash-muted)}
+html .manager-report .report-kpis > .report-metric:nth-child(6) strong{color:var(--dash-muted)}
+.manager-report .report-kpis > .report-metric:nth-child(7) .report-kpi-icon{background:rgba(66,157,255,.2);color:var(--dash-blue)}
+.manager-report .report-kpis > .report-metric:nth-child(7){border-color:rgba(66,157,255,.4)}
+.manager-report .report-metric .report-metric-delta{font-size:10px;line-height:1.3;margin-bottom:4px}
+.manager-report .report-featured-meter{margin:9px 0 0;height:5px;background:var(--dash-track)}
+.manager-report .report-featured-meter span{background:var(--dash-blue)}
+/* Paineis da imagem: linha + rosca, ranking + barras, ocorrencias + recentes. */
+.manager-report .report-main-grid,
+.manager-report .report-dashboard-trends,
+.manager-report .report-dashboard-details{
+  display:grid;min-width:0;gap:12px;margin:0 0 14px;
+}
+.manager-report .report-main-grid{grid-template-columns:minmax(0,1.75fr) minmax(300px,1fr)}
+.manager-report .report-dashboard-trends{grid-template-columns:repeat(2,minmax(0,1fr))}
+.manager-report .report-dashboard-details{grid-template-columns:minmax(0,1.25fr) minmax(0,1fr)}
+html .manager-report .report-panel{
+  border:1px solid var(--dash-border);
+  background:var(--dash-panel);
+  border-radius:12px;
+  margin-bottom:0;
+  box-shadow:0 8px 26px rgba(1,12,25,.07);
+  min-width:0;
+}
+.manager-report .report-panel>header,
+html[data-theme="dark"] .manager-report .report-panel>header{
+  min-height:57px;
+  padding:16px 17px 9px;
+  border-radius:11px 11px 0 0;
+  border-bottom:0;
+  background:transparent;
+}
+.manager-report .report-panel>header h2{color:var(--dash-text);font-size:15px}
+.manager-report .report-panel>header p{color:var(--dash-muted);font-size:11px;line-height:1.45}
+.manager-report .report-trend-wrap{padding:0 13px 10px}
+.manager-report .report-trend-svg{display:block;width:100%;height:auto;max-height:270px}
+.manager-report .report-trend-grid{stroke:var(--dash-border);stroke-width:1;opacity:.7}
+.manager-report .report-trend-label{fill:var(--dash-muted);font-size:12px}
+.manager-report .report-trend-line{fill:none;stroke:#3895ff;stroke-width:3;stroke-linejoin:round;stroke-linecap:round}
+.manager-report .report-trend-dot{fill:#3895ff;stroke:var(--dash-panel);stroke-width:2}
+.manager-report .report-trend-key{display:flex;justify-content:center;align-items:center;gap:7px;font-size:11px;color:var(--dash-muted)}
+.manager-report .report-trend-key i{display:block;width:9px;height:9px;background:#3895ff;border-radius:50%}
+.manager-report .report-donut-layout{display:flex;align-items:center;gap:18px;padding:12px 16px 25px;min-height:230px}
+.manager-report .report-donut-ring{flex:0 0 min(44%,170px);aspect-ratio:1/1;border-radius:50%;display:grid;place-items:center}
+.manager-report .report-donut-center{width:61%;height:61%;border-radius:50%;background:var(--dash-panel);display:flex;flex-direction:column;align-items:center;justify-content:center}
+.manager-report .report-donut-center strong{font-size:clamp(24px,2.5vw,32px);color:var(--dash-text);font-weight:800}
+.manager-report .report-donut-center span{font-size:10px;color:var(--dash-muted)}
+.manager-report .report-donut-legend{min-width:0;flex:1;display:grid;gap:13px}
+.manager-report .report-donut-item{display:flex;gap:7px;align-items:center;justify-content:space-between;font-size:11px;white-space:nowrap}
+.manager-report .report-donut-label{display:inline-flex;align-items:center;gap:7px;min-width:0;color:var(--dash-muted)}
+.manager-report .report-donut-label i{flex:0 0 9px;width:9px;height:9px;border-radius:50%}
+.manager-report .report-donut-item strong{font-weight:700;font-variant-numeric:tabular-nums;color:var(--dash-text)}
+.manager-report .report-donut-item small{font-size:10px;font-weight:500;color:var(--dash-muted)}
+.manager-report .report-progress-list{padding:5px 17px 15px}
+.manager-report .report-progress-item,
+html[data-theme="dark"] .manager-report .report-progress-item{padding:11px 0}
+.manager-report .report-progress-item>div:first-child span{color:var(--dash-text)}
+.manager-report .report-progress-item>div:first-child strong{color:var(--dash-green)}
+.manager-report .report-progress{background:var(--dash-track);height:10px;border-radius:5px}
+.manager-report .report-progress span{background:linear-gradient(90deg,#2989f7,#41adff)}
+.manager-report .report-store-highlights .report-store-highlight-best .report-progress span{background:linear-gradient(90deg,#20b98b,#29d9a3)}
+.manager-report .report-store-highlights .report-meter-note{color:var(--dash-muted)}
+.manager-report .report-stacked-panel .report-chart-canvas-scroll{padding:0 12px 5px}
+.manager-report .report-stacked-panel .report-chart-canvas{height:240px}
+.manager-report .report-stacked-panel .report-chart-tools{padding:2px;border:1px solid var(--dash-border)}
+.manager-report .report-stacked-panel .report-chart-tools .ghost-button{font-size:11px}
+.manager-report .report-analytics-grid{margin-bottom:14px;gap:12px}
+.manager-report .report-panel:has(.report-occurrence-search),
+.manager-report .report-panel:has(.report-store-table){margin-bottom:14px}
+.manager-report .report-preview-occurrences .report-table-scroll,
+.manager-report .report-latest-panel .report-table-scroll{padding:0 12px 13px}
+.manager-report .report-preview-occurrences table,
+.manager-report .report-latest-panel table{width:100%;min-width:490px}
+html .manager-report th{
+  background:transparent;color:var(--dash-muted);font-size:11px;
+  border-bottom:1px solid var(--dash-border);
+  padding:10px 11px;
+}
+html .manager-report td{
+  color:var(--dash-text);font-size:11px;padding:10px 11px;
+  border-bottom:1px solid var(--dash-border);
+}
+.manager-report tbody tr:nth-child(even){background:transparent}
+.manager-report tbody tr:hover{background:rgba(75,145,235,.07)}
+.manager-report .report-status-tag{font-size:10px;border-radius:6px;padding:4px 7px;font-weight:750;line-height:1.35}
+.manager-report .report-status-tag.is-received{border-color:rgba(38,211,155,.3);background:#145e4b;color:#bcffe9}
+.manager-report .report-status-tag.is-missed,
+.manager-report .report-status-tag.is-manual{border-color:rgba(253,105,114,.3);background:#6d2731;color:#ffd2d5}
+.manager-report .report-status-tag.is-automatic{border-color:rgba(255,197,81,.3);background:#745010;color:#fff2cf}
+.manager-report .report-status-tag.is-pending{border-color:rgba(167,132,250,.3);background:#463071;color:#eee1ff}
+.manager-report .report-status-tag.is-refused{border-color:var(--dash-border);background:var(--dash-track);color:var(--dash-text)}
+.manager-report .report-status-tag.is-unknown{color:var(--dash-muted)}
+.manager-report .report-empty{color:var(--dash-muted);font-size:12px;padding:22px}
+.manager-report .report-rate-cell strong{color:var(--dash-green)}
+.manager-report .report-rate-track{background:var(--dash-track)}
+.manager-report .report-rate-track i{background:var(--dash-blue)}
+.manager-report .report-navigation a:focus-visible,
+.manager-report :is(button,a,input,summary):focus-visible{outline:2px solid var(--dash-blue);outline-offset:2px}
+html:not([data-theme="dark"]) .manager-report .report-status-tag.is-received{background:#d8f7eb;color:#0f624c}
+html:not([data-theme="dark"]) .manager-report .report-status-tag.is-missed{background:#ffe4e6;color:#a5313b}
+html:not([data-theme="dark"]) .manager-report .report-status-tag.is-automatic{background:#fff0ca;color:#875809}
+html:not([data-theme="dark"]) .manager-report .report-status-tag.is-pending{background:#efe6ff;color:#6540a6}
+@media(max-width:1450px){
+  .manager-report .report-kpis,
+  html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+  html .manager-report .report-kpis > .report-metric:nth-child(n){min-height:118px}
+  .manager-report .report-kpis>.report-metric:nth-child(7){grid-column:span 2}
+}
+@media(max-width:1100px){
+  .manager-report .report-main-grid,
+  .manager-report .report-dashboard-trends,
+  .manager-report .report-dashboard-details{grid-template-columns:1fr}
+  .manager-report .report-donut-layout{justify-content:center}
+  .manager-report .report-panel>header{padding:15px}
+}
+@media(max-width:720px){
+  .manager-report .report-kpis,
+  html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html .manager-report .report-kpis > .report-metric:nth-child(n){grid-column:auto;min-height:120px;padding:14px 11px}
+  .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
+  .manager-report .report-navigation{gap:5px}
+  .manager-report .report-navigation a{min-width:0;flex:1;padding:8px 5px;font-size:11px}
+  .manager-report .report-filter-intro span{display:none}
+  .manager-report .report-section-heading{align-items:flex-start}
+  .manager-report .report-donut-layout{flex-direction:column;gap:17px}
+  .manager-report .report-donut-ring{width:min(190px,60vw);flex:none}
+  .manager-report .report-donut-legend{width:100%}
+  .manager-report .report-trend-svg{max-height:200px}
+}
+@media(max-width:430px){
+  .manager-report .report-kpis,
+  html[data-theme="dark"] .manager-report .report-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  html .manager-report .report-kpis > .report-metric:nth-child(n){grid-column:auto;min-height:126px}
+  .manager-report .report-kpis > .report-metric:nth-child(7){grid-column:1/-1}
+  .manager-report .report-kpi-top{flex-direction:column;gap:8px}
+  .manager-report .report-kpi-icon{width:31px;height:31px;flex-basis:31px}
+  html .manager-report .report-kpis > .report-metric:nth-child(n) strong{font-size:23px}
+  .manager-report .report-section-heading h2{font-size:19px}
+}
+@media print{
+  .manager-report .report-metric,.manager-report .report-panel{box-shadow:none}
+  .manager-report .report-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
