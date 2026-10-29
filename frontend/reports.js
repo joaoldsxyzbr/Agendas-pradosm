@@ -1,6 +1,7 @@
 import { apiFetch } from "./api.js";
 import { reportInfo, setupReportInfo } from "./report-info.js";
 import { mountReportChart } from "./report-chart.js";
+import { renderReferenceOverview } from "./report-reference.js";
 import { escapeHtml as esc } from "./shell.js";
 import { businessDate } from "../shared/time.js";
 import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, groupWeekdayReport, WEEKDAY_LABELS } from "./report-model.js";
@@ -30,10 +31,22 @@ const rateCell=value=>{
 const occurrenceStatus=automatic=>'<span class="report-status-tag '+(automatic?'is-automatic':'is-manual')+'">'+(automatic?'Não compareceu':'Não recebido')+'</span>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
+const METRIC_ICONS=Object.freeze({
+  "Agendamentos":["calendar-days","appointments"],
+  "Recebidos":["check-circle-2","received"],
+  "Não recebidos":["x-circle","missed"],
+  "Não compareceu":["users","absent"],
+  "Aguardando":["clock-3","pending"],
+  "Recusados":["ban","refused"],
+  "Taxa de recebimento":["percent","rate"]
+});
 const metric=(label,value,description,delta=null,variant="supporting",progress=null)=>{
   const featured=progress!==null;
+  const [icon,tone]=METRIC_ICONS[label]||["circle","neutral"];
   const meter=featured?'<div class="report-featured-meter" aria-hidden="true"><span style="width:'+Math.min(100,Math.max(0,progress)).toFixed(1)+'%"></span></div>':"";
-  return '<div class="report-metric report-metric-'+variant+(featured?' report-metric-featured':'')+'"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div>'+
+  return '<div class="report-metric report-metric-'+variant+' report-metric-tone-'+tone+(featured?' report-metric-featured':'')+'">'+
+    '<span class="report-metric-icon" aria-hidden="true"><img src="/vendor/lucide/'+icon+'.svg" alt="" width="20" height="20"></span>'+
+    '<div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div>'+
     '<strong>'+esc(value)+'</strong>'+meter+
     (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+
     '<small>'+esc(description)+'</small></div>';
@@ -165,7 +178,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
   };
-  function paintContent(report,previous,occurrences,requestId){
+  function paintContent(report,previous,occurrences,requestId,latest=null){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows),weekdays=groupWeekdayReport(daily);
     const rate=x=>pct(reportRate(x));
     const prev=previous&&prior.total>0?prior:null;
@@ -226,13 +239,14 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
       '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span></div>'+ 
       '<div class="report-kpis">'+
-      metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
       metric("Não recebidos",num(sum.naoChegou),"Registrados na conferência",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
       metric("Não compareceu",num(sum.naoCompareceu),"Classificados no fechamento",delta(sum.naoCompareceu,prev?.naoCompareceu))+
       metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+
-      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+
+      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+
+      metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+'</div>'+
+      renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
       '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
@@ -257,15 +271,16 @@ export function renderReports(root,{request=apiFetch}={}) {
       paintShell();
       const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
       const before=shift(settings.start,-1),earlier=shift(before,-days+1);
-      const [report,previous,occurrences]=await Promise.all([
+      const [report,previous,occurrences,latest]=await Promise.all([
         request("/api/admin/reports?"+params(settings.start,settings.end)),
         settings.compare?request("/api/admin/reports?"+params(earlier,before)):Promise.resolve(null),
-        request("/api/admin/reports/occurrences?"+params(settings.start,settings.end,settings.offset))
+        request("/api/admin/reports/occurrences?"+params(settings.start,settings.end,settings.offset)),
+        request("/api/admin/reports/latest?"+params(settings.start,settings.end))
       ]);
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
-      paintContent(report,previous,occurrences,id);
-      cached={report,previous,occurrences,requestId:id};
+      paintContent(report,previous,occurrences,id,latest);
+      cached={report,previous,occurrences,latest,requestId:id};
     }catch(e){
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
@@ -314,7 +329,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       const next=modeButton.dataset.reportChartMode||"volume";
       if(next!==settings.chartMode){
         settings={...settings,chartMode:next};
-        if(cached){disposeChart();paintContent(cached.report,cached.previous,cached.occurrences,cached.requestId);}
+        if(cached){disposeChart();paintContent(cached.report,cached.previous,cached.occurrences,cached.requestId,cached.latest);}
       }
       return;
     }
