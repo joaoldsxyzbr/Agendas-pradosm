@@ -335,3 +335,21 @@ test("Popups abrem no mesmo relatório, mantêm filtros e fecham por teclado",as
  await expect(summary).toBeVisible();
  expect(count()).toBeGreaterThanOrEqual(before);
 });
+
+
+test("Ajuda contextual aparece em todos os cards e explica últimos agendamentos",async({page})=>{
+  await mocks(page,viewer);
+  await page.goto("/admin/reports");
+  const cards=page.locator(".report-reference-card");
+  await expect(cards).toHaveCount(7);
+  await expect(cards.locator("[data-report-info]")).toHaveCount(7);
+  const last=page.locator(".report-reference-latest-card");
+  const info=last.getByRole("button",{name:"Sobre: Últimos agendamentos"});
+  await info.click();
+  await expect(info).toHaveAttribute("aria-expanded","true");
+  const tooltip=last.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Não são necessariamente os últimos cadastrados");
+  await page.keyboard.press("Escape");
+  await expect(info).toHaveAttribute("aria-expanded","false");
+});
