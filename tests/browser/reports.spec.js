@@ -94,6 +94,10 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-store-table")).toBeVisible();
    await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
    const filter=page.locator("[data-report-filters]");
+   const compact=page.locator("#report-overview [data-report-popover]");
+   await expect(compact).toBeVisible();
+   await expect(compact).not.toHaveAttribute("open","");
+   await compact.locator(".report-filter-trigger").click();
    await filter.locator("[data-report-store-select] summary").click();
    await filter.locator('input[name="stores"][value="F01"]').check();
    await expect(filter.locator("[data-report-store-select] summary")).toContainText("F01");
@@ -159,6 +163,7 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  await page.goto("/admin/reports");
  const filters=page.locator("[data-report-filters]");
  const picker=filters.locator("[data-report-store-select]");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker.locator('input[name="stores"]')).toHaveCount(2);
  await picker.locator('input[value="F01"]').check();
@@ -172,6 +177,7 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  for(const q of scoped)expect(new URLSearchParams(q).getAll("storeCode")).toEqual(["F01","F02"]);
  await page.reload();
  await expect(filters.locator("[data-report-store-select] summary")).toHaveText("2 lojas selecionadas");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker.locator('input[value="F01"]')).toBeChecked();
  await expect(picker.locator('input[value="F02"]')).toBeChecked();
@@ -187,6 +193,7 @@ test("Filtro múltiplo é operável no celular com teclado e sem rolagem horizon
  await mocks(page,viewer);
  await page.goto("/admin/reports");
  const picker=page.locator("[data-report-store-select]");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker).toHaveAttribute("open","");
  await picker.locator('input[value="F02"]').check();
@@ -202,6 +209,7 @@ test("Relatório: edita datas diretamente e esclarece comparação sem base ante
   await mocks(page,admin,{emptyPrevious:true});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.locator("[name=start]").fill("2026-10-01");
   await page.locator("[name=end]").fill("2026-10-19");
   await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
@@ -225,10 +233,12 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator(".report-weekdays .report-progress-item span").first()).toHaveText("Segunda-feira");
   await expect(page.locator(".manager-report")).toContainText("Taxa de recebimento no período");
   const today=businessDay();
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.locator("[name=start]").fill("2026-09-01");
   await page.locator("[name=end]").fill("2026-09-30");
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator("[name=end]")).toHaveValue("2026-09-30");
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.getByRole("button",{name:"Últimos 7 dias"}).click();
   await expect(page.locator("[name=\"start\"]")).toHaveValue(shift(today,-6));
   await expect(page.locator("[name=\"end\"]")).toHaveValue(today);
