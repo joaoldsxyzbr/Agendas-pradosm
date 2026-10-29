@@ -99,6 +99,9 @@ export function renderReports(root,{request=apiFetch}={}) {
   let closed=false,sequence=0,storePromise=null,stores=[],error="";
   let disposeChart=()=>{};
   let cached=null;
+  const TAB_KEYS=["overview","trends","details"];
+  const tabFromHash=()=>TAB_KEYS.find(tab=>root.ownerDocument.defaultView?.location.hash==="#report-"+tab)||"overview";
+  let activeTab=tabFromHash();
   const disposeInfo=setupReportInfo(root);
   let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume"};
   settings.start=shift(settings.end,-29);
@@ -160,8 +163,10 @@ export function renderReports(root,{request=apiFetch}={}) {
     root.innerHTML='<section class="admin-page manager-report"><header class="page-heading"><div>'+
       '<span class="eyebrow">INTELIGÊNCIA OPERACIONAL</span><h1>Relatório Gerencial</h1>'+
       '<p>Panorama dos recebimentos, desempenho das lojas e ocorrências registradas.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
-      '<nav class="report-navigation" aria-label="Seções do relatório">'+
-      '<a href="#report-overview">Visão geral</a><a href="#report-trends">Desempenho</a><a href="#report-details">Detalhamento</a></nav>'+
+      '<nav class="report-navigation" role="tablist" aria-label="Seções do relatório">'+
+      '<a href="#report-overview" role="tab" id="report-tab-overview" data-report-tab="overview" aria-controls="report-panel-overview" aria-selected="true" tabindex="0">Visão geral</a>'+
+      '<a href="#report-trends" role="tab" id="report-tab-trends" data-report-tab="trends" aria-controls="report-panel-trends" aria-selected="false" tabindex="-1">Desempenho</a>'+
+      '<a href="#report-details" role="tab" id="report-tab-details" data-report-tab="details" aria-controls="report-panel-details" aria-selected="false" tabindex="-1">Detalhamento</a></nav>'+
       '<details class="report-filter-popover" data-report-popover><summary class="report-filter-trigger" aria-label="Editar período e lojas">'+
       '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span>'+
       '<span class="report-filter-chevron" aria-hidden="true">▾</span></summary>'+
@@ -181,6 +186,25 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
   };
+  function showTab(tab){
+    activeTab=TAB_KEYS.includes(tab)?tab:"overview";
+    for(const panel of root.querySelectorAll("[data-report-tab-panel]")){
+      panel.hidden=panel.dataset.reportTabPanel!==activeTab;
+    }
+    for(const link of root.querySelectorAll("[data-report-tab]")){
+      const selected=link.dataset.reportTab===activeTab;
+      link.setAttribute("aria-selected",String(selected));
+      link.tabIndex=selected?0:-1;
+    }
+    // O filtro pertence ao cabeçalho da aba atual, sem perder seleções.
+    const heading=root.querySelector("#report-"+activeTab);
+    const popover=root.querySelector("[data-report-popover]");
+    if(heading&&popover)heading.append(popover);
+    if(activeTab==="trends"){
+      const canvas=root.querySelector("[data-report-chart-canvas]");
+      root.ownerDocument.defaultView?.Chart?.getChart(canvas)?.resize();
+    }
+  }
   function paintContent(report,previous,occurrences,requestId,latest=null){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows),weekdays=groupWeekdayReport(daily);
     const rate=x=>pct(reportRate(x));
@@ -242,6 +266,7 @@ export function renderReports(root,{request=apiFetch}={}) {
     const popover=root.querySelector("[data-report-popover]");
     popover?.remove();
     root.querySelector("[data-report-content]").innerHTML=
+      '<section class="report-tab-panel" id="report-panel-overview" data-report-tab-panel="overview" role="tabpanel" aria-labelledby="report-tab-overview">'+
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
       '</div>'+ 
       '<div class="report-kpis">'+
@@ -254,19 +279,23 @@ export function renderReports(root,{request=apiFetch}={}) {
       metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+'</div>'+
       renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
+      '</section>'+
+      '<section class="report-tab-panel" id="report-panel-trends" data-report-tab-panel="trends" role="tabpanel" aria-labelledby="report-tab-trends">'+
       '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+
       panel("Comparativo por loja",storeComparisonDescription,'<div class="report-progress-list report-store-highlights">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos com a taxa de recebimento de cada um",'<div class="report-progress-list">'+supplierBars+'</div>')+
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
-      '</div>'+
+      '</div></section>'+
+      '<section class="report-tab-panel" id="report-panel-details" data-report-tab-panel="details" role="tabpanel" aria-labelledby="report-tab-details">'+
       '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
-      panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search);
-    const sectionHeading=root.querySelector("#report-overview");
-    if(popover&&sectionHeading)sectionHeading.append(popover);
+      panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search)+
+      '</section>';
+    if(popover)root.querySelector("#report-"+activeTab)?.append(popover);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
+    showTab(activeTab);
   }
   async function load(){
     const id=++sequence;error="";cached=null;disposeChart();disposeChart=()=>{};paintShell();
@@ -317,6 +346,13 @@ export function renderReports(root,{request=apiFetch}={}) {
     void load();
   };
   const click=e=>{
+    const tab=e.target.closest?.("[data-report-tab]");
+    if(tab&&root.contains(tab)){
+      e.preventDefault();
+      showTab(tab.dataset.reportTab);
+      root.ownerDocument.defaultView?.history.replaceState(null,"",tab.getAttribute("href"));
+      return;
+    }
     const pagerButton=e.target.closest?.("[data-report-prev],[data-report-next]");
     if(pagerButton&&root.contains(pagerButton)&&!pagerButton.disabled){
       settings={...settings,offset:Math.max(0,settings.offset+(pagerButton.matches("[data-report-next]")?50:-50))};
@@ -363,6 +399,18 @@ export function renderReports(root,{request=apiFetch}={}) {
     if(picker?.open&&!picker.contains(e.target))picker.open=false;
   };
   const keyboard=e=>{
+    const tab=e.target.closest?.("[data-report-tab]");
+    if(tab&&["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){
+      const index=TAB_KEYS.indexOf(tab.dataset.reportTab);
+      const next=e.key==="Home"?0:e.key==="End"?TAB_KEYS.length-1:
+        (index+(e.key==="ArrowRight"?1:-1)+TAB_KEYS.length)%TAB_KEYS.length;
+      const link=root.querySelector('[data-report-tab="'+TAB_KEYS[next]+'"]');
+      e.preventDefault();
+      showTab(TAB_KEYS[next]);
+      root.ownerDocument.defaultView?.history.replaceState(null,"",link.getAttribute("href"));
+      link.focus();
+      return;
+    }
     if(e.key!=="Escape")return;
     const picker=root.querySelector("[data-report-store-select]");
     if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();return;}
@@ -379,6 +427,8 @@ export function renderReports(root,{request=apiFetch}={}) {
   root.addEventListener("keydown",keyboard);
   root.ownerDocument.addEventListener("click",dismissPicker);
   root.ownerDocument.addEventListener("click",dismissPopover);
+  const onHashChange=()=>showTab(tabFromHash());
+  root.ownerDocument.defaultView?.addEventListener("hashchange",onHashChange);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);root.ownerDocument.defaultView?.removeEventListener("hashchange",onHashChange);};
 }
