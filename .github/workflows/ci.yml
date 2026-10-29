@@ -29,6 +29,8 @@ jobs:
         run: npm ci --legacy-peer-deps
       - name: Auditoria de dependencias de producao
         run: npm audit --omit=dev
+      - name: Bloquear vulnerabilidades altas e criticas nas dependencias de desenvolvimento
+        run: npm audit --audit-level=high
       - name: Garantir codigo-fonte 100 por cento JavaScript
         shell: bash
         run: |
