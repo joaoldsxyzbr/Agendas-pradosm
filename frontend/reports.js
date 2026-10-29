@@ -31,6 +31,10 @@ const rateCell=value=>{
 const occurrenceStatus=automatic=>'<span class="report-status-tag '+(automatic?'is-automatic':'is-manual')+'">'+(automatic?'Não compareceu':'Não recebido')+'</span>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
+const reportDialog=(key,title,description,content)=>'<dialog class="report-detail-dialog" data-report-dialog="'+key+'" aria-labelledby="report-dialog-title-'+key+'">'+
+  '<header class="report-dialog-header"><div><h2 id="report-dialog-title-'+key+'">'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
+  '<button type="button" class="report-dialog-close" data-report-dialog-close aria-label="Fechar '+esc(title)+'">✕</button></header>'+
+  '<div class="report-dialog-body">'+content+'</div></dialog>';
 const METRIC_ICONS=Object.freeze({
   "Agendamentos":["calendar-days","appointments"],
   "Recebidos":["circle-check","received"],
@@ -99,11 +103,9 @@ export function renderReports(root,{request=apiFetch}={}) {
   let closed=false,sequence=0,storePromise=null,stores=[],error="";
   let disposeChart=()=>{};
   let cached=null;
-  const TAB_KEYS=["overview","trends","details"];
-  const tabFromHash=()=>TAB_KEYS.find(tab=>root.ownerDocument.defaultView?.location.hash==="#report-"+tab)||"overview";
-  let activeTab=tabFromHash();
+  let activeDialog=null,dialogTrigger=null,lastDaily=[];
   const disposeInfo=setupReportInfo(root);
-  let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume"};
+  let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume",recentOffset:0};
   settings.start=shift(settings.end,-29);
   const restoreFilters=()=>{
     if(typeof window==="undefined")return null;
@@ -163,10 +165,7 @@ export function renderReports(root,{request=apiFetch}={}) {
     root.innerHTML='<section class="admin-page manager-report"><header class="page-heading"><div>'+
       '<span class="eyebrow">INTELIGÊNCIA OPERACIONAL</span><h1>Relatório Gerencial</h1>'+
       '<p>Panorama dos recebimentos, desempenho das lojas e ocorrências registradas.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
-      '<nav class="report-navigation" role="tablist" aria-label="Seções do relatório">'+
-      '<a href="#report-overview" role="tab" id="report-tab-overview" data-report-tab="overview" aria-controls="report-panel-overview" aria-selected="true" tabindex="0">Visão geral</a>'+
-      '<a href="#report-trends" role="tab" id="report-tab-trends" data-report-tab="trends" aria-controls="report-panel-trends" aria-selected="false" tabindex="-1">Desempenho</a>'+
-      '<a href="#report-details" role="tab" id="report-tab-details" data-report-tab="details" aria-controls="report-panel-details" aria-selected="false" tabindex="-1">Detalhamento</a></nav>'+
+
       '<details class="report-filter-popover" data-report-popover><summary class="report-filter-trigger" aria-label="Editar período e lojas">'+
       '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span>'+
       '<span class="report-filter-chevron" aria-hidden="true">▾</span></summary>'+
@@ -186,27 +185,23 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
   };
-  function showTab(tab){
-    activeTab=TAB_KEYS.includes(tab)?tab:"overview";
-    for(const panel of root.querySelectorAll("[data-report-tab-panel]")){
-      panel.hidden=panel.dataset.reportTabPanel!==activeTab;
+  function openDialog(name,trigger=null){
+    const dialog=root.querySelector('[data-report-dialog="'+name+'"]');
+    if(!dialog)return;
+    if(trigger)dialogTrigger=trigger;
+    if(!dialog.open)dialog.showModal();
+    activeDialog=name;
+    if(name==="analysis"){
+      disposeChart();
+      disposeChart=mountReportChart(root,lastDaily,()=>!closed,settings.chartMode);
     }
-    for(const link of root.querySelectorAll("[data-report-tab]")){
-      const selected=link.dataset.reportTab===activeTab;
-      link.setAttribute("aria-selected",String(selected));
-      link.tabIndex=selected?0:-1;
-    }
-    // O filtro pertence ao cabeçalho da aba atual, sem perder seleções.
-    const heading=root.querySelector("#report-"+activeTab);
-    const popover=root.querySelector("[data-report-popover]");
-    if(heading&&popover)heading.append(popover);
-    if(activeTab==="trends"){
-      const canvas=root.querySelector("[data-report-chart-canvas]");
-      root.ownerDocument.defaultView?.Chart?.getChart(canvas)?.resize();
-    }
+  }
+  function closeDialog(){
+    root.querySelector("dialog.report-detail-dialog[open]")?.close();
   }
   function paintContent(report,previous,occurrences,requestId,latest=null){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows),weekdays=groupWeekdayReport(daily);
+    lastDaily=daily;
     const rate=x=>pct(reportRate(x));
     const prev=previous&&prior.total>0?prior:null;
     const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
@@ -257,6 +252,15 @@ export function renderReports(root,{request=apiFetch}={}) {
     const chartTools='<div class="report-chart-tools" role="group" aria-label="Modo do gráfico">'+
       '<button type="button" class="ghost-button report-mode-button" data-report-chart-mode="volume" aria-pressed="'+(settings.chartMode==="volume")+'">Volume</button>'+
       '<button type="button" class="ghost-button report-mode-button" data-report-chart-mode="rate" aria-pressed="'+(settings.chartMode==="rate")+'">Taxa de recebimento</button></div>';
+    const latestRows=(latest?.rows||[]).map(a=>{
+      const status={recebido:"Recebido",nao_recebido:"Não recebido",nao_compareceu:"Não compareceu",aguardando:"Aguardando",recusado:"Recusado"}[a.status]||"Aguardando";
+      return '<tr>'+cell(date(a.date))+cell(a.time||"—")+cell(a.storeCode)+cell(a.supplier||"—")+cell(status)+'</tr>';
+    });
+    const latestTotal=Number(latest?.total ?? latestRows.length)||0;
+    const latestPager='<div class="report-pagination"><span>'+num(latestTotal)+' agendamento(s) · '+
+      num(latestTotal?settings.recentOffset+1:0)+'–'+num(Math.min(settings.recentOffset+50,latestTotal))+'</span><div>'+
+      '<button type="button" class="ghost-button" data-report-recent-prev'+(!settings.recentOffset?' disabled':'')+'>Anterior</button> '+
+      '<button type="button" class="ghost-button" data-report-recent-next'+(settings.recentOffset+50>=latestTotal?' disabled':'')+'>Próxima</button></div></div>';
     const search='<form class="report-occurrence-search" data-report-search>'+
       '<input type="search" name="q" maxlength="80" placeholder="Fornecedor ou protocolo" aria-label="Buscar ocorrência por fornecedor ou protocolo" value="'+esc(settings.occurrenceQuery)+'">'+
       '<button class="ghost-button" type="submit">Buscar</button>'+
@@ -266,7 +270,7 @@ export function renderReports(root,{request=apiFetch}={}) {
     const popover=root.querySelector("[data-report-popover]");
     popover?.remove();
     root.querySelector("[data-report-content]").innerHTML=
-      '<section class="report-tab-panel" id="report-panel-overview" data-report-tab-panel="overview" role="tabpanel" aria-labelledby="report-tab-overview">'+
+      '<section class="report-overview-page" id="report-panel-overview">'+
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
       '</div>'+ 
       '<div class="report-kpis">'+
@@ -278,22 +282,31 @@ export function renderReports(root,{request=apiFetch}={}) {
       renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
       '</section>'+
-      '<section class="report-tab-panel" id="report-panel-trends" data-report-tab-panel="trends" role="tabpanel" aria-labelledby="report-tab-trends">'+
-      '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
+      reportDialog("analysis","Análises completas","Evolução diária, fornecedores e padrões de recebimento.", 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+
       panel("Comparativo por loja",storeComparisonDescription,'<div class="report-progress-list report-store-highlights">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos com a taxa de recebimento de cada um",'<div class="report-progress-list">'+supplierBars+'</div>')+
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
-      '</div></section>'+
-      '<section class="report-tab-panel" id="report-panel-details" data-report-tab-panel="details" role="tabpanel" aria-labelledby="report-tab-details">'+
-      '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
-      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
-      panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search)+
-      '</section>';
-    if(popover)root.querySelector("#report-"+activeTab)?.append(popover);
-    disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
-    showTab(activeTab);
+      '</div>')+
+      reportDialog("stores","Todas as lojas","Indicadores consolidados das unidades no período selecionado.",
+        panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table")))+
+      reportDialog("occurrences","Todas as ocorrências","Registros, motivos e origem da classificação.",
+        panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search))+
+      reportDialog("appointments","Detalhamento dos agendamentos","Registros recentes no período e nas lojas selecionadas.",
+        panel("Últimos agendamentos","Lista completa por data e horário",table(["Data","Hora","Loja","Fornecedor","Situação"],latestRows)+latestPager));
+    if(popover)root.querySelector("#report-overview")?.append(popover);
+    for(const dialog of root.querySelectorAll("[data-report-dialog]")){
+      dialog.addEventListener("close",()=>{
+        if(root.contains(dialog)&&activeDialog===dialog.dataset.reportDialog){
+          activeDialog=null;
+          disposeChart();disposeChart=()=>{};
+          if(dialogTrigger?.isConnected)dialogTrigger.focus();
+          dialogTrigger=null;
+        }
+      });
+    }
+    if(activeDialog)openDialog(activeDialog);
   }
   async function load(){
     const id=++sequence;error="";cached=null;disposeChart();disposeChart=()=>{};paintShell();
@@ -310,7 +323,7 @@ export function renderReports(root,{request=apiFetch}={}) {
         request("/api/admin/reports?"+params(settings.start,settings.end)),
         settings.compare?request("/api/admin/reports?"+params(earlier,before)):Promise.resolve(null),
         request("/api/admin/reports/occurrences?"+params(settings.start,settings.end,settings.offset)),
-        request("/api/admin/reports/latest?"+params(settings.start,settings.end))
+        request("/api/admin/reports/latest?"+params(settings.start,settings.end)+"&limit=50&offset="+settings.recentOffset)
       ]);
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
@@ -339,16 +352,27 @@ export function renderReports(root,{request=apiFetch}={}) {
       const node=root.querySelector("[data-report-error]");
       node.textContent="Selecione um período válido de até 93 dias.";node.hidden=false;return;
     }
-    settings={...settings,start,end,stores:form.getAll("stores").map(String),compare:form.has("compare"),offset:0};
+    settings={...settings,start,end,stores:form.getAll("stores").map(String),compare:form.has("compare"),offset:0,recentOffset:0};
     persistFilters();
     void load();
   };
   const click=e=>{
-    const tab=e.target.closest?.("[data-report-tab]");
-    if(tab&&root.contains(tab)){
+    const open=e.target.closest?.("[data-report-dialog-open]");
+    if(open&&root.contains(open)){
       e.preventDefault();
-      showTab(tab.dataset.reportTab);
-      root.ownerDocument.defaultView?.history.replaceState(null,"",tab.getAttribute("href"));
+      openDialog(open.dataset.reportDialogOpen,open);
+      return;
+    }
+    if(e.target.closest?.("[data-report-dialog-close]")){
+      closeDialog();
+      return;
+    }
+    const dialog=e.target.closest?.("[data-report-dialog]");
+    if(dialog&&e.target===dialog){closeDialog();return;}
+    const recentPage=e.target.closest?.("[data-report-recent-prev],[data-report-recent-next]");
+    if(recentPage&&root.contains(recentPage)&&!recentPage.disabled){
+      settings={...settings,recentOffset:Math.max(0,settings.recentOffset+(recentPage.matches("[data-report-recent-next]")?50:-50))};
+      void load();
       return;
     }
     const pagerButton=e.target.closest?.("[data-report-prev],[data-report-next]");
@@ -397,18 +421,6 @@ export function renderReports(root,{request=apiFetch}={}) {
     if(picker?.open&&!picker.contains(e.target))picker.open=false;
   };
   const keyboard=e=>{
-    const tab=e.target.closest?.("[data-report-tab]");
-    if(tab&&["ArrowLeft","ArrowRight","Home","End"].includes(e.key)){
-      const index=TAB_KEYS.indexOf(tab.dataset.reportTab);
-      const next=e.key==="Home"?0:e.key==="End"?TAB_KEYS.length-1:
-        (index+(e.key==="ArrowRight"?1:-1)+TAB_KEYS.length)%TAB_KEYS.length;
-      const link=root.querySelector('[data-report-tab="'+TAB_KEYS[next]+'"]');
-      e.preventDefault();
-      showTab(TAB_KEYS[next]);
-      root.ownerDocument.defaultView?.history.replaceState(null,"",link.getAttribute("href"));
-      link.focus();
-      return;
-    }
     if(e.key!=="Escape")return;
     const picker=root.querySelector("[data-report-store-select]");
     if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();return;}
@@ -425,8 +437,6 @@ export function renderReports(root,{request=apiFetch}={}) {
   root.addEventListener("keydown",keyboard);
   root.ownerDocument.addEventListener("click",dismissPicker);
   root.ownerDocument.addEventListener("click",dismissPopover);
-  const onHashChange=()=>showTab(tabFromHash());
-  root.ownerDocument.defaultView?.addEventListener("hashchange",onHashChange);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);root.ownerDocument.defaultView?.removeEventListener("hashchange",onHashChange);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);};
 }
