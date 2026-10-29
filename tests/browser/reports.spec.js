@@ -327,7 +327,7 @@ test("Popups abrem no mesmo relatório, mantêm filtros e fecham por teclado",as
  await expect(appointments).toBeVisible();
  await expect(appointments).toContainText("Fornecedor Teste");
  await expect(appointments.getByRole("button",{name:"Próxima"})).toBeDisabled();
- await appointments.getByRole("button",{name:/Fechar Detalhamento/}).click();
+ await appointments.getByRole("button",{name:/Fechar Agendamentos por data de entrega/}).click();
  await page.getByRole("button",{name:/Ver análises completas/}).click();
  await expect(page.locator('[data-report-dialog="analysis"]')).toBeVisible();
  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
