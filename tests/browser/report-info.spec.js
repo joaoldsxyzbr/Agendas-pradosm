@@ -35,6 +35,8 @@ test("Administrador: ajuda contextual nos 5 indicadores e 7 cartões da visão g
   await expect(info).toHaveAttribute("aria-expanded","true");
   await page.keyboard.press("Escape");
   await expect(info).toHaveAttribute("aria-expanded","false");
+  // Após Escape o hover ainda mostra a ajuda até o ponteiro sair do ícone.
+  await page.mouse.move(4,4);
   await expect(tooltip).toBeHidden();
 });
 test("Visualizador: toque abre explicação e toque fora fecha", async ({ page }) => {
