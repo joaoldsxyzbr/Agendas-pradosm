@@ -4,8 +4,14 @@ import { readFileSync } from "node:fs";
 import { REPORT_HELP, reportInfo } from "../../frontend/report-info.js";
 
 describe("Ajuda contextual do Relatório Gerencial", () => {
-  it("oferece explicações específicas nos 7 indicadores e nos 5 painéis", () => {
-    assert.equal(Object.keys(REPORT_HELP).length, 13);
+  it("oferece explicações para indicadores, análises e sete cards resumidos", () => {
+    assert.equal(Object.keys(REPORT_HELP).length, 19);
+    for(const title of ["Taxa de recebimento","Evolução dos recebimentos",
+      "Distribuição das situações","Desempenho por loja","Agendamentos por situação (por dia)",
+      "Ocorrências recentes","Agendamentos recentes por data de entrega"]){
+      assert.ok(REPORT_HELP[title]?.length>50,title);
+    }
+    assert.match(REPORT_HELP["Agendamentos recentes por data de entrega"],/Não são necessariamente os últimos cadastrados/);
     for (const title of ["Comparativo por loja", "Taxa de recebimento", "Fornecedores com ocorrências", "Ocorrências e observações"]) {
       assert.ok(REPORT_HELP[title].length > 50, title);
     }
