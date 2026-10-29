@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { changeAgendaDayStatus, listAppointmentHistory } from "../../worker/repositories/agendas.js";
 import { closePastOpenAgendas } from "../../worker/services/agenda-maintenance.js";
 
-function fakeDb() {
+function fakeDb(hasEligible = true) {
   const statements=[], batches=[];
   const db={
     prepare(sql){
       const stmt={sql,params:[],
         bind(...values){this.params=values;return this;},
         async first(){
+          if(sql.startsWith("SELECT 1 FROM agendas")) return hasEligible ? { 1: 1 } : null;
           if(sql.includes("FROM agendas a"))return {
             id:"ag1",loja_id:"store1",status_dia:"concluido",
             store_code:"F01",store_name:"Centro"
@@ -32,14 +33,16 @@ describe("Não compareceu automático",()=>{
    assert.equal(result.status_dia,"concluido");
    assert.equal(batches.length,1);
    assert.equal(batches[0].length,5);
-   const [audit,update,day]=batches[0];
-   assert.deepEqual(audit.params.slice(1),["ag1"]);
+   const [day,dayAudit,audit,update,history]=batches[0];
+   assert.match(day.sql,/UPDATE agendas SET status_dia/);
+   assert.match(day.sql,/AND status_dia = 'aberto'/);
+   assert.match(dayAudit.sql,/WHERE changes\(\) = 1/);
    assert.match(audit.sql,/nao_compareceu_automaticamente/);
    assert.match(audit.sql,/NULL, 'nao_compareceu_automaticamente'/);
    assert.match(update.sql,/UPDATE agendamentos SET status = 'nao_chegou', observacao = 'Não compareceu'/);
    assert.match(update.sql,/ag\.ativo = 1 AND ag\.status = 'aguardando'/);
-   assert.match(update.sql,/status_dia = 'aberto'/);
-   assert.match(day.sql,/UPDATE agendas SET status_dia/);
+   assert.match(audit.sql,/EXISTS \(SELECT 1 FROM auditoria WHERE id = \?\)/);
+   assert.match(history.sql,/EXISTS \(SELECT 1 FROM auditoria WHERE id = \?\)/);
  });
  it("reabrir dia não desfaz o Não compareceu nem gera classificação nova",async()=>{
    const {db,batches}=fakeDb();
@@ -66,6 +69,13 @@ describe("Não compareceu automático",()=>{
    assert.equal(rows[0].usuario_nome,"Sistema");
    assert.equal(rows[0].usuario_id,null);
    assert.equal(rows[0].observacao,"Não compareceu");
+ });
+ it("sem agenda antiga elegível, dispensa batch e preserva consulta leve",async()=>{
+   const {db,batches,statements}=fakeDb(false);
+   await closePastOpenAgendas(db,new Date("2026-10-29T12:00:00Z"));
+   assert.equal(batches.length,0);
+   assert.equal(statements.length,1);
+   assert.match(statements[0].sql,/SELECT 1 FROM agendas/);
  });
  it("cron classifica somente pendentes de dias elegíveis, sem reprocessar dias reabertos",async()=>{
    const {db,batches}=fakeDb();

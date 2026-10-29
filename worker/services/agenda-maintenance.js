@@ -17,6 +17,12 @@ const AUTO_CLOSE_ELIGIBILITY = `
 `;
 async function closePastOpenAgendas(db, now = /* @__PURE__ */ new Date()) {
   const today = businessDate(now);
+  // GET e cron mantêm o fallback, mas não abrem transações de escrita
+  // quando não existe uma agenda antiga elegível a fechamento.
+  const eligible = await db.prepare(
+    `SELECT 1 FROM agendas WHERE ${AUTO_CLOSE_ELIGIBILITY} LIMIT 1`
+  ).bind(today).first();
+  if (!eligible) return;
   const completedAt = now.toISOString();
   await db.batch([
     ...nonattendanceStatements(db, "SELECT id FROM agendas WHERE " + AUTO_CLOSE_ELIGIBILITY, [today], completedAt),

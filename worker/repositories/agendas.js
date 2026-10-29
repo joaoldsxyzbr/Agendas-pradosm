@@ -536,23 +536,39 @@ async function findAppointmentForStore(db, appointmentId, storeId) {
        LIMIT 1`
   ).bind(appointmentId, storeId).first();
 }
-function agendaAdminAdjustmentStatement(db, agenda, userId, details, changedAt) {
+function agendaAdminAdjustmentStatement(db, agenda, userId, details, changedAt, guardAuditId = null) {
   if (!details || agenda.status_dia !== "concluido") return null;
+  const insertion = guardAuditId
+    ? "SELECT ?, ?, ?, 'ajuste_admin', ?, ? WHERE EXISTS (SELECT 1 FROM auditoria WHERE id = ?)"
+    : "VALUES (?, ?, ?, 'ajuste_admin', ?, ?)";
   return db.prepare(
-    "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, 'ajuste_admin', ?, ?)"
-  ).bind(crypto.randomUUID(), agenda.id, userId, details, changedAt);
+    "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) " + insertion
+  ).bind(crypto.randomUUID(), agenda.id, userId, details, changedAt, ...(guardAuditId ? [guardAuditId] : []));
 }
+
+// O D1 retorna changes por instrução do batch. Se houve atualização
+// concorrente, não registramos histórico ou auditoria fictícios.
+function assertMutationApplied(results) {
+  if (results[0]?.meta?.changes !== 1) {
+    const error = new Error("O registro foi alterado por outra operação. Atualize a tela.");
+    error.code = "CONFLITO_ESTADO";
+    throw error;
+  }
+}
+
 async function changeAppointmentExchanges(db, appointment, userId, hasExchanges, adminAdjustmentDetails) {
   const exchanges = hasExchanges ? 1 : 0;
   if (appointment.trocas === exchanges) return appointment;
   const agenda = await findAgendaById(db, appointment.agenda_id);
-  if (!agenda) throw new Error("Agenda do agendamento n\xE3o encontrada.");
-  const now = (/* @__PURE__ */ new Date()).toISOString();
+  if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
+  const now = new Date().toISOString();
+  const auditId = crypto.randomUUID();
   const statements = [
     db.prepare(
-      "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ?"
-    ).bind(exchanges, now, appointment.id),
+      "UPDATE agendamentos SET trocas = ?, atualizado_em = ? WHERE id = ? AND trocas IS ?"
+    ).bind(exchanges, now, appointment.id, appointment.trocas ?? null),
     auditStatement(db, {
+      id: auditId, onlyIfPreviousWrite: true,
       userId,
       action: "trocas_alteradas",
       entity: "agendamento",
@@ -562,29 +578,23 @@ async function changeAppointmentExchanges(db, appointment, userId, hasExchanges,
       appointmentId: appointment.id,
       before: { hasExchanges: appointment.trocas === 1 },
       after: { hasExchanges },
-      details: "Marca\xE7\xE3o de trocas alterada.",
+      details: "Marcação de trocas alterada.",
       createdAt: now
     })
   ];
   const adjustment = agendaAdminAdjustmentStatement(
-    db,
-    agenda,
-    userId,
-    adminAdjustmentDetails,
-    now
+    db, agenda, userId, adminAdjustmentDetails, now, auditId
   );
   if (adjustment) statements.push(adjustment);
-  await db.batch(statements);
+  const result = await db.batch(statements);
+  assertMutationApplied(result);
   const updated = await findAppointmentById(db, appointment.id);
-  if (!updated) {
-    throw new Error("Agendamento atualizado n\xE3o p\xF4de ser relido.");
-  }
+  if (!updated) throw new Error("Agendamento atualizado não pôde ser relido.");
   return updated;
 }
+
 async function changeAppointmentStatus(db, appointment, userId, status, adminAdjustmentDetails, observation) {
   const previousObservation = appointment.observacao ?? null;
-  // Se for apenas uma troca de status, a observação atual é limpa.
-  // O histórico continua preservado para auditoria.
   const nextObservation = observation === undefined
     ? (status === appointment.status ? previousObservation : null)
     : observation;
@@ -594,14 +604,14 @@ async function changeAppointmentStatus(db, appointment, userId, status, adminAdj
   const agenda = await findAgendaById(db, appointment.agenda_id);
   if (!agenda) throw new Error("Agenda do agendamento não encontrada.");
   const now = new Date().toISOString();
-  const historyId = crypto.randomUUID();
+  const historyId = crypto.randomUUID(), auditId = crypto.randomUUID();
   const statusChanged = appointment.status !== status;
   const statements = [
-    db.prepare("UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ?")
-      .bind(status, nextObservation, now, appointment.id),
-    db.prepare("INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, observacao, alterado_em) VALUES (?, ?, ?, ?, ?, ?, ?)")
-      .bind(historyId, appointment.id, userId, appointment.status, status, nextObservation, now),
+    db.prepare(
+      "UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ? AND status = ? AND observacao IS ?"
+    ).bind(status, nextObservation, now, appointment.id, appointment.status, previousObservation),
     auditStatement(db, {
+      id: auditId, onlyIfPreviousWrite: true,
       userId,
       action: statusChanged ? "status_alterado" : "observacao_alterada",
       entity: "agendamento",
@@ -613,17 +623,23 @@ async function changeAppointmentStatus(db, appointment, userId, status, adminAdj
       after: { status, observation: nextObservation },
       details: statusChanged ? "Status do recebimento alterado." : "Observação do recebimento alterada.",
       createdAt: now
-    })
+    }),
+    db.prepare(
+      "INSERT INTO historico_status (id, agendamento_id, usuario_id, status_anterior, status_novo, observacao, alterado_em) " +
+      "SELECT ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM auditoria WHERE id = ?)"
+    ).bind(historyId, appointment.id, userId, appointment.status, status, nextObservation, now, auditId)
   ];
   const adjustment = agendaAdminAdjustmentStatement(
-    db, agenda, userId, adminAdjustmentDetails, now
+    db, agenda, userId, adminAdjustmentDetails, now, auditId
   );
   if (adjustment) statements.push(adjustment);
-  await db.batch(statements);
+  const result = await db.batch(statements);
+  assertMutationApplied(result);
   const updated = await findAppointmentById(db, appointment.id);
   if (!updated) throw new Error("Agendamento atualizado não pôde ser relido.");
   return updated;
 }
+
 
 // Registra a classificação do sistema antes da mudança de estado.
 function nonattendanceStatements(db, agendaSelection, bindArgs, now) {
@@ -646,24 +662,19 @@ function nonattendanceStatements(db, agendaSelection, bindArgs, now) {
 async function changeAgendaDayStatus(db, agenda, userId, status) {
   if (agenda.status_dia === status) {
     const current = await findAgendaById(db, agenda.id);
-    if (!current) throw new Error("Agenda n\xE3o p\xF4de ser relida.");
+    if (!current) throw new Error("Agenda não pôde ser relida.");
     return current;
   }
-  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const now = new Date().toISOString();
+  const auditId = crypto.randomUUID();
   const action = status === "concluido" ? "concluido" : "reaberto";
-  await db.batch([
-    ...(status === "concluido"
-      ? nonattendanceStatements(db, "SELECT id FROM agendas WHERE id = ? AND status_dia = 'aberto'", [agenda.id], now)
-      : []),
-    db.prepare(
-      status === "concluido" ? "UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ?, atualizado_em = ? WHERE id = ?" : "UPDATE agendas SET status_dia = 'aberto', concluido_em = NULL, concluido_por = NULL, atualizado_em = ? WHERE id = ?"
-    ).bind(
-      ...status === "concluido" ? [now, userId, now, agenda.id] : [now, agenda.id]
-    ),
-    db.prepare(
-      "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) VALUES (?, ?, ?, ?, NULL, ?)"
-    ).bind(crypto.randomUUID(), agenda.id, userId, action, now),
+  const update = status === "concluido"
+    ? db.prepare("UPDATE agendas SET status_dia = 'concluido', concluido_em = ?, concluido_por = ?, atualizado_em = ? WHERE id = ? AND status_dia = 'aberto'").bind(now, userId, now, agenda.id)
+    : db.prepare("UPDATE agendas SET status_dia = 'aberto', concluido_em = NULL, concluido_por = NULL, atualizado_em = ? WHERE id = ? AND status_dia = 'concluido'").bind(now, agenda.id);
+  const statements = [
+    update,
     auditStatement(db, {
+      id: auditId, onlyIfPreviousWrite: true,
       userId,
       action: status === "concluido" ? "dia_concluido" : "dia_reaberto",
       entity: "agenda",
@@ -672,14 +683,27 @@ async function changeAgendaDayStatus(db, agenda, userId, status) {
       agendaId: agenda.id,
       before: { dayStatus: agenda.status_dia },
       after: { dayStatus: status },
-      details: status === "concluido" ? "Dia conclu\xEDdo pelo conferente ou administrador." : "Dia reaberto para ajustes.",
+      details: status === "concluido" ? "Dia concluído pelo conferente ou administrador." : "Dia reaberto para ajustes.",
       createdAt: now
-    })
-  ]);
+    }),
+    ...(status === "concluido"
+      ? nonattendanceStatements(
+          db, "SELECT id FROM agendas WHERE id = ? AND EXISTS (SELECT 1 FROM auditoria WHERE id = ?)",
+          [agenda.id, auditId], now
+        )
+      : []),
+    db.prepare(
+      "INSERT INTO historico_agenda (id, agenda_id, usuario_id, acao, detalhes, alterado_em) " +
+      "SELECT ?, ?, ?, ?, NULL, ? WHERE EXISTS (SELECT 1 FROM auditoria WHERE id = ?)"
+    ).bind(crypto.randomUUID(), agenda.id, userId, action, now, auditId)
+  ];
+  const result = await db.batch(statements);
+  assertMutationApplied(result);
   const updated = await findAgendaById(db, agenda.id);
-  if (!updated) throw new Error("Agenda atualizada n\xE3o p\xF4de ser relida.");
+  if (!updated) throw new Error("Agenda atualizada não pôde ser relida.");
   return updated;
 }
+
 async function listAgendaHistory(db, agendaId) {
   const result = await db.prepare(
     `SELECT id, agenda_id, usuario_id, usuario_nome, acao, detalhes, alterado_em

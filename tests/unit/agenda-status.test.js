@@ -48,13 +48,16 @@ describe("Regras de status com observação e histórico", () => {
     assert.equal(db.batches.length, 1);
     assert.equal(db.batches[0].length, 3);
     const statusUpdate = db.statements.find(s => s.sql.startsWith("UPDATE agendamentos"));
-    assert.equal(statusUpdate.sql, "UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ?");
+    assert.equal(statusUpdate.sql, "UPDATE agendamentos SET status = ?, observacao = ?, atualizado_em = ? WHERE id = ? AND status = ? AND observacao IS ?");
+    assert.deepEqual(statusUpdate.params.slice(-2), ["aguardando", null]);
     assert.equal(statusUpdate.params[1], null);
     assert.equal(statusUpdate.params[0], "recebido");
     const history = db.statements.find(s => s.sql.includes("INSERT INTO historico_status"));
     assert.ok(history);
     const audit = db.statements.find(s => s.sql.includes("INSERT INTO auditoria"));
     assert.ok(audit);
+    assert.match(audit.sql, /WHERE changes\(\) = 1/);
+    assert.match(history.sql, /EXISTS \(SELECT 1 FROM auditoria/);
     assert.equal(JSON.stringify(db.statements).includes("observacao"), true);
   });
   it("bloqueia não recebido sem motivo e não altera o banco", async () => {
