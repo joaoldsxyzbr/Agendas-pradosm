@@ -523,3 +523,127 @@ html[data-theme="dark"] .manager-report .report-navigation [data-report-tab][ari
     margin-left:0;
   }
 }
+
+/* Visão geral única: ações abrem janelas sem abandonar o relatório. */
+.manager-report .report-reference-link{
+  appearance:none;
+  border:0;
+  background:none;
+  width:fit-content;
+  padding:10px 0 0;
+  margin-top:auto;
+  cursor:pointer;
+  text-align:left;
+  font:inherit;
+  font-size:11px;
+  line-height:1.5;
+  font-weight:700;
+  color:#59b3ff;
+}
+.manager-report .report-reference-link:focus-visible{
+  outline:2px solid var(--ref-blue);
+  outline-offset:3px;
+  border-radius:3px;
+}
+.manager-report .report-reference-link:hover{color:#88caff;text-decoration:underline}
+.manager-report .report-reference-analyses{align-self:center}
+.manager-report .report-overview-page{min-width:0}
+.manager-report .report-detail-dialog{
+  position:fixed;
+  inset:0;
+  box-sizing:border-box;
+  width:min(1080px,calc(100vw - 36px));
+  max-width:calc(100vw - 36px);
+  max-height:min(86dvh,920px);
+  margin:auto;
+  padding:0;
+  overflow:hidden;
+  border:1px solid var(--ref-border);
+  border-radius:16px;
+  background:var(--color-surface);
+  color:var(--color-text);
+  box-shadow:0 28px 88px rgba(0,0,0,.65);
+}
+.manager-report .report-detail-dialog:not([open]){display:none}
+.manager-report .report-detail-dialog[open]{
+  display:flex;
+  flex-direction:column;
+}
+.manager-report .report-detail-dialog::backdrop{
+  background:rgba(4,12,23,.78);
+  backdrop-filter:blur(4px);
+}
+.manager-report .report-dialog-header{
+  display:flex;
+  flex:0 0 auto;
+  justify-content:space-between;
+  align-items:center;
+  gap:18px;
+  padding:18px 22px;
+  border-bottom:1px solid var(--ref-border);
+}
+.manager-report .report-dialog-header h2{
+  margin:0;
+  font-size:clamp(17px,2vw,22px);
+  font-weight:750;
+  color:var(--color-text-strong);
+}
+.manager-report .report-dialog-header p{
+  margin:5px 0 0;
+  font-size:12px;
+  color:var(--color-text-muted);
+}
+.manager-report .report-dialog-close{
+  appearance:none;
+  border:1px solid var(--ref-border);
+  border-radius:9px;
+  background:var(--color-surface-muted);
+  color:var(--color-text);
+  font:inherit;
+  font-size:15px;
+  flex:0 0 auto;
+  width:38px;
+  height:38px;
+  cursor:pointer;
+}
+.manager-report .report-dialog-close:hover{border-color:var(--ref-blue)}
+.manager-report .report-dialog-close:focus-visible{
+  outline:2px solid var(--ref-blue);
+  outline-offset:2px;
+}
+.manager-report .report-dialog-body{
+  overflow:auto;
+  min-height:0;
+  min-width:0;
+  padding:18px 22px 24px;
+  overscroll-behavior:contain;
+}
+.manager-report .report-dialog-body .report-panel{
+  width:100%;
+  max-width:none;
+  min-width:0;
+  margin:0 0 14px;
+}
+.manager-report .report-dialog-body .report-analytics-grid{margin-top:12px}
+.manager-report .report-dialog-body .report-table-scroll{
+  width:100%;
+  overflow-x:auto;
+}
+.manager-report .report-dialog-body .report-pagination{
+  padding:12px 14px;
+}
+@media(max-width:660px){
+  .manager-report .report-detail-dialog{
+    width:calc(100vw - 18px);
+    max-width:calc(100vw - 18px);
+    max-height:calc(100dvh - 20px);
+    border-radius:12px;
+  }
+  .manager-report .report-dialog-header{padding:14px 14px}
+  .manager-report .report-dialog-body{padding:12px 10px 18px}
+  .manager-report .report-dialog-header h2{font-size:17px}
+  .manager-report .report-dialog-header p{font-size:11px}
+}
+@media print{
+  .manager-report .report-detail-dialog{display:none!important}
+}
