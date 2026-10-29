@@ -149,6 +149,37 @@ adminReportRoutes.get("/occurrences", async (c) => {
     }))
   });
 });
+// Últimos agendamentos do período, respeitando exatamente o filtro do relatório.
+adminReportRoutes.get("/latest", async (c) => {
+  const parsed = parseFilters(c.req);
+  if (!parsed.success) {
+    return c.json({ error: "FILTROS_INVALIDOS", message: "Informe um período válido de até 93 dias." }, 400);
+  }
+  const { where, args } = storeFilter(parsed.data);
+  const result = await c.env.DB.prepare([
+    "SELECT a.data_agenda AS date, ag.horario_inicio AS startTime,",
+    "l.codigo AS storeCode, l.nome AS storeName,",
+    "ag.fornecedor AS supplier, ag.protocolo AS protocol, ag.origem AS origin,",
+    "CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'concluido'",
+    "OR (ag.status = 'nao_chegou' AND ag.observacao = 'Não compareceu')",
+    "THEN 'nao_compareceu' ELSE ag.status END AS status,",
+    "CASE WHEN (ag.status = 'aguardando' AND a.status_dia = 'concluido')",
+    "OR (ag.status = 'nao_chegou' AND ag.observacao = 'Não compareceu')",
+    "THEN 'sistema' ELSE 'manual' END AS classificationOrigin",
+    "FROM agendamentos ag",
+    "JOIN agendas a ON a.id = ag.agenda_id",
+    "JOIN lojas l ON l.id = a.loja_id",
+    "WHERE", where, "AND ag.ativo = 1",
+    "ORDER BY a.data_agenda DESC, ag.horario_inicio DESC, l.codigo ASC, ag.id DESC",
+    "LIMIT 6"
+  ].join(" ")).bind(...args).all();
+  return c.json({
+    rows: result.results.map(row => ({
+      ...row,
+      protocol: row.origin === "manual" ? "Sem agenda" : row.protocol
+    }))
+  });
+});
 export {
   adminReportRoutes
 };
