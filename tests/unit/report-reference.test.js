@@ -20,7 +20,7 @@ test("visão gerencial usa somente números do período, sem valores estáticos"
   });
   assert.match(html,/60%/);
   assert.match(html,/6 de 10 agendamentos/);
-  assert.match(html,/\+10% p\.p\./);
+  assert.match(html,/\+10 p\.p\./);
   assert.match(html,/Evolução dos recebimentos/);
   assert.match(html,/Distribuição das situações/);
   assert.match(html,/Desempenho por loja/);
