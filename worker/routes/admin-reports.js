@@ -101,6 +101,11 @@ adminReportRoutes.get("/latest", async (c) => {
   if (!parsed.success) {
     return c.json({ error: "FILTROS_INVALIDOS", message: "Informe um período válido de até 93 dias." }, 400);
   }
+  const paging = z.object({
+    limit:z.coerce.number().int().min(1).max(50).default(5),
+    offset:z.coerce.number().int().min(0).max(100000).default(0)
+  }).safeParse({limit:c.req.query("limit"),offset:c.req.query("offset")});
+  if(!paging.success)return c.json({error:"PAGINACAO_INVALIDA"},400);
   const {where,args} = storeFilter(parsed.data);
   const result = await c.env.DB.prepare([
     "SELECT a.data_agenda AS date, l.codigo AS storeCode, ag.horario_inicio AS time,",
@@ -114,9 +119,15 @@ adminReportRoutes.get("/latest", async (c) => {
     "JOIN agendas a ON a.id = ag.agenda_id",
     "JOIN lojas l ON l.id = a.loja_id",
     "WHERE",where,"AND ag.ativo = 1",
-    "ORDER BY a.data_agenda DESC, ag.horario_inicio DESC, ag.id DESC LIMIT 5"
-  ].join(" ")).bind(...args).all();
-  return c.json({ rows: result.results });
+    "ORDER BY a.data_agenda DESC, ag.horario_inicio DESC, ag.id DESC LIMIT ? OFFSET ?"
+  ].join(" ")).bind(...args,paging.data.limit,paging.data.offset).all();
+  const total=await c.env.DB.prepare([
+    "SELECT COUNT(*) AS total FROM agendamentos ag",
+    "JOIN agendas a ON a.id = ag.agenda_id",
+    "JOIN lojas l ON l.id = a.loja_id",
+    "WHERE",where,"AND ag.ativo = 1"
+  ].join(" ")).bind(...args).first();
+  return c.json({rows:result.results,total:Number(total?.total)||0,limit:paging.data.limit,offset:paging.data.offset});
 });
 
 const occurrencesFilters = z.object({
