@@ -52,3 +52,18 @@ test("visão gerencial em período vazio exibe estados vazios",()=>{
   assert.ok(!html.includes("NaN"));
   assert.ok(!html.includes("Infinity"));
 });
+
+
+test("sete painéis resumidos possuem ajuda contextual e explicam a ordem por data",()=>{
+  const html=renderReferenceOverview({sum,daily,stores,occurrences:{rows:[]},latest:{rows:[]}});
+  const expected=[
+    "Taxa de recebimento","Evolução dos recebimentos","Distribuição das situações",
+    "Desempenho por loja","Agendamentos por situação (por dia)",
+    "Ocorrências recentes","Últimos agendamentos"
+  ];
+  assert.equal((html.match(/class="report-reference-card /g)||[]).length,7);
+  assert.equal((html.match(/data-report-info/g)||[]).length,7);
+  for(const name of expected)assert.ok(html.includes('aria-label="Sobre: '+name+'"'),name);
+  assert.match(html,/Não são necessariamente os últimos cadastrados no sistema/);
+  assert.match(html,/aria-expanded="false"/);
+});
