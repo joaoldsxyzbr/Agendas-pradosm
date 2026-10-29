@@ -19,6 +19,7 @@ async function mock(page,user) {
     if(path==="/api/admin/presence")return json([]);
     if(path==="/api/admin/reports")return json({rows:[],suppliers:[]});
     if(path==="/api/admin/reports/occurrences")return json({total:0,offset:0,limit:50,rows:[]});
+    if(path==="/api/admin/reports/latest")return json({rows:[]});
     if(path==="/api/store/today"||path.startsWith("/api/store/history/"))return json({
       agenda:{id:"agenda",date:"2026-10-20",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",completedAt:null},
       appointments:[compromisso]
@@ -43,7 +44,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
-  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-color","rgb(34, 40, 48)");
+  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-color","rgb(18, 31, 48)");
   await expect(page.locator(".manager-report .report-heading-tag")).toBeHidden();
 
   await page.goto("/admin/stores");
