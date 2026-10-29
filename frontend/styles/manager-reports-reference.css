@@ -647,3 +647,32 @@ html[data-theme="dark"] .manager-report .report-navigation [data-report-tab][ari
 @media print{
   .manager-report .report-detail-dialog{display:none!important}
 }
+
+/* Ajuda contextual nos painéis resumidos (hover, clique e teclado). */
+.manager-report .report-reference-card{
+  position:relative;
+  overflow:visible;
+}
+.manager-report .report-reference-card h3{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:10px;
+}
+.manager-report .report-reference-card h3>span:first-child{min-width:0}
+.manager-report .report-reference-card .report-info{
+  flex:0 0 auto;
+  margin-left:auto;
+}
+.manager-report .report-reference-card .report-info-button{
+  width:20px;
+  height:20px;
+}
+.manager-report .report-reference-card:is(:hover,:focus-within),
+.manager-report .report-reference-card:has(.report-info[data-open]){
+  z-index:12;
+}
+.manager-report .report-reference-card .report-info-tooltip{
+  max-width:min(290px,calc(100vw - 40px));
+  font-size:12px;
+}
