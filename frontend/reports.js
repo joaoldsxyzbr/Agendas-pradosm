@@ -33,10 +33,10 @@ const panel=(title,description,inner,actions="",cls="")=>'<section class="report
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
 const METRIC_ICONS=Object.freeze({
   "Agendamentos":["calendar-days","appointments"],
-  "Recebidos":["check-circle-2","received"],
-  "Não recebidos":["x-circle","missed"],
+  "Recebidos":["circle-check","received"],
+  "Não recebidos":["circle-x","missed"],
   "Não compareceu":["users","absent"],
-  "Aguardando":["clock-3","pending"],
+  "Aguardando":["clock","pending"],
   "Recusados":["ban","refused"],
   "Taxa de recebimento":["percent","rate"]
 });
