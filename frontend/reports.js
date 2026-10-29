@@ -162,6 +162,9 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<p>Panorama dos recebimentos, desempenho das lojas e ocorrências registradas.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
       '<nav class="report-navigation" aria-label="Seções do relatório">'+
       '<a href="#report-overview">Visão geral</a><a href="#report-trends">Desempenho</a><a href="#report-details">Detalhamento</a></nav>'+
+      '<details class="report-filter-popover" data-report-popover><summary class="report-filter-trigger" aria-label="Editar período e lojas">'+
+      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span>'+
+      '<span class="report-filter-chevron" aria-hidden="true">▾</span></summary>'+
       '<form class="report-filters" data-report-filters>'+ 
       '<div class="report-filter-intro"><div><strong>Filtros da análise</strong><span>Defina o período e as unidades para atualizar todos os indicadores.</span></div><small>Até 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
@@ -173,7 +176,7 @@ export function renderReports(root,{request=apiFetch}={}) {
           '<label class="report-store-option report-store-all"><input type="checkbox" data-report-store-all'+(settings.stores.length?'':' checked')+'><span>Todas as lojas</span></label>'+options+
         '</div></details></div>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
-      '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
+      '<button class="primary-button" type="submit">Aplicar filtros</button></form></details>'+
       '<p class="form-error" role="alert" data-report-error'+(error?'':' hidden')+'>'+esc(error)+'</p>'+
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
@@ -235,9 +238,12 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<button class="ghost-button" type="submit">Buscar</button>'+
       (settings.occurrenceQuery?'<button class="ghost-button" type="button" data-report-clear-search>Limpar</button>':"")+
       '</form>';
+    // Mantém o popover e seus campos enquanto o gráfico alterna sem refazer requisições.
+    const popover=root.querySelector("[data-report-popover]");
+    popover?.remove();
     root.querySelector("[data-report-content]").innerHTML=
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
-      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span></div>'+ 
+      '</div>'+ 
       '<div class="report-kpis">'+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
@@ -258,6 +264,8 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
       panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
       panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search);
+    const sectionHeading=root.querySelector("#report-overview");
+    if(popover&&sectionHeading)sectionHeading.append(popover);
     disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
   }
   async function load(){
@@ -357,13 +365,20 @@ export function renderReports(root,{request=apiFetch}={}) {
   const keyboard=e=>{
     if(e.key!=="Escape")return;
     const picker=root.querySelector("[data-report-store-select]");
-    if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();}
+    if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();return;}
+    const popover=root.querySelector("[data-report-popover]");
+    if(popover?.open){popover.open=false;popover.querySelector(".report-filter-trigger")?.focus();e.preventDefault();}
+  };
+  const dismissPopover=e=>{
+    const popover=root.querySelector("[data-report-popover]");
+    if(popover?.open&&!popover.contains(e.target))popover.open=false;
   };
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
   root.addEventListener("change",change);
   root.addEventListener("keydown",keyboard);
   root.ownerDocument.addEventListener("click",dismissPicker);
+  root.ownerDocument.addEventListener("click",dismissPopover);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);};
 }
