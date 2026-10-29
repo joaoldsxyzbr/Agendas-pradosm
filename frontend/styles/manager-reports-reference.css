@@ -755,3 +755,12 @@ html[data-theme="dark"] .manager-report .report-navigation [data-report-tab][ari
   .manager-report .report-reference-compact-primary .report-reference-status{order:3}
   .manager-report .report-reference-store{max-width:50%}
 }
+
+.manager-report .report-reference-zero{
+  display:block;
+  width:100%;
+  text-align:center;
+  color:var(--ref-subtle);
+  font-size:11px;
+  font-variant-numeric:tabular-nums;
+}
