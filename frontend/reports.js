@@ -415,6 +415,9 @@ export function renderReports(root,{request=apiFetch}={}) {
     if(target.matches('input[name="stores"]')&&target.checked)
       picker.querySelector("[data-report-store-all]").checked=false;
     syncStorePicker();
+    // Selecionar várias lojas não deve recolher o filtro principal.
+    const filterPopover=picker.closest("[data-report-popover]");
+    if(filterPopover)filterPopover.open=true;
   };
   const dismissPicker=e=>{
     const picker=root.querySelector("[data-report-store-select]");
