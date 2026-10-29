@@ -1,5 +1,6 @@
 import { reportRate } from "./report-model.js";
 import { escapeHtml as esc } from "./shell.js";
+import { reportInfo } from "./report-info.js";
 
 // Painel resumido: os números vêm exclusivamente das respostas do relatório.
 // Não usa totais fixos, dados fictícios nem HTML fornecido pela API.
@@ -14,7 +15,7 @@ const statuses=[
   {key:"aguardando",name:"Aguardando",color:"#9464ed"},
   {key:"recusado",name:"Recusados",color:"#94a7bf"}
 ];
-const card=(name,body,cls="")=>'<section class="report-reference-card '+cls+'"><h3>'+esc(name)+'</h3>'+body+'</section>';
+const card=(name,body,cls="")=>'<section class="report-reference-card '+cls+'"><h3><span>'+esc(name)+'</span>'+reportInfo(name)+'</h3>'+body+'</section>';
 const empty=message=>'<p class="report-reference-empty">'+esc(message)+'</p>';
 function trend(daily){
   const days=daily.slice(-14);
