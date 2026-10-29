@@ -1,6 +1,7 @@
 import { apiFetch } from "./api.js";
 import { reportInfo, setupReportInfo } from "./report-info.js";
 import { mountReportChart } from "./report-chart.js";
+import { renderReferenceOverview } from "./report-reference.js";
 import { escapeHtml as esc } from "./shell.js";
 import { businessDate } from "../shared/time.js";
 import { sumReportRows, reportRate, groupDailyReport, groupStoreReport, groupWeekdayReport, WEEKDAY_LABELS } from "./report-model.js";
@@ -30,10 +31,26 @@ const rateCell=value=>{
 const occurrenceStatus=automatic=>'<span class="report-status-tag '+(automatic?'is-automatic':'is-manual')+'">'+(automatic?'Não compareceu':'Não recebido')+'</span>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
+const reportDialog=(key,title,description,content)=>'<dialog class="report-detail-dialog" data-report-dialog="'+key+'" aria-labelledby="report-dialog-title-'+key+'">'+
+  '<header class="report-dialog-header"><div><h2 id="report-dialog-title-'+key+'">'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
+  '<button type="button" class="report-dialog-close" data-report-dialog-close aria-label="Fechar '+esc(title)+'">✕</button></header>'+
+  '<div class="report-dialog-body">'+content+'</div></dialog>';
+const METRIC_ICONS=Object.freeze({
+  "Agendamentos":["calendar-days","appointments"],
+  "Recebidos":["circle-check","received"],
+  "Não recebidos":["circle-x","missed"],
+  "Não compareceu":["users","absent"],
+  "Aguardando":["clock","pending"],
+  "Recusados":["ban","refused"],
+  "Taxa de recebimento":["percent","rate"]
+});
 const metric=(label,value,description,delta=null,variant="supporting",progress=null)=>{
   const featured=progress!==null;
+  const [icon,tone]=METRIC_ICONS[label]||["circle","neutral"];
   const meter=featured?'<div class="report-featured-meter" aria-hidden="true"><span style="width:'+Math.min(100,Math.max(0,progress)).toFixed(1)+'%"></span></div>':"";
-  return '<div class="report-metric report-metric-'+variant+(featured?' report-metric-featured':'')+'"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div>'+
+  return '<div class="report-metric report-metric-'+variant+' report-metric-tone-'+tone+(featured?' report-metric-featured':'')+'">'+
+    '<span class="report-metric-icon" aria-hidden="true"><img src="/vendor/lucide/'+icon+'.svg" alt="" width="20" height="20"></span>'+
+    '<div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div>'+
     '<strong>'+esc(value)+'</strong>'+meter+
     (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+
     '<small>'+esc(description)+'</small></div>';
@@ -86,8 +103,9 @@ export function renderReports(root,{request=apiFetch}={}) {
   let closed=false,sequence=0,storePromise=null,stores=[],error="";
   let disposeChart=()=>{};
   let cached=null;
+  let activeDialog=null,dialogTrigger=null,lastDaily=[];
   const disposeInfo=setupReportInfo(root);
-  let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume"};
+  let settings={end:businessDate(),start:"",stores:[],compare:true,offset:0,occurrenceQuery:"",chartMode:"volume",recentOffset:0};
   settings.start=shift(settings.end,-29);
   const restoreFilters=()=>{
     if(typeof window==="undefined")return null;
@@ -147,8 +165,10 @@ export function renderReports(root,{request=apiFetch}={}) {
     root.innerHTML='<section class="admin-page manager-report"><header class="page-heading"><div>'+
       '<span class="eyebrow">INTELIGÊNCIA OPERACIONAL</span><h1>Relatório Gerencial</h1>'+
       '<p>Panorama dos recebimentos, desempenho das lojas e ocorrências registradas.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
-      '<nav class="report-navigation" aria-label="Seções do relatório">'+
-      '<a href="#report-overview">Visão geral</a><a href="#report-trends">Desempenho</a><a href="#report-details">Detalhamento</a></nav>'+
+
+      '<details class="report-filter-popover" data-report-popover><summary class="report-filter-trigger" aria-label="Editar período e lojas">'+
+      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span>'+
+      '<span class="report-filter-chevron" aria-hidden="true">▾</span></summary>'+
       '<form class="report-filters" data-report-filters>'+ 
       '<div class="report-filter-intro"><div><strong>Filtros da análise</strong><span>Defina o período e as unidades para atualizar todos os indicadores.</span></div><small>Até 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
@@ -160,13 +180,28 @@ export function renderReports(root,{request=apiFetch}={}) {
           '<label class="report-store-option report-store-all"><input type="checkbox" data-report-store-all'+(settings.stores.length?'':' checked')+'><span>Todas as lojas</span></label>'+options+
         '</div></details></div>'+
       '<label class="report-compare"><input type="checkbox" name="compare"'+(settings.compare?' checked':'')+'>Comparar período anterior</label>'+
-      '<button class="primary-button" type="submit">Aplicar filtros</button></form>'+
+      '<button class="primary-button" type="submit">Aplicar filtros</button></form></details>'+
       '<p class="form-error" role="alert" data-report-error'+(error?'':' hidden')+'>'+esc(error)+'</p>'+
       '<p class="muted-state" data-report-loading>Carregando relatório...</p>'+
       '<div data-report-content></div></section>';
   };
-  function paintContent(report,previous,occurrences,requestId){
+  function openDialog(name,trigger=null){
+    const dialog=root.querySelector('[data-report-dialog="'+name+'"]');
+    if(!dialog)return;
+    if(trigger)dialogTrigger=trigger;
+    if(!dialog.open)dialog.showModal();
+    activeDialog=name;
+    if(name==="analysis"){
+      disposeChart();
+      disposeChart=mountReportChart(root,lastDaily,()=>!closed,settings.chartMode);
+    }
+  }
+  function closeDialog(){
+    root.querySelector("dialog.report-detail-dialog[open]")?.close();
+  }
+  function paintContent(report,previous,occurrences,requestId,latest=null){
     const sum=sumReportRows(report.rows),prior=sumReportRows(previous?.rows||[]),daily=groupDailyReport(report.rows),units=groupStoreReport(report.rows),weekdays=groupWeekdayReport(daily);
+    lastDaily=daily;
     const rate=x=>pct(reportRate(x));
     const prev=previous&&prior.total>0?prior:null;
     const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
@@ -217,34 +252,61 @@ export function renderReports(root,{request=apiFetch}={}) {
     const chartTools='<div class="report-chart-tools" role="group" aria-label="Modo do gráfico">'+
       '<button type="button" class="ghost-button report-mode-button" data-report-chart-mode="volume" aria-pressed="'+(settings.chartMode==="volume")+'">Volume</button>'+
       '<button type="button" class="ghost-button report-mode-button" data-report-chart-mode="rate" aria-pressed="'+(settings.chartMode==="rate")+'">Taxa de recebimento</button></div>';
+    const latestRows=(latest?.rows||[]).map(a=>{
+      const status={recebido:"Recebido",nao_recebido:"Não recebido",nao_compareceu:"Não compareceu",aguardando:"Aguardando",recusado:"Recusado"}[a.status]||"Aguardando";
+      return '<tr>'+cell(date(a.date))+cell(a.time||"—")+cell(a.storeCode)+cell(a.supplier||"—")+cell(status)+'</tr>';
+    });
+    const latestTotal=Number(latest?.total ?? latestRows.length)||0;
+    const latestPager='<div class="report-pagination"><span>'+num(latestTotal)+' agendamento(s) · '+
+      num(latestTotal?settings.recentOffset+1:0)+'–'+num(Math.min(settings.recentOffset+50,latestTotal))+'</span><div>'+
+      '<button type="button" class="ghost-button" data-report-recent-prev'+(!settings.recentOffset?' disabled':'')+'>Anterior</button> '+
+      '<button type="button" class="ghost-button" data-report-recent-next'+(settings.recentOffset+50>=latestTotal?' disabled':'')+'>Próxima</button></div></div>';
     const search='<form class="report-occurrence-search" data-report-search>'+
       '<input type="search" name="q" maxlength="80" placeholder="Fornecedor ou protocolo" aria-label="Buscar ocorrência por fornecedor ou protocolo" value="'+esc(settings.occurrenceQuery)+'">'+
       '<button class="ghost-button" type="submit">Buscar</button>'+
       (settings.occurrenceQuery?'<button class="ghost-button" type="button" data-report-clear-search>Limpar</button>':"")+
       '</form>';
+    // Mantém o popover e seus campos enquanto o gráfico alterna sem refazer requisições.
+    const popover=root.querySelector("[data-report-popover]");
+    popover?.remove();
     root.querySelector("[data-report-content]").innerHTML=
+      '<section class="report-overview-page" id="report-panel-overview">'+
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
-      '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span></div>'+ 
+      '</div>'+ 
       '<div class="report-kpis">'+
-      metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
       metric("Não recebidos",num(sum.naoChegou),"Registrados na conferência",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
       metric("Não compareceu",num(sum.naoCompareceu),"Classificados no fechamento",delta(sum.naoCompareceu,prev?.naoCompareceu))+
-      metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+
-      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+
+      metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+'</div>'+
+      renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null,start:settings.start,end:settings.end})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
-      '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
+      '</section>'+
+      reportDialog("analysis","Análises completas","Evolução diária, fornecedores e padrões de recebimento.", 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+
       panel("Comparativo por loja",storeComparisonDescription,'<div class="report-progress-list report-store-highlights">'+storeBars+'</div>')+
       panel("Fornecedores com ocorrências","Ranking de não recebidos com a taxa de recebimento de cada um",'<div class="report-progress-list">'+supplierBars+'</div>')+
       panel("Padrão por dia da semana","Taxa de recebimento por dia da semana no período",'<div class="report-progress-list">'+weekdayList+'</div>',"","report-weekdays")+
-      '</div>'+
-      '<div class="report-section-heading" id="report-details"><div><span class="report-section-kicker">DETALHAMENTO</span><h2>Lojas e ocorrências</h2><p>Resultados individuais e os motivos registrados.</p></div></div>'+ 
-      panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table"))+
-      panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search);
-    disposeChart=mountReportChart(root,daily,()=>!closed && sequence===requestId,settings.chartMode);
+      '</div>')+
+      reportDialog("stores","Todas as lojas","Indicadores consolidados das unidades no período selecionado.",
+        panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table")))+
+      reportDialog("occurrences","Todas as ocorrências","Registros, motivos e origem da classificação.",
+        panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search))+
+      reportDialog("appointments","Agendamentos por data de entrega","Registros do período organizados pela data e hora da entrega, não pelo cadastro.",
+        panel("Agendamentos por data de entrega","Mais recentes primeiro; respeita os filtros de período e lojas.",table(["Data da entrega","Hora","Loja","Fornecedor","Situação"],latestRows)+latestPager));
+    if(popover)root.querySelector("#report-overview")?.append(popover);
+    for(const dialog of root.querySelectorAll("[data-report-dialog]")){
+      dialog.addEventListener("close",()=>{
+        if(root.contains(dialog)&&activeDialog===dialog.dataset.reportDialog){
+          activeDialog=null;
+          disposeChart();disposeChart=()=>{};
+          if(dialogTrigger?.isConnected)dialogTrigger.focus();
+          dialogTrigger=null;
+        }
+      });
+    }
+    if(activeDialog)openDialog(activeDialog);
   }
   async function load(){
     const id=++sequence;error="";cached=null;disposeChart();disposeChart=()=>{};paintShell();
@@ -257,15 +319,16 @@ export function renderReports(root,{request=apiFetch}={}) {
       paintShell();
       const days=Math.round((Date.parse(settings.end)-Date.parse(settings.start))/86400000)+1;
       const before=shift(settings.start,-1),earlier=shift(before,-days+1);
-      const [report,previous,occurrences]=await Promise.all([
+      const [report,previous,occurrences,latest]=await Promise.all([
         request("/api/admin/reports?"+params(settings.start,settings.end)),
         settings.compare?request("/api/admin/reports?"+params(earlier,before)):Promise.resolve(null),
-        request("/api/admin/reports/occurrences?"+params(settings.start,settings.end,settings.offset))
+        request("/api/admin/reports/occurrences?"+params(settings.start,settings.end,settings.offset)),
+        request("/api/admin/reports/latest?"+params(settings.start,settings.end)+"&limit=50&offset="+settings.recentOffset)
       ]);
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
-      paintContent(report,previous,occurrences,id);
-      cached={report,previous,occurrences,requestId:id};
+      paintContent(report,previous,occurrences,id,latest);
+      cached={report,previous,occurrences,latest,requestId:id};
     }catch(e){
       if(closed||id!==sequence)return;
       root.querySelector("[data-report-loading]").hidden=true;
@@ -289,11 +352,29 @@ export function renderReports(root,{request=apiFetch}={}) {
       const node=root.querySelector("[data-report-error]");
       node.textContent="Selecione um período válido de até 93 dias.";node.hidden=false;return;
     }
-    settings={...settings,start,end,stores:form.getAll("stores").map(String),compare:form.has("compare"),offset:0};
+    settings={...settings,start,end,stores:form.getAll("stores").map(String),compare:form.has("compare"),offset:0,recentOffset:0};
     persistFilters();
     void load();
   };
   const click=e=>{
+    const open=e.target.closest?.("[data-report-dialog-open]");
+    if(open&&root.contains(open)){
+      e.preventDefault();
+      openDialog(open.dataset.reportDialogOpen,open);
+      return;
+    }
+    if(e.target.closest?.("[data-report-dialog-close]")){
+      closeDialog();
+      return;
+    }
+    const dialog=e.target.closest?.("[data-report-dialog]");
+    if(dialog&&e.target===dialog){closeDialog();return;}
+    const recentPage=e.target.closest?.("[data-report-recent-prev],[data-report-recent-next]");
+    if(recentPage&&root.contains(recentPage)&&!recentPage.disabled){
+      settings={...settings,recentOffset:Math.max(0,settings.recentOffset+(recentPage.matches("[data-report-recent-next]")?50:-50))};
+      void load();
+      return;
+    }
     const pagerButton=e.target.closest?.("[data-report-prev],[data-report-next]");
     if(pagerButton&&root.contains(pagerButton)&&!pagerButton.disabled){
       settings={...settings,offset:Math.max(0,settings.offset+(pagerButton.matches("[data-report-next]")?50:-50))};
@@ -314,7 +395,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       const next=modeButton.dataset.reportChartMode||"volume";
       if(next!==settings.chartMode){
         settings={...settings,chartMode:next};
-        if(cached){disposeChart();paintContent(cached.report,cached.previous,cached.occurrences,cached.requestId);}
+        if(cached){disposeChart();paintContent(cached.report,cached.previous,cached.occurrences,cached.requestId,cached.latest);}
       }
       return;
     }
@@ -342,13 +423,20 @@ export function renderReports(root,{request=apiFetch}={}) {
   const keyboard=e=>{
     if(e.key!=="Escape")return;
     const picker=root.querySelector("[data-report-store-select]");
-    if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();}
+    if(picker?.open){picker.open=false;picker.querySelector("summary").focus();e.preventDefault();return;}
+    const popover=root.querySelector("[data-report-popover]");
+    if(popover?.open){popover.open=false;popover.querySelector(".report-filter-trigger")?.focus();e.preventDefault();}
+  };
+  const dismissPopover=e=>{
+    const popover=root.querySelector("[data-report-popover]");
+    if(popover?.open&&!popover.contains(e.target))popover.open=false;
   };
   root.addEventListener("submit",submit);
   root.addEventListener("click",click);
   root.addEventListener("change",change);
   root.addEventListener("keydown",keyboard);
   root.ownerDocument.addEventListener("click",dismissPicker);
+  root.ownerDocument.addEventListener("click",dismissPopover);
   void load();
-  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);};
+  return ()=>{closed=true;sequence++;disposeChart();disposeInfo();root.removeEventListener("submit",submit);root.removeEventListener("click",click);root.removeEventListener("change",change);root.removeEventListener("keydown",keyboard);root.ownerDocument.removeEventListener("click",dismissPicker);root.ownerDocument.removeEventListener("click",dismissPopover);};
 }
