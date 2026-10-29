@@ -28,7 +28,7 @@ async function mocks(page,user,{emptyPrevious=false}={}){
      return json(noBaseline?{...report,rows:[],suppliers:[]}:report);
    }
    if(u.pathname==="/api/admin/reports/occurrences")return json(occ);
-   if(u.pathname==="/api/admin/reports/latest")return json({rows:[]});
+   if(u.pathname==="/api/admin/reports/latest")return json({rows:[{date:"2026-10-19",time:"10:00",storeCode:"F01",supplier:"Fornecedor Teste",status:"recebido"}]});
    throw Error("API inesperada: "+u.pathname);
  });
  return {requests,searches};
@@ -133,6 +133,7 @@ test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({
  await mocks(page,viewer);
  await page.goto("/admin/reports");
  await expect(page.locator(".report-metric-featured")).toBeVisible();
+ await expect(page.locator(".report-reference-latest-card")).toContainText("Fornecedor Teste");
  for(const theme of ["dark","light"]){
    await page.evaluate(value=>document.documentElement.dataset.theme=value,theme);
    for(const width of [390,768,1440]){
