@@ -28,6 +28,7 @@ async function mocks(page,user,{emptyPrevious=false}={}){
      return json(noBaseline?{...report,rows:[],suppliers:[]}:report);
    }
    if(u.pathname==="/api/admin/reports/occurrences")return json(occ);
+   if(u.pathname==="/api/admin/reports/latest")return json({total:1,limit:50,offset:Number(u.searchParams.get("offset")||0),rows:[{date:"2026-10-19",time:"10:00",storeCode:"F01",supplier:"Fornecedor Teste",status:"recebido"}]});
    throw Error("API inesperada: "+u.pathname);
  });
  return {requests,searches};
@@ -53,91 +54,64 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page).toHaveURL(/\/admin\/reports$/);
    await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
-   await expect(page.locator(".report-filter-intro")).toContainText("Filtros da análise");
-   await expect(page.locator(".report-section-heading")).toHaveCount(3);
-   await expect(page.getByRole("heading",{name:"Resumo do período"})).toBeVisible();
-   await expect(page.getByRole("heading",{name:"Tendências e comparativos"})).toBeVisible();
-   await expect(page.getByRole("heading",{name:"Lojas e ocorrências"})).toBeVisible();
-   await expect(page.locator(".report-kpis")).toContainText("Recebidos");
-   await expect(page.locator(".report-kpis")).toContainText("4");
-   await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric-heading")).toContainText(["Taxa de recebimento","Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados"]);
-   await expect(page.locator(".report-metric-primary")).toHaveCount(4);
-   await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
-   await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
-   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Aguardando$/})})).toContainText("1");
-   await expect(page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span", {hasText:/^Não compareceu$/})})).toContainText("1");
-   await expect(page.locator(".manager-report")).toContainText("Não compareceu");
-   await expect(page.locator("[data-report-chart-wrap]")).toBeVisible();
-   await expect(page.locator("[data-report-native-chart]")).toBeHidden();
-   const data=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>{
-     const instance=window.Chart?.getChart(canvas);
-     return {type:instance?.config.type,received:instance?.data.datasets?.[0]?.data?.[0],
-       missed:instance?.data.datasets?.[1]?.data?.[0]};
-   });
-   expect(data).toEqual({type:"bar",received:1,missed:0});
-   await expect(page.locator(".manager-report")).toContainText("Sem pedido");
-   const occurrences=page.locator(".report-panel").filter({has:page.getByRole("heading",{name:"Ocorrências e observações"})});
+   await expect(page.getByRole("tab")).toHaveCount(0);
+   await expect(page.locator(".report-kpis .report-metric")).toHaveCount(5);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando"]);
+   await expect(page.locator(".report-reference-rate-card")).toContainText("57,1%");
+   await expect(page.locator(".report-reference-latest-card")).toContainText("Fornecedor Teste");
+   await page.getByRole("button",{name:/Ver todas as ocorrências/}).click();
+   const occurrences=page.locator('[data-report-dialog="occurrences"]');
+   await expect(occurrences).toBeVisible();
    await expect(occurrences.locator("tbody tr")).toHaveCount(2);
-   await expect(occurrences).toContainText("Não recebido");
-   await expect(occurrences).toContainText("Não compareceu");
+   await expect(occurrences).toContainText("Sem pedido");
    await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
-   await expect(occurrences).toContainText("Fornecedor B");
-   await expect(occurrences).toContainText("Sistema · agenda antiga concluída");
-   await expect(occurrences).toContainText("2 ocorrência(s)");
-   await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
-   await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
-   const comparison=page.locator(".report-analytics-grid .report-panel").filter({hasText:"Comparativo por loja"});
-   await expect(comparison).toContainText("Maior taxa no período");
-   await expect(comparison.locator(".report-store-highlight")).toHaveCount(1);
+   await occurrences.getByRole("button",{name:/Fechar Todas as ocorrências/}).click();
+   await page.getByRole("button",{name:/Ver todas as lojas/}).click();
    await expect(page.locator(".report-store-table")).toBeVisible();
-   await expect(page.getByRole("heading", {name:"Ocorrências e observações"})).toBeVisible();
-   const filter=page.locator("[data-report-filters]");
-   await filter.locator("[data-report-store-select] summary").click();
-   await filter.locator('input[name="stores"][value="F01"]').check();
-   await expect(filter.locator("[data-report-store-select] summary")).toContainText("F01");
-   await filter.getByRole("button",{name:"Aplicar filtros"}).click();
+   await page.getByRole("button",{name:/Fechar Todas as lojas/}).click();
+   const filters=page.locator("[data-report-filters]");
+   await page.locator("#report-overview .report-filter-trigger").click();
+   await filters.locator("[data-report-store-select] summary").click();
+   await filters.locator('input[name="stores"][value="F01"]').check();
+   await filters.getByRole("button",{name:"Aplicar filtros"}).click();
    await expect(page.locator(".report-kpis")).toBeVisible();
-   expect(requests.filter(x=>x==="/api/admin/reports").length).toBeGreaterThan(0);
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
-test("Redesign executivo: indicador prioritário, taxas visuais e situações identificadas",async({page})=>{
+test("Redesign executivo: cinco indicadores, taxa em destaque e popups",async({page})=>{
  await page.setViewportSize({width:1440,height:900});
  await mocks(page,admin);
  await page.goto("/admin/reports");
- const metrics=page.locator(".report-metric");
- await expect(metrics).toHaveCount(7);
- const featured=page.locator(".report-metric-featured");
- await expect(featured).toContainText("Taxa de recebimento");
+ await expect(page.locator(".report-metric")).toHaveCount(5);
+ await expect(page.locator(".report-kpis")).not.toContainText("Recusados");
+ await expect(page.locator(".report-kpis")).not.toContainText("Taxa de recebimento");
+ const featured=page.locator(".report-reference-rate-card");
  await expect(featured).toContainText("57,1%");
- await expect(featured.locator(".report-featured-meter span")).toHaveAttribute("style",/57\.1%/);
- const card=await featured.boundingBox();
- const next=await metrics.nth(1).boundingBox();
- expect(card.width).toBeGreaterThan(200);
- expect(card.height).toBeGreaterThan(next.height*1.5);
- expect(card.x).toBeLessThan(next.x);
- const nav=page.getByRole("navigation",{name:"Seções do relatório"});
- await expect(nav.getByRole("link")).toHaveCount(3);
- await nav.getByRole("link",{name:"Desempenho"}).click();
- await expect(page).toHaveURL(/#report-trends$/);
- await expect(page.locator("#report-trends")).toBeVisible();
- await expect(page.locator(".report-store-table .report-rate-cell")).toHaveCount(1);
- await expect(page.locator(".report-store-table .report-rate-track i")).toHaveAttribute("style",/57\.1%/);
+ await expect(featured.locator(".report-reference-rate-track span")).toHaveAttribute("style",/57\.1%/);
+ await expect(page.locator(".report-reference-distribution-list")).toContainText("Recusados");
+ await page.getByRole("button",{name:/Ver todas as lojas/}).click();
+ const storesModal=page.locator('[data-report-dialog="stores"]');
+ await expect(storesModal).toBeVisible();
+ await expect(storesModal.locator(".report-store-table .report-rate-cell")).toHaveCount(1);
+ await expect(storesModal.locator(".report-store-table .report-rate-track i")).toHaveAttribute("style",/57\.1%/);
+ await page.keyboard.press("Escape");
+ await expect(storesModal).toBeHidden();
+ await page.getByRole("button",{name:/Ver todas as ocorrências/}).click();
  await expect(page.locator(".report-status-tag.is-automatic")).toContainText("Não compareceu");
  await expect(page.locator(".report-status-tag.is-manual")).toContainText("Não recebido");
- await expect(page.locator(".report-origin-cell")).toContainText(["Registrado manualmente","Sistema · agenda antiga concluída"]);
+ await page.getByRole("button",{name:/Fechar Todas as ocorrências/}).click();
 });
 test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({page})=>{
  await mocks(page,viewer);
  await page.goto("/admin/reports");
- await expect(page.locator(".report-metric-featured")).toBeVisible();
+ await expect(page.locator(".report-reference-rate-card")).toBeVisible();
+ await expect(page.locator(".report-reference-latest-card")).toContainText("Fornecedor Teste");
  for(const theme of ["dark","light"]){
    await page.evaluate(value=>document.documentElement.dataset.theme=value,theme);
    for(const width of [390,768,1440]){
      await page.setViewportSize({width,height:900});
      const geometry=await page.locator(".report-kpis").evaluate(el=>{
-       const hero=el.querySelector(".report-metric-featured");
+       const hero=el.querySelector(".report-metric");
        const rect=hero.getBoundingClientRect();
        const grid=el.getBoundingClientRect();
        return {heroWidth:rect.width,gridWidth:grid.width,
@@ -147,7 +121,7 @@ test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({
      expect(geometry.heroVisible).toBe(true);
      expect(geometry.pageOverflow,JSON.stringify({theme,width,geometry})).toBeLessThanOrEqual(2);
      expect(geometry.heroWidth).toBeLessThanOrEqual(geometry.gridWidth+2);
-     if(width===390)expect(geometry.heroWidth).toBeGreaterThan(geometry.gridWidth-2);
+     if(width===390)expect(geometry.heroWidth).toBeLessThan(geometry.gridWidth*.55);
    }
  }
 });
@@ -157,6 +131,7 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  await page.goto("/admin/reports");
  const filters=page.locator("[data-report-filters]");
  const picker=filters.locator("[data-report-store-select]");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker.locator('input[name="stores"]')).toHaveCount(2);
  await picker.locator('input[value="F01"]').check();
@@ -170,6 +145,7 @@ test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorr
  for(const q of scoped)expect(new URLSearchParams(q).getAll("storeCode")).toEqual(["F01","F02"]);
  await page.reload();
  await expect(filters.locator("[data-report-store-select] summary")).toHaveText("2 lojas selecionadas");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker.locator('input[value="F01"]')).toBeChecked();
  await expect(picker.locator('input[value="F02"]')).toBeChecked();
@@ -185,6 +161,7 @@ test("Filtro múltiplo é operável no celular com teclado e sem rolagem horizon
  await mocks(page,viewer);
  await page.goto("/admin/reports");
  const picker=page.locator("[data-report-store-select]");
+ await page.locator("#report-overview .report-filter-trigger").click();
  await picker.locator("summary").click();
  await expect(picker).toHaveAttribute("open","");
  await picker.locator('input[value="F02"]').check();
@@ -200,6 +177,7 @@ test("Relatório: edita datas diretamente e esclarece comparação sem base ante
   await mocks(page,admin,{emptyPrevious:true});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.locator("[name=start]").fill("2026-10-01");
   await page.locator("[name=end]").fill("2026-10-19");
   await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
@@ -207,8 +185,8 @@ test("Relatório: edita datas diretamente e esclarece comparação sem base ante
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator(".report-insight")).toContainText("0 agendamentos");
   await expect(page.locator(".report-insight")).toContainText("sem base para comparar a taxa de recebimento");
-  const rateMetric=page.locator(".report-metric").filter({has:page.locator(".report-metric-heading > span",{hasText:/^Taxa de recebimento$/})});
-  await expect(rateMetric.locator(".report-metric-delta")).toHaveCount(0);
+  await expect(page.locator(".report-kpis")).not.toContainText("Taxa de recebimento");
+  await expect(page.locator(".report-reference-rate-card")).toContainText("Sem comparação disponível");
   await expect(page.locator(".report-metric-delta")).toHaveCount(0);
 });
 test("Atalhos de período, alternância do gráfico, busca de ocorrências e padrão semanal",async({page})=>{
@@ -219,14 +197,16 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator("[data-report-preset]")).toHaveCount(4);
   await expect(page.locator("[data-report-preset=\"30\"]")).toHaveAttribute("aria-pressed","true");
   await expect(page.locator(".report-metric-delta").first()).toContainText("vs. período anterior");
-  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
+  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeHidden();
   await expect(page.locator(".report-weekdays .report-progress-item span").first()).toHaveText("Segunda-feira");
   await expect(page.locator(".manager-report")).toContainText("Taxa de recebimento no período");
   const today=businessDay();
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.locator("[name=start]").fill("2026-09-01");
   await page.locator("[name=end]").fill("2026-09-30");
   await page.getByRole("button",{name:"Aplicar filtros"}).click();
   await expect(page.locator("[name=end]")).toHaveValue("2026-09-30");
+  await page.locator("#report-overview .report-filter-trigger").click();
   await page.getByRole("button",{name:"Últimos 7 dias"}).click();
   await expect(page.locator("[name=\"start\"]")).toHaveValue(shift(today,-6));
   await expect(page.locator("[name=\"end\"]")).toHaveValue(today);
@@ -234,6 +214,8 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   await expect(page.locator("[data-report-preset=\"30\"]")).toHaveAttribute("aria-pressed","false");
   const chartRequests=()=>requests.filter(x=>x==="/api/admin/reports").length;
   const beforeToggle=chartRequests();
+  await page.getByRole("button",{name:/Ver análises completas/}).click();
+  await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
   await page.locator("[data-report-chart-mode=\"rate\"]").click();
   const lineType=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>window.Chart?.getChart(canvas)?.config.type);
   expect(lineType).toBe("line");
@@ -243,6 +225,8 @@ test("Atalhos de período, alternância do gráfico, busca de ocorrências e pad
   const barType=await page.locator("[data-report-chart-canvas]").evaluate(canvas=>window.Chart?.getChart(canvas)?.config.type);
   expect(barType).toBe("bar");
   expect(chartRequests()).toBe(beforeToggle);
+  await page.getByRole("button",{name:/Fechar Análises completas/}).click();
+  await page.getByRole("button",{name:/Ver todas as ocorrências/}).click();
   await page.getByLabel("Buscar ocorrência por fornecedor ou protocolo").fill("Fornecedor");
   await page.locator("[data-report-search] button[type=\"submit\"]").click();
   await expect.poll(()=>searches.filter(x=>x.includes("q=Fornecedor")).length).toBeGreaterThan(0);
@@ -254,6 +238,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await page.route("**/vendor/chart.umd.min.js",route=>route.abort());
   await mocks(page,viewer);
   await page.goto("/admin/reports");
+  await page.getByRole("button",{name:/Ver análises completas/}).click();
   await expect(page.locator("[data-report-native-chart] .report-chart")).toBeVisible();
   await expect(page.locator("[data-report-chart-wrap]")).toBeHidden();
   await expect(page.locator(".report-kpis")).toContainText("Recebidos");
@@ -261,6 +246,7 @@ test("Falha de carregamento do Chart.js preserva o gráfico HTML",async({page})=
   await page.setViewportSize({width:390,height:844});
   await mocks(page,viewer);
   await page.goto("/admin/reports");
+  await page.getByRole("button",{name:/Ver todas as lojas/}).click();
   await expect(page.getByRole("heading",{name:"Por loja",exact:true})).toBeVisible();
   await page.evaluate(()=>{document.documentElement.dataset.theme="dark";});
   const geometry=await page.locator(".report-store-table").evaluate(el=>{
@@ -284,6 +270,7 @@ test("Relatório: datas são campos nativos visíveis, editáveis e com calendá
   const {searches}=await mocks(page,admin);
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
+  await page.locator("#report-overview .report-filter-trigger").click();
   for(const theme of ["dark","light"]){
     await page.evaluate(value=>{document.documentElement.dataset.theme=value;},theme);
     for(const name of ["start","end"]){
@@ -306,4 +293,85 @@ test("Relatório: datas são campos nativos visíveis, editáveis e com calendá
   await expect(page.locator('[data-report-date-input="start"]')).toHaveValue("2026-10-01");
   await expect(page.locator('[data-report-date-input="end"]')).toHaveValue("2026-10-19");
   await expect.poll(()=>searches.some(q=>q.includes("start=2026-10-01")&&q.includes("end=2026-10-19"))).toBe(true);
+});
+
+
+test("Popups abrem no mesmo relatório, mantêm filtros e fecham por teclado",async({page})=>{
+ await page.setViewportSize({width:1366,height:900});
+ const {requests,searches}=await mocks(page,admin);
+ await page.goto("/admin/reports");
+ const summary=page.locator(".report-reference-overview");
+ await expect(summary).toBeVisible();
+ await expect(page.getByRole("tab")).toHaveCount(0);
+ await expect(page.locator(".report-detail-dialog")).toHaveCount(4);
+ const count=()=>requests.filter(x=>x==="/api/admin/reports").length;
+ const before=count();
+ const shopButton=page.getByRole("button",{name:/Ver todas as lojas/});
+ await shopButton.click();
+ const shops=page.locator('[data-report-dialog="stores"]');
+ await expect(shops).toBeVisible();
+ await expect(shops.locator(".report-store-table")).toBeVisible();
+ await page.keyboard.press("Escape");
+ await expect(shops).toBeHidden();
+ await expect(shopButton).toBeFocused();
+ await page.getByRole("button",{name:/Ver todas as ocorrências/}).click();
+ const occurrences=page.locator('[data-report-dialog="occurrences"]');
+ await expect(occurrences).toBeVisible();
+ await occurrences.getByRole("searchbox",{name:/Buscar ocorrência/}).fill("Fornecedor");
+ await occurrences.getByRole("button",{name:"Buscar"}).click();
+ await expect.poll(()=>searches.some(q=>q.includes("q=Fornecedor"))).toBe(true);
+ await expect(occurrences).toBeVisible();
+ await occurrences.getByRole("button",{name:/Fechar Todas as ocorrências/}).click();
+ await page.getByRole("button",{name:/Ver detalhamento/}).click();
+ const appointments=page.locator('[data-report-dialog="appointments"]');
+ await expect(appointments).toBeVisible();
+ await expect(appointments).toContainText("Fornecedor Teste");
+ await expect(appointments.getByRole("button",{name:"Próxima"})).toBeDisabled();
+ await appointments.getByRole("button",{name:/Fechar Detalhamento/}).click();
+ await page.getByRole("button",{name:/Ver análises completas/}).click();
+ await expect(page.locator('[data-report-dialog="analysis"]')).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Padrão por dia da semana"})).toBeVisible();
+ await page.getByRole("button",{name:/Fechar Análises completas/}).click();
+ await expect(summary).toBeVisible();
+ expect(count()).toBeGreaterThanOrEqual(before);
+});
+
+
+test("Ajuda contextual aparece em todos os cards e explica últimos agendamentos",async({page})=>{
+  await mocks(page,viewer);
+  await page.goto("/admin/reports");
+  const cards=page.locator(".report-reference-card");
+  await expect(cards).toHaveCount(7);
+  await expect(cards.locator("[data-report-info]")).toHaveCount(7);
+  const last=page.locator(".report-reference-latest-card");
+  const info=last.getByRole("button",{name:"Sobre: Agendamentos recentes por data de entrega"});
+  await info.click();
+  await expect(info).toHaveAttribute("aria-expanded","true");
+  const tooltip=last.getByRole("tooltip");
+  await expect(tooltip).toBeVisible();
+  await expect(tooltip).toContainText("Não são necessariamente os últimos cadastrados");
+  await page.keyboard.press("Escape");
+  await expect(info).toHaveAttribute("aria-expanded","false");
+});
+
+
+test("resumos não têm rolagem lateral e gráfico mostra sete dias corridos",async({page})=>{
+  await mocks(page,admin);
+  await page.goto("/admin/reports");
+  for(const width of [390,768,1366]){
+    await page.setViewportSize({width,height:950});
+    for(const selector of [".report-reference-occurrences-card",".report-reference-latest-card"]){
+      const card=page.locator(selector);
+      const dimensions=await card.evaluate(el=>({
+        cardWidth:el.clientWidth,
+        contentWidth:el.scrollWidth,
+        listWidth:el.querySelector(".report-reference-compact-list")?.scrollWidth,
+        listClient:el.querySelector(".report-reference-compact-list")?.clientWidth
+      }));
+      expect(dimensions.contentWidth,selector+" "+JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.cardWidth+2);
+      expect(dimensions.listWidth,selector+" "+JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.listClient+2);
+    }
+  }
+  await expect(page.locator(".report-reference-stack-card .report-reference-day")).toHaveCount(7);
+  await expect(page.locator(".report-reference-latest-card")).toContainText("Ordenados pela data e hora da entrega");
 });
