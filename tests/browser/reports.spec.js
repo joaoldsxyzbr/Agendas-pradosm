@@ -13,7 +13,7 @@ const occ={total:2,offset:0,limit:50,rows:[{date:"2026-10-19",storeCode:"F01",st
  supplier:"Fornecedor Teste",protocol:"123456",observation:"Sem pedido",origin:"importado",occurrenceType:"nao_recebido",classificationOrigin:"manual"},
  {date:"2026-10-18",storeCode:"F01",storeName:"Centro",supplier:"Fornecedor B",
  protocol:"654321",observation:null,origin:"importado",occurrenceType:"nao_compareceu",classificationOrigin:"historico"}]};
-async function mocks(page,user,{emptyPrevious=false}={}){
+async function mocks(page,user,{emptyPrevious=false,latestFailure=false}={}){
  const requests=[];const searches=[];
  await page.route("**/api/**",route=>{
    const u=new URL(route.request().url());requests.push(u.pathname);searches.push(u.search);
@@ -28,6 +28,13 @@ async function mocks(page,user,{emptyPrevious=false}={}){
      return json(noBaseline?{...report,rows:[],suppliers:[]}:report);
    }
    if(u.pathname==="/api/admin/reports/occurrences")return json(occ);
+   if(u.pathname==="/api/admin/reports/latest"){
+     if(latestFailure)return route.fulfill({status:503,json:{error:"INDISPONIVEL"}});
+     return json({rows:[
+       {date:"2026-10-19",startTime:"10:00",storeCode:"F01",supplier:"Fornecedor Teste",status:"recebido"},
+       {date:"2026-10-18",startTime:"09:00",storeCode:"F01",supplier:"Fornecedor B",status:"nao_compareceu"}
+     ]});
+   }
    throw Error("API inesperada: "+u.pathname);
  });
  return {requests,searches};
@@ -61,7 +68,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric-heading")).toContainText(["Taxa de recebimento","Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados"]);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados","Taxa de recebimento"]);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
@@ -87,7 +94,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(occurrences).toContainText("2 ocorrência(s)");
    await expect(page.getByRole("heading", {name:"Por data"})).toHaveCount(0);
    await expect(page.getByRole("heading", {name:"Por loja", exact:true})).toBeVisible();
-   const comparison=page.locator(".report-analytics-grid .report-panel").filter({hasText:"Comparativo por loja"});
+   const comparison=page.locator(".report-dashboard-trends .report-panel").filter({hasText:"Comparativo por loja"});
    await expect(comparison).toContainText("Maior taxa no período");
    await expect(comparison.locator(".report-store-highlight")).toHaveCount(1);
    await expect(page.locator(".report-store-table")).toBeVisible();
@@ -114,9 +121,15 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
  await expect(featured.locator(".report-featured-meter span")).toHaveAttribute("style",/57\.1%/);
  const card=await featured.boundingBox();
  const next=await metrics.nth(1).boundingBox();
- expect(card.width).toBeGreaterThan(200);
- expect(card.height).toBeGreaterThan(next.height*1.5);
- expect(card.x).toBeLessThan(next.x);
+ expect(card.width).toBeGreaterThan(125);
+ expect(card.height).toBeGreaterThan(90);
+ expect(card.x).toBeGreaterThan(next.x);
+ await expect(page.locator(".report-trend-svg")).toHaveCount(1);
+ await expect(page.locator(".report-donut-ring")).toBeVisible();
+ await expect(page.locator(".report-donut-item")).toHaveCount(5);
+ await expect(page.locator(".report-dashboard-details .report-panel")).toHaveCount(2);
+ await expect(page.locator(".report-latest-panel tbody tr")).toHaveCount(2);
+ await expect(page.locator(".report-latest-panel")).toContainText("Fornecedor B");
  const nav=page.getByRole("navigation",{name:"Seções do relatório"});
  await expect(nav.getByRole("link")).toHaveCount(3);
  await nav.getByRole("link",{name:"Desempenho"}).click();
@@ -150,6 +163,32 @@ test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({
      if(width===390)expect(geometry.heroWidth).toBeGreaterThan(geometry.gridWidth-2);
    }
  }
+});
+test("Dashboard referencia: últimos respeitam filtros, falha parcial não apaga métricas",async({page})=>{
+ const {searches}=await mocks(page,viewer,{latestFailure:true});
+ await page.goto("/admin/reports");
+ await expect(page.locator(".report-kpis")).toBeVisible();
+ await expect(page.locator(".report-latest-panel")).toContainText("indisponíveis");
+ await expect(page.locator(".report-donut-ring")).toBeVisible();
+ const filters=page.locator("[data-report-filters]");
+ await filters.locator("[data-report-store-select] summary").click();
+ await filters.locator('input[name="stores"][value="F01"]').check();
+ await filters.getByRole("button",{name:"Aplicar filtros"}).click();
+ await expect.poll(()=>searches.some(x=>x.includes("storeCode=F01")&&x.includes("start="))).toBe(true);
+ await expect(page.locator(".report-kpis")).toBeVisible();
+});
+test("Dashboard referencia: série real e distribuição são acessíveis",async({page})=>{
+ await mocks(page,admin);
+ await page.goto("/admin/reports");
+ const trend=page.locator(".report-trend-svg");
+ await expect(trend).toBeVisible();
+ await expect(trend).toHaveAttribute("role","img");
+ await expect(trend).toHaveAttribute("aria-label",/57,1%/);
+ await expect(page.locator(".report-donut-ring")).toHaveAttribute("role","img");
+ await expect(page.locator(".report-donut-item").first()).toContainText("4");
+ await expect(page.locator(".report-preview-occurrences tbody tr")).toHaveCount(2);
+ await expect(page.locator(".report-latest-panel .is-received")).toContainText("Recebido");
+ await expect(page.locator(".report-latest-panel .is-automatic")).toContainText("Não compareceu");
 });
 test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorrências",async({page})=>{
  await page.setViewportSize({width:1366,height:900});
