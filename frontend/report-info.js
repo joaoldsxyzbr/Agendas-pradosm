@@ -13,6 +13,12 @@ export const REPORT_HELP = Object.freeze({
   "Fornecedores com ocorrências": "Fornecedores com mais não recebidos. A barra compara a quantidade de cada um com a do líder do ranking e mostra também a taxa de recebimento do fornecedor no período.",
   "Por loja": "Indicadores consolidados por unidade, distinguindo aguardando em agendas abertas de não comparecimentos de fechamento.",
   "Ocorrências e observações": "Lista de não recebidos e não comparecimentos, com origem manual ou automática. Pendências antigas de dias concluídos são identificadas como classificação retrospectiva.",
+  "Evolução dos recebimentos": "Mostra a taxa de recebimento de cada dia: recebidos ÷ total de agendamentos do dia × 100. Exibe até 14 datas recentes dentro do filtro, não a quantidade absoluta de entregas.",
+  "Distribuição das situações": "Distribui todos os agendamentos do período por situação. As porcentagens são calculadas sobre o total e incluem entregas aguardando.",
+  "Desempenho por loja": "Mostra as cinco lojas com maior taxa de recebimento no período filtrado. A barra representa recebidos ÷ total da loja × 100, não o volume de entregas.",
+  "Agendamentos por situação (por dia)": "Cada coluna representa um dos últimos sete dias corridos do período selecionado (ou menos, se o intervalo for menor). Dias sem agendamentos aparecem com zero. As cores indicam a quantidade em cada situação.",
+  "Ocorrências recentes": "Exibe até cinco ocorrências das datas mais recentes do período: não recebidos registrados e não comparecimentos classificados pelo sistema. A lista completa abre no botão abaixo.",
+  "Agendamentos recentes por data de entrega": "Exibe os cinco agendamentos com data e horário de entrega mais recentes no período e nas lojas selecionadas, incluindo os aguardando. Não são necessariamente os últimos cadastrados no sistema.",
   "Padrão por dia da semana": "Taxa de recebimento agrupada por dia da semana no período, somando todas as lojas. Ajuda a identificar dias que concentram problemas de entrega."
 });
 
