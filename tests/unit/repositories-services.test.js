@@ -106,13 +106,14 @@ describe("Migração de repositórios e serviços JS", () => {
     assert.equal(await upgradeUserPasswordHash(stale, "user1", "hash-antigo", "hash-novo"), false);
   });
   it("fechamento diário preserva SQL de auditoria e regra de reabertura", async () => {
-    const db = fakeDb();
+    const db = fakeDb([{ id: "agenda-antiga" }]);
     await closePastOpenAgendas(db, new Date("2026-10-18T15:00:00Z"));
-    assert.equal(db.calls.length, 4);
-    assert.match(db.calls[0].sql, /nao_compareceu_automaticamente/);
-    assert.match(db.calls[1].sql, /UPDATE agendamentos/);
-    assert.match(db.calls[2].sql, /INSERT INTO auditoria/);
-    assert.match(db.calls[3].sql, /UPDATE agendas/);
+    assert.equal(db.calls.length, 5);
+    assert.match(db.calls[0].sql, /SELECT 1 FROM agendas/);
+    assert.match(db.calls[1].sql, /nao_compareceu_automaticamente/);
+    assert.match(db.calls[2].sql, /UPDATE agendamentos/);
+    assert.match(db.calls[3].sql, /INSERT INTO auditoria/);
+    assert.match(db.calls[4].sql, /UPDATE agendas/);
     for (const call of db.calls) {
       assert.match(call.sql, /reaberto/);
       assert.ok(call.values.includes("2026-10-18"));
