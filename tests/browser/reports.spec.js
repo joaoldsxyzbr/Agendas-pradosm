@@ -28,6 +28,7 @@ async function mocks(page,user,{emptyPrevious=false}={}){
      return json(noBaseline?{...report,rows:[],suppliers:[]}:report);
    }
    if(u.pathname==="/api/admin/reports/occurrences")return json(occ);
+   if(u.pathname==="/api/admin/reports/latest")return json({rows:[]});
    throw Error("API inesperada: "+u.pathname);
  });
  return {requests,searches};
@@ -61,7 +62,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric-heading")).toContainText(["Taxa de recebimento","Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados"]);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados","Taxa de recebimento"]);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
@@ -115,8 +116,8 @@ test("Redesign executivo: indicador prioritário, taxas visuais e situações id
  const card=await featured.boundingBox();
  const next=await metrics.nth(1).boundingBox();
  expect(card.width).toBeGreaterThan(200);
- expect(card.height).toBeGreaterThan(next.height*1.5);
- expect(card.x).toBeLessThan(next.x);
+ expect(card.height).toBeLessThanOrEqual(next.height+16);
+ expect(card.y).toBeGreaterThanOrEqual(next.y);
  const nav=page.getByRole("navigation",{name:"Seções do relatório"});
  await expect(nav.getByRole("link")).toHaveCount(3);
  await nav.getByRole("link",{name:"Desempenho"}).click();
@@ -147,7 +148,7 @@ test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({
      expect(geometry.heroVisible).toBe(true);
      expect(geometry.pageOverflow,JSON.stringify({theme,width,geometry})).toBeLessThanOrEqual(2);
      expect(geometry.heroWidth).toBeLessThanOrEqual(geometry.gridWidth+2);
-     if(width===390)expect(geometry.heroWidth).toBeGreaterThan(geometry.gridWidth-2);
+     if(width===390)expect(geometry.heroWidth).toBeLessThan(geometry.gridWidth*.55);
    }
  }
 });
