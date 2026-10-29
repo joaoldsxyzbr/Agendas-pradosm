@@ -279,7 +279,7 @@ export function renderReports(root,{request=apiFetch}={}) {
       metric("Não recebidos",num(sum.naoChegou),"Registrados na conferência",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
       metric("Não compareceu",num(sum.naoCompareceu),"Classificados no fechamento",delta(sum.naoCompareceu,prev?.naoCompareceu))+
       metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+'</div>'+
-      renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null})+
+      renderReferenceOverview({sum,daily,stores:units,occurrences,latest,prior:hasPriorRate?prior:null,start:settings.start,end:settings.end})+
       ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
       '</section>'+
       reportDialog("analysis","Análises completas","Evolução diária, fornecedores e padrões de recebimento.", 
@@ -293,8 +293,8 @@ export function renderReports(root,{request=apiFetch}={}) {
         panel("Por loja","Indicadores consolidados",table(["Loja","Total","Recebidos","Não recebidos","Aguardando","Não compareceu","Recusados","Sem agenda","Taxa"],byStore,"report-store-table")))+
       reportDialog("occurrences","Todas as ocorrências","Registros, motivos e origem da classificação.",
         panel("Ocorrências e observações","Não recebidos registrados e não comparecimentos por fechamento",table(["Data","Loja","Fornecedor","Protocolo","Situação","Motivo","Origem"],rows)+pager,search))+
-      reportDialog("appointments","Detalhamento dos agendamentos","Registros recentes no período e nas lojas selecionadas.",
-        panel("Últimos agendamentos","Lista completa por data e horário",table(["Data","Hora","Loja","Fornecedor","Situação"],latestRows)+latestPager));
+      reportDialog("appointments","Agendamentos por data de entrega","Registros do período organizados pela data e hora da entrega, não pelo cadastro.",
+        panel("Agendamentos por data de entrega","Mais recentes primeiro; respeita os filtros de período e lojas.",table(["Data da entrega","Hora","Loja","Fornecedor","Situação"],latestRows)+latestPager));
     if(popover)root.querySelector("#report-overview")?.append(popover);
     for(const dialog of root.querySelectorAll("[data-report-dialog]")){
       dialog.addEventListener("close",()=>{
