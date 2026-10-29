@@ -17,15 +17,27 @@ export function validReportRange(start,end) {
 }
 function table(columns,rows,className="") {
   return '<div class="report-table-scroll'+(className?" "+esc(className):"")+'"><table><thead><tr>'+
-    columns.map(x=>'<th>'+esc(x)+'</th>').join("")+'</tr></thead><tbody>'+
+    columns.map(x=>'<th scope="col">'+esc(x)+'</th>').join("")+'</tr></thead><tbody>'+
     (rows.length?rows.join(""):'<tr><td colspan="'+columns.length+'" class="report-empty">Nenhum registro no período.</td></tr>')+
     '</tbody></table></div>';
 }
 const cell=(text,numeric=false)=>'<td'+(numeric?' class="report-number"':'')+'>'+esc(text)+'</td>';
+const rateCell=value=>{
+  const safe=Math.min(100,Math.max(0,value));
+  return '<td class="report-number report-rate-cell"><strong>'+esc(pct(safe))+'</strong>'+
+    '<span class="report-rate-track" aria-hidden="true"><i style="width:'+safe.toFixed(1)+'%"></i></span></td>';
+};
+const occurrenceStatus=automatic=>'<span class="report-status-tag '+(automatic?'is-automatic':'is-manual')+'">'+(automatic?'Não compareceu':'Não recebido')+'</span>';
 const panel=(title,description,inner,actions="",cls="")=>'<section class="report-panel'+(cls?" "+cls:"")+'"><header><div><h2>'+esc(title)+'</h2><p>'+esc(description)+'</p></div>'+
   (actions?'<div class="report-panel-actions">'+reportInfo(title)+actions+'</div>':reportInfo(title))+'</header>'+inner+'</section>';
-const metric=(label,value,description,delta=null,variant="supporting")=>'<div class="report-metric report-metric-'+variant+'"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div><strong>'+esc(value)+'</strong>'+
-  (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+'<small>'+esc(description)+'</small></div>';
+const metric=(label,value,description,delta=null,variant="supporting",progress=null)=>{
+  const featured=progress!==null;
+  const meter=featured?'<div class="report-featured-meter" aria-hidden="true"><span style="width:'+Math.min(100,Math.max(0,progress)).toFixed(1)+'%"></span></div>':"";
+  return '<div class="report-metric report-metric-'+variant+(featured?' report-metric-featured':'')+'"><div class="report-metric-heading"><span>'+esc(label)+'</span>'+reportInfo(label)+'</div>'+
+    '<strong>'+esc(value)+'</strong>'+meter+
+    (delta?'<small class="report-metric-delta '+delta.cls+'">'+esc(delta.text)+'</small>':"")+
+    '<small>'+esc(description)+'</small></div>';
+};
 const delta=(current,previous,kind="neutral",unit="")=>{
   if(previous==null)return null;
   const value=Number(current||0)-Number(previous||0);
@@ -133,10 +145,12 @@ export function renderReports(root,{request=apiFetch}={}) {
       return '<button type="button" class="ghost-button report-chip" data-report-preset="'+key+'" aria-pressed="'+(chipStart===settings.start&&chipEnd===settings.end)+'">'+esc(label)+'</button>';
     }).join("");
     root.innerHTML='<section class="admin-page manager-report"><header class="page-heading"><div>'+
-      '<span class="eyebrow">Indicadores de gestão</span><h1>Relatório Gerencial</h1>'+
-      '<p>Resultados, tendências e pontos de atenção em um só lugar.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
+      '<span class="eyebrow">INTELIGÊNCIA OPERACIONAL</span><h1>Relatório Gerencial</h1>'+
+      '<p>Panorama dos recebimentos, desempenho das lojas e ocorrências registradas.</p></div><span class="report-heading-tag">Visão consolidada</span></header>'+
+      '<nav class="report-navigation" aria-label="Seções do relatório">'+
+      '<a href="#report-overview">Visão geral</a><a href="#report-trends">Desempenho</a><a href="#report-details">Detalhamento</a></nav>'+
       '<form class="report-filters" data-report-filters>'+ 
-      '<div class="report-filter-intro"><div><strong>Período e filtros</strong><span>Escolha os dados que deseja analisar.</span></div><small>Intervalo máximo de 93 dias</small></div>'+
+      '<div class="report-filter-intro"><div><strong>Filtros da análise</strong><span>Defina o período e as unidades para atualizar todos os indicadores.</span></div><small>Até 93 dias</small></div>'+
       '<div class="report-presets" aria-label="Períodos rápidos">'+chips+'</div>'+
       '<label>De<div class="report-date-control"><input type="date" lang="pt-BR" name="start" data-report-date-input="start" value="'+esc(settings.start)+'"></div></label>'+
       '<label>Até<div class="report-date-control"><input type="date" lang="pt-BR" name="end" data-report-date-input="end" value="'+esc(settings.end)+'"></div></label>'+
@@ -186,14 +200,15 @@ export function renderReports(root,{request=apiFetch}={}) {
         '<div class="report-progress"><span style="width:'+weekdayRate.toFixed(2)+'%"></span></div>'+
         '<small>'+num(w.total)+' agendamento(s) em '+num(w.days)+' dia(s) · '+num(w.recebido)+' recebidos</small></div>';
     }).join("")||'<p class="report-empty">Sem movimentação no período.</p>';
-    const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.naoCompareceu,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+cell(rate(u),true)+'</tr>');
+    const byStore=units.map(u=>'<tr>'+cell(u.code+" · "+u.name)+[u.total,u.recebido,u.naoChegou,u.aguardando,u.naoCompareceu,u.recusado,u.semAgenda].map(x=>cell(num(x),true)).join("")+rateCell(reportRate(u))+'</tr>');
     const rows=occurrences.rows.map(r=>{
       const automatic=r.occurrenceType==="nao_compareceu";
       const source=r.classificationOrigin==="historico"?"Sistema · agenda antiga concluída":
         automatic?"Sistema · fechamento do dia":"Registrado manualmente";
       return '<tr>'+cell(date(r.date))+cell(r.storeCode+" · "+r.storeName)+cell(r.supplier)+cell(r.protocol)+
-        cell(automatic?"Não compareceu":"Não recebido")+
-        cell(automatic?"Não compareceu":r.observation||"Motivo não registrado")+cell(source)+'</tr>';
+        '<td>'+occurrenceStatus(automatic)+'</td>'+
+        cell(automatic?"Não compareceu":r.observation||"Motivo não registrado")+
+        '<td class="report-origin-cell">'+(automatic?'<span class="report-source-indicator" aria-hidden="true"></span>':'')+esc(source)+'</td></tr>';
     });
     const pager='<div class="report-pagination"><span>'+num(occurrences.total)+' ocorrência(s) · '+
       num(occurrences.total?settings.offset+1:0)+'–'+num(Math.min(settings.offset+50,occurrences.total))+'</span><div>'+
@@ -211,13 +226,14 @@ export function renderReports(root,{request=apiFetch}={}) {
       '<div class="report-section-heading" id="report-overview"><div><span class="report-section-kicker">VISÃO GERAL</span><h2>Resumo do período</h2><p>Indicadores consolidados das entregas.</p></div>'+ 
       '<span class="report-range-summary">'+esc(date(settings.start))+' a '+esc(date(settings.end))+' · '+esc(storeLabel(settings.stores))+'</span></div>'+ 
       '<div class="report-kpis">'+
+      metric("Taxa de recebimento",rate(sum),"Recebidos em relação ao total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary",reportRate(sum))+
       metric("Agendamentos",num(sum.total),num(sum.agendas)+" agendas",delta(sum.total,prev?.total),"primary")+
       metric("Recebidos",num(sum.recebido),rate(sum)+" do total",delta(sum.recebido,prev?.recebido,"good"),"primary")+
-      metric("Não recebidos",num(sum.naoChegou),"Não chegaram",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
-      metric("Taxa de recebimento",rate(sum),"Recebidos / total",hasPriorRate?delta(reportRate(sum),reportRate(prior),"good"," p.p."):null,"primary")+
-      metric("Aguardando",num(sum.aguardando),"Agendas abertas",delta(sum.aguardando,prev?.aguardando))+
-      metric("Não compareceu",num(sum.naoCompareceu),"Agendas concluídas",delta(sum.naoCompareceu,prev?.naoCompareceu))+
-      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+compare+open+
+      metric("Não recebidos",num(sum.naoChegou),"Registrados na conferência",delta(sum.naoChegou,prev?.naoChegou,"invert"),"primary")+
+      metric("Não compareceu",num(sum.naoCompareceu),"Classificados no fechamento",delta(sum.naoCompareceu,prev?.naoCompareceu))+
+      metric("Aguardando",num(sum.aguardando),"Pendentes em agendas abertas",delta(sum.aguardando,prev?.aguardando))+
+      metric("Recusados",num(sum.recusado),"Entregas recusadas",delta(sum.recusado,prev?.recusado))+'</div>'+
+      ((compare||open)?'<div class="report-context-notes">'+compare+open+'</div>':"")+
       '<div class="report-section-heading" id="report-trends"><div><span class="report-section-kicker">DESEMPENHO</span><h2>Tendências e comparativos</h2><p>Evolução das entregas e padrões por unidade.</p></div></div>'+ 
       panel("Evolução diária","Volume por status ou taxa de recebimento em cada dia",chart(daily),chartTools)+
       '<div class="report-analytics-grid">'+

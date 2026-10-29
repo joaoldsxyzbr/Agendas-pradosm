@@ -53,7 +53,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page).toHaveURL(/\/admin\/reports$/);
    await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
    await expect(page.locator(".prado-topbar-breadcrumb strong")).toHaveText("Relatório Gerencial");
-   await expect(page.locator(".report-filter-intro")).toContainText("Período e filtros");
+   await expect(page.locator(".report-filter-intro")).toContainText("Filtros da análise");
    await expect(page.locator(".report-section-heading")).toHaveCount(3);
    await expect(page.getByRole("heading",{name:"Resumo do período"})).toBeVisible();
    await expect(page.getByRole("heading",{name:"Tendências e comparativos"})).toBeVisible();
@@ -61,7 +61,7 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    await expect(page.locator(".report-kpis")).toContainText("Recebidos");
    await expect(page.locator(".report-kpis")).toContainText("4");
    await expect(page.locator(".report-metric")).toHaveCount(7);
-   await expect(page.locator(".report-metric-heading")).toContainText(["Agendamentos","Recebidos","Não recebidos","Taxa de recebimento","Aguardando","Não compareceu","Recusados"]);
+   await expect(page.locator(".report-metric-heading")).toContainText(["Taxa de recebimento","Agendamentos","Recebidos","Não recebidos","Não compareceu","Aguardando","Recusados"]);
    await expect(page.locator(".report-metric-primary")).toHaveCount(4);
    await expect(page.locator(".report-metric-supporting")).toHaveCount(3);
    await expect(page.locator('[data-report-date-input="start"]')).toHaveAttribute("type","date");
@@ -102,6 +102,55 @@ for(const [label,user] of [["administrador",admin],["visualizador",viewer]]){
    expect(requests.some(x=>/\/api\/admin\/(?:users|agendas\/import)/.test(x))).toBe(false);
  });
 }
+test("Redesign executivo: indicador prioritário, taxas visuais e situações identificadas",async({page})=>{
+ await page.setViewportSize({width:1440,height:900});
+ await mocks(page,admin);
+ await page.goto("/admin/reports");
+ const metrics=page.locator(".report-metric");
+ await expect(metrics).toHaveCount(7);
+ const featured=page.locator(".report-metric-featured");
+ await expect(featured).toContainText("Taxa de recebimento");
+ await expect(featured).toContainText("57,1%");
+ await expect(featured.locator(".report-featured-meter span")).toHaveAttribute("style",/57\.1%/);
+ const card=await featured.boundingBox();
+ const next=await metrics.nth(1).boundingBox();
+ expect(card.width).toBeGreaterThan(200);
+ expect(card.height).toBeGreaterThan(next.height*1.5);
+ expect(card.x).toBeLessThan(next.x);
+ const nav=page.getByRole("navigation",{name:"Seções do relatório"});
+ await expect(nav.getByRole("link")).toHaveCount(3);
+ await nav.getByRole("link",{name:"Desempenho"}).click();
+ await expect(page).toHaveURL(/#report-trends$/);
+ await expect(page.locator("#report-trends")).toBeVisible();
+ await expect(page.locator(".report-store-table .report-rate-cell")).toHaveCount(1);
+ await expect(page.locator(".report-store-table .report-rate-track i")).toHaveAttribute("style",/57\.1%/);
+ await expect(page.locator(".report-status-tag.is-automatic")).toContainText("Não compareceu");
+ await expect(page.locator(".report-status-tag.is-manual")).toContainText("Não recebido");
+ await expect(page.locator(".report-origin-cell")).toContainText(["Registrado manualmente","Sistema · agenda antiga concluída"]);
+});
+test("Redesign executivo: responsivo em celular e tablet nos dois temas",async({page})=>{
+ await mocks(page,viewer);
+ await page.goto("/admin/reports");
+ await expect(page.locator(".report-metric-featured")).toBeVisible();
+ for(const theme of ["dark","light"]){
+   await page.evaluate(value=>document.documentElement.dataset.theme=value,theme);
+   for(const width of [390,768,1440]){
+     await page.setViewportSize({width,height:900});
+     const geometry=await page.locator(".report-kpis").evaluate(el=>{
+       const hero=el.querySelector(".report-metric-featured");
+       const rect=hero.getBoundingClientRect();
+       const grid=el.getBoundingClientRect();
+       return {heroWidth:rect.width,gridWidth:grid.width,
+         pageOverflow:document.documentElement.scrollWidth-window.innerWidth,
+         heroVisible:getComputedStyle(hero).display!=="none"};
+     });
+     expect(geometry.heroVisible).toBe(true);
+     expect(geometry.pageOverflow,JSON.stringify({theme,width,geometry})).toBeLessThanOrEqual(2);
+     expect(geometry.heroWidth).toBeLessThanOrEqual(geometry.gridWidth+2);
+     if(width===390)expect(geometry.heroWidth).toBeGreaterThan(geometry.gridWidth-2);
+   }
+ }
+});
 test("Relatório seleciona várias lojas e aplica filtros em indicadores e ocorrências",async({page})=>{
  await page.setViewportSize({width:1366,height:900});
  const {searches}=await mocks(page,admin);

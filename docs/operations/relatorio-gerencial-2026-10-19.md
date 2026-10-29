@@ -1,18 +1,34 @@
-# Relatório Gerencial — main, 19/10/2026
+# Relatório Gerencial — contrato funcional e apresentação
 
-## Público / permissão
-Nova aba **Relatório Gerencial**, em /admin/reports, para administrador e visualizador. O conferente não tem acesso. O visualizador usa apenas métodos GET na allowlist já existente em worker/middleware/auth.js; não é autorizado a cadastrar, editar, importar ou excluir.
+## Uso e permissões
+- Rota: `/admin/reports`; administrador e visualizador podem consultar.
+- O conferente não tem acesso. O visualizador possui somente GET na lista de rotas autorizadas.
+- Fonte dos dados: D1 via API autenticada. Filtros, situação e indicadores são calculados a partir dos registros; não há SQL no navegador.
 
-## Dados e funcionalidades
-Tela nativa em JS puro, HTML e CSS, reaproveitando a API/agrupamentos da preview sem React ou Vite; usa Chart.js local sob demanda, com fallback HTML/CSS. Filtros por data (1–93 dias), loja e comparação com período anterior. KPIs (agendamentos, recebidos, não recebidos, taxa, aguardando em agendas abertas, sem conferência em agendas concluídas, recusados); evolução diária em Chart.js local com alternativa HTML/CSS acessível, comparativo por loja, fornecedores com mais ocorrências; tabelas por loja e ocorrências com observações. Paginação de 50 por página, dados D1 reais.
+## Dados e regras
+- Filtros: período de até 93 dias, várias lojas (ou Todas), atalhos de data e comparação opcional com período anterior.
+- Visão geral: taxa de recebimento (**recebidos / total**, inclusive pendentes no denominador), total de agendamentos, recebidos, não recebidos, não compareceu, aguardando e recusados.
+- **Não compareceu**: pendências classificadas pelo sistema no fechamento do dia e agendas antigas concluídas com registros que permanecem aguardando. Não é prova de ausência física; não entra em Não recebidos manuais.
+- Evolução diária com Chart.js local e fallback HTML; desempenho por loja, fornecedores com não recebimentos e distribuição por dia da semana.
+- Detalhamento: tabela por loja, situações, observações e origem das ocorrências; 50 por página, busca por fornecedor/protocolo.
+- A seleção das lojas é aplicada a todas as consultas e preservada no navegador. O estado antigo com apenas uma loja continua compatível.
 
-## API / D1
-- GET /api/admin/reports?start=AAAA-MM-DD&end=AAAA-MM-DD&storeCode=...
-- GET /api/admin/reports/occurrences?...&limit=50&offset=...
-Validação Zod, SQL parametrizado; nenhuma alteração ou migração de schema específica deste relatório. A consulta de motivos usa agendamentos.observacao da migração 0017. A separação entre aguardando e sem conferência é feita em SQL somente de leitura, sem alterar o D1. Veja relatorio-gerencial-sem-conferencia.md para a regra.
+## Organização visual (branch design/relatorio-gerencial-executivo)
+A interface foi reorganizada em três seções navegáveis:
+1. **Visão geral:** taxa como indicador principal, quatro números operacionais destacados e dois indicadores secundários. Barra visual complementar à taxa, sem modificar o cálculo.
+2. **Desempenho:** gráfico diário, comparativos e ranking de ocorrências com títulos e controles separados dos dados.
+3. **Detalhamento:** tabelas com taxas visualizáveis e indicação clara de situação manual/automática, mantendo busca e paginação.
 
-## Validação/implantação
-Testes: tests/unit/reports.test.js, frontend-core.test.js, visual-shell.test.js, app-contract.test.js. Build copia frontend/styles/manager-reports.css e as bibliotecas locais Lucide/Chart.js. Executar verify:production e confirmar CI + Cloudflare separados.
-**Atenção:** erro recorrente 9109 (Cloudflare token inválido) impediu os últimos deploys. Não considerar produção atualizada enquanto o Cloudflare não confirmar que a migração 0017 foi aplicada e o novo Worker entrou no ar. Não mexer em D1 manualmente sem validação.
-## Simplificação da interface — 19/10/2026
-A tabela detalhada **Por data** foi retirada do Relatório Gerencial por repetir informações operacionais já disponíveis nas agendas. Permanecem os KPIs, a evolução diária, comparativos, indicadores consolidados por loja e ocorrências/observações. O gráfico diário mantém dados por status; endpoints, consultas, agrupamentos, permissões e dados no D1 não foram alterados. O texto alternativo do gráfico, a ajuda contextual e os testes de interface foram atualizados.
+A apresentação usa `frontend/styles/manager-reports-executive.css`, carregado após os estilos globais e escopado a `.manager-report`. Nenhuma mudança de API, banco, autenticação, migração, dependências ou regras de negócio. O layout deve funcionar em desktop e dispositivos estreitos, com tabelas roláveis sem rolagem horizontal da página e navegação por teclado.
+
+## Validação e publicação
+- Verificação do código: `npm test`, `npm run test:design` e `npm run build`.
+- Navegador: `npm run test:e2e` com cenários de administrador/visualizador, período, lojas, gráficos, ocorrências e layout em 390, 768 e 1440 pixels, em tema claro e escuro.
+- Gate GitHub `verify` exige qualidade, navegador e CodeQL verdes.
+- `main` publica automaticamente pela Cloudflare. **Não mesclar sem revisão e autorização explícita.**
+- Captura/inspeção visual humana da Preview segue recomendada antes do merge; testes de geometria não substituem avaliação de legibilidade.
+
+## Histórico
+- O desenho inicial de 19/10/2026 retirou a tabela redundante Por data.
+- Em 28/10/2026, foram incluídos a seleção de várias lojas e o tratamento de Não compareceu.
+- A reformulação visual fica separada da produção até aprovação.
