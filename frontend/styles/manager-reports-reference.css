@@ -676,3 +676,82 @@ html[data-theme="dark"] .manager-report .report-navigation [data-report-tab][ari
   max-width:min(290px,calc(100vw - 40px));
   font-size:12px;
 }
+
+/* Resumos sem tabelas com largura mínima: leitura completa no card. */
+.manager-report .report-reference-compact-list{
+  display:grid;
+  width:100%;
+  min-width:0;
+  gap:0;
+}
+.manager-report .report-reference-compact-item{
+  min-width:0;
+  padding:9px 0;
+  border-bottom:1px solid var(--ref-border);
+}
+.manager-report .report-reference-compact-item:last-child{border-bottom:0}
+.manager-report .report-reference-compact-primary{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  min-width:0;
+  gap:5px 10px;
+  font-size:11px;
+  line-height:1.45;
+}
+.manager-report .report-reference-when{
+  flex:0 0 auto;
+  color:var(--color-text-muted);
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap;
+}
+.manager-report .report-reference-store{
+  flex:0 1 auto;
+  min-width:0;
+  max-width:30%;
+  color:var(--color-text);
+  overflow-wrap:anywhere;
+  font-weight:600;
+}
+.manager-report .report-reference-party{
+  flex:1 1 135px;
+  min-width:0;
+  color:var(--color-text);
+  overflow-wrap:anywhere;
+  line-height:1.35;
+}
+.manager-report .report-reference-compact-primary .report-reference-status{
+  flex:0 0 auto;
+  margin-left:auto;
+  white-space:nowrap;
+}
+.manager-report .report-reference-compact-secondary{
+  display:flex;
+  flex-wrap:wrap;
+  min-width:0;
+  gap:4px 14px;
+  margin:5px 0 0;
+  font-size:10px;
+  line-height:1.45;
+  color:var(--ref-subtle);
+}
+.manager-report .report-reference-compact-secondary span:first-child{
+  flex:1 1 155px;
+  min-width:0;
+  overflow-wrap:anywhere;
+}
+.manager-report .report-reference-compact-secondary span:last-child{
+  flex:0 1 auto;
+}
+.manager-report .report-reference-table-hint{
+  margin:0 0 8px;
+  color:var(--ref-subtle);
+  font-size:10px;
+  line-height:1.4;
+}
+@media(max-width:490px){
+  .manager-report .report-reference-compact-primary{gap:5px 8px}
+  .manager-report .report-reference-party{flex-basis:100%;order:4}
+  .manager-report .report-reference-compact-primary .report-reference-status{order:3}
+  .manager-report .report-reference-store{max-width:50%}
+}
