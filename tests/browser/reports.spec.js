@@ -344,7 +344,7 @@ test("Ajuda contextual aparece em todos os cards e explica últimos agendamentos
   await expect(cards).toHaveCount(7);
   await expect(cards.locator("[data-report-info]")).toHaveCount(7);
   const last=page.locator(".report-reference-latest-card");
-  const info=last.getByRole("button",{name:"Sobre: Últimos agendamentos"});
+  const info=last.getByRole("button",{name:"Sobre: Agendamentos recentes por data de entrega"});
   await info.click();
   await expect(info).toHaveAttribute("aria-expanded","true");
   const tooltip=last.getByRole("tooltip");
@@ -352,4 +352,26 @@ test("Ajuda contextual aparece em todos os cards e explica últimos agendamentos
   await expect(tooltip).toContainText("Não são necessariamente os últimos cadastrados");
   await page.keyboard.press("Escape");
   await expect(info).toHaveAttribute("aria-expanded","false");
+});
+
+
+test("resumos não têm rolagem lateral e gráfico mostra sete dias corridos",async({page})=>{
+  await mocks(page,admin);
+  await page.goto("/admin/reports");
+  for(const width of [390,768,1366]){
+    await page.setViewportSize({width,height:950});
+    for(const selector of [".report-reference-occurrences-card",".report-reference-latest-card"]){
+      const card=page.locator(selector);
+      const dimensions=await card.evaluate(el=>({
+        cardWidth:el.clientWidth,
+        contentWidth:el.scrollWidth,
+        listWidth:el.querySelector(".report-reference-compact-list")?.scrollWidth,
+        listClient:el.querySelector(".report-reference-compact-list")?.clientWidth
+      }));
+      expect(dimensions.contentWidth,selector+" "+JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.cardWidth+2);
+      expect(dimensions.listWidth,selector+" "+JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.listClient+2);
+    }
+  }
+  await expect(page.locator(".report-reference-stack-card .report-reference-day")).toHaveCount(7);
+  await expect(page.locator(".report-reference-latest-card")).toContainText("Ordenados pela data e hora da entrega");
 });
