@@ -8,10 +8,10 @@ describe("Ajuda contextual do Relatório Gerencial", () => {
     assert.equal(Object.keys(REPORT_HELP).length, 19);
     for(const title of ["Taxa de recebimento","Evolução dos recebimentos",
       "Distribuição das situações","Desempenho por loja","Agendamentos por situação (por dia)",
-      "Ocorrências recentes","Últimos agendamentos"]){
+      "Ocorrências recentes","Agendamentos recentes por data de entrega"]){
       assert.ok(REPORT_HELP[title]?.length>50,title);
     }
-    assert.match(REPORT_HELP["Últimos agendamentos"],/Não são necessariamente os últimos cadastrados/);
+    assert.match(REPORT_HELP["Agendamentos recentes por data de entrega"],/Não são necessariamente os últimos cadastrados/);
     for (const title of ["Comparativo por loja", "Taxa de recebimento", "Fornecedores com ocorrências", "Ocorrências e observações"]) {
       assert.ok(REPORT_HELP[title].length > 50, title);
     }
