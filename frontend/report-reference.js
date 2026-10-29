@@ -65,7 +65,7 @@ function storesRanking(stores){
       '<span class="report-reference-store-name" title="'+esc(store.code+" · "+store.name)+'">'+esc(store.code+" · "+store.name)+'</span>'+
       '<span class="report-reference-store-meter"><span style="width:'+rate.toFixed(1)+'%"></span></span>'+
       '<strong>'+pct(rate)+'</strong><span class="report-reference-store-count">'+n(store.recebido)+' / '+n(store.total)+'</span></div>';
-  }).join("")+'</div><a class="report-reference-link" href="#report-details">Ver todas as lojas <span aria-hidden="true">→</span></a>';
+  }).join("")+'</div><button type="button" class="report-reference-link" data-report-dialog-open="stores">Ver todas as lojas <span aria-hidden="true">→</span></button>';
 }
 function stacked(daily){
   const days=daily.slice(-7);
@@ -95,7 +95,7 @@ function shortOccurrences(occurrences){
       '<td>'+esc(origin)+'</td></tr>';
   }).join("");
   return '<div class="report-reference-table-scroll"><table><thead><tr><th>Data</th><th>Loja</th><th>Fornecedor</th><th>Situação</th><th>Motivo</th><th>Origem</th></tr></thead><tbody>'+
-    rows+'</tbody></table></div><a class="report-reference-link" href="#report-details">Ver todas as ocorrências <span aria-hidden="true">→</span></a>';
+    rows+'</tbody></table></div><button type="button" class="report-reference-link" data-report-dialog-open="occurrences">Ver todas as ocorrências <span aria-hidden="true">→</span></button>';
 }
 function recentAppointments(latest){
   const list=Array.isArray(latest?.rows)?latest.rows.slice(0,5):[];
@@ -108,7 +108,7 @@ function recentAppointments(latest){
       '<td><span class="report-reference-status '+tag+'">'+esc(status)+'</span></td></tr>';
   }).join("");
   return '<div class="report-reference-table-scroll"><table><thead><tr><th>Data</th><th>Hora</th><th>Loja</th><th>Fornecedor</th><th>Situação</th></tr></thead><tbody>'+
-    rows+'</tbody></table></div><a class="report-reference-link" href="#report-details">Ver detalhamento <span aria-hidden="true">→</span></a>';
+    rows+'</tbody></table></div><button type="button" class="report-reference-link" data-report-dialog-open="appointments">Ver detalhamento <span aria-hidden="true">→</span></button>';
 }
 export function renderReferenceOverview({sum,daily,stores,occurrences,latest,prior=null}){
   const rate=safePercent(reportRate(sum));
@@ -121,7 +121,7 @@ export function renderReferenceOverview({sum,daily,stores,occurrences,latest,pri
   return '<div class="report-reference-overview" aria-label="Visão gerencial de recebimentos">'+
     '<div class="report-reference-row report-reference-row-charts">'+
     card("Taxa de recebimento",rateBody,"report-reference-rate-card")+
-    card("Evolução dos recebimentos",trend(daily),"report-reference-trend-card")+
+    card("Evolução dos recebimentos",trend(daily)+'<button type="button" class="report-reference-link report-reference-analyses" data-report-dialog-open="analysis">Ver análises completas <span aria-hidden="true">→</span></button>',"report-reference-trend-card")+
     card("Distribuição das situações",distribution(sum),"report-reference-donut-card")+'</div>'+
     '<div class="report-reference-row report-reference-row-analysis">'+
     card("Desempenho por loja",storesRanking(stores),"report-reference-store-card")+
