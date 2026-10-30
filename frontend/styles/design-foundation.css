@@ -110,3 +110,29 @@ html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(button,a,input
 @media (prefers-reduced-motion:reduce) {
  html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.status-action,.agenda-observation-trigger,.supplier-tag-add,.agenda-sort-button,.agenda-date-step) {transition:none}
 }
+
+/* Acabamento compartilhado — sem alterar larguras, alturas ou posicionamento. */
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.registry-toolbar,.report-filters,.tags-panel,.tags-creator,.table-card) {
+ border-color:var(--prado-border);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.table-card,.registry-card,.report-card,.tags-panel,.tags-creator) {
+ box-shadow:var(--prado-shadow-subtle);
+}
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table thead th {
+ border-bottom-color:var(--prado-border-strong);
+ color:var(--prado-text);
+}
+html[data-theme="dark"] .prado-admin .admin-page:not(.manager-report) table tbody td {
+ border-bottom-color:var(--prado-border);
+ color:var(--prado-text);
+}
+html[data-theme="dark"] .prado-store-layout .prado-store-agenda-panel .agenda-desktop thead th {
+ color:var(--prado-text);
+ border-bottom-color:var(--prado-border-strong);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.form-error,.error-panel,[role=alert]) {
+ overflow-wrap:anywhere;
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.empty-panel,.tags-empty,.report-empty) {
+ color:var(--prado-text-muted);
+}

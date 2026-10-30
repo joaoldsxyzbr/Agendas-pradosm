@@ -24,6 +24,15 @@ for (const file of required) {
   if (!existsSync(join(dist, file))) throw Error("Asset JS nativo não gerado: " + file);
 }
 const html = read("index.html");
+// Verifica os assets CSS reais após a migração por tela.
+const stylesheetPaths = [...html.matchAll(/<link\\s+[^>]*rel="stylesheet"[^>]*href="(\\/frontend\\/[^"]+\\.css)"/g)]
+  .map(match => match[1].slice(1));
+if (stylesheetPaths.length === 0) throw Error("Nenhuma folha CSS encontrada no HTML.");
+if (new Set(stylesheetPaths).size !== stylesheetPaths.length) throw Error("Folha CSS duplicada no HTML.");
+for (const stylesheet of stylesheetPaths) {
+  if (!existsSync(join(dist, stylesheet))) throw Error("Folha CSS ausente no build: " + stylesheet);
+}
+
 if (!html.includes('src="/frontend/entry.js"')) throw Error("HTML sem entrada nativa.");
 if (/main\.tsx|vite\/(?:client|assets)|react-dom/i.test(html))
   throw Error("O build ainda referencia React ou Vite.");
