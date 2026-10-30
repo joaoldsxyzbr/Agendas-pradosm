@@ -42,18 +42,17 @@ export function renderToday(root,{
     <div class="prado-store-agenda-view" data-agenda-view hidden>
       <div class="agenda-completed-banner" data-completed hidden></div>
       <section class="agenda-metrics" aria-label="Resumo da agenda">
-        <span><strong data-metric="total">0</strong> total</span>
-        <span><strong data-metric="aguardando">0</strong> aguardando</span>
-        <span><strong data-metric="recebido">0</strong> recebidos</span>
-        <span><strong data-metric="naoChegou">0</strong> não recebidos</span>
-        <span><strong data-metric="trocas">0</strong> trocas</span>
+        <span class="metric-total"><strong data-metric="total">0</strong> total</span>
+        <span class="metric-waiting"><strong data-metric="aguardando">0</strong> aguardando</span>
+        <span class="metric-received"><strong data-metric="recebido">0</strong> recebidos</span>
+        <span class="metric-missing"><strong data-metric="naoChegou">0</strong> não recebidos</span>
+        <span class="metric-exchanges"><strong data-metric="trocas">0</strong> trocas</span>
       </section>
       <section class="prado-store-agenda-panel" aria-label="Agenda de recebimento">
         <div class="prado-store-agenda-panel-heading">
           <div>
-            <span class="prado-store-eyebrow">AGENDA DO DIA</span>
-            <h2>Agenda de recebimento</h2>
-            <p>Consulte os fornecedores e atualize os recebimentos.</p>
+            <h2>Agenda do dia</h2>
+            <p>Fornecedores agendados para recebimento.</p>
           </div>
           <div class="agenda-toolbar">
             <label class="agenda-search"><span class="sr-only">Pesquisar fornecedor ou protocolo</span>
@@ -143,6 +142,11 @@ export function renderToday(root,{
     root.querySelector("[data-agenda-view]").hidden=!visible;
     if(!visible){return;}
     const summary=storeAgendaMetrics(agenda.appointments);
+    const total=summary.total||0;
+    for(const [metric,value] of Object.entries(summary)){
+      const node=root.querySelector(`[data-metric="${metric}"]`)?.parentElement;
+      if(node)node.style.setProperty("--metric-progress",`${total?Math.min(100,Math.round(value/total*100)):0}%`);
+    }
     for(const [key,value] of Object.entries(summary)){
       const el=root.querySelector(`[data-metric="${key}"]`);
       if(el.textContent!==String(value))el.textContent=String(value);
