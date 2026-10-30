@@ -1,0 +1,66 @@
+import { Navigate, Outlet, Route, Routes } from "react-router";
+import { AppLayout } from "./layouts";
+import { useSession } from "./session-query";
+import { LoginPage } from "@/features/auth/login-page";
+import { PlaceholderPage } from "@/features/placeholder-page";
+import { Button } from "@/components/ui/button";
+import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
+
+function Guard({ roles }: { roles: Role[] }) {
+  const session = useSession();
+  if (session.isPending) return <main className="grid min-h-svh place-items-center text-sm text-slate-300">Verificando sessão…</main>;
+  if (session.isError) return <main className="grid min-h-svh place-items-center gap-3 p-5">
+    <p role="alert">Não foi possível verificar sua sessão.</p>
+    <Button onClick={() => void session.refetch()}>Tentar novamente</Button>
+  </main>;
+  if (!session.data) return <Navigate to="/login" replace />;
+  if (!roles.includes(session.data.papel)) return <Navigate to={homeForRole(session.data.papel)} replace />;
+  return <Outlet context={session.data} />;
+}
+
+function LayoutRoute() {
+  const session = useSession();
+  // O Guard garante que o papel foi validado antes de renderizar a estrutura.
+  return session.data ? <AppLayout user={session.data} /> : null;
+}
+
+function Page({ title, description }: { title: string; description: string }) {
+  return <PlaceholderPage title={title} description={description} />;
+}
+
+function UnknownRoute() {
+  const session = useSession();
+  if (session.isPending) return <main className="grid min-h-svh place-items-center">Verificando sessão…</main>;
+  return <Navigate to={session.data ? homeForRole(session.data.papel) : "/login"} replace />;
+}
+
+export function AppRoutes() {
+  return <Routes>
+    <Route path="/login" element={<LoginPage />} />
+    <Route element={<Guard roles={["admin", "visualizador"]} />}>
+      <Route element={<LayoutRoute />}>
+        <Route path="/admin" element={<Page title="Recebimento" description="Operação e acompanhamento por loja." />} />
+        <Route path="/admin/reports" element={<Page title="Relatório Gerencial" description="Indicadores, filtros e gráficos." />} />
+      </Route>
+    </Route>
+    <Route element={<Guard roles={["admin"]} />}>
+      <Route element={<LayoutRoute />}>
+        <Route path="/admin/history" element={<Page title="Histórico" description="Agendas e observações anteriores." />} />
+        <Route path="/admin/import" element={<Page title="Importar agenda" description="Importação de arquivos CSV e PDF." />} />
+        <Route path="/admin/stores" element={<Page title="Lojas" description="Cadastro e gerenciamento de unidades." />} />
+        <Route path="/admin/users" element={<Page title="Usuários" description="Perfis, acesso e auditoria." />} />
+        <Route path="/admin/diagnostics" element={<Page title="Logs e Auditoria" description="Diagnósticos e eventos do sistema." />} />
+      </Route>
+    </Route>
+    <Route element={<Guard roles={["conferente"]} />}>
+      <Route element={<LayoutRoute />}>
+        <Route path="/app" element={<Page title="Conferência" description="Recebimentos e controle da operação." />} />
+        <Route path="/app/tags" element={<Page title="Tags" description="Organização e classificação das agendas." />} />
+      </Route>
+    </Route>
+    <Route path="*" element={<UnknownRoute />} />
+  </Routes>;
+}
+
+// Mantém o contrato explícito dos três papéis durante a substituição do runtime.
+export type AuthenticatedUser = SessionUser;
