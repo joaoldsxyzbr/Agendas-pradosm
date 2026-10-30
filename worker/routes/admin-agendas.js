@@ -27,6 +27,11 @@ import {
 } from "../repositories/agendas.js";
 const adminAgendaRoutes = new Hono();
 const adminAppointmentRoutes = new Hono();
+function conflictResponse(c, error) {
+  return error?.code === "CONFLITO_ESTADO"
+    ? c.json({ error: "CONFLITO_ESTADO", message: "Este registro mudou. Atualize a tela e tente novamente." }, 409)
+    : null;
+}
 function parseStringArray(value) {
   try {
     const parsed = JSON.parse(value);
@@ -376,6 +381,8 @@ adminAgendaRoutes.patch("/:id/status", async (c) => {
     });
     return c.json(agendaJson(updated));
   } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
     console.error("Agenda day status change failed", error);
     return c.json(
       {
@@ -574,6 +581,8 @@ adminAppointmentRoutes.patch("/:id/observation", async (c) => {
     await publishAgendaChanged(c.env, { agendaId: agenda.id, storeId: agenda.loja_id, date: agenda.data_agenda, reason: "observation" });
     return c.json(appointmentJson(updated));
   } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
     console.error("Admin observation update failed", error);
     return c.json({ error: "ALTERACAO_OBSERVACAO_FALHOU", message: "A observação não foi atualizada." }, 500);
   }
@@ -630,6 +639,8 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
     });
     return c.json(appointmentJson(updated));
   } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
     console.error("Admin appointment status change failed", error);
     return c.json(
       {
@@ -686,6 +697,8 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     });
     return c.json(appointmentJson(updated));
   } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
     console.error("Admin appointment exchanges change failed", error);
     return c.json(
       {
