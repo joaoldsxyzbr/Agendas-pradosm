@@ -18,9 +18,9 @@ function errorText(error: unknown) {
   return error instanceof ApiError ? error.message : "Não foi possível salvar. Atualize a agenda e tente novamente.";
 }
 
-function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, onTagsUpdated }: {
+function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, tagsReady, onTagsUpdated }: {
   item: StoreAppointment; readOnly:boolean; day:string; onUpdated:()=>Promise<void>;
-  tags:Tag[]; availableTags:Tag[]; onTagsUpdated:()=>Promise<void>;
+  tags:Tag[]; availableTags:Tag[]; tagsReady:boolean; onTagsUpdated:()=>Promise<void>;
 }) {
   const [reasonOpen,setReasonOpen]=useState(false);
   const [tagsOpen,setTagsOpen]=useState(false);
@@ -59,7 +59,7 @@ function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, o
         <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label={"Tags de " + item.supplier}>
           {tags.map(tag => <TagChip key={tag.id} tag={tag} />)}
           {!readOnly && <Button size="sm" variant="ghost" className="h-7 border border-dashed border-slate-500 text-[11px]"
-            onClick={() => setTagsOpen(value => !value)}>{tagsOpen ? "Fechar tags" : "+ Tag"}</Button>}
+            disabled={!tagsReady} onClick={() => setTagsOpen(value => !value)}>{tagsOpen ? "Fechar tags" : "+ Tag"}</Button>}
         </div>
       </div>
       <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
@@ -206,7 +206,7 @@ export function ConferencePage(){
         <div className="grid gap-2" aria-label="Fornecedores">
           {tagsQuery.isError && <p role="alert" className="text-xs text-amber-300">Tags indisponíveis. Os demais controles da conferência continuam disponíveis.</p>}
           {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-            tags={tagsQuery.data?.assignments[item.id] ?? []} availableTags={tagsQuery.data?.tags ?? []}
+            tags={tagsQuery.data?.assignments[item.id] ?? []} availableTags={tagsQuery.data?.tags ?? []} tagsReady={Boolean(tagsQuery.data) && !tagsQuery.isError}
             onUpdated={refresh} onTagsUpdated={refreshTags}/> )}
           {filtered.length===0 && <p role="status" className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
         </div>
