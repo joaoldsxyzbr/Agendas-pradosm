@@ -12,7 +12,7 @@
     "test:design": "node scripts/check-design-system.mjs",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
-    "verify:production": "npm run check:migrations && npm test && npm run test:design && npm run test:bootstrap-admin && npm run build && node scripts/check-build.mjs",
+    "verify:production": "npm run check:migrations && npm test && npm run test:design && npm run test:bootstrap-admin && npm run build && node scripts/check-build.mjs && node scripts/build-modern-preview.mjs",
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
     "test:e2e": "playwright test --config playwright.config.js",
