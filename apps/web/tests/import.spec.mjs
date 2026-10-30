@@ -12,6 +12,10 @@ async function setup(page, { conflict = false, role = "admin" } = {}) {
     const method = route.request().method();
     if (path === "/api/auth/me") return route.fulfill({ json: role === "admin" ? admin : viewer });
     if (path === "/api/realtime/config") return route.fulfill({ json: { mode: "off", protocolVersion: 1 } });
+    // O visualizador redirecionado para /admin carrega as consultas de Recebimento.
+    if (role === "visualizador" && ["/api/admin/stores", "/api/admin/agendas", "/api/admin/presence"].includes(path)) {
+      return route.fulfill({ json: [] });
+    }
     if (path === "/api/admin/agendas/import/bulk" && method === "POST") {
       const payload = route.request().postDataJSON();
       submissions.push(payload);
