@@ -9,7 +9,9 @@ import { agendaPdfFileName, buildAgendaPdf } from "../../frontend/agenda/exportA
 
 describe("Rotas nativas com paridade da main", () => {
   it("mantém os caminhos da aplicação React", () => {
-    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/admin/diagnostics", "/app"]);
+    assert.deepEqual(APP_PATHS, ["/login", "/admin", "/admin/history", "/admin/import", "/admin/stores", "/admin/users", "/admin/reports", "/admin/diagnostics", "/app", "/app/tags"]);
+    assert.deepEqual(resolveRoute("/app/tags",{papel:"conferente"}),{view:"tags",layout:"store"});
+    assert.deepEqual(resolveRoute("/app/tags",{papel:"visualizador"}),{redirect:"/admin"});
     assert.equal(homeForRole("conferente"), "/app");
     assert.equal(homeForRole("admin"), "/admin");
   });

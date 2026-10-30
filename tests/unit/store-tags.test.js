@@ -59,7 +59,7 @@ function appWithUser(db) {
     await next();
   });
   app.route("/api/store/tags",storeTagsRoutes);
-  const call=(path,method="GET",body=null,headers={})=>app.request("http://localhost/api/store/tags"+path,{
+  const call=(path,method="GET",body=null,headers={})=>app.request("http://localhost/api/store/tags"+(path==="/"? "":path),{
     method,headers:{"content-type":"application/json",...headers},
     ...(body===null?{}:{body:JSON.stringify(body)})
   },{DB:db,REALTIME_MODE:"off"});

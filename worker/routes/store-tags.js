@@ -31,13 +31,13 @@ async function storeTags(db, storeId) {
   return rows.results.map(tagJson);
 }
 
-storeTagsRoutes.get("/", async c => {
+storeTagsRoutes.get("", async c => {
   const user = userForTags(c);
   if (!user) return denied(c);
   return c.json(await storeTags(c.env.DB, user.lojaId));
 });
 
-storeTagsRoutes.post("/", async c => {
+storeTagsRoutes.post("", async c => {
   const user = userForTags(c);
   if (!user) return denied(c);
   const parsed = TagInput.safeParse(await c.req.json().catch(() => null));
