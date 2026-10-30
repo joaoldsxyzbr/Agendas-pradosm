@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RefreshCw, Store as StoreIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,7 @@ function ReceivingTable({ rows, onDetails, presenceUnavailable }: {
 }
 
 export function ReceivingPage() {
+  const navigate = useNavigate();
   const session = useSession();
   const queryClient = useQueryClient();
   const [today, setToday] = useState(() => businessToday());
@@ -148,8 +150,7 @@ export function ReceivingPage() {
         <Button size="sm" variant="secondary" disabled={updating} onClick={reload}>
           <RefreshCw size={14} aria-hidden="true" className={updating ? "animate-spin" : ""} />{updating ? "Atualizando…" : "Atualizar"}
         </Button>
-        {!readonly && <Button size="sm" disabled title="Importação disponível apenas na versão operacional atual"
-          aria-label="Importar agenda indisponível durante a migração">
+        {!readonly && <Button size="sm" onClick={() => navigate("/admin/import")}>
           <Upload size={14} aria-hidden="true" />Importar agenda
         </Button>}
       </div>}
@@ -174,7 +175,7 @@ export function ReceivingPage() {
       {presence.isError && <p role="status" className="text-[11px] text-amber-300">Presença de conferentes indisponível no momento.</p>}
       {model.rows.length ? <ReceivingTable rows={model.rows} onDetails={setDetailId} presenceUnavailable={presence.isError} />
         : <p className="rounded-lg border border-[#38516d] bg-[#142338] p-6 text-sm text-slate-400">Nenhuma loja com conferente ativo.</p>}
-      {!readonly && <p className="text-[11px] text-slate-500">Versão em migração: importar agendas e alterar os status dos fornecedores continuam disponíveis no sistema atual.</p>}
+      {!readonly && <p className="text-[11px] text-slate-500">Versão em migração: a importação CSV/PDF já está disponível na interface React.</p>}
     </>}
     {detailId && <AgendaDetailDialog key={detailId} agendaId={detailId} canEdit={session.data?.papel === "admin"} onClose={() => setDetailId(null)} />}
   </section>;

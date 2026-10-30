@@ -162,10 +162,12 @@ test("Recebimento React aplica permissões e impede importação não migrada", 
   await expect(page.getByRole("dialog", { name: /Agenda F02/ })).toBeVisible();
   await expect(page.getByText("Somente consulta nesta etapa")).toBeVisible();
 });
-test("Recebimento React desativa importação até migrar e não simula sucesso", async ({ page }) => {
+test("Admin React abre importação sem contornar prévia obrigatória", async ({ page }) => {
   await mock(page);
   await page.goto("/admin");
-  await expect(page.getByRole("button", { name: "Importar agenda indisponível durante a migração" })).toBeDisabled();
+  await page.getByRole("button", { name: "Importar agenda" }).click();
+  await expect(page).toHaveURL(/\\/admin\\/import$/);
+  await expect(page.getByRole("button", { name: "Confirmar importação" })).toHaveCount(0);
 });
 
 test("Recebimento React mostra erro de API e permite tentar novamente", async ({ page }) => {

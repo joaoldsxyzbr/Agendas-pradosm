@@ -4,6 +4,7 @@ import { useSession } from "./session-query";
 import { LoginPage } from "@/features/auth/login-page";
 import { PlaceholderPage } from "@/features/placeholder-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
+import { ImportPage } from "@/features/import/import-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -47,7 +48,7 @@ export function AppRoutes() {
     <Route element={<Guard roles={["admin"]} />}>
       <Route element={<LayoutRoute />}>
         <Route path="/admin/history" element={<Page title="Histórico" description="Agendas e observações anteriores." />} />
-        <Route path="/admin/import" element={<Page title="Importar agenda" description="Importação de arquivos CSV e PDF." />} />
+        <Route path="/admin/import" element={<ImportPage />} />
         <Route path="/admin/stores" element={<Page title="Lojas" description="Cadastro e gerenciamento de unidades." />} />
         <Route path="/admin/users" element={<Page title="Usuários" description="Perfis, acesso e auditoria." />} />
         <Route path="/admin/diagnostics" element={<Page title="Logs e Auditoria" description="Diagnósticos e eventos do sistema." />} />

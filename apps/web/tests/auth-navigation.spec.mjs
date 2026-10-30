@@ -90,6 +90,8 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
     await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     if (path === "/admin") {
       await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
+    } else if (path === "/admin/import") {
+      await expect(page.getByRole("group", { name: "Área para arrastar arquivos de agenda" })).toBeVisible();
     } else {
       await expect(page.getByText("Esta tela ainda funciona somente na versão atual")).toBeVisible();
     }
