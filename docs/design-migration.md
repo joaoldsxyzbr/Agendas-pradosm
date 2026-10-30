@@ -19,3 +19,10 @@
 - Conteúdo CSS e ordem de precedência preservados, sem remoção de declarações de geometria ou mudança no JavaScript.
 - As três folhas desta tela (`visual.css`, `compact.css`, `style.css`) estão agora juntas, embora a cascata antiga permaneça mantida para evitar regressões.
 - Remover duplicações somente depois de comparação visual e testes capazes de verificar medidas e estados.
+
+## Etapa 3 — estilos específicos agrupados
+- Tags: `pages/tags/style.css`.
+- Relatórios: `pages/reports/base.css`, `executive.css`, `reference.css`, `info.css`.
+- Diagnósticos: `pages/diagnostics/style.css`.
+- Cadastros compartilhados: `pages/cadastros/compact.css` e `vendor.css`.
+- Sem mudar declaração, seletor ou ordem da cascata. Arquivos CSS transversais continuam globais para não quebrar layouts.
