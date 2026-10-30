@@ -24,6 +24,11 @@ for (const file of required) {
   if (!existsSync(join(dist, file))) throw Error("Asset JS nativo não gerado: " + file);
 }
 const html = read("index.html");
+const tailwindCss = read("frontend/styles/tailwind.css");
+for (const utility of ["tw\\:font-medium", "tw\\:shrink-0", "tw\\:tabular-nums"]) {
+  if (!tailwindCss.includes(utility)) throw Error("Utility Tailwind ausente: " + utility);
+}
+
 // Verifica os assets CSS reais após a migração por tela.
 const stylesheetPaths = [...html.matchAll(/<link\s+[^>]*rel="stylesheet"[^>]*href="(\/frontend\/[^"]+\.css)"/g)]
   .map(match => match[1].slice(1));

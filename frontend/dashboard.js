@@ -64,24 +64,24 @@ export function renderDashboard(root, {
       </div>
       <div class="dashboard-operation-summary" aria-label="Situação do dia">
         <span class="dashboard-summary-metric dashboard-summary-total">
-          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
-          <span class="dashboard-summary-copy"><strong data-count="totalStores">0</strong><span>lojas</span></span>
+          <span class="dashboard-summary-icon tw:shrink-0" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong class="tw:tabular-nums" data-count="totalStores">0</strong><span class="tw:font-medium">lojas</span></span>
         </span>
         <span class="dashboard-summary-metric dashboard-summary-agenda">
-          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
-          <span class="dashboard-summary-copy"><strong data-count="storesWithAgenda">0</strong><span>com agenda</span></span>
+          <span class="dashboard-summary-icon tw:shrink-0" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong class="tw:tabular-nums" data-count="storesWithAgenda">0</strong><span class="tw:font-medium">com agenda</span></span>
         </span>
         <span class="dashboard-summary-metric dashboard-summary-open">
-          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
-          <span class="dashboard-summary-copy"><strong data-count="openStores">0</strong><span>em andamento</span></span>
+          <span class="dashboard-summary-icon tw:shrink-0" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong class="tw:tabular-nums" data-count="openStores">0</strong><span class="tw:font-medium">em andamento</span></span>
         </span>
         <span class="dashboard-summary-metric dashboard-summary-completed">
-          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
-          <span class="dashboard-summary-copy"><strong data-count="completedStores">0</strong><span>concluídas</span></span>
+          <span class="dashboard-summary-icon tw:shrink-0" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong class="tw:tabular-nums" data-count="completedStores">0</strong><span class="tw:font-medium">concluídas</span></span>
         </span>
         <span class="dashboard-summary-metric dashboard-summary-empty">
-          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
-          <span class="dashboard-summary-copy"><strong data-count="storesWithoutAgenda">0</strong><span>sem agenda</span></span>
+          <span class="dashboard-summary-icon tw:shrink-0" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong class="tw:tabular-nums" data-count="storesWithoutAgenda">0</strong><span class="tw:font-medium">sem agenda</span></span>
         </span>
       </div>
       <div class="dashboard-operation-table table-card" data-table>

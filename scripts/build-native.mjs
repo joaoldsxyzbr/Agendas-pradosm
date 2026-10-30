@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 
 const base = fileURLToPath(new URL("../", import.meta.url));
 const output = join(base, "dist");
@@ -83,6 +84,20 @@ for (const [source, destination] of [
   ["node_modules/lucide-static/LICENSE", "vendor/LICENSE-lucide.txt"]
 ]) if (existsSync(from(source))) await copy(source, destination);
 await copy("frontend", "frontend");
+
+// Tailwind CSS v4: CSS estatico gerado no build; Preflight desabilitado.
+// A entrada do CLI vem do pacote instalado, sem CDN ou npx remoto.
+const tailwindPackage = join(base, "node_modules/@tailwindcss/cli");
+const tailwindManifest = JSON.parse(await readFile(join(tailwindPackage, "package.json"), "utf8"));
+const tailwindBin = tailwindManifest.bin?.tailwindcss;
+if (!tailwindBin || !/\.m?js$/.test(tailwindBin)) throw Error("CLI do Tailwind CSS ausente.");
+execFileSync(process.execPath, [
+  resolve(tailwindPackage, tailwindBin),
+  "-i", from("frontend/styles/tailwind.input.css"),
+  "-o", to("frontend/styles/tailwind.css"),
+  "--minify"
+], { cwd: base, stdio: "inherit" });
+
 for (const name of ["agenda", "api", "auth", "realtime", "store", "time", "observations"])
   await copy("shared/" + name + ".js", "shared/" + name + ".js");
 

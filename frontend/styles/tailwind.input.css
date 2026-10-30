@@ -1,0 +1,15 @@
+/* Tailwind CSS v4, adotado gradualmente na interface nativa.
+ * Sem Preflight (reset), sem runtime e sem escanear toda a aplicação.
+ * O prefixo tw: evita colisões com classes CSS legadas.
+ */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
+@source "../dashboard.js";
+
+@theme inline {
+  --color-prado-primary: var(--prado-action);
+  --color-prado-muted: var(--prado-text-muted);
+  --color-prado-surface: var(--prado-surface);
+  --color-prado-border: var(--prado-border);
+}
