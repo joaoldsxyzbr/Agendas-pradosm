@@ -28,6 +28,7 @@ import {
   storeAppointmentRoutes,
 } from "./routes/store-agendas.js";
 import { closePastOpenAgendas } from "./services/agenda-maintenance.js";
+import { storeTagsRoutes } from "./routes/store-tags.js";
 
 export const app = new Hono();
 
@@ -115,4 +116,5 @@ app.use("/api/store/today", async (c, next) => {
 });
 app.route("/api/store", storeAgendaRoutes);
 app.route("/api/store/presence", storePresenceRoutes);
+app.route("/api/store/tags", storeTagsRoutes);
 app.route("/api/store/appointments", storeAppointmentRoutes);

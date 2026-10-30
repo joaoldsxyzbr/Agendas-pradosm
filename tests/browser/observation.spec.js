@@ -11,6 +11,7 @@ async function mocks(page) {
   const json=data=>route.fulfill({json:data});
   if(path==="/api/auth/me")return json(user);
   if(path==="/api/realtime/config")return json({mode:"off",protocolVersion:1});
+  if(path.startsWith("/api/store/tags/agenda/"))return json({tags:[],assignments:{}});
   if(path==="/api/store/today"||path.startsWith("/api/store/history/"))return json({
    agenda:{id:"agenda1",date:"2026-10-19",storeCode:"F03",storeName:"Loja Central",dayStatus:"aberto",completedAt:null},
    appointments:[appointment]

@@ -75,7 +75,7 @@ await mkdir(output, { recursive: true });
 await copy("public", "");
 // Recursos locais e versionados: sem CDN, framework ou dependência de runtime nas telas.
 await copy("node_modules/chart.js/dist/chart.umd.min.js", "vendor/chart.umd.min.js");
-for (const icon of ["layout-dashboard", "chart-no-axes-column-increasing", "store", "users", "clipboard-check", "info", "calendar-days", "circle-check", "circle-x", "clock", "ban", "percent"]) {
+for (const icon of ["layout-dashboard", "chart-no-axes-column-increasing", "store", "users", "clipboard-check", "tags", "info", "calendar-days", "circle-check", "circle-x", "clock", "ban", "percent"]) {
   await copy("node_modules/lucide-static/icons/" + icon + ".svg", "vendor/lucide/" + icon + ".svg");
 }
 for (const [source, destination] of [

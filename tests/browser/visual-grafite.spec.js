@@ -20,6 +20,7 @@ async function mock(page,user) {
     if(path==="/api/admin/reports")return json({rows:[],suppliers:[]});
     if(path==="/api/admin/reports/occurrences")return json({total:0,offset:0,limit:50,rows:[]});
     if(path==="/api/admin/reports/latest")return json({total:0,offset:0,limit:50,rows:[]});
+    if(path.startsWith("/api/store/tags/agenda/"))return json({tags:[],assignments:{}});
     if(path==="/api/store/today"||path.startsWith("/api/store/history/"))return json({
       agenda:{id:"agenda",date:"2026-10-20",storeCode:"F01",storeName:"Centro",dayStatus:"aberto",completedAt:null},
       appointments:[compromisso]

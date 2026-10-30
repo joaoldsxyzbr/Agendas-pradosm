@@ -50,8 +50,9 @@ export function adminShell(user, path) {
   </div>`;
 }
 
-export function storeShell(user) {
+export function storeShell(user, path = "/app") {
   const storeLabel = user.lojaNome ?? (user.lojaCodigo ? `Loja ${user.lojaCodigo}` : "Loja");
+  const tagsPage = path === "/app/tags";
   return `<div class="store-shell store-operations-shell prado-store-visual prado-store-layout">
     <aside class="prado-store-sidebar" aria-label="Navegação do conferente">
       <div class="prado-store-sidebar-head">
@@ -65,8 +66,11 @@ export function storeShell(user) {
       </div>
       <div class="prado-store-sidebar-label">OPERAÇÃO</div>
       <nav id="store-sidebar-navigation" class="prado-store-side-nav" aria-label="Áreas do conferente">
-        <a class="prado-store-nav-link active" href="/app" aria-label="Conferência" title="Conferência" aria-current="page">
+        <a class="prado-store-nav-link${tagsPage ? "" : " active"}" href="/app" aria-label="Conferência" title="Conferência" ${tagsPage ? "" : 'aria-current="page"'}>
           <span class="prado-store-nav-symbol" aria-hidden="true"><img class="prado-nav-icon" src="/vendor/lucide/clipboard-check.svg" alt="" width="17" height="17"></span>Conferência
+        </a>
+        <a class="prado-store-nav-link${tagsPage ? " active" : ""}" href="/app/tags" aria-label="Tags" title="Tags" ${tagsPage ? 'aria-current="page"' : ""}>
+          <span class="prado-store-nav-symbol" aria-hidden="true"><img class="prado-nav-icon" src="/vendor/lucide/tags.svg" alt="" width="17" height="17"></span>Tags
         </a>
       </nav>
       <div class="prado-store-sidebar-footer" title="Loja: ${escapeHtml(storeLabel)}" aria-label="Loja: ${escapeHtml(storeLabel)}">
@@ -78,7 +82,7 @@ export function storeShell(user) {
       <header class="store-topbar store-operations-topbar prado-store-topbar">
         <div class="store-topbar-inner">
           <div class="prado-store-breadcrumb">
-            <span>Operações</span><span aria-hidden="true">/</span><strong>Conferente</strong>
+            <span>Operações</span><span aria-hidden="true">/</span><strong>${tagsPage ? "Tags" : "Conferente"}</strong>
           </div>
           <div class="store-operator-context">
             <span>Conferente</span><strong>${escapeHtml(user.nome)}</strong>
@@ -93,8 +97,8 @@ export function storeShell(user) {
         <div class="prado-store-heading-bar">
           <div class="prado-store-page-heading">
             <span class="prado-store-eyebrow">OPERAÇÃO DE LOJA</span>
-            <h1>Conferência de recebimentos</h1>
-            <p>${escapeHtml(storeLabel)} · Acompanhe os recebimentos da agenda</p>
+            <h1>${tagsPage ? "Tags de fornecedores" : "Conferência de recebimentos"}</h1>
+            <p>${escapeHtml(storeLabel)} · ${tagsPage ? "Organize etiquetas para os recebimentos" : "Acompanhe os recebimentos da agenda"}</p>
           </div>
           <div class="store-topbar-agenda-slot prado-store-heading-controls" data-agenda-command-slot></div>
         </div>

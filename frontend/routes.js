@@ -1,7 +1,7 @@
 // Caminhos copiados de App.tsx da main. URL real (History API), nunca hash.
 export const APP_PATHS = Object.freeze([
   "/login", "/admin", "/admin/history", "/admin/import", "/admin/stores",
-  "/admin/users", "/admin/reports", "/admin/diagnostics", "/app"
+  "/admin/users", "/admin/reports", "/admin/diagnostics", "/app", "/app/tags"
 ]);
 
 export function homeForRole(role) {
@@ -14,6 +14,11 @@ export function resolveRoute(pathname, user) {
     return user ? { redirect: homeForRole(user.papel) } : { view: "login" };
   }
   if (!user) return { redirect: "/login" };
+  if (path === "/app/tags") {
+    return user.papel === "conferente"
+      ? { view: "tags", layout: "store" }
+      : { redirect: homeForRole(user.papel) };
+  }
   if (path === "/app/history") return { redirect: "/app" };
   if (path === "/app") {
     return user.papel === "conferente"

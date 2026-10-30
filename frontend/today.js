@@ -4,6 +4,7 @@ import { createBusinessDateMonitor } from "./business-date.js";
 import { renderAgendaDatePicker } from "./agenda-date-picker.js";
 import { renderAgendaList } from "./agenda-list.js";
 import { openAgendaDetails } from "./agenda-details.js";
+import { openAppointmentTagsDialog } from "./tags.js";
 import { openSupplierModal, openCompleteDayModal } from "./store-modals.js";
 import { downloadAgendaPdf } from "./agenda/exportAgendaPdf.js";
 import {
@@ -18,7 +19,7 @@ export function renderToday(root,{
 }={}) {
   let disposed=false, loading=true, selectedDate, agenda=null, error=null;
   let searchQuery="", generation=0, refreshTimer=null, list=null;
-  let closeModal=null, closeDetails=null;
+  let closeModal=null, closeDetails=null, tagCatalog=[], tagsUnavailable=false;
   const monitor=createBusinessDateMonitor({
     doc,timers:win,
     onChange:next=>{
@@ -62,6 +63,7 @@ export function renderToday(root,{
               data-add-manual hidden>+ Fornecedor sem agenda</button>
           </div>
         </div>
+        <p class="form-error" data-tags-unavailable hidden>As tags não estão disponíveis. Verifique a atualização do D1 de testes.</p>
         <div data-agenda-list></div>
         <div class="empty-panel agenda-search-empty" data-search-empty hidden>
           Nenhum fornecedor ou protocolo encontrado.
@@ -124,7 +126,7 @@ export function renderToday(root,{
   };
   const onAppointmentChanged=updated=>{
     if(!agenda||!editable())return;
-    agenda={...agenda,appointments:agenda.appointments.map(item=>item.id===updated.id?updated:item)};
+    agenda={...agenda,appointments:agenda.appointments.map(item=>item.id===updated.id?{...updated,tags:item.tags||[]}:item)};
     renderContent();
   };
   function renderContent() {
@@ -158,12 +160,14 @@ export function renderToday(root,{
     }
     const manual=root.querySelector("[data-add-manual]");
     manual.hidden=!editable();
+    root.querySelector("[data-tags-unavailable]").hidden=!tagsUnavailable;
     const filtered=filterStoreAppointments(agenda.appointments,searchQuery);
     root.querySelector("[data-search-empty]").hidden=filtered.length>0;
     const listRoot=root.querySelector("[data-agenda-list]");
     const options={
       editable:editable(),request,appointments:filtered,
       onChanged:editable()?onAppointmentChanged:null,
+      onEditTags:editable() && !tagsUnavailable ? openTags : null,
       onEditManual:editable()?openEditManual:null,
       onOpen:closed?openDetails:null
     };
@@ -178,8 +182,14 @@ export function renderToday(root,{
     }
     try{
       const data=await request(storeAgendaEndpoint(requested,today));
+      let tagData={tags:[],assignments:{}};
+      let tagFailure=false;
+      try {tagData=await request(`/api/store/tags/agenda/${encodeURIComponent(requested)}`);}
+      catch {tagFailure=true;}
       if(disposed||token!==generation)return;
-      agenda=data;error=null;
+      tagCatalog=tagData.tags || [];
+      tagsUnavailable=tagFailure;
+      agenda={...data,appointments:(data.appointments||[]).map(item=>({...item,tags:tagData.assignments?.[item.id]||[]}))};error=null;
     }catch(err){
       if(disposed||token!==generation)return;
       if(err instanceof ApiError&&err.status===404)agenda={agenda:null,appointments:[]},error=null;
@@ -194,12 +204,22 @@ export function renderToday(root,{
     closeModal?.();
     closeModal=render();
   };
+  const openTags=(item,trigger)=>{
+    if(!editable()||tagsUnavailable)return;
+    openModal(()=>openAppointmentTagsDialog(root,{
+      appointment:item,tags:tagCatalog,request,trigger,
+      onSaved:tags=>{
+        agenda={...agenda,appointments:agenda.appointments.map(entry=>entry.id===item.id?{...entry,tags}:entry)};
+        renderContent();
+      }
+    }));
+  };
   const openEditManual=item=>{
     if(!editable())return;
     openModal(()=>openSupplierModal(root,{
       editing:item,selectedDate,request,
       onSaved:saved=>{
-        agenda={...agenda,appointments:agenda.appointments.map(x=>x.id===saved.id?saved:x)};
+        agenda={...agenda,appointments:agenda.appointments.map(x=>x.id===saved.id?{...saved,tags:x.tags||[]}:x)};
         searchQuery="";root.querySelector("[data-agenda-search]").value="";
         renderContent();
       },

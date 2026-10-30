@@ -49,10 +49,10 @@ export function createVanillaRuntime({
       cleanup = renderLogin(root, { auth, navigate, request });
       return;
     }
-    if (route.layout !== activeLayout) {
+    if (route.layout !== activeLayout || (route.layout === "store" && route.view !== activePage)) {
       cleanupSidebar();
       root.innerHTML = route.layout === "store"
-        ? storeShell(auth.user)
+        ? storeShell(auth.user, win.location.pathname)
         : adminShell(auth.user, win.location.pathname);
       cleanupSidebar = setupSidebarNavigation(root, win);
       activeLayout = route.layout;

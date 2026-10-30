@@ -13,6 +13,7 @@ async function mockApi(page) {
     const json=x=>route.fulfill({json:x});
     if(path==="/api/auth/me")return json(user);
     if(path==="/api/realtime/config")return json({mode:"off",protocolVersion:1});
+    if(path.startsWith("/api/store/tags/agenda/"))return json({tags:[],assignments:{}});
     if(path==="/api/store/today"||path.startsWith("/api/store/history/"))return json({
       agenda:{id:"agenda1",date:"2026-10-19",storeCode:"F03",storeName:"Loja Central",dayStatus:"aberto",completedAt:null},
       appointments
@@ -35,7 +36,7 @@ test("Conferente ganha sidebar e resumo em cards, preservando comandos",async({p
   await expect(sidebarToggle).toHaveAttribute("aria-expanded","false");
   await sidebarToggle.click();
   await expect(sidebarToggle).toHaveAttribute("aria-expanded","true");
-  await expect(page.locator(".prado-store-side-nav a")).toHaveAttribute("href","/app");
+  await expect(page.locator(".prado-store-side-nav a").first()).toHaveAttribute("href","/app");
   await expect(page.locator(".prado-store-sidebar a[href='/admin']")).toHaveCount(0);
   await expect(page.locator(".agenda-metrics [data-metric]")).toHaveCount(5);
   await expect(page.locator(".prado-store-agenda-panel")).toBeVisible();

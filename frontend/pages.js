@@ -4,6 +4,7 @@ import { renderStores } from "./stores.js";
 import { renderUsers } from "./users.js";
 import { renderHistory } from "./history.js";
 import { renderToday } from "./today.js";
+import { renderTags } from "./tags.js";
 import { renderImportAgenda } from "./import-agenda.js";
 import { renderDiagnostics } from "./diagnostics.js";
 import { openAdminAgendaPreview } from "./admin-agenda-preview.js";
@@ -54,6 +55,7 @@ export function createMigratedPageRenderers({ realtime } = {}) {
       // A rota /admin/import existia na main, além do popup no Dashboard.
       return renderImportAgenda(ctx.root, { request: ctx.request });
     },
+    tags(ctx) { return renderTags(ctx.root, {request:ctx.request}); },
     today(ctx) {
       return renderToday(ctx.root, {
         request: ctx.request, realtime, commandSlot: ctx.commandSlot

@@ -1,0 +1,40 @@
+/* Etiquetas operacionais do conferente: escopo isolado, sem interferir nos status. */
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link:not(.active){background:transparent;border-color:transparent;box-shadow:none;color:#b7c2cf}
+html[data-theme="dark"] .prado-store-layout .prado-store-nav-link:not(.active):hover{background:#252d39}
+.supplier-tags-inline{display:flex;align-items:center;flex-wrap:wrap;gap:5px;margin-top:6px;min-width:0}
+.supplier-tag{display:inline-flex;align-items:center;max-width:100%;padding:3px 8px;border-radius:5px;border:1px solid transparent;font-size:10px;font-weight:700;line-height:1.3;letter-spacing:.015em;overflow-wrap:anywhere}
+.supplier-tag-azul{color:#b6d9ff;background:#183555;border-color:#34628a}
+.supplier-tag-verde{color:#a8f3d0;background:#163a31;border-color:#2c7157}
+.supplier-tag-amarelo{color:#ffe3a0;background:#483618;border-color:#876329}
+.supplier-tag-vermelho{color:#ffb4ba;background:#4a252b;border-color:#8c414a}
+.supplier-tag-roxo{color:#dbc5ff;background:#33284e;border-color:#6c5293}
+.supplier-tag-cinza{color:#d5d9e1;background:#333841;border-color:#596271}
+.supplier-tag-add{padding:2px 6px;border:1px dashed #5b6777;border-radius:5px;background:transparent;color:inherit;font-size:11px;cursor:pointer}
+.supplier-tag-add:hover,.supplier-tag-add:focus-visible{border-color:#80b5ff;color:#80b5ff}
+.agenda-desktop td .supplier-tags-inline{white-space:normal}
+.agenda-desktop td .supplier-tag{white-space:normal;text-overflow:clip}
+.agenda-desktop td .supplier-name{display:block;overflow-wrap:anywhere}
+.tags-page{display:grid;gap:20px;padding-bottom:2rem;max-width:1000px;color:var(--color-text,#ebeff5)}
+.tags-page h2{font-size:24px;margin:5px 0}.tags-page h3{font-size:16px;margin:0}
+.tags-page p{color:var(--color-text-soft,#aab5c4);font-size:13px;line-height:1.5}
+.tags-form,.tags-panel{background:#22272f;border:1px solid #3d4754;border-radius:10px;padding:22px}
+.tags-form{display:grid;grid-template-columns:minmax(0,2fr) minmax(130px,1fr) auto;gap:14px;align-items:end}
+.tags-form label{display:grid;gap:8px;font-size:12px;font-weight:650}
+.tags-form input,.tags-form select{width:100%;min-height:40px;border-radius:7px;padding:9px 12px;background:#191e25;border:1px solid #4d5967;color:#f3f5f8}
+.tags-form button{min-height:40px}
+.tags-panel-title{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.tags-panel-title span{color:#aab5c4;font-size:12px}
+.tags-list{list-style:none;margin:15px 0 0;padding:0;display:grid;gap:7px}
+.tags-list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;background:#191e25;border:1px solid #39424f;border-radius:7px}
+.tags-list-item .supplier-tag{font-size:12px}
+.tags-list-item .ghost-button{padding:5px 9px;font-size:12px}
+.tags-empty{padding:14px 0}
+.supplier-tags-dialog{max-width:490px;width:min(490px,calc(100vw - 24px))}
+.supplier-tags-supplier{font-weight:750;font-size:14px;overflow-wrap:anywhere}
+.supplier-tags-hint{font-size:12px;color:var(--color-text-soft,#b5beca)}
+.supplier-tags-choices{display:grid;gap:8px;max-height:38vh;overflow-y:auto}
+.supplier-tags-choice{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid #46505b;border-radius:7px;cursor:pointer}
+.supplier-tags-choice:has(input:checked){border-color:#7eacdd;background:#26374a}
+.supplier-tags-choice input{accent-color:#79afff;width:17px;height:17px}
+.supplier-tags-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:20px}
+@media(max-width:780px){.tags-form{grid-template-columns:1fr}.tags-form,.tags-panel{padding:15px}.supplier-tags-dialog{max-height:90vh;overflow-y:auto}}

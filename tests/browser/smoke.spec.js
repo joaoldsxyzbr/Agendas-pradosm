@@ -21,6 +21,7 @@ async function mocks(page, initial=null) {
     if(path==="/api/admin/users")return json([{...storeUser,ativo:true},admin]);
     if(path==="/api/admin/presence")return json([]);
     if(path==="/api/admin/agendas")return json([{id:"agenda1",storeCode:"F03",storeName:"Loja Central",dayStatus:"aberto",total:1,recebido:1,aguardando:0,naoChegou:0,recusado:0,semAgenda:0}]);
+    if(path.startsWith("/api/store/tags/agenda/"))return json({tags:[],assignments:{}});
     if(path==="/api/store/today"||path.startsWith("/api/store/history/"))return json({agenda:{id:"agenda1",date:"2026-10-18",storeCode:"F03",storeName:"Loja Central",dayStatus:"aberto",completedAt:null,completedBy:null},appointments:[appointment]});
     if(path==="/api/store/appointments/appt1/status"&&method==="PATCH"){
       const body=route.request().postDataJSON();changes.push(body);

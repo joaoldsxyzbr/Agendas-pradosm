@@ -1,5 +1,6 @@
 import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
+import { tagChips } from "./tags.js";
 import { OBSERVATION_REASONS, normalizeObservation, validateStatusObservation } from "../shared/observations.js";
 
 export const STATUS_LABELS = Object.freeze({
@@ -89,12 +90,19 @@ function exchanges(item, options) {
   }
   return `<span class="exchange-readonly ${options.highlightPositiveExchanges && item.hasExchanges ? "positive" : ""}">${item.hasExchanges ? "Sim" : "Não"}</span>`;
 }
+function supplierLabel(item, options) {
+  const esc=escapeHtml;
+  const button=options.editable && options.onEditTags
+    ? `<button class="supplier-tag-add" type="button" data-edit-tags="${esc(item.id)}" aria-label="Editar tags de ${esc(item.supplier)}">+ Tag</button>` : "";
+  const chips=tagChips(item.tags || []);
+  return `<span class="supplier-name">${esc(item.supplier)}</span>${chips || button ? `<span class="supplier-tags-inline">${chips}${button}</span>` : ""}`;
+}
 export function agendaRowHtml(item, options) {
   const esc = escapeHtml;
   const hasActions = Boolean(options.onOpen || (options.editable &&
     (options.onChanged || options.onEditManual || options.onDeleteManual)));
   return `<tr data-appointment-id="${esc(item.id)}" data-testid="agenda-desktop-row">
-    <td>${esc(appointmentTime(item))}</td><td title="${esc(item.supplier)}">${esc(item.supplier)}</td>
+    <td>${esc(appointmentTime(item))}</td><td title="${esc(item.supplier)}">${supplierLabel(item,options)}</td>
     <td>${esc(item.protocol)}</td><td>${esc(item.type ?? "-")}</td><td>${statusBadge(item)}</td>
     ${hasActions ? `<td class="table-action">${actions(item, options)}</td>` : ""}
     <td class="exchange-cell">${exchanges(item,options)}</td>
@@ -106,7 +114,7 @@ function mobileCard(item, options) {
     (options.onChanged || options.onEditManual || options.onDeleteManual)));
   return `<article class="agenda-card" data-appointment-id="${esc(item.id)}" data-testid="agenda-mobile-card">
     <div class="agenda-card-heading"><div><strong>${esc(appointmentTime(item))}</strong>
-      <span>${esc(item.supplier)}</span></div><span class="protocol-chip">${esc(item.protocol)}</span></div>
+      <span>${supplierLabel(item,options)}</span></div><span class="protocol-chip">${esc(item.protocol)}</span></div>
     <div class="agenda-card-meta"><span>${esc(item.type ?? "Tipo não informado")}</span></div>
     ${statusBadge(item)}${hasActions ? actions(item,options) : ""}
     <div class="agenda-card-exchanges"><span>Trocas</span>${exchanges(item,options)}</div>
@@ -352,6 +360,11 @@ export function renderAgendaList(root, initialOptions = {}) {
     if (button.matches("[data-edit-observation]") && options.editable && options.onChanged) {
       const item = items.find(x=>x.id===button.dataset.editObservation);
       if (item) openObservationDialog(item,null,button);
+      return;
+    }
+    if (button.matches("[data-edit-tags]") && options.editable && options.onEditTags) {
+      const item=items.find(x=>x.id===button.dataset.editTags);
+      if(item)options.onEditTags(item,button);
       return;
     }
     const appointment = items.find(x=>x.id===button.dataset.editManual ||
