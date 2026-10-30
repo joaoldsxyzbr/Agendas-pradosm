@@ -134,7 +134,9 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
   await page.getByLabel("Data da agenda").fill("2026-10-30");
   const dimensions = await page.evaluate(() => {
     const scroll = document.querySelector('[data-testid="receiving-table-scroll"]');
-    return { table: scroll.scrollWidth - scroll.clientWidth, page: document.documentElement.scrollWidth - innerWidth };
+    const mobileNav = document.querySelector('[data-testid="mobile-navigation"]');
+    return { table: scroll.scrollWidth - scroll.clientWidth, menu: mobileNav.scrollWidth - mobileNav.clientWidth,
+      page: document.documentElement.scrollWidth - innerWidth };
   });
   if (dimensions.page > 2) {
     const offenders = await page.evaluate(() => [...document.querySelectorAll("body *")]
@@ -144,6 +146,7 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
     console.log("Mobile overflow offenders:", offenders);
   }
   expect(dimensions.table).toBeGreaterThan(100);
+  expect(dimensions.menu).toBeGreaterThan(100);
   expect(dimensions.page).toBeLessThanOrEqual(2);
 });
 
@@ -173,13 +176,13 @@ test("Recebimento React atualiza presença e agenda por eventos WebSocket valida
   await page.goto("/admin");
   await page.getByLabel("Data da agenda").fill("2026-10-30");
   await expect(page.getByText("Tempo real conectado")).toBeVisible();
-  await expect(page.getByTestId("receiving-store-F02").getByText("Offline")).toBeVisible();
+  await expect(page.getByTestId("receiving-store-F03").getByText("Offline")).toBeVisible();
 
-  await page.evaluate(() => window.__emitRealtime({ version: 1, type: "presence.changed", storeId: "s1", status: "online" }));
-  await expect(page.getByTestId("receiving-store-F02").getByText("Online")).toBeVisible();
+  await page.evaluate(() => window.__emitRealtime({ version: 1, type: "presence.changed", storeId: "s2", status: "online" }));
+  await expect(page.getByTestId("receiving-store-F03").getByText("Online")).toBeVisible();
   // Eventos incompletos não devem substituir dados válidos.
   await page.evaluate(() => window.__emitRealtime({ version: 1, type: "presence.changed", status: "offline" }));
-  await expect(page.getByTestId("receiving-store-F02").getByText("Online")).toBeVisible();
+  await expect(page.getByTestId("receiving-store-F03").getByText("Online")).toBeVisible();
 
   const changed = agendas.map((agenda, i) => i === 1
     ? { ...agenda, dayStatus: "concluido", recebido: 20, aguardando: 0 }

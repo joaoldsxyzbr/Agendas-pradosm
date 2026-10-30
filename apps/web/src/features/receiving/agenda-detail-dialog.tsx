@@ -39,6 +39,13 @@ export function AgendaDetailDialog({ agendaId, onClose }: {
   const agenda = query.data?.agenda;
   return <dialog ref={ref} aria-labelledby="detail-heading" onClose={event => { if (!event.currentTarget.open) onClose(); }}
     onClick={(event) => { if (event.target === ref.current) ref.current.close(); }}
+    onKeyDownCapture={event => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        ref.current?.close();
+      }
+    }}
     className="m-auto max-h-[min(92dvh,900px)] w-[min(94vw,850px)] max-w-none overflow-y-auto rounded-xl border border-[#45617c] bg-[#162538] p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
     <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#34516d] bg-[#1a2b40] px-4 py-3">
       <div className="min-w-0">

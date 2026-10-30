@@ -40,7 +40,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
       <Icon size={16} aria-hidden="true" />{label}
     </NavLink>)}
   </nav>;
-  return <div className="flex min-h-svh flex-col md:flex-row">
+  return <div className="flex min-h-svh w-full min-w-0 max-w-full flex-col overflow-x-clip md:flex-row">
     <aside className="hidden w-56 shrink-0 flex-col border-r border-[#2b415b] bg-[#111e2e] p-3 md:flex">
       <div className="mb-7 border-b border-slate-700/70 p-3">
         <strong className="text-sm tracking-tight text-white">Agenda Prado</strong>
@@ -49,7 +49,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
       <div className="flex-1">{nav}</div>
       <div className="border-t border-slate-700/70 px-2 pt-3 text-[11px] text-slate-500">{labels[user.papel]}</div>
     </aside>
-    <div className="flex min-w-0 flex-1 flex-col">
+    <div className="flex w-full min-w-0 max-w-full flex-1 flex-col">
       <header className="flex min-h-14 items-center justify-between gap-3 border-b border-[#2b415b] bg-[#142337] px-4">
         <span className="text-sm font-semibold text-slate-200 md:text-xs">Painel operacional</span>
         <div className="flex items-center gap-3">
@@ -59,7 +59,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
           </Button>
         </div>
       </header>
-      <div className="overflow-x-auto border-b border-[#2b415b] bg-[#111e2e] p-2 md:hidden">{nav}</div>
+      <div data-testid="mobile-navigation" className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain border-b border-[#2b415b] bg-[#111e2e] p-2 md:hidden">{nav}</div>
       {signout.isError && <p role="alert" className="px-5 pt-2 text-xs text-rose-300">Não foi possível encerrar a sessão.</p>}
       <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-4 md:p-6"><Outlet /></main>
     </div>
