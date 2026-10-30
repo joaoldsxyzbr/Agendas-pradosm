@@ -63,11 +63,26 @@ export function renderDashboard(root, {
         <div><span class="eyebrow">Operação</span><h2>Recebimento por loja</h2></div>
       </div>
       <div class="dashboard-operation-summary" aria-label="Situação do dia">
-        <span><strong data-count="totalStores">0</strong>lojas</span>
-        <span><strong data-count="storesWithAgenda">0</strong>com agenda</span>
-        <span><strong data-count="openStores">0</strong>em andamento</span>
-        <span><strong data-count="completedStores">0</strong>concluídas</span>
-        <span><strong data-count="storesWithoutAgenda">0</strong>sem agenda</span>
+        <span class="dashboard-summary-metric dashboard-summary-total">
+          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong data-count="totalStores">0</strong><span>lojas</span></span>
+        </span>
+        <span class="dashboard-summary-metric dashboard-summary-agenda">
+          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong data-count="storesWithAgenda">0</strong><span>com agenda</span></span>
+        </span>
+        <span class="dashboard-summary-metric dashboard-summary-open">
+          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong data-count="openStores">0</strong><span>em andamento</span></span>
+        </span>
+        <span class="dashboard-summary-metric dashboard-summary-completed">
+          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong data-count="completedStores">0</strong><span>concluídas</span></span>
+        </span>
+        <span class="dashboard-summary-metric dashboard-summary-empty">
+          <span class="dashboard-summary-icon" aria-hidden="true"><span class="dashboard-summary-glyph"></span></span>
+          <span class="dashboard-summary-copy"><strong data-count="storesWithoutAgenda">0</strong><span>sem agenda</span></span>
+        </span>
       </div>
       <div class="dashboard-operation-table table-card" data-table>
         <div class="table-scroll"><table>

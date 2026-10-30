@@ -28,6 +28,11 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
   await mock(page);
   await page.goto("/admin");
   await expect(page.locator(".dashboard-operation-row")).toHaveCount(10);
+  await expect(page.locator(".dashboard-summary-metric")).toHaveCount(5);
+  await expect(page.locator(".dashboard-summary-glyph")).toHaveCount(5);
+  await expect(page.locator(".dashboard-header-actions [data-refresh]")).toBeVisible();
+  await expect(page.locator(".dashboard-import-action")).toBeVisible();
+  await expect(page.locator(".dashboard-date-controls .agenda-calendar-trigger")).toBeVisible();
   await expect(page.locator(".dashboard-operation-table thead th")).toHaveCount(6);
   await expect(page.locator(".dashboard-operation-row").first().locator("td")).toHaveCount(6);
   await expect(page.locator(".dashboard-operation-row").first().locator("progress")).toHaveAttribute("max","20");
@@ -55,7 +60,7 @@ test("Recebimento: seis colunas sem blocos azuis nem sticky, com ações visíve
   });
   expect(layout.sticky).toBe(false);
   expect(new Set(layout.colors).size).toBe(1);
-  expect(layout.colors[0]).toBe("rgb(34, 40, 48)");
+  expect(layout.colors[0]).toBe("rgb(20, 34, 53)");
   expect(layout.documentOverflow).toBeLessThanOrEqual(2);
   expect(layout.overflow).toBeLessThanOrEqual(2);
   expect(layout.right).toBeLessThanOrEqual(layout.visibleRight+2);
@@ -75,4 +80,20 @@ test("Recebimento no celular rola a tabela sem cortar a página ou o botão de d
   expect(layout.overflow).toBeLessThanOrEqual(2);
   await scroll.evaluate(el=>{el.scrollLeft=el.scrollWidth;});
   await expect(page.locator(".dashboard-operation-row").first().locator("[data-agenda-id]")).toBeVisible();
+});
+test("Recebimento: cartões, botões e estados têm acabamento azul-grafite",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  await mock(page);
+  await page.goto("/admin");
+  await expect(page.locator(".dashboard-operation-row")).toHaveCount(10);
+  const summary=page.locator(".dashboard-operation-summary");
+  await expect(summary).toHaveCSS("grid-template-columns",/px/);
+  await expect(page.locator(".dashboard-summary-total .dashboard-summary-icon")).toBeVisible();
+  await expect(page.locator(".dashboard-summary-open .dashboard-summary-icon")).toBeVisible();
+  await expect(page.locator(".dashboard-summary-completed .dashboard-summary-icon")).toBeVisible();
+  await expect(page.locator(".dashboard-operation-table")).toHaveCSS("border-top-left-radius","13px");
+  await expect(page.locator(".dashboard-operation-row.is-open .status-pill").first()).toContainText("Em andamento");
+  await expect(page.locator(".dashboard-operation-row.is-completed .status-pill").first()).toContainText("Concluído");
+  await expect(page.locator("[data-day-prev]")).toBeVisible();
+  await expect(page.locator("[data-day-next]")).toBeVisible();
 });
