@@ -42,11 +42,11 @@ export function renderToday(root,{
     <div class="prado-store-agenda-view" data-agenda-view hidden>
       <div class="agenda-completed-banner" data-completed hidden></div>
       <section class="agenda-metrics" aria-label="Resumo da agenda">
-        <span class="metric-total"><strong data-metric="total">0</strong> total</span>
-        <span class="metric-waiting"><strong data-metric="aguardando">0</strong> aguardando</span>
-        <span class="metric-received"><strong data-metric="recebido">0</strong> recebidos</span>
-        <span class="metric-missing"><strong data-metric="naoChegou">0</strong> não recebidos</span>
-        <span class="metric-exchanges"><strong data-metric="trocas">0</strong> trocas</span>
+        <span class="metric-total"><span class="metric-icon" aria-hidden="true">▣</span><span class="metric-label">Total</span><strong data-metric="total">0</strong><small data-percent="total">100% do dia</small></span>
+        <span class="metric-waiting"><span class="metric-icon" aria-hidden="true">◷</span><span class="metric-label">Aguardando</span><strong data-metric="aguardando">0</strong><small data-percent="aguardando">0%</small></span>
+        <span class="metric-received"><span class="metric-icon" aria-hidden="true">✓</span><span class="metric-label">Recebidos</span><strong data-metric="recebido">0</strong><small data-percent="recebido">0%</small></span>
+        <span class="metric-missing"><span class="metric-icon" aria-hidden="true">×</span><span class="metric-label">Não recebidos</span><strong data-metric="naoChegou">0</strong><small data-percent="naoChegou">0%</small></span>
+        <span class="metric-exchanges"><span class="metric-icon" aria-hidden="true">⇄</span><span class="metric-label">Trocas</span><strong data-metric="trocas">0</strong><small data-percent="trocas">0%</small></span>
       </section>
       <section class="prado-store-agenda-panel" aria-label="Agenda de recebimento">
         <div class="prado-store-agenda-panel-heading">
@@ -145,7 +145,9 @@ export function renderToday(root,{
     const total=summary.total||0;
     for(const [metric,value] of Object.entries(summary)){
       const node=root.querySelector(`[data-metric="${metric}"]`)?.parentElement;
-      if(node)node.style.setProperty("--metric-progress",`${total?Math.min(100,Math.round(value/total*100)):0}%`);
+      if(node)node.style.setProperty("--metric-fraction",String(total?Math.min(1,value/total):0));
+      const percent=root.querySelector(`[data-percent="${metric}"]`);
+      if(percent)percent.textContent=metric==="total"?"100% do dia":`${total?(value/total*100).toLocaleString("pt-BR",{maximumFractionDigits:1}):0}%`;
     }
     for(const [key,value] of Object.entries(summary)){
       const el=root.querySelector(`[data-metric="${key}"]`);
