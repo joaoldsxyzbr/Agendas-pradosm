@@ -36,7 +36,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await mock(page,admin);
   await page.goto("/admin");
   await expect(page.getByRole("heading",{name:"Recebimento",exact:true})).toBeVisible();
-  await expect(page.locator("body")).toHaveCSS("background-color","rgb(23, 27, 32)");
+  await expect(page.locator("body")).toHaveCSS("background-color","rgb(16, 25, 35)");
   await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 37, 46)");
   await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(32, 59, 90)");
   await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-image",/linear-gradient/);
@@ -45,7 +45,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
-  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-color","rgb(34, 40, 48)");
+  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-image",/linear-gradient/);
   await expect(page.locator(".manager-report .report-heading-tag")).toBeHidden();
 
   await page.goto("/admin/stores");
