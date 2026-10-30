@@ -14,6 +14,7 @@ async function setup(page, { conflict = false, empty = false, completed = false 
     const method = route.request().method();
     requests.push({ path:url.pathname,method,payload:method==="GET"||!route.request().postData()?null:route.request().postDataJSON() });
     if(url.pathname==="/api/auth/me")return route.fulfill({json:conf});
+    if(url.pathname.startsWith("/api/store/tags/agenda/"))return route.fulfill({json:{tags:[],assignments:{}}});
     if(url.pathname==="/api/store/today"||url.pathname.startsWith("/api/store/history/"))return route.fulfill({json:data});
     if(url.pathname==="/api/store/appointments/a1/status" && method==="PATCH"){
       if(conflict)return route.fulfill({status:409,json:{error:"CONFLITO_ESTADO",message:"Este registro mudou. Atualize a tela e tente novamente."}});
