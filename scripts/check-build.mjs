@@ -8,7 +8,7 @@ const read = file => readFileSync(join(dist, file), "utf8");
 const required = [
   "index.html", "frontend/entry.js", "frontend/application.js",
   "frontend/pages.js", "frontend/today.js",
-  "frontend/diagnostic-client.js", "frontend/diagnostics.js", "frontend/styles/diagnostics.css",
+  "frontend/diagnostic-client.js", "frontend/diagnostics.js", "frontend/pages/diagnostics/style.css",
   "frontend/dashboard.js", "frontend/users.js",
   "frontend/stores.js", "frontend/history.js",
   "frontend/import-agenda.js", "frontend/admin-agenda-preview.js",
@@ -16,7 +16,7 @@ const required = [
   "frontend/import/pdf-engine-liteparse.js",
   "frontend/import/parseAgendaBatch.js", "frontend/import/parseAgendaText.js",
   "frontend/styles/styles.css", "frontend/styles/store-desktop.css", "frontend/styles/corporate.css",
-  "frontend/styles/cadastros-compactos.css", "frontend/styles/vendor-ui.css", "shared/time.js", "theme-bootstrap.js",
+  "frontend/pages/cadastros/compact.css", "frontend/pages/cadastros/vendor.css", "shared/time.js", "theme-bootstrap.js",
   "vendor/chart.umd.min.js", "vendor/lucide/layout-dashboard.svg", "vendor/lucide/chart-no-axes-column-increasing.svg",
   "vendor/lucide/store.svg", "vendor/lucide/users.svg", "vendor/lucide/clipboard-check.svg", "vendor/lucide/info.svg"
 ];
@@ -27,8 +27,8 @@ const html = read("index.html");
 if (!html.includes('src="/frontend/entry.js"')) throw Error("HTML sem entrada nativa.");
 if (/main\.tsx|vite\/(?:client|assets)|react-dom/i.test(html))
   throw Error("O build ainda referencia React ou Vite.");
-for (const file of ["styles.css", "store-desktop.css", "corporate.css", "cadastros-compactos.css"]) {
-  if (!html.includes("/frontend/styles/" + file)) throw Error("CSS da main ausente: " + file);
+for (const file of ["styles/styles.css", "styles/store-desktop.css", "styles/corporate.css", "pages/cadastros/compact.css"]) {
+  if (!html.includes("/frontend/" + file)) throw Error("CSS obrigatório ausente: " + file);
 }
 const mapMatch = html.match(/<script type="importmap">([\s\S]*?)<\/script>/);
 if (!mapMatch) throw Error("Mapa ESM da biblioteca PDF ausente.");
@@ -44,7 +44,7 @@ const engine = read("frontend/import/pdf-engine-liteparse.js");
 if (!engine.includes('from "@llamaindex/liteparse-wasm"')) throw Error("Contrato de PDF mudou.");
 const facade = read("frontend/import/extractPdfText.js");
 if (facade.includes("@llamaindex")) throw Error("A fachada de PDF não pode referenciar o motor WASM diretamente.");
-if (!html.includes("/frontend/styles/vendor-ui.css")) throw Error("CSS dos ícones Lucide ausente.");
+if (!html.includes("/frontend/pages/cadastros/vendor.css")) throw Error("CSS dos ícones Lucide ausente.");
 if (!read("frontend/report-chart.js").includes("/vendor/chart.umd.min.js"))
   throw Error("Gráfico Chart.js não aponta para recurso local.");
 const chart = read("vendor/chart.umd.min.js");
