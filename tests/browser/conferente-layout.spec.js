@@ -53,6 +53,29 @@ test("Conferente ganha sidebar e resumo em cards, preservando comandos",async({p
   });
   expect(positions.sidebar).toBeGreaterThan(180);
   expect(positions.firstCard).toBeGreaterThan(85);
+  expect(positions.firstCard).toBeLessThan(125);
+  const visual=await page.evaluate(()=>{
+    const metrics=document.querySelector(".agenda-metrics>span");
+    const cell=document.querySelector(".agenda-desktop tbody td");
+    const panel=document.querySelector(".prado-store-agenda-panel");
+    const heading=document.querySelector(".prado-store-agenda-panel-heading");
+    return {
+      metricLayout:getComputedStyle(metrics).display,
+      metricIcon:metrics.querySelector(".metric-icon")?.textContent?.trim(),
+      metricPct:metrics.querySelector("[data-percent]")?.textContent?.trim(),
+      tablePadding:parseFloat(getComputedStyle(cell).paddingTop),
+      panelColor:getComputedStyle(panel).backgroundColor,
+      headingHeight:heading.getBoundingClientRect().height,
+      pageOverflow:document.documentElement.scrollWidth-window.innerWidth
+    };
+  });
+  expect(visual.metricLayout).toBe("grid");
+  expect(visual.metricIcon).toBeTruthy();
+  expect(visual.metricPct).toBe("100% do dia");
+  expect(visual.tablePadding).toBeLessThanOrEqual(10);
+  expect(visual.headingHeight).toBeLessThan(105);
+  expect(visual.pageOverflow).toBeLessThanOrEqual(2);
+  expect(visual.panelColor).toBe("rgb(23, 38, 53)");
   expect(positions.panel).toBeGreaterThan(positions.summary*0.9);
   await expect(page.locator('[data-testid="agenda-desktop-row"]')).toHaveCount(1);
   await page.locator("[data-agenda-search]").fill("não encontrado");
