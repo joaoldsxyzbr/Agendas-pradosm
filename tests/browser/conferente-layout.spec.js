@@ -43,6 +43,10 @@ test("Conferente ganha sidebar e resumo em cards, preservando comandos",async({p
   await expect(page.locator("[data-agenda-command-slot] .agenda-command-bar")).toBeVisible();
   await expect(page.locator("[data-store-complete]")).toBeVisible();
   await expect(page.locator("[data-store-pdf]")).toBeVisible();
+  const headerButton=page.locator(".prado-store-agenda-panel .agenda-sort-button").first();
+  await expect(headerButton).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
+  await expect(headerButton).toHaveCSS("border-top-width","0px");
+  await expect(page.locator(".agenda-date-step").first()).toHaveCSS("background-color","rgba(0, 0, 0, 0)");
   await expect(page.locator("[data-add-manual]")).toBeVisible();
   const positions=await page.evaluate(()=>{
     const rect=s=>document.querySelector(s).getBoundingClientRect();
