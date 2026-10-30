@@ -206,7 +206,7 @@ export function ConferencePage(){
         <div className="grid gap-2" aria-label="Fornecedores">
           {tagsQuery.isError && <p role="alert" className="text-xs text-amber-300">Tags indisponíveis. Os demais controles da conferência continuam disponíveis.</p>}
           {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-            tags={tagsQuery.data?.assignments[item.id] ?? item.tags ?? []} availableTags={tagsQuery.data?.tags ?? []}
+            tags={tagsQuery.data?.assignments[item.id] ?? []} availableTags={tagsQuery.data?.tags ?? []}
             onUpdated={refresh} onTagsUpdated={refreshTags}/> )}
           {filtered.length===0 && <p role="status" className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
         </div>
