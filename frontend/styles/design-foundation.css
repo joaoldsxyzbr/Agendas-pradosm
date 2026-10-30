@@ -64,3 +64,11 @@ html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.supplier-tag,
 @media (prefers-reduced-motion:reduce) {
  html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) * {scroll-behavior:auto}
 }
+
+/* Componentes compartilhados, somente aparência. */
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.registry-toolbar,.dashboard-toolbar,.manager-report-toolbar,.modal-card) {border-color:var(--prado-border)}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.registry-table,.dashboard-operation-table,.manager-report table) th {color:#d3e0ef;border-bottom-color:var(--prado-border)}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.registry-table,.dashboard-operation-table,.manager-report table) td {border-bottom-color:#32475a}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.registry-table,.dashboard-operation-table,.manager-report table) tbody tr:hover td {background:#2a4056}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.modal-card,.registry-create-modal,.agenda-preview-modal) {border-color:var(--prado-border-strong);box-shadow:0 16px 44px rgba(0,0,0,.28)}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.report-card,.dashboard-stat-card,.registry-card,.info-card) {border-color:var(--prado-border)}

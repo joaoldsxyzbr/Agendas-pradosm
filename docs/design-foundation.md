@@ -13,3 +13,8 @@ Referência: Atlassian Design System (tokens semânticos e consistência), com p
 - Apenas branch `preview`; produção e D1 permanecem intactos.
 
 Referência pública: https://atlassian.design/foundations/design-tokens
+
+## Cobertura
+- Componentes compartilhados das telas administrativas e do conferente.
+- Navegação, formulários, tabelas, cartões, botões e modais.
+- A estrutura, as medidas e o fluxo de operação permanecem inalterados.

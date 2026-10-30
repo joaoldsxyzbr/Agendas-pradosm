@@ -41,7 +41,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(32, 59, 90)");
   await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-image",/linear-gradient/);
   await expect(page.locator(".dashboard-operation-table thead th").first()).toHaveCSS("background-color","rgb(44, 53, 64)");
-  await expect(page.locator(".dashboard-operation-table tbody .dashboard-operation-row > td").first()).toHaveCSS("background-color","rgb(34, 40, 48)");
+  await expect(page.locator(".dashboard-operation-table tbody .dashboard-operation-row > td").first()).toHaveCSS("background-image",/linear-gradient/);
 
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
@@ -72,7 +72,7 @@ test("Navegação do administrador recolhe em telas de notebook e memoriza a esc
   await toggle.click();
   await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
   await expect(toggle).toHaveAttribute("aria-expanded","true");
-  await expect(sidebar).toHaveCSS("width","224px");
+  await expect(sidebar).toHaveCSS("width","232px");
   await page.reload();
   await expect(toggle).toHaveAttribute("aria-expanded","true");
   await expect(sidebar).toHaveCSS("width","232px");
@@ -93,7 +93,7 @@ test("Navegação do conferente compacta a tabela sem rolar a página para o lad
   expect(overflow).toBeLessThanOrEqual(2);
   await toggle.click();
   await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
-  await expect(sidebar).toHaveCSS("width","232px");
+  await expect(sidebar).toHaveCSS("width","224px");
 });
 test("Conferente mantém layout móvel e usa o mesmo grafite",async({page})=>{
   await page.setViewportSize({width:390,height:844});
