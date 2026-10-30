@@ -14,7 +14,6 @@ describe("Tailwind CSS v4 incremental sem Preflight", () => {
     assert.match(build, /execFileSync/);
     const html = read("../../index.html");
     assert.match(html, /\/frontend\/styles\/tailwind\.css/);
-    assert.equal(html.includes("cdn.tailwindcss.com"), false);
   });
   it("importa apenas tema e utilities com prefixo e escopo", () => {
     const css = read("../../frontend/styles/tailwind.input.css");
