@@ -18,7 +18,8 @@ export const appointmentSchema = z.object({
   startTime: z.string(), endTime: z.string(), status: z.string(),
   type: z.string().optional(), items: z.number().optional(),
   volumes: z.number().optional(), pallets: z.number().optional(),
-  hasExchanges: z.boolean().optional(), observation: z.string().nullable().optional(),
+  hasExchanges: z.boolean().optional(), origin: z.enum(["manual", "imported"]).optional(),
+  observation: z.string().nullable().optional(),
 });
 export const detailSchema = z.object({
   agenda: z.object({

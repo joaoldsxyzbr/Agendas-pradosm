@@ -24,11 +24,13 @@ const detail = {
 async function mock(page, role = "admin", options = {}) {
   const requests = [];
   let failAgenda = false;
-  let agendasNow = agendas;
+  let agendasNow = structuredClone(agendas);
+  let detailsNow = structuredClone(detail);
+  let completedAgenda0 = true;
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
     const path = url.pathname;
-    requests.push({ path, date: url.searchParams.get("date") });
+    requests.push({ path, method: route.request().method(), date: url.searchParams.get("date") });
     const json = data => route.fulfill({ json: data });
     if (path === "/api/auth/me") return json(role === "admin" ? admin : viewer);
     if (path === "/api/realtime/config") return json({ mode: options.realtime ?? "off", protocolVersion: 1 });
@@ -38,7 +40,39 @@ async function mock(page, role = "admin", options = {}) {
       if (failAgenda) return route.fulfill({ status: 500, json: { error: "FALHOU" } });
       return json(url.searchParams.get("date") === "2026-10-30" ? agendasNow : []);
     }
-    if (path === "/api/admin/agendas/agenda1") return json(detail);
+    if ((path === "/api/admin/agendas/agenda1/status" || path === "/api/admin/agendas/agenda0/status") && route.request().method() === "PATCH") {
+      if (options.reopenConflict) return route.fulfill({ status: 409, json: { error: "CONFLITO_ESTADO", message: "Este registro mudou. Atualize a tela e tente novamente." } });
+      const body = route.request().postDataJSON();
+      if (body.status !== "aberto") throw Error("Status de reabertura inesperado");
+      const id = path.includes("agenda0") ? "agenda0" : "agenda1";
+      if (id === "agenda0") completedAgenda0 = false;
+      else detailsNow.agenda.dayStatus = "aberto";
+      agendasNow = agendasNow.map(x => x.id === id ? { ...x, dayStatus: "aberto" } : x);
+      return json({ ...detailsNow.agenda, id, dayStatus: "aberto" });
+    }
+    if (path === "/api/admin/agendas/agenda1/manual" && route.request().method() === "POST") {
+      const body = route.request().postDataJSON();
+      if (!body.supplier?.trim()) return route.fulfill({ status: 400, json: { error: "REQUISICAO_INVALIDA", message: "Informe o fornecedor." } });
+      const saved = { id: "manual3", supplier: body.supplier, protocol: "Sem agenda", startTime: "", endTime: "", status: "aguardando", origin: "manual" };
+      detailsNow.appointments = [...detailsNow.appointments, saved];
+      return route.fulfill({ status: 201, json: saved });
+    }
+    if (path === "/api/admin/appointments/manual3/manual") {
+      if (route.request().method() === "PATCH") {
+        const body = route.request().postDataJSON();
+        detailsNow.appointments = detailsNow.appointments.map(x => x.id === "manual3" ? { ...x, supplier: body.supplier } : x);
+        return json(detailsNow.appointments.find(x => x.id === "manual3"));
+      }
+      if (route.request().method() === "DELETE") {
+        detailsNow.appointments = detailsNow.appointments.filter(x => x.id !== "manual3");
+        return route.fulfill({ status: 204 });
+      }
+    }
+    if (path === "/api/admin/agendas/agenda1") return json(detailsNow);
+    if (path === "/api/admin/agendas/agenda0") return json({
+      agenda: { ...detailsNow.agenda, id: "agenda0", storeCode: "F01", storeName: "Loja 1", dayStatus: completedAgenda0 ? "concluido" : "aberto" },
+      appointments: detailsNow.appointments,
+    });
     throw Error("API inesperada: " + path);
   });
   return { requests, setFailAgenda: value => { failAgenda = value; }, setAgendas: value => { agendasNow = value; } };
@@ -216,4 +250,67 @@ test("Recebimento React mantém polling se o realtime estiver desativado", async
   await page.getByLabel("Data da agenda").fill("2026-10-30");
   await expect(page.getByRole("table", { name: "Recebimento por loja" }).locator("tbody tr")).toHaveCount(8);
   await expect(page.getByText("Tempo real conectado")).toHaveCount(0);
+});
+
+test("Admin React: edição permite cadastrar, renomear e excluir fornecedor manual com confirmação", async ({ page }) => {
+  const spy = await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  await dialog.getByRole("button", { name: "Fornecedor sem agenda" }).click();
+  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
+  await dialog.getByRole("button", { name: "Adicionar fornecedor" }).click();
+  await expect(dialog.getByText("Fornecedor Manual Teste")).toBeVisible();
+  await dialog.getByRole("button", { name: "Renomear Fornecedor Manual Teste" }).click();
+  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Editado");
+  await dialog.getByRole("button", { name: "Salvar fornecedor" }).click();
+  await expect(dialog.getByText("Fornecedor Editado")).toBeVisible();
+  await dialog.getByRole("button", { name: "Excluir Fornecedor Editado" }).click();
+  await expect(dialog.getByText("Excluir Fornecedor Editado desta agenda?")).toBeVisible();
+  await dialog.getByRole("button", { name: "Confirmar exclusão" }).click();
+  await expect(dialog.getByText("Fornecedor Editado")).toHaveCount(0);
+  expect(spy.requests.filter(x => x.path.endsWith("/manual") && ["POST", "PATCH", "DELETE"].includes(x.method)).map(x => x.method)).toEqual(["POST", "PATCH", "DELETE"]);
+});
+
+test("Admin React: reabertura exige confirmação e atualiza a agenda", async ({ page }) => {
+  const spy = await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F01").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F01/ });
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  await dialog.getByRole("button", { name: "Reabrir para conferente" }).click();
+  await expect(dialog.getByText("Reabrir esta agenda permitirá")).toBeVisible();
+  expect(spy.requests.some(x => x.path.endsWith("/status") && x.method === "PATCH")).toBe(false);
+  await dialog.getByRole("button", { name: "Confirmar reabertura" }).click();
+  await expect(dialog.getByRole("button", { name: "Reabrir para conferente" })).toHaveCount(0);
+  expect(spy.requests.some(x => x.path === "/api/admin/agendas/agenda0/status" && x.method === "PATCH")).toBe(true);
+});
+
+test("Admin React: conflito de reabertura preserva o aviso e não informa sucesso", async ({ page }) => {
+  await mock(page, "admin", { reopenConflict: true });
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F01").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F01/ });
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  await dialog.getByRole("button", { name: "Reabrir para conferente" }).click();
+  await dialog.getByRole("button", { name: "Confirmar reabertura" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Este registro mudou");
+  await expect(dialog.getByRole("button", { name: "Confirmar reabertura" })).toBeVisible();
+});
+
+test("Visualizador React não vê edição, reabertura ou mutações administrativas", async ({ page }) => {
+  const spy = await mock(page, "visualizador");
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F01").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F01/ });
+  await expect(dialog.getByRole("button", { name: "Editar agenda" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Reabrir para conferente" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Fornecedor sem agenda" })).toHaveCount(0);
+  expect(spy.requests.filter(x => !["GET"].includes(x.method))).toEqual([]);
 });

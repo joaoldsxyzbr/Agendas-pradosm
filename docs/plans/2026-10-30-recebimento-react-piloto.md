@@ -56,3 +56,22 @@ ainda não migradas.
 - Header e tabela contidos no viewport móvel, com rolagem isolada.
 - Testes automatizados de realtime ligado e desligado, com eventos sintéticos
   válidos e inválidos, sem alterar Worker/D1 reais.
+
+## Evolução — ações administrativas no detalhe
+
+O React reutiliza os endpoints existentes do Worker para:
+- Reabrir dia concluído com confirmação explícita e tratamento de conflito (409).
+- Adicionar fornecedor sem agenda (nome de 1–160 caracteres).
+- Renomear e excluir exclusivamente fornecedores de origem manual, com confirmação da exclusão.
+- Invalidar os caches de detalhe e resumo após cada alteração, preservando atualização via WebSocket.
+
+**Permissões:** somente o administrador pode entrar no modo de edição. O
+visualizador mantém consulta somente leitura; a autorização definitiva de
+`POST`/`PATCH`/`DELETE` permanece no middleware do Worker.
+
+**Fora do escopo desta entrega:** mudança do status de agendamentos, trocas,
+observações e importação de arquivos; essas ações continuam no frontend antigo.
+
+**Validação:** testes E2E mockados para CRUD manual, confirmação de reabertura,
+conflito 409 e bloqueio de controles para o perfil visualizador.
+Não há alteração de schema D1 nem dos contratos da API.

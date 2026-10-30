@@ -174,8 +174,8 @@ export function ReceivingPage() {
       {presence.isError && <p role="status" className="text-[11px] text-amber-300">Presença de conferentes indisponível no momento.</p>}
       {model.rows.length ? <ReceivingTable rows={model.rows} onDetails={setDetailId} presenceUnavailable={presence.isError} />
         : <p className="rounded-lg border border-[#38516d] bg-[#142338] p-6 text-sm text-slate-400">Nenhuma loja com conferente ativo.</p>}
-      {!readonly && <p className="text-[11px] text-slate-500">Versão em migração: edição de agenda e importação continuam disponíveis apenas no sistema atual.</p>}
+      {!readonly && <p className="text-[11px] text-slate-500">Versão em migração: importar agendas e alterar os status dos fornecedores continuam disponíveis no sistema atual.</p>}
     </>}
-    {detailId && <AgendaDetailDialog key={detailId} agendaId={detailId} onClose={() => setDetailId(null)} />}
+    {detailId && <AgendaDetailDialog key={detailId} agendaId={detailId} canEdit={session.data?.papel === "admin"} onClose={() => setDetailId(null)} />}
   </section>;
 }

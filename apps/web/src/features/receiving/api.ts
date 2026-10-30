@@ -20,3 +20,28 @@ export async function getAgendaDetail(id: string) {
     `/api/admin/agendas/${encodeURIComponent(id)}`,
   ));
 }
+
+/** Mutations administrativas existentes no Worker; validação e auditoria continuam no servidor. */
+export async function reopenAgenda(id: string) {
+  return apiFetch<unknown>(`/api/admin/agendas/${encodeURIComponent(id)}/status`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status: "aberto" }),
+  });
+}
+export async function addManualSupplier(agendaId: string, supplier: string) {
+  return apiFetch<unknown>(`/api/admin/agendas/${encodeURIComponent(agendaId)}/manual`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ supplier }),
+  });
+}
+export async function renameManualSupplier(appointmentId: string, supplier: string) {
+  return apiFetch<unknown>(`/api/admin/appointments/${encodeURIComponent(appointmentId)}/manual`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ supplier }),
+  });
+}
+export async function deleteManualSupplier(appointmentId: string) {
+  return apiFetch<void>(`/api/admin/appointments/${encodeURIComponent(appointmentId)}/manual`, {
+    method: "DELETE",
+  });
+}
