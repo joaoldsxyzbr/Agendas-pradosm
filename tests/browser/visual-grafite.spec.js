@@ -117,7 +117,7 @@ test("Tailwind preserva os componentes compartilhados em Lojas e Usuarios",async
     await expect(page.locator(".registry-toolbar .ui-field").first()).toBeVisible();
     await expect(page.locator(".registry-table.ui-table")).toHaveCSS("border-collapse","collapse");
     await expect(page.locator(".registry-toolbar .ui-field").first()).toHaveCSS("min-width","0px");
-    await expect(page.locator(".registry-new-button.ui-action")).toHaveCSS("display","inline-flex");
+    await expect(page.locator(".registry-new-button.ui-action")).toHaveCSS("display","flex");
     await expect(page.locator(".registry-status.ui-badge").first()).toBeVisible();
     await page.locator(".registry-new-button").click();
     await expect(page.locator(".modal-card")).toBeVisible();
