@@ -8,9 +8,12 @@ async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
   await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
   await page.route("**/api/store/today", route => route.fulfill({ json: { agenda: null, appointments: [] } }));
+  await page.route("**/api/store/tags", route => route.fulfill({ json: [] }));
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });
+    if (path === "/api/admin/reports") return route.fulfill({ json: { start: new URL(route.request().url()).searchParams.get("start"), end: new URL(route.request().url()).searchParams.get("end"), storeCodes: [], rows: [], suppliers: [] } });
+    if (path === "/api/admin/reports/latest" || path === "/api/admin/reports/occurrences") return route.fulfill({ json: { total: 0, offset: Number(new URL(route.request().url()).searchParams.get("offset") || 0), limit: 50, rows: [] } });
     if (path === "/api/admin/agendas") return route.fulfill({ json: [] });
     if (path === "/api/admin/presence") return route.fulfill({ json: [] });
     throw new Error("Endpoint administrativo não previsto: " + path);
@@ -93,6 +96,8 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
       await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
     } else if (path === "/admin/import") {
       await expect(page.getByRole("group", { name: "Área para arrastar arquivos de agenda" })).toBeVisible();
+    } else if (path === "/admin/reports") {
+      await expect(page.getByRole("heading", { name: "Filtros da análise" })).toBeVisible();
     } else {
       await expect(page.getByText("Esta tela ainda funciona somente na versão atual")).toBeVisible();
     }
