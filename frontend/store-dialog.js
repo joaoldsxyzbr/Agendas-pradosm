@@ -1,3 +1,4 @@
+import { UI } from "./ui/primitives.js";
 import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 
@@ -32,7 +33,7 @@ function auditRow(item) {
 }
 const heading = (title, label, id) => `<div class="modal-heading">
   <div><span class="eyebrow">${label}</span><h2 id="${id}">${title}</h2></div>
-  <button class="ghost-button" type="button" data-close-store>Fechar</button>
+  <button class="ghost-button ${UI.action}" type="button" data-close-store>Fechar</button>
 </div>`;
 
 function modalMarkup(store) {
@@ -44,11 +45,11 @@ function modalMarkup(store) {
       ${heading(title, edit ? "Gerenciar loja" : "Nova unidade", edit ? "edit-store-title" : "create-store-title")}
       <form class="modal-form" data-save-store>
         <div class="modal-form-grid">
-          <label><span>Código</span><input name="codigo" value="${escapeHtml(store?.codigo || "")}"
+          <label><span>Código</span><input class="${UI.field}" name="codigo" value="${escapeHtml(store?.codigo || "")}"
             ${edit ? "" : 'placeholder="F03 ou CD DOCA 01"'} maxlength="20" required></label>
-          <label><span>Nome</span><input name="nome" value="${escapeHtml(store?.nome || "")}" maxlength="120" required></label>
+          <label><span>Nome</span><input class="${UI.field}" name="nome" value="${escapeHtml(store?.nome || "")}" maxlength="120" required></label>
           ${edit ? `<label class="modal-wide-field"><span>Status</span>
-            <select name="ativo">
+            <select class="${UI.field}" name="ativo">
               <option value="ativo" ${store.ativo ? "selected" : ""}>Ativa</option>
               <option value="inativo" ${store.ativo ? "" : "selected"}>Inativa</option>
             </select>
@@ -56,20 +57,20 @@ function modalMarkup(store) {
         </div>
         <p class="form-error" role="alert" data-store-error hidden></p>
         <div class="modal-actions">
-          ${edit ? "" : '<button class="ghost-button" type="button" data-close-store>Cancelar</button>'}
-          <button class="primary-button" type="submit" data-save-button>${edit ? "Salvar alterações" : "Cadastrar loja"}</button>
+          ${edit ? "" : '<button class="ghost-button ${UI.action}" type="button" data-close-store>Cancelar</button>'}
+          <button class="primary-button ${UI.action}" type="submit" data-save-button>${edit ? "Salvar alterações" : "Cadastrar loja"}</button>
         </div>
       </form>
       ${edit ? `<section class="history-box audit-trail">
         <div class="history-days-heading">
           <div><strong>Histórico de alterações</strong><span>Auditoria deste cadastro</span></div>
-          <button class="ghost-button" type="button" data-audit-toggle>Ver histórico</button>
+          <button class="ghost-button ${UI.action}" type="button" data-audit-toggle>Ver histórico</button>
         </div>
         <div data-audit-content></div>
       </section>
       <div class="modal-danger-zone" data-store-delete-zone>
         <div><strong>Excluir loja</strong><span>Preserva agendas e histórico já registrados.</span></div>
-        <button class="danger-button" type="button" data-delete-start>Excluir loja</button>
+        <button class="danger-button ${UI.action}" type="button" data-delete-start>Excluir loja</button>
       </div>` : ""}
     </section>
   </div>`;
@@ -153,13 +154,13 @@ export function openStoreDialog(root, {
         <span>A exclusão será bloqueada enquanto houver usuários vinculados.</span>
       </div>
       <div class="confirm-actions">
-        <button class="ghost-button" type="button" data-delete-cancel>Cancelar</button>
-        <button class="danger-button" type="button" data-delete-confirm>Confirmar exclusão</button>
+        <button class="ghost-button ${UI.action}" type="button" data-delete-cancel>Cancelar</button>
+        <button class="danger-button ${UI.action}" type="button" data-delete-confirm>Confirmar exclusão</button>
       </div>`;
     } else if (button.matches("[data-delete-cancel]")) {
       zone.innerHTML = `<div><strong>Excluir loja</strong>
         <span>Preserva agendas e histórico já registrados.</span></div>
-        <button class="danger-button" type="button" data-delete-start>Excluir loja</button>`;
+        <button class="danger-button ${UI.action}" type="button" data-delete-start>Excluir loja</button>`;
     } else if (button.matches("[data-delete-confirm]")) {
       deleting = true; button.disabled = true; button.textContent = "Excluindo...";
       error(null);

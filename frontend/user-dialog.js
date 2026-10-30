@@ -1,3 +1,4 @@
+import { UI } from "./ui/primitives.js";
 import { ApiError, apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { auditTrailHtml, mountAuditTrail } from "./audit-trail.js";
@@ -13,7 +14,7 @@ function storeOptions(stores, selected = "", editing = false) {
 function storeInput(stores, selected, editing) {
   return `<label ${editing ? "" : 'class="modal-wide-field"'} data-user-store-label>
     <span>Loja</span>
-    <select name="lojaId" required>${storeOptions(stores, selected, editing)}</select>
+    <select class="${UI.field}" name="lojaId" required>${storeOptions(stores, selected, editing)}</select>
   </label>`;
 }
 
@@ -23,14 +24,14 @@ function createMarkup(stores) {
       aria-modal="true" aria-labelledby="create-user-title">
       <div class="modal-heading"><div>
         <span class="eyebrow">Novo acesso</span><h2 id="create-user-title">Cadastrar usuário</h2>
-      </div><button class="ghost-button" type="button" data-user-close>Fechar</button></div>
+      </div><button class="ghost-button ${UI.action}" type="button" data-user-close>Fechar</button></div>
       <form class="modal-form" data-user-save>
         <div class="modal-form-grid">
-          <label><span>Nome</span><input name="nome" required></label>
-          <label><span>Login</span><input name="login" required></label>
-          <label><span>Senha</span><input type="password" name="senha"
+          <label><span>Nome</span><input class="${UI.field}" name="nome" required></label>
+          <label><span>Login</span><input class="${UI.field}" name="login" required></label>
+          <label><span>Senha</span><input class="${UI.field}" type="password" name="senha"
             minlength="12" autocomplete="new-password" required></label>
-          <label><span>Papel</span><select name="papel">
+          <label><span>Papel</span><select class="${UI.field}" name="papel">
             <option value="admin">Administrador</option>
             <option value="conferente" selected>Conferente</option>
             <option value="visualizador">Visualizador</option>
@@ -39,8 +40,8 @@ function createMarkup(stores) {
         </div>
         <p class="form-error" role="alert" data-user-error hidden></p>
         <div class="modal-actions">
-          <button class="ghost-button" type="button" data-user-close>Cancelar</button>
-          <button class="primary-button" type="submit" data-user-submit>Cadastrar usuário</button>
+          <button class="ghost-button ${UI.action}" type="button" data-user-close>Cancelar</button>
+          <button class="primary-button ${UI.action}" type="submit" data-user-submit>Cadastrar usuário</button>
         </div>
       </form>
     </section>
@@ -53,23 +54,23 @@ function editMarkup(user, stores) {
       aria-modal="true" aria-labelledby="edit-user-title">
       <div class="modal-heading"><div>
         <span class="eyebrow">Gerenciar acesso</span><h2 id="edit-user-title">Editar usuário</h2>
-      </div><button class="ghost-button" type="button" data-user-close>Fechar</button></div>
+      </div><button class="ghost-button ${UI.action}" type="button" data-user-close>Fechar</button></div>
       <form class="modal-form" data-user-save>
         <div class="modal-form-grid">
-          <label><span>Nome</span><input name="nome" value="${escapeHtml(user.nome)}" required></label>
-          <label><span>Login</span><input name="login" value="${escapeHtml(user.login)}" required></label>
-          <label><span>Papel</span><select name="papel">
+          <label><span>Nome</span><input class="${UI.field}" name="nome" value="${escapeHtml(user.nome)}" required></label>
+          <label><span>Login</span><input class="${UI.field}" name="login" value="${escapeHtml(user.login)}" required></label>
+          <label><span>Papel</span><select class="${UI.field}" name="papel">
             <option value="admin" ${user.papel === "admin" ? "selected" : ""}>Administrador</option>
             <option value="conferente" ${user.papel === "conferente" ? "selected" : ""}>Conferente</option>
             <option value="visualizador" ${user.papel === "visualizador" ? "selected" : ""}>Visualizador</option>
           </select></label>
           ${user.papel === "conferente" ? storeInput(stores, user.lojaId || "", true) : ""}
           <label class="modal-wide-field"><span>Nova senha (opcional)</span>
-            <input type="password" name="senha" minlength="12" autocomplete="new-password"></label>
+            <input class="${UI.field}" type="password" name="senha" minlength="12" autocomplete="new-password"></label>
         </div>
         <p class="form-error" role="alert" data-user-error hidden></p>
         <div class="modal-actions">
-          <button class="primary-button" type="submit" data-user-submit>Salvar alterações</button>
+          <button class="primary-button ${UI.action}" type="submit" data-user-submit>Salvar alterações</button>
         </div>
       </form>
       ${auditTrailHtml()}
@@ -183,7 +184,7 @@ export function openUserDialog(root, {
       : "O usuário poderá acessar novamente com sua senha atual."}</span>
     </div>
     <div class="confirm-actions">
-      <button class="ghost-button" type="button" data-user-toggle-cancel>Cancelar</button>
+      <button class="ghost-button ${UI.action}" type="button" data-user-toggle-cancel>Cancelar</button>
       <button class="${user.ativo ? "danger-button" : "primary-button"}" type="button"
         data-user-toggle-confirm>${user.ativo ? "Confirmar desativação" : "Confirmar ativação"}</button>
     </div>`;

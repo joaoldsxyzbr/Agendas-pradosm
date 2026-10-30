@@ -1,3 +1,4 @@
+import { UI } from "./ui/primitives.js";
 import { apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { openStoreDialog } from "./store-dialog.js";
@@ -30,25 +31,25 @@ export function renderStores(root, { request = apiFetch } = {}) {
       <div><span class="eyebrow">Cadastros</span><h1>Lojas</h1>
         <p>Gerencie as unidades habilitadas para recebimento.</p></div>
       <div class="registry-heading-actions">
-        <span class="registry-heading-meta" data-store-count>0 lojas · 0 ativas</span>
-        <button type="button" class="primary-button registry-new-button" data-create-store>+ Nova loja</button>
+        <span class="registry-heading-meta ${UI.numeric}" data-store-count>0 lojas · 0 ativas</span>
+        <button type="button" class="primary-button registry-new-button ${UI.action}" data-create-store>+ Nova loja</button>
       </div>
     </header>
     <p class="feedback-message" data-store-feedback hidden></p>
     <div class="table-card registry-card">
       <div class="registry-toolbar registry-toolbar-stores">
         <label class="registry-search"><span class="sr-only">Buscar loja</span>
-          <input type="search" data-store-search placeholder="Buscar por código ou nome..." aria-label="Buscar loja">
+          <input class="${UI.field}" type="search" data-store-search placeholder="Buscar por código ou nome..." aria-label="Buscar loja">
         </label>
         <label><span class="sr-only">Filtrar por situação</span>
-          <select data-store-status aria-label="Filtrar por situação">
+          <select class="${UI.field}" data-store-status aria-label="Filtrar por situação">
             <option value="todas">Todas as situações</option>
             <option value="ativas">Ativas</option>
             <option value="inativas">Inativas</option>
           </select>
         </label>
       </div>
-      <div class="table-scroll"><table class="registry-table">
+      <div class="table-scroll"><table class="registry-table ${UI.table}">
         <thead><tr><th>Código</th><th>Nome</th><th>Situação</th><th><span class="sr-only">Ações</span></th></tr></thead>
         <tbody data-store-rows><tr><td colspan="4" class="empty-cell">Carregando...</td></tr></tbody>
       </table></div>
@@ -70,8 +71,8 @@ export function renderStores(root, { request = apiFetch } = {}) {
       ? filtered.map(store => `<tr data-store-id="${escapeHtml(store.id)}">
           <td class="registry-code-cell">${escapeHtml(store.codigo)}</td>
           <td class="registry-primary-cell">${escapeHtml(store.nome)}</td>
-          <td><span class="registry-status ${store.ativo ? "is-active" : "is-inactive"}">${store.ativo ? "Ativa" : "Inativa"}</span></td>
-          <td class="table-action"><button class="ghost-button registry-edit-button" type="button" data-edit-store-id="${escapeHtml(store.id)}">Editar</button></td>
+          <td><span class="registry-status ${UI.badge} ${store.ativo ? "is-active" : "is-inactive"}">${store.ativo ? "Ativa" : "Inativa"}</span></td>
+          <td class="table-action"><button class="ghost-button registry-edit-button ${UI.action}" type="button" data-edit-store-id="${escapeHtml(store.id)}">Editar</button></td>
         </tr>`).join("")
       : '<tr><td colspan="4" class="empty-cell">Nenhuma loja encontrada.</td></tr>';
   };

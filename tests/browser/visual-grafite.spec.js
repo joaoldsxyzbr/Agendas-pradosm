@@ -107,3 +107,21 @@ test("Conferente mantém layout móvel e usa o mesmo grafite",async({page})=>{
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
+test("Tailwind preserva os componentes compartilhados em Lojas e Usuarios",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  await mock(page,admin);
+  for(const route of ["/admin/stores","/admin/users"]){
+    await page.goto(route);
+    await expect(page.locator(".registry-new-button.ui-action")).toBeVisible();
+    await expect(page.locator(".registry-table.ui-table")).toBeVisible();
+    await expect(page.locator(".registry-toolbar .ui-field").first()).toBeVisible();
+    await expect(page.locator(".registry-table.ui-table")).toHaveCSS("border-collapse","collapse");
+    await expect(page.locator(".registry-toolbar .ui-field").first()).toHaveCSS("min-width","0px");
+    await expect(page.locator(".registry-new-button.ui-action")).toHaveCSS("display","inline-flex");
+    await expect(page.locator(".registry-status.ui-badge").first()).toBeVisible();
+    await page.locator(".registry-new-button").click();
+    await expect(page.locator(".modal-card")).toBeVisible();
+    await expect(page.locator(".modal-form .ui-field").first()).toBeVisible();
+    await expect(page.locator(".modal-form .ui-action").first()).toBeVisible();
+  }
+});

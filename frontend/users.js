@@ -1,3 +1,4 @@
+import { UI } from "./ui/primitives.js";
 import { apiFetch } from "./api.js";
 import { escapeHtml } from "./shell.js";
 import { openUserDialog } from "./user-dialog.js";
@@ -30,18 +31,18 @@ export function renderUsers(root, { request = apiFetch } = {}) {
       <div><span class="eyebrow">Cadastros</span><h1>Usuários</h1>
         <p>Gerencie os acessos ao sistema.</p></div>
       <div class="registry-heading-actions">
-        <span class="registry-heading-meta" data-user-count>0 usuários · 0 ativos</span>
-        <button class="primary-button registry-new-button" type="button" data-create-user>+ Novo usuário</button>
+        <span class="registry-heading-meta ${UI.numeric}" data-user-count>0 usuários · 0 ativos</span>
+        <button class="primary-button registry-new-button ${UI.action}" type="button" data-create-user>+ Novo usuário</button>
       </div>
     </header>
     <p class="feedback-message" data-user-feedback hidden></p>
     <div class="table-card registry-card">
       <div class="registry-toolbar registry-toolbar-users">
         <label class="registry-search"><span class="sr-only">Buscar usuário</span>
-          <input type="search" data-user-search aria-label="Buscar usuário" placeholder="Buscar por nome, login ou loja...">
+          <input class="${UI.field}" type="search" data-user-search aria-label="Buscar usuário" placeholder="Buscar por nome, login ou loja...">
         </label>
         <label><span class="sr-only">Filtrar por papel</span>
-          <select data-user-role aria-label="Filtrar por papel">
+          <select class="${UI.field}" data-user-role aria-label="Filtrar por papel">
             <option value="todos">Todos os papéis</option>
             <option value="admin">Administrador</option>
             <option value="conferente">Conferente</option>
@@ -49,14 +50,14 @@ export function renderUsers(root, { request = apiFetch } = {}) {
           </select>
         </label>
         <label><span class="sr-only">Filtrar por situação</span>
-          <select data-user-status aria-label="Filtrar por situação">
+          <select class="${UI.field}" data-user-status aria-label="Filtrar por situação">
             <option value="todos">Todas as situações</option>
             <option value="ativos">Ativos</option>
             <option value="inativos">Inativos</option>
           </select>
         </label>
       </div>
-      <div class="table-scroll"><table class="registry-table">
+      <div class="table-scroll"><table class="registry-table ${UI.table}">
         <thead><tr>
           <th>Nome</th><th>Login</th><th>Loja</th><th>Papel</th><th>Situação</th>
           <th><span class="sr-only">Ações</span></th>
@@ -84,8 +85,8 @@ export function renderUsers(root, { request = apiFetch } = {}) {
         <td>${escapeHtml(user.login)}</td>
         <td>${escapeHtml(user.lojaId ? names.get(user.lojaId) || "Loja não localizada" : "—")}</td>
         <td><span class="registry-role">${escapeHtml(ROLE_LABELS[user.papel] || user.papel)}</span></td>
-        <td><span class="registry-status ${user.ativo ? "is-active" : "is-inactive"}">${user.ativo ? "Ativo" : "Inativo"}</span></td>
-        <td class="table-action"><button class="ghost-button registry-edit-button"
+        <td><span class="registry-status ${UI.badge} ${user.ativo ? "is-active" : "is-inactive"}">${user.ativo ? "Ativo" : "Inativo"}</span></td>
+        <td class="table-action"><button class="ghost-button registry-edit-button ${UI.action}"
           type="button" data-edit-user-id="${escapeHtml(user.id)}">Editar</button></td>
       </tr>`).join("")
       : '<tr><td colspan="6" class="empty-cell">Nenhum usuário encontrado.</td></tr>';

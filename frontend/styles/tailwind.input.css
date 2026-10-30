@@ -6,10 +6,26 @@
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
 @source "../dashboard.js";
+@source "../ui/primitives.js";
 
 @theme inline {
   --color-prado-primary: var(--prado-action);
   --color-prado-muted: var(--prado-text-muted);
   --color-prado-surface: var(--prado-surface);
   --color-prado-border: var(--prado-border);
+}
+
+/* Primitivos reutilizaveis Lojas/Usuarios, compilados em CSS estatico via @apply.
+ * Nenhum token de cor ou altura foi substituido ainda. */
+.prado-admin .ui-action {
+  @apply tw:inline-flex tw:items-center tw:justify-center tw:whitespace-nowrap tw:transition-colors;
+}
+.prado-admin .ui-field {
+  @apply tw:block tw:w-full tw:min-w-0;
+}
+.prado-admin .ui-table {
+  @apply tw:w-full tw:border-collapse;
+}
+.prado-admin .ui-badge {
+  @apply tw:inline-flex tw:items-center;
 }

@@ -18,3 +18,12 @@ Acrescentar arquivos ao @source conforme a migração de outras telas, removendo
 
 ## Verificações
 npm ci --legacy-peer-deps; npm run verify:production; npm run test:e2e.
+
+## Etapa 2: primitivos compartilhados de cadastro
+- `frontend/ui/primitives.js` centraliza as classes, independente da logica de negocios.
+- `stores.js`, `users.js`, `store-dialog.js` e `user-dialog.js` reutilizam
+  `ui-action`, `ui-field`, `ui-table` e `ui-badge`.
+- Tailwind compila os primitivos com `@apply` em `tailwind.input.css`,
+  preservando cores, bordas e altura dos controles legados.
+- As regras estao escopadas em `.prado-admin` e sem Preflight.
+- O teste de navegador cobre os dois cadastros, inclusive formulario modal.
