@@ -82,7 +82,7 @@ test("Conferência React usa tags do dia e salva seleção apenas após confirma
   await page.getByRole("checkbox", { name: "Selecionar tag Prioridade" }).check();
   expect(state.requests.some(x => x.method === "PUT")).toBe(false);
   await page.getByRole("button", { name: "Salvar tags" }).click();
-  await expect(row.getByLabel("Tags de Fornecedor Alfa")).toContainText("Prioridade");
+  await expect(row.locator('[aria-label="Tags de Fornecedor Alfa"]')).toContainText("Prioridade");
   expect(state.requests.some(x => x.path.endsWith("/appointments/a1") && x.body.tagIds.length === 1)).toBe(true);
 });
 
@@ -101,7 +101,7 @@ test("Conferência React mantém tags históricas visíveis e bloqueia edição 
   await setup(page, { completed: true, assigned: [{ id: tid(1), name: "Prioridade", color: "azul" }] });
   await page.goto("/app");
   const row = page.getByTestId("conference-row-a1");
-  await expect(row.getByLabel("Tags de Fornecedor Alfa")).toContainText("Prioridade");
+  await expect(row.locator('[aria-label="Tags de Fornecedor Alfa"]')).toContainText("Prioridade");
   await expect(row.getByRole("button", { name: "+ Tag" })).toHaveCount(0);
 });
 
