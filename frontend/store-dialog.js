@@ -57,7 +57,7 @@ function modalMarkup(store) {
         </div>
         <p class="form-error" role="alert" data-store-error hidden></p>
         <div class="modal-actions">
-          ${edit ? "" : '<button class="ghost-button ${UI.action}" type="button" data-close-store>Cancelar</button>'}
+          ${edit ? "" : `<button class="ghost-button ${UI.action}" type="button" data-close-store>Cancelar</button>`}
           <button class="primary-button ${UI.action}" type="submit" data-save-button>${edit ? "Salvar alterações" : "Cadastrar loja"}</button>
         </div>
       </form>
