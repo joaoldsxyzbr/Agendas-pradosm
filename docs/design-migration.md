@@ -12,3 +12,10 @@
 - Sem mudança de seletores, declarações ou geometria na etapa 1.
 - Build e testes de navegador aprovados.
 - Validar visualmente Conferente desktop/mobile antes de migrar a próxima camada.
+
+## Etapa 2: organização dos estilos do Conferente
+
+- `conferente-visual.css` e `conferente-compact.css` passam a residir em `frontend/pages/conferente/visual.css` e `compact.css`.
+- Conteúdo CSS e ordem de precedência preservados, sem remoção de declarações de geometria ou mudança no JavaScript.
+- As três folhas desta tela (`visual.css`, `compact.css`, `style.css`) estão agora juntas, embora a cascata antiga permaneça mantida para evitar regressões.
+- Remover duplicações somente depois de comparação visual e testes capazes de verificar medidas e estados.
