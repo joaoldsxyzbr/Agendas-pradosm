@@ -5,6 +5,7 @@ import { LoginPage } from "@/features/auth/login-page";
 import { PlaceholderPage } from "@/features/placeholder-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { ImportPage } from "@/features/import/import-page";
+import { ConferencePage } from "@/features/conference/conference-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -56,7 +57,7 @@ export function AppRoutes() {
     </Route>
     <Route element={<Guard roles={["conferente"]} />}>
       <Route element={<LayoutRoute />}>
-        <Route path="/app" element={<Page title="Conferência" description="Recebimentos e controle da operação." />} />
+        <Route path="/app" element={<ConferencePage />} />
         <Route path="/app/tags" element={<Page title="Tags" description="Organização e classificação das agendas." />} />
       </Route>
     </Route>
