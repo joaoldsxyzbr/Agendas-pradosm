@@ -42,10 +42,10 @@ test("Conferente React exibe cinco métricas e lista com dados da API",async({pa
   await expect(page.getByRole("heading",{name:"Conferência de recebimentos"})).toBeVisible();
   await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","2","0","0","0"]);
   await expect(page.getByTestId("conference-row-a1")).toContainText("FORNECEDOR TESTE");
-  await page.getByRole("textbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("outro");
+  await page.getByRole("searchbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("outro");
   await expect(page.getByTestId("conference-row-a1")).toHaveCount(0);
   await expect(page.getByTestId("conference-row-a2")).toBeVisible();
-  await page.getByRole("textbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("inexistente");
+  await page.getByRole("searchbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("inexistente");
   await expect(page.getByText("Nenhum fornecedor ou protocolo encontrado.")).toBeVisible();
 });
 
