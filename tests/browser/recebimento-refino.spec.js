@@ -91,9 +91,53 @@ test("Recebimento: cartões, botões e estados têm acabamento azul-grafite",asy
   await expect(page.locator(".dashboard-summary-total .dashboard-summary-icon")).toBeVisible();
   await expect(page.locator(".dashboard-summary-open .dashboard-summary-icon")).toBeVisible();
   await expect(page.locator(".dashboard-summary-completed .dashboard-summary-icon")).toBeVisible();
-  await expect(page.locator(".dashboard-operation-table")).toHaveCSS("border-top-left-radius","13px");
+  await expect(page.locator(".dashboard-operation-table")).toHaveCSS("border-top-left-radius","10px");
   await expect(page.locator(".dashboard-operation-row.is-open .status-pill").first()).toContainText("Em andamento");
   await expect(page.locator(".dashboard-operation-row.is-completed .status-pill").first()).toContainText("Concluído");
   await expect(page.locator("[data-day-prev]")).toBeVisible();
   await expect(page.locator("[data-day-next]")).toBeVisible();
+});
+
+test("Recebimento compacto: indicadores, ações e tabela mantêm densidade operacional",async({page})=>{
+  await page.setViewportSize({width:1288,height:686});
+  await mock(page);
+  await page.goto("/admin");
+  await expect(page.locator(".dashboard-operation-row")).toHaveCount(10);
+  const sizes=await page.evaluate(()=>{
+    const rect=selector=>document.querySelector(selector).getBoundingClientRect();
+    const summary=rect(".dashboard-operation-summary");
+    const row=rect(".dashboard-operation-row");
+    const date=rect(".dashboard-date-controls");
+    const refresh=rect("[data-refresh]");
+    const heading=rect(".receiving-page .page-heading");
+    const th=rect(".dashboard-operation-table thead th");
+    return {summary:summary.height,row:row.height,date:date.height,refresh:refresh.height,
+      heading:heading.height,th:th.height,overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  expect(sizes.summary).toBeLessThanOrEqual(82);
+  expect(sizes.row).toBeLessThanOrEqual(68);
+  expect(sizes.th).toBeLessThanOrEqual(43);
+  expect(sizes.date).toBeLessThanOrEqual(43);
+  expect(sizes.refresh).toBeLessThanOrEqual(43);
+  expect(sizes.heading).toBeLessThanOrEqual(80);
+  expect(sizes.overflow).toBeLessThanOrEqual(2);
+});
+
+test("Recebimento compacto no celular mantém os indicadores e a rolagem isolada",async({page})=>{
+  await page.setViewportSize({width:390,height:844});
+  await mock(page);
+  await page.goto("/admin");
+  await expect(page.locator(".dashboard-summary-metric")).toHaveCount(5);
+  const sizes=await page.evaluate(()=>{
+    const summary=document.querySelector(".dashboard-operation-summary").getBoundingClientRect();
+    const row=document.querySelector(".dashboard-operation-row").getBoundingClientRect();
+    const scroll=document.querySelector(".dashboard-operation-table .table-scroll");
+    return {summary:summary.height,row:row.height,
+      tableScroll:scroll.scrollWidth-scroll.clientWidth,
+      overflow:document.documentElement.scrollWidth-innerWidth};
+  });
+  expect(sizes.summary).toBeLessThanOrEqual(235);
+  expect(sizes.row).toBeLessThanOrEqual(76);
+  expect(sizes.tableScroll).toBeGreaterThan(100);
+  expect(sizes.overflow).toBeLessThanOrEqual(2);
 });
