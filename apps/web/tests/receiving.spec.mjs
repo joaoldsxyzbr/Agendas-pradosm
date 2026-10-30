@@ -166,7 +166,7 @@ test("Admin React abre importação sem contornar prévia obrigatória", async (
   await mock(page);
   await page.goto("/admin");
   await page.getByRole("button", { name: "Importar agenda" }).click();
-  await expect(page).toHaveURL(/\\/admin\\/import$/);
+  await expect(page).toHaveURL(new RegExp("/admin/import$"));
   await expect(page.getByRole("button", { name: "Confirmar importação" })).toHaveCount(0);
 });
 
