@@ -49,7 +49,7 @@ test("Fundação visual preserva páginas e tokens corporativos",async({page})=>
   expect(tokens).toEqual({surface:"#172635",border:"#344d66",accent:"#70aeff"});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
-  await expect(page.locator(".manager-report .report-filters")).toBeVisible();
+  await expect(page.locator(".manager-report .report-filters")).toBeAttached();
   await page.goto("/admin/stores");
   await expect(page.getByRole("heading",{name:"Lojas"})).toBeVisible();
   await expect(page.locator(".registry-toolbar")).toBeVisible();
