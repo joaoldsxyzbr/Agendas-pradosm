@@ -6,6 +6,9 @@ import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDay } from "@/features/receiving/model";
+import { getAssignedTags, type Tag } from "@/features/tags/api";
+import { TagChip } from "@/features/tags/tags-page";
+import { TagPicker } from "@/features/tags/tag-picker";
 import { businessToday, shiftDay, loadStoreAgenda, filterAppointments, metricValues,
   patchStoreExchanges, patchStoreStatus, completeStoreDay, type StoreAppointment } from "./model";
 
@@ -15,10 +18,12 @@ function errorText(error: unknown) {
   return error instanceof ApiError ? error.message : "Não foi possível salvar. Atualize a agenda e tente novamente.";
 }
 
-function AppointmentRow({ item, readOnly, day, onUpdated }: {
+function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, onTagsUpdated }: {
   item: StoreAppointment; readOnly:boolean; day:string; onUpdated:()=>Promise<void>;
+  tags:Tag[]; availableTags:Tag[]; onTagsUpdated:()=>Promise<void>;
 }) {
   const [reasonOpen,setReasonOpen]=useState(false);
+  const [tagsOpen,setTagsOpen]=useState(false);
   const [reason,setReason]=useState("");
   const [other,setOther]=useState("");
   const patch=useMutation({
@@ -51,6 +56,11 @@ function AppointmentRow({ item, readOnly, day, onUpdated }: {
         </div>
         {item.observation && <p className="mt-1 text-[11px] text-amber-300">Obs.: {item.observation}</p>}
         {item.origin==="manual" && <span className="mt-1 block text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+        <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label={"Tags de " + item.supplier}>
+          {tags.map(tag => <TagChip key={tag.id} tag={tag} />)}
+          {!readOnly && <Button size="sm" variant="ghost" className="h-7 border border-dashed border-slate-500 text-[11px]"
+            onClick={() => setTagsOpen(value => !value)}>{tagsOpen ? "Fechar tags" : "+ Tag"}</Button>}
+        </div>
       </div>
       <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
         {statusLabels[item.status]}
@@ -73,6 +83,8 @@ function AppointmentRow({ item, readOnly, day, onUpdated }: {
           onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
       </label>
     </div>
+    {tagsOpen && !readOnly && <TagPicker key={item.id} appointmentId={item.id} supplier={item.supplier}
+      choices={availableTags} assigned={tags} onSaved={onTagsUpdated} onCancel={() => setTagsOpen(false)} />}
     {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
     {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
       <label className="block text-xs text-slate-200">Motivo obrigatório
@@ -124,6 +136,8 @@ export function ConferencePage(){
     onSuccess:async()=>{setConfirmComplete(false);await refresh();},
   });
   const agenda=query.data?.agenda;
+  const tagsQuery=useQuery({ queryKey:["store-tags","agenda",date], queryFn:()=>getAssignedTags(date), enabled:Boolean(agenda) });
+  const refreshTags=async()=>{await client.invalidateQueries({queryKey:["store-tags","agenda",date]});};
   const appointments=query.data?.appointments??[];
   const metrics=metricValues(appointments);
   const filtered=useMemo(()=>filterAppointments(appointments,search),[appointments,search]);
@@ -190,7 +204,10 @@ export function ConferencePage(){
           </div>
         </div>
         <div className="grid gap-2" aria-label="Fornecedores">
-          {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending} onUpdated={refresh}/>)}
+          {tagsQuery.isError && <p role="alert" className="text-xs text-amber-300">Tags indisponíveis. Os demais controles da conferência continuam disponíveis.</p>}
+          {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
+            tags={tagsQuery.data?.assignments[item.id] ?? item.tags ?? []} availableTags={tagsQuery.data?.tags ?? []}
+            onUpdated={refresh} onTagsUpdated={refreshTags}/> )}
           {filtered.length===0 && <p role="status" className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
         </div>
       </section>
@@ -207,7 +224,7 @@ export function ConferencePage(){
           <Button size="sm" variant="secondary" disabled={complete.isPending} onClick={()=>setConfirmComplete(false)}>Cancelar</Button>
         </div>
       </section>}
-      <p className="text-[11px] text-slate-500">Em migração: edição de tags, fornecedores manuais, observações e exportação PDF permanecem na versão operacional.</p>
+      <p className="text-[11px] text-slate-500">Em migração: fornecedores manuais, observações editáveis e exportação PDF permanecem na versão operacional.</p>
     </>}
   </section>;
 }
