@@ -87,7 +87,11 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
   ]) {
     await page.goto(path);
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
-    await expect(page.getByText("Esta tela ainda funciona somente na versão atual")).toBeVisible();
+    if (path === "/admin") {
+      await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
+    } else {
+      await expect(page.getByText("Esta tela ainda funciona somente na versão atual")).toBeVisible();
+    }
   }
 });
 test("React: logout desautoriza navegação", async ({ page }) => {
