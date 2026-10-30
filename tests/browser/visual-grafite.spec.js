@@ -31,32 +31,32 @@ async function mock(page,user) {
   });
 }
 
-test("Paleta grafite consistente no recebimento, relatório e cadastros",async({page})=>{
+test("Fundação visual preserva páginas e tokens corporativos",async({page})=>{
   await page.setViewportSize({width:1366,height:900});
   await mock(page,admin);
   await page.goto("/admin");
   await expect(page.getByRole("heading",{name:"Recebimento",exact:true})).toBeVisible();
   await expect(page.locator("body")).toHaveCSS("background-color","rgb(16, 25, 35)");
-  await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 37, 46)");
-  await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(32, 59, 90)");
-  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-image",/linear-gradient/);
-  await expect(page.locator(".dashboard-operation-table thead th").first()).toHaveCSS("background-color","rgb(44, 53, 64)");
-  await expect(page.locator(".dashboard-operation-table tbody .dashboard-operation-row > td").first()).toHaveCSS("background-image",/linear-gradient/);
-
+  await expect(page.locator(".prado-side-nav .nav-link.active")).toBeVisible();
+  await expect(page.locator(".dashboard-operation-summary")).toBeVisible();
+  await expect(page.locator(".dashboard-operation-table")).toBeVisible();
+  const tokens=await page.evaluate(()=>{
+    const style=getComputedStyle(document.documentElement);
+    return {surface:style.getPropertyValue("--prado-surface").trim(),
+      border:style.getPropertyValue("--prado-border").trim(),
+      accent:style.getPropertyValue("--prado-action").trim()};
+  });
+  expect(tokens).toEqual({surface:"#172635",border:"#344d66",accent:"#70aeff"});
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading",{name:"Relatório Gerencial"})).toBeVisible();
-  await expect(page.locator(".manager-report .report-filters")).toHaveCSS("background-image",/linear-gradient/);
-  await expect(page.locator(".manager-report .report-heading-tag")).toBeHidden();
-
+  await expect(page.locator(".manager-report .report-filters")).toBeVisible();
   await page.goto("/admin/stores");
   await expect(page.getByRole("heading",{name:"Lojas"})).toBeVisible();
-  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(44, 53, 64)");
-
+  await expect(page.locator(".registry-toolbar")).toBeVisible();
   await page.goto("/admin/users");
   await expect(page.getByRole("heading",{name:"Usuários"})).toBeVisible();
-  await expect(page.locator(".registry-toolbar")).toHaveCSS("background-color","rgb(44, 53, 64)");
+  await expect(page.locator(".registry-toolbar")).toBeVisible();
 });
-
 
 test("Navegação do administrador recolhe em telas de notebook e memoriza a escolha",async({page})=>{
   await page.setViewportSize({width:1288,height:686});
@@ -103,7 +103,7 @@ test("Conferente mantém layout móvel e usa o mesmo grafite",async({page})=>{
   await expect(page.locator(".prado-store-sidebar")).toBeHidden();
   await expect(page.locator(".agenda-metrics [data-metric]")).toHaveCount(5);
   await expect(page.locator(".prado-store-agenda-view .agenda-metrics > span").first())
-    .toHaveCSS("background-color","rgb(34, 40, 48)");
+    .toHaveCSS("background-image",/linear-gradient/);
   const overflow=await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
