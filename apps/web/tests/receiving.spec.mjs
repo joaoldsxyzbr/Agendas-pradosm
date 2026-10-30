@@ -364,7 +364,7 @@ test("Admin React atualiza trocas e observa motivo personalizado", async ({ page
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
   const toggle = dialog.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" });
-  await toggle.check();
+  await toggle.click();
   await expect(toggle).toBeChecked();
   await dialog.getByRole("button", { name: "Observação de Fornecedor Verde" }).click();
   await dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" }).selectOption("Outros");
@@ -383,10 +383,10 @@ test("Admin React mantém dados e exibe conflito no status sem confirmar ação"
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
   await dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
-    .getByRole("button", { name: "Recebido" }).click();
+    .getByRole("button", { name: "Recebido", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("Este registro mudou");
   await expect(dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
-    .getByRole("button", { name: "Recebido" })).toBeVisible();
+    .getByRole("button", { name: "Recebido", exact: true })).toBeVisible();
 });
 
 test("Visualizador React não consegue alterar status, observações ou trocas", async ({ page }) => {
