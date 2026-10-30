@@ -109,6 +109,6 @@ test("Tags React é responsiva no celular", async ({ page }) => {
   await setup(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/app/tags");
-  await expect(page.getByRole("heading", { name: "Tags" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tags", exact: true })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(2);
 });
