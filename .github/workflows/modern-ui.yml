@@ -1,0 +1,113 @@
+name: Modern UI — React migration
+on:
+  push:
+    branches: [modernizacao-react-vite]
+  pull_request:
+    branches: [modernizacao-react-vite]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: modern-ui-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Worker legado + React build + navegador
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      - name: Dependencias reproduziveis separadas
+        run: |
+          npm ci --legacy-peer-deps
+          npm ci --prefix apps/web
+      - name: Auditoria de dependencias
+        run: |
+          npm audit --audit-level=high
+          npm audit --prefix apps/web --audit-level=high
+      - name: Garantir isolamento entre React e Worker
+        run: |
+          node scripts/check-modern-boundary.mjs
+          node scripts/check-worker.mjs
+          node scripts/check-frontend.mjs
+      - name: Validar codigo legado, migrations, build e design
+        run: |
+          npm run verify:production
+          npx wrangler deploy --dry-run --config wrangler.preview.jsonc
+      - name: TypeScript estrito e build Vite isolado
+        run: npm run build --prefix apps/web
+      - name: Preparar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Preparar D1 local sintetico
+        run: node scripts/prepare-e2e.mjs
+      - name: E2E legado
+        env:
+          CI: "true"
+        run: npm run test:e2e
+      - name: E2E React com API mockada
+        env:
+          CI: "true"
+        run: npx playwright test --config apps/web/playwright.config.mjs
+      - name: Guardar diagnosticos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erros-modern-ui
+          path: |
+            apps/web/test-results/
+            test-results/
+            playwright-report/
+          if-no-files-found: ignore
+          retention-days: 7
+  codeql:
+    name: CodeQL JS e TypeScript
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Inicializar CodeQL
+        uses: github/codeql-action/init@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          languages: javascript-typescript
+          queries: security-extended
+      - name: Analisar sem enviar para Code Scanning
+        uses: github/codeql-action/analyze@2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2 # v4.38.2
+        with:
+          upload: never
+          output: codeql-results
+      - name: Bloquear findings de seguranca
+        shell: bash
+        run: |
+          shopt -s nullglob
+          files=(codeql-results/*.sarif)
+          test "${#files[@]}" -gt 0
+          jq -r '[.[].runs[]?.results[]? | {rule: .ruleId, file: (.locations[0].physicalLocation.artifactLocation.uri // ""), message: (.message.text // "")}]' --slurp "${files[@]}"
+          jq -e '[.[].runs[]?.results[]?] | length == 0' --slurp "${files[@]}"
+  verify:
+    name: verify
+    if: always()
+    needs: [quality, codeql]
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Exigir qualidade e seguranca verdes
+        env:
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          CODEQL_RESULT: ${{ needs.codeql.result }}
+        run: |
+          test "$QUALITY_RESULT" = "success"
+          test "$CODEQL_RESULT" = "success"

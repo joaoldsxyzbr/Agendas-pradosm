@@ -30,12 +30,14 @@ jobs:
       - name: Auditoria de dependencias de producao
         run: npm audit --omit=dev
       - name: Bloquear vulnerabilidades altas e criticas nas dependencias de desenvolvimento
-        run: npm audit --audit-level=high
-      - name: Garantir codigo-fonte 100 por cento JavaScript
+        run: |
+          npm audit --audit-level=high
+          npm audit --prefix apps/web --audit-level=high
+      - name: Garantir isolamento da UI React e do Worker
         shell: bash
         run: |
           set -euo pipefail
-          test -z "$(git ls-files | grep -E '\.(tsx?|jsx)$' || true)"
+          node scripts/check-modern-boundary.mjs
           node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const n of ["react","react-dom","react-router-dom","vite","vitest","typescript"])if(d[n])process.exit(1)'
           node scripts/check-worker.mjs
           node scripts/check-frontend.mjs
@@ -50,8 +52,9 @@ jobs:
         run: |
           npm run build
           node scripts/check-build.mjs
+          node scripts/build-modern-preview.mjs
       - name: Dry-run do Worker de producao sem deploy
-        run: npx wrangler deploy --dry-run --config wrangler.jsonc
+        run: npx wrangler deploy --dry-run --config wrangler.preview.jsonc
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
       - name: Preparar D1 local para testes de integracao
@@ -60,6 +63,10 @@ jobs:
         env:
           CI: "true"
         run: npm run test:e2e
+      - name: E2E React isolado com dados sinteticos
+        env:
+          CI: "true"
+        run: npx playwright test --config apps/web/playwright.config.mjs
       - name: Guardar diagnosticos em caso de falha
         if: failure()
         uses: actions/upload-artifact@v4
