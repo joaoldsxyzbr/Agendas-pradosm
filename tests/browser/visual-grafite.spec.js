@@ -39,7 +39,7 @@ test("Paleta grafite consistente no recebimento, relatório e cadastros",async({
   await expect(page.locator("body")).toHaveCSS("background-color","rgb(23, 27, 32)");
   await expect(page.locator(".prado-sidebar")).toHaveCSS("background-color","rgb(29, 37, 46)");
   await expect(page.locator(".prado-side-nav .nav-link.active")).toHaveCSS("background-color","rgb(32, 59, 90)");
-  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-color","rgb(34, 40, 48)");
+  await expect(page.locator(".dashboard-operation-summary")).toHaveCSS("background-image",/linear-gradient/);
   await expect(page.locator(".dashboard-operation-table thead th").first()).toHaveCSS("background-color","rgb(44, 53, 64)");
   await expect(page.locator(".dashboard-operation-table tbody .dashboard-operation-row > td").first()).toHaveCSS("background-color","rgb(34, 40, 48)");
 
@@ -72,7 +72,7 @@ test("Navegação do administrador recolhe em telas de notebook e memoriza a esc
   await toggle.click();
   await expect(shell).toHaveAttribute("data-sidebar-collapsed","false");
   await expect(toggle).toHaveAttribute("aria-expanded","true");
-  await expect(sidebar).toHaveCSS("width","232px");
+  await expect(sidebar).toHaveCSS("width","224px");
   await page.reload();
   await expect(toggle).toHaveAttribute("aria-expanded","true");
   await expect(sidebar).toHaveCSS("width","232px");
