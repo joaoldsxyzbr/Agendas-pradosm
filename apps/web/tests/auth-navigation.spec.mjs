@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 
-const admin = { id: "adm", nome: "ADM Teste", login: "adm", papel: "admin" };
-const viewer = { id: "view", nome: "Visualizador", login: "view", papel: "visualizador" };
-const conference = { id: "conf", nome: "Doca 01", login: "conf", papel: "conferente", lojaId: "1" };
+const admin = { id: "adm", nome: "ADM Teste", papel: "admin" };
+const viewer = { id: "view", nome: "Visualizador", papel: "visualizador" };
+const conference = { id: "conf", nome: "Doca 01", papel: "conferente", lojaId: "1" };
 
 async function sessionMocks(page, initialUser = null) {
   let current = initialUser;

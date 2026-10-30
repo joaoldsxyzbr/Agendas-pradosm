@@ -1,8 +1,8 @@
 
 import { test, expect } from "@playwright/test";
 
-const admin = { id: "adm", nome: "ADM de teste", login: "adm", papel: "admin" };
-const viewer = { id: "viewer", nome: "Visualizador de teste", login: "view", papel: "visualizador" };
+const admin = { id: "adm", nome: "ADM de teste", papel: "admin" };
+const viewer = { id: "viewer", nome: "Visualizador de teste", papel: "visualizador" };
 const stores = Array.from({ length: 8 }, (_, i) => ({
   id: "s" + i, codigo: "F" + String(i + 1).padStart(2, "0"),
   nome: "Loja " + (i + 1), ativo: true, temConferenteAtivo: true,

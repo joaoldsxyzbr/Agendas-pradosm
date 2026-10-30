@@ -5,7 +5,8 @@ export const roleSchema = z.enum(["admin", "visualizador", "conferente"]);
 export const userSchema = z.object({
   id: z.string(),
   nome: z.string(),
-  login: z.string(),
+  // O Worker atual não retorna login em /me nem no POST /login.
+  login: z.string().optional(),
   papel: roleSchema,
   lojaId: z.string().nullable().optional(),
   lojaNome: z.string().nullable().optional(),
