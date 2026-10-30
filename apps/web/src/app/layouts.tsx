@@ -34,7 +34,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
     },
   });
   const items = menu.filter(item => (item.roles as readonly Role[]).includes(user.papel));
-  const nav = <nav aria-label="Navegação principal" className="flex gap-1 overflow-x-auto md:flex-col">
+  const nav = <nav aria-label="Navegação principal" className="flex min-w-0 gap-1 md:flex-col">
     {items.map(({ path, label, icon: Icon }) => <NavLink key={path} to={path} end
       className={({ isActive }) => cn("flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-medium outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-400", isActive ? "bg-sky-500/15 text-sky-200" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200")}>
       <Icon size={16} aria-hidden="true" />{label}
