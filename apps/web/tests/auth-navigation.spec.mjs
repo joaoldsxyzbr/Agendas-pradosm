@@ -44,7 +44,7 @@ test("React: login usa API e redireciona corretamente, sem frontend legado", asy
   await page.locator('input[name="senha"]').fill("senha-de-teste");
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recebimento", exact: true })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
   await expect(page.locator(".prado-admin")).toHaveCount(0);
 });
@@ -106,7 +106,7 @@ test("React: layout compacto não cria rolagem lateral em celular", async ({ pag
   await sessionMocks(page, viewer);
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/admin");
-  await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recebimento", exact: true })).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });

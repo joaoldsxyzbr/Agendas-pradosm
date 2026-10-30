@@ -130,7 +130,7 @@ export function ReceivingPage() {
     <PageHeader eyebrow={readonly ? "Acompanhamento" : "Administração"} title="Recebimento"
       description={readonly ? "Acompanhe o andamento das agendas por loja." : "Acompanhe as agendas e gerencie a operação do dia."}
       actions={<div className="flex flex-wrap items-center gap-2">
-        <div className="inline-flex h-9 items-center overflow-hidden rounded-md border border-[#426181] bg-[#192c43]" aria-label="Selecionar data da agenda">
+        <div className="inline-flex h-9 items-center overflow-hidden rounded-md border border-[#426181] bg-[#192c43]" aria-label="Controles de calendário">
           <button aria-label="Dia anterior" onClick={() => setSelectedDate(day => shiftDay(day, -1))}
             className="grid h-full w-8 place-items-center hover:bg-[#2c4563] focus-visible:outline-2 focus-visible:outline-sky-300"><ChevronLeft size={17} /></button>
           <label className="flex h-full items-center gap-2 border-x border-[#426181] px-2 text-xs text-slate-100">
