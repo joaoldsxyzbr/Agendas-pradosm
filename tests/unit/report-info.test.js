@@ -31,7 +31,7 @@ describe("Ajuda contextual do Relatório Gerencial", () => {
     const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
     assert.match(read("../../index.html"), /\/frontend\/styles\/report-info\.css/);
     assert.match(read("../../scripts/build-native.mjs"), /await copy\("frontend", "frontend"\)/);
-    assert.match(read("../../frontend/styles/report-info.css"), /report-info-button:focus-visible/);
+    assert.match(read("../../frontend/pages/reports/info.css"), /report-info-button:focus-visible/);
     assert.match(read("../../frontend/reports.js"), /setupReportInfo\(root\)/);
   });
 });
