@@ -23,11 +23,17 @@ test("conferente cadastra tag e marca fornecedor no mesmo fluxo",async({page})=>
     throw Error("Rota não mockada: "+method+" "+path);
   });
   await page.goto("/app/tags");
-  await expect(page.locator(".tags-page").getByRole("heading",{name:"Tags de fornecedores"})).toBeVisible();
+  await expect(page.locator(".tags-page").getByRole("heading",{name:"Personalize suas etiquetas"})).toBeVisible();
   await page.locator('[name="name"]').fill("Prioridade");
   await page.locator('[name="color"]').selectOption("roxo");
+  await expect(page.locator("[data-tags-preview]")).toHaveText("Prioridade");
+  await expect(page.locator("[data-tags-preview]")).toHaveClass(/supplier-tag-roxo/);
   await page.getByRole("button",{name:"Criar tag"}).click();
   await expect(page.locator(".tags-list-item .supplier-tag")).toHaveText("Prioridade");
+  await page.locator("[data-tags-search]").fill("não existe");
+  await expect(page.getByText("Nenhuma tag encontrada")).toBeVisible();
+  await page.locator("[data-tags-search]").fill("Prioridade");
+  await expect(page.locator(".tags-list-item")).toHaveCount(1);
   await page.locator('.prado-store-side-nav a[href="/app"]').click();
   await expect(page.locator(".agenda-desktop .supplier-tag-add")).toBeVisible();
   await page.locator(".agenda-desktop .supplier-tag-add").click();

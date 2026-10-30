@@ -18,34 +18,62 @@ export function renderTags(root,{request=apiFetch}={}) {
   let disposed=false, tags=[],busy=false;
   root.innerHTML=`<section class="tags-page">
     <div class="tags-page-head">
-      <div><span class="prado-store-eyebrow">ORGANIZAÇÃO</span>
-        <h2>Tags de fornecedores</h2>
-        <p>Crie etiquetas para identificar recebimentos na agenda da sua loja.</p>
+      <div><span class="prado-store-eyebrow">ORGANIZAÇÃO DA LOJA</span>
+        <h2>Personalize suas etiquetas</h2>
+        <p>Crie identificações rápidas para reconhecer fornecedores durante a conferência.</p>
       </div>
+      <span class="tags-page-count" data-tags-count aria-live="polite">0 de 100 tags</span>
     </div>
-    <form data-tags-form class="tags-form">
-      <label>Nome da tag<input name="name" maxlength="32" placeholder="Ex.: Atenção na descarga" required autocomplete="off"></label>
-      <label>Cor<select name="color">${TAG_COLORS.map(color => `<option value="${color.value}">${color.label}</option>`).join("")}</select></label>
-      <button class="primary-button" type="submit">Criar tag</button>
-    </form>
-    <p class="form-error" data-tags-error role="alert" hidden></p>
-    <div class="tags-panel"><div class="tags-panel-title"><h3>Tags cadastradas</h3>
-       <span data-tags-count></span></div>
+    <section class="tags-creator" aria-labelledby="tags-create-title">
+      <div class="tags-section-heading"><span class="tags-section-icon" aria-hidden="true">+</span>
+        <div><h3 id="tags-create-title">Nova etiqueta</h3><p>Escolha um nome curto e uma cor para identificá-la.</p></div>
+      </div>
+      <form data-tags-form class="tags-form">
+        <label class="tags-name-field">Nome da tag<input name="name" maxlength="32" placeholder="Ex.: Descarga prioritária" required autocomplete="off"></label>
+        <label class="tags-color-field">Cor<select name="color">${TAG_COLORS.map(color => `<option value="${color.value}">${color.label}</option>`).join("")}</select></label>
+        <div class="tags-preview"><span>Prévia</span><span data-tags-preview class="supplier-tag supplier-tag-azul">Nome da tag</span></div>
+        <button class="primary-button tags-create-button" type="submit">+ Criar tag</button>
+      </form>
+      <p class="form-error" data-tags-error role="alert" hidden></p>
+    </section>
+    <section class="tags-panel" aria-labelledby="tags-library-title">
+      <div class="tags-panel-title"><div><h3 id="tags-library-title">Biblioteca de tags</h3>
+        <p>Etiquetas disponíveis para os conferentes desta loja.</p></div>
+        <label class="tags-search"><span class="sr-only">Buscar tags</span>
+          <input type="search" data-tags-search placeholder="Buscar etiqueta..." aria-label="Buscar tags"></label>
+      </div>
       <p class="muted-state" data-tags-loading>Carregando tags...</p>
       <div data-tags-list></div>
-    </div>
+    </section>
   </section>`;
   const field=root.querySelector('[name="name"]');
   const errorNode=root.querySelector("[data-tags-error]");
+  const search=root.querySelector("[data-tags-search]");
+  const colorField=root.querySelector('[name="color"]');
+  const preview=root.querySelector("[data-tags-preview]");
+  const refreshPreview=()=>{
+    const color=TAG_COLORS.some(item=>item.value===colorField.value)?colorField.value:"cinza";
+    preview.className="supplier-tag supplier-tag-"+color;
+    preview.textContent=field.value.trim()||"Nome da tag";
+  };
+  const onSearch=()=>render();
+  field.addEventListener("input",refreshPreview);
+  colorField.addEventListener("change",refreshPreview);
+  search.addEventListener("input",onSearch);
   const showError=text=>{errorNode.textContent=text||"";errorNode.hidden=!text;};
   const render=()=>{
-    root.querySelector("[data-tags-count]").textContent=`${tags.length} de 100`;
-    root.querySelector("[data-tags-list]").innerHTML=tags.length
-      ? `<ul class="tags-list">${tags.map(tag => `<li class="tags-list-item">
-          ${tagChips([tag])}<button class="ghost-button" type="button" data-tag-archive="${escapeHtml(tag.id)}"
-            aria-label="Arquivar tag ${escapeHtml(tag.name)}">Arquivar</button>
+    root.querySelector("[data-tags-count]").textContent=`${tags.length} de 100 tags`;
+    const query=search.value.trim().toLocaleLowerCase("pt-BR");
+    const visible=tags.filter(tag=>tag.name.toLocaleLowerCase("pt-BR").includes(query));
+    root.querySelector("[data-tags-list]").innerHTML=visible.length
+      ? `<ul class="tags-list">${visible.map(tag => `<li class="tags-list-item">
+          <div class="tags-list-info"><span class="tags-list-color supplier-tag-${escapeHtml(tag.color)}" aria-hidden="true"></span>
+            <strong>${escapeHtml(tag.name)}</strong><span class="tags-list-subtitle">Etiqueta da loja</span></div>
+          <div class="tags-list-actions">${tagChips([tag])}<button class="ghost-button" type="button" data-tag-archive="${escapeHtml(tag.id)}"
+            aria-label="Arquivar tag ${escapeHtml(tag.name)}">Arquivar</button></div>
         </li>`).join("")}</ul>`
-      : '<p class="tags-empty">Nenhuma tag criada. Cadastre a primeira acima.</p>';
+      : `<div class="tags-empty"><span aria-hidden="true">⌗</span><strong>${query?"Nenhuma tag encontrada":"Sua biblioteca está vazia"}</strong>
+          <p>${query?"Tente buscar por outro nome.":"Crie uma etiqueta acima para organizar seus recebimentos."}</p></div>`;
   };
   const load=async()=>{
     try{tags=await request("/api/store/tags");if(!disposed)render();}
@@ -64,7 +92,7 @@ export function renderTags(root,{request=apiFetch}={}) {
       if(!name)throw Error("Informe o nome da tag.");
       const created=await request("/api/store/tags",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,color})});
       tags=[...tags,created].sort((a,b)=>a.name.localeCompare(b.name,"pt-BR"));
-      field.value="";render();field.focus();
+      field.value="";refreshPreview();render();field.focus();
     }catch(error){showError(error instanceof ApiError?error.message:error.message||"Não foi possível criar a tag.");}
     finally{busy=false;submit.disabled=false;}
   };
@@ -84,7 +112,10 @@ export function renderTags(root,{request=apiFetch}={}) {
   root.querySelector("[data-tags-form]").addEventListener("submit",onSubmit);
   root.addEventListener("click",onClick);
   void load();
-  return ()=>{disposed=true;root.removeEventListener("click",onClick);};
+  return ()=>{disposed=true;root.removeEventListener("click",onClick);
+    field.removeEventListener("input",refreshPreview);
+    colorField.removeEventListener("change",refreshPreview);
+    search.removeEventListener("input",onSearch);};
 }
 
 export function openAppointmentTagsDialog(root,{appointment,tags=[],request=apiFetch,onSaved=()=>{},trigger}={}) {
