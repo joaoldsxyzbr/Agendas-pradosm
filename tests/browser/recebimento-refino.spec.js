@@ -141,3 +141,14 @@ test("Recebimento compacto no celular mantém os indicadores e a rolagem isolada
   expect(sizes.tableScroll).toBeGreaterThan(100);
   expect(sizes.overflow).toBeLessThanOrEqual(2);
 });
+
+test("Tailwind v4 aplica utilities sem resetar a pagina Recebimento",async({page})=>{
+  await page.setViewportSize({width:1366,height:900});
+  await mock(page);
+  await page.goto("/admin");
+  await expect(page.locator(".dashboard-summary-metric")).toHaveCount(5);
+  await expect(page.locator(".dashboard-summary-copy > span").first()).toHaveCSS("font-weight","500");
+  await expect(page.locator(".dashboard-operation-row")).toHaveCount(10);
+  await expect(page.locator(".dashboard-operation-table thead th")).toHaveCount(6);
+  await expect(page.locator(".dashboard-header-actions [data-refresh]")).toBeVisible();
+});
