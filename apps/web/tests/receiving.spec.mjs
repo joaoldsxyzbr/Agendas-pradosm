@@ -155,6 +155,30 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
   expect(behavior.tablePosition).toBeGreaterThan(0);
   expect(behavior.menuPosition).toBeGreaterThan(0);
   expect(behavior.documentOverflow).toBe("clip");
+  if (behavior.viewportPosition !== 0) {
+    const snapshot = await page.evaluate(() => {
+      const box = selector => {
+        const element = document.querySelector(selector);
+        if (!element) return null;
+        const rect = element.getBoundingClientRect();
+        const style = getComputedStyle(element);
+        return {
+          selector, client: element.clientWidth, scroll: element.scrollWidth,
+          rect: Math.round(rect.width), left: Math.round(rect.left),
+          overflowX: style.overflowX, overflowY: style.overflowY,
+          minWidth: style.minWidth, width: style.width,
+          display: style.display,
+        };
+      };
+      return {
+        viewport: innerWidth, scrollX, root: document.scrollingElement?.tagName,
+        nodes: ["html", "body", "#root", "#root > div", "#root > div > div",
+          '[data-testid="mobile-navigation"]', '[data-testid="mobile-navigation"] nav',
+          "main", '[data-testid="receiving-table-scroll"]'].map(box),
+      };
+    });
+    console.log("LAYOUT DIAGNOSTIC:", JSON.stringify(snapshot));
+  }
   expect(behavior.viewportPosition).toBe(0);
 });
 
