@@ -102,10 +102,9 @@ export function ReceivingPage() {
   useEffect(() => {
     const check = () => {
       const next = businessToday();
-      setToday(previous => {
-        if (next !== previous) setSelectedDate(value => value === previous ? next : value);
-        return next;
-      });
+      if (next === today) return;
+      setToday(next);
+      setSelectedDate(value => value === today ? next : value);
     };
     const interval = window.setInterval(check, 30_000);
     window.addEventListener("focus", check);
@@ -115,7 +114,7 @@ export function ReceivingPage() {
       window.removeEventListener("focus", check);
       document.removeEventListener("visibilitychange", check);
     };
-  }, []);
+  }, [today]);
 
   const model = useMemo(() =>
     receivingModel(stores.data ?? [], agendas.data ?? [], presence.data ?? []),
