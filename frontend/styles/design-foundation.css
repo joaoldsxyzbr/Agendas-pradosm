@@ -1,0 +1,66 @@
+/* Agenda Prado | Design tokens e acabamento compartilhado.
+   Inspirado em fundamentos de design sem dependencias externas.
+   Nao define dimensoes, grid, posicoes ou fluxo. */
+html[data-theme="dark"] {
+ --prado-bg:#101923;
+ --prado-surface:#172635;
+ --prado-surface-raised:#23384d;
+ --prado-action:#70aeff;
+ --prado-text:#eaf2fc;
+ --prado-text-muted:#9eb2c8;
+ --prado-border:#344d66;
+ --prado-border-strong:#506d88;
+ --prado-focus:#87bdff;
+ --prado-radius-sm:6px;
+ --prado-radius-md:9px;
+ --prado-shadow-subtle:0 3px 14px rgba(3,12,22,.12);
+ --color-background:var(--prado-bg);
+ --color-surface:var(--prado-surface);
+ --color-surface-muted:var(--prado-surface-raised);
+ --color-text:var(--prado-text);
+ --color-text-soft:var(--prado-text-muted);
+ --color-border:var(--prado-border);
+ --color-primary:var(--prado-action);
+ --color-primary-strong:#99c7ff;
+ --color-focus-ring:rgba(112,174,255,.24);
+ color-scheme:dark;
+}
+html[data-theme="dark"] body {background:var(--prado-bg);color:var(--prado-text);font-family:system-ui,-apple-system,"Segoe UI",sans-serif}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) {
+ --prado-control-shadow:inset 0 1px rgba(255,255,255,.025);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(button,input,select,textarea) {font-family:inherit}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(button,a,input,select,textarea):focus-visible {
+ outline:2px solid var(--prado-focus);outline-offset:2px;
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(input:not([type=checkbox]):not([type=radio]),select,textarea) {
+ border-color:var(--prado-border-strong);
+ color:var(--prado-text);
+ box-shadow:var(--prado-control-shadow);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(input,textarea)::placeholder {color:var(--prado-text-muted);opacity:1}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.primary-button,button.primary-button) {
+ border-color:var(--prado-action);background:var(--prado-action);color:#102033;
+ font-weight:700;box-shadow:var(--prado-control-shadow);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) .primary-button:hover:not(:disabled) {
+ background:#99c7ff;border-color:#99c7ff;color:#102033;
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) .ghost-button {
+ border-color:var(--prado-border-strong);color:var(--prado-text);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) .ghost-button:hover:not(:disabled) {
+ border-color:#739cc3;color:#f5faff;
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.table-card,.tags-panel,.tags-creator,.prado-store-agenda-panel) {
+ border-color:var(--prado-border);box-shadow:var(--prado-shadow-subtle);
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(th,[role=columnheader]) {
+ font-weight:700;
+}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(button,input,select,textarea):disabled {cursor:not-allowed;opacity:.58}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.form-error,.inline-error) {color:#ffb5ba}
+html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) :is(.supplier-tag,.store-status) {font-weight:700}
+@media (prefers-reduced-motion:reduce) {
+ html[data-theme="dark"] :is(.prado-admin,.prado-store-layout) * {scroll-behavior:auto}
+}
