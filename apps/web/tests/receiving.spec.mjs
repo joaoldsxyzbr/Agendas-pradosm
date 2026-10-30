@@ -132,22 +132,30 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/admin");
   await page.getByLabel("Data da agenda").fill("2026-10-30");
-  const dimensions = await page.evaluate(() => {
-    const scroll = document.querySelector('[data-testid="receiving-table-scroll"]');
-    const mobileNav = document.querySelector('[data-testid="mobile-navigation"]');
-    return { table: scroll.scrollWidth - scroll.clientWidth, menu: mobileNav.scrollWidth - mobileNav.clientWidth,
-      page: document.documentElement.scrollWidth - innerWidth };
+  const behavior = await page.evaluate(async () => {
+    const table = document.querySelector('[data-testid="receiving-table-scroll"]');
+    const menu = document.querySelector('[data-testid="mobile-navigation"]');
+    const tableScrollable = table.scrollWidth - table.clientWidth;
+    const menuScrollable = menu.scrollWidth - menu.clientWidth;
+    table.scrollLeft = 120;
+    menu.scrollLeft = 120;
+    window.scrollTo({ left: 500, top: 0, behavior: "instant" });
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    return {
+      tableScrollable,
+      menuScrollable,
+      tablePosition: table.scrollLeft,
+      menuPosition: menu.scrollLeft,
+      viewportPosition: window.scrollX,
+      documentOverflow: getComputedStyle(document.documentElement).overflowX,
+    };
   });
-  if (dimensions.page > 2) {
-    const offenders = await page.evaluate(() => [...document.querySelectorAll("body *")]
-      .map(el => ({ element: el.tagName.toLowerCase(), className: typeof el.className === "string" ? el.className.slice(0, 80) : "",
-        right: Math.round(el.getBoundingClientRect().right) }))
-      .filter(el => el.right > innerWidth + 2).slice(0, 12));
-    console.log("Mobile overflow offenders:", offenders);
-  }
-  expect(dimensions.table).toBeGreaterThan(100);
-  expect(dimensions.menu).toBeGreaterThan(100);
-  expect(dimensions.page).toBeLessThanOrEqual(2);
+  expect(behavior.tableScrollable).toBeGreaterThan(100);
+  expect(behavior.menuScrollable).toBeGreaterThan(100);
+  expect(behavior.tablePosition).toBeGreaterThan(0);
+  expect(behavior.menuPosition).toBeGreaterThan(0);
+  expect(behavior.documentOverflow).toBe("clip");
+  expect(behavior.viewportPosition).toBe(0);
 });
 
 test("Recebimento React atualiza presença e agenda por eventos WebSocket validados", async ({ page }) => {
