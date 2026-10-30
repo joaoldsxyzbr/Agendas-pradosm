@@ -6,6 +6,7 @@ import { PlaceholderPage } from "@/features/placeholder-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { ImportPage } from "@/features/import/import-page";
 import { ConferencePage } from "@/features/conference/conference-page";
+import { ReportsPage } from "@/features/reports/reports-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -43,7 +44,7 @@ export function AppRoutes() {
     <Route element={<Guard roles={["admin", "visualizador"]} />}>
       <Route element={<LayoutRoute />}>
         <Route path="/admin" element={<ReceivingPage />} />
-        <Route path="/admin/reports" element={<Page title="Relatório Gerencial" description="Indicadores, filtros e gráficos." />} />
+        <Route path="/admin/reports" element={<ReportsPage />} />
       </Route>
     </Route>
     <Route element={<Guard roles={["admin"]} />}>
