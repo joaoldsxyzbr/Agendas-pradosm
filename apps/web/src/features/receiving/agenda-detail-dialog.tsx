@@ -9,6 +9,7 @@ import {
   renameManualSupplier, reopenAgenda,
 } from "./api";
 import { formatDay } from "./model";
+import { AppointmentControls } from "./appointment-controls";
 
 const statusInfo: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
   aguardando: { label: "Aguardando", tone: "warning" },
@@ -39,6 +40,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
   const [reopenConfirmation, setReopenConfirmation] = useState(false);
   const [manualAction, setManualAction] = useState<ManualAction | null>(null);
   const [supplier, setSupplier] = useState("");
+  const [appointmentBusy, setAppointmentBusy] = useState(false);
   const query = useQuery({
     queryKey: ["receiving", "detail", agendaId],
     queryFn: () => getAgendaDetail(agendaId),
@@ -71,7 +73,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
       await refresh();
     },
   });
-  const busy = reopening.isPending || manualMutation.isPending;
+  const busy = reopening.isPending || manualMutation.isPending || appointmentBusy;
   useEffect(() => {
     const dialog = ref.current;
     if (!dialog) return;
@@ -222,12 +224,17 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
                   </Button>
                 </>}
               </div>
+              <div className="w-full">
+                <AppointmentControls key={item.id} item={item} editable={editable}
+                  disabled={busy || Boolean(manualAction) || reopenConfirmation}
+                  onBusyChange={setAppointmentBusy} onSaved={refresh} />
+              </div>
             </article>;
           })}
         </div>
         {!canEdit && <p className="border-t border-[#34516d] pt-3 text-[11px] text-slate-400">Somente consulta nesta etapa. Edição e reabertura não estão disponíveis para o perfil visualizador.</p>}
         {canEdit && <p className="border-t border-[#34516d] pt-3 text-[11px] text-slate-400">
-          Alterações de status, trocas e observações por agendamento continuam na versão operacional atual.
+          A edição deste detalhe utiliza as mesmas regras da API operacional, com autorização e auditoria no Worker.
         </p>}
       </>}
     </div>

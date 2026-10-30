@@ -75,3 +75,19 @@ observações e importação de arquivos; essas ações continuam no frontend an
 **Validação:** testes E2E mockados para CRUD manual, confirmação de reabertura,
 conflito 409 e bloqueio de controles para o perfil visualizador.
 Não há alteração de schema D1 nem dos contratos da API.
+
+## Evolução — status, trocas e observações por agendamento
+
+- Controles React para administrador, presentes somente no modo de edição da agenda.
+- Marcar como Recebido/Não recebido e desmarcar para Aguardando com a mesma semântica da versão original.
+- Exigir motivo antes de Não recebido, incluindo os seis motivos padronizados e a opção Personalizado (máximo 250 caracteres).
+- Editar/limpar observação respeitando as regras existentes de `shared/observations.js`; o Worker valida definitivamente o motivo.
+- Alterar Trocas com o valor retornado pela API como fonte da verdade (sem atualização otimista).
+- Endpoints do Worker preservados: `PATCH /api/admin/appointments/:id/status`,
+  `/exchanges` e `/observation`.
+- Invalidar consultas de detalhe e indicadores após confirmação; o WebSocket existente complementa a sincronização.
+- Mensagens de conflito (409) e erro, bloqueio durante envio e controles ocultos para visualizador.
+- Testes E2E com APIs mockadas para status/motivo obrigatório, observações personalizadas, trocas, conflito e acesso somente leitura.
+
+**Pendente nesta fase:** importação CSV/PDF e homologação visual completa.
+Não houve modificação nas regras de negócio, banco ou endpoints do Worker.

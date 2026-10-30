@@ -45,3 +45,24 @@ export async function deleteManualSupplier(appointmentId: string) {
     method: "DELETE",
   });
 }
+
+/** A regra do motivo obrigatório permanece no Worker; o formulário segue o contrato legado. */
+export type AppointmentStatus = "aguardando" | "recebido" | "nao_chegou" | "recusado";
+export async function changeAppointmentStatus(id: string, status: AppointmentStatus, observation: string | null = null) {
+  return apiFetch<unknown>(`/api/admin/appointments/${encodeURIComponent(id)}/status`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ status, observation }),
+  });
+}
+export async function changeAppointmentExchanges(id: string, hasExchanges: boolean) {
+  return apiFetch<unknown>(`/api/admin/appointments/${encodeURIComponent(id)}/exchanges`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ hasExchanges }),
+  });
+}
+export async function changeAppointmentObservation(id: string, observation: string | null) {
+  return apiFetch<unknown>(`/api/admin/appointments/${encodeURIComponent(id)}/observation`, {
+    method: "PATCH", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ observation }),
+  });
+}

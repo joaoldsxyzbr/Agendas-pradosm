@@ -68,6 +68,25 @@ async function mock(page, role = "admin", options = {}) {
         return route.fulfill({ status: 204 });
       }
     }
+
+    const appointmentMatch = /^\/api\/admin\/appointments\/([^/]+)\/(status|exchanges|observation)$/.exec(path);
+    if (appointmentMatch && route.request().method() === "PATCH") {
+      if (options.appointmentConflict) return route.fulfill({
+        status: 409, json: { error: "CONFLITO_ESTADO", message: "Este registro mudou. Atualize a tela e tente novamente." },
+      });
+      const [, id, action] = appointmentMatch;
+      const payload = route.request().postDataJSON();
+      if (action === "status" && payload.status === "nao_chegou" && !payload.observation) {
+        return route.fulfill({ status: 400, json: { error: "MOTIVO_INVALIDO", message: "Motivo obrigatório." } });
+      }
+      detailsNow.appointments = detailsNow.appointments.map(item => item.id !== id ? item : {
+        ...item,
+        ...(action === "status" ? { status: payload.status, observation: payload.observation } : {}),
+        ...(action === "exchanges" ? { hasExchanges: payload.hasExchanges } : {}),
+        ...(action === "observation" ? { observation: payload.observation } : {}),
+      });
+      return json(detailsNow.appointments.find(item => item.id === id));
+    }
     if (path === "/api/admin/agendas/agenda1") return json(detailsNow);
     if (path === "/api/admin/agendas/agenda0") return json({
       agenda: { ...detailsNow.agenda, id: "agenda0", storeCode: "F01", storeName: "Loja 1", dayStatus: completedAgenda0 ? "concluido" : "aberto" },
@@ -313,4 +332,71 @@ test("Visualizador React não vê edição, reabertura ou mutações administrat
   await expect(dialog.getByRole("button", { name: "Reabrir para conferente" })).toHaveCount(0);
   await expect(dialog.getByRole("button", { name: "Fornecedor sem agenda" })).toHaveCount(0);
   expect(spy.requests.filter(x => !["GET"].includes(x.method))).toEqual([]);
+});
+
+test("Admin React altera status e exige motivo antes de Não recebido", async ({ page }) => {
+  const spy = await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  const group = dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" });
+  await group.getByRole("button", { name: "Não recebido" }).click();
+  await expect(dialog.getByText("Motivo de não recebimento")).toBeVisible();
+  expect(spy.requests.some(x => x.path.endsWith("/a2/status"))).toBe(false);
+  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Selecione um motivo");
+  await dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" }).selectOption("Sem pedido");
+  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
+  await expect(group.getByRole("button", { name: "Desmarcar não recebido" })).toBeVisible();
+  await expect(dialog.getByText("Sem pedido")).toBeVisible();
+  await group.getByRole("button", { name: "Desmarcar não recebido" }).click();
+  await expect(group.getByRole("button", { name: "Não recebido" })).toBeVisible();
+  expect(spy.requests.filter(x => x.path.endsWith("/a2/status") && x.method === "PATCH")).toHaveLength(2);
+});
+
+test("Admin React atualiza trocas e observa motivo personalizado", async ({ page }) => {
+  const spy = await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  const toggle = dialog.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" });
+  await toggle.check();
+  await expect(toggle).toBeChecked();
+  await dialog.getByRole("button", { name: "Observação de Fornecedor Verde" }).click();
+  await dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" }).selectOption("Outros");
+  await dialog.getByRole("textbox", { name: "Descreva o motivo" }).fill("Entrega parcial");
+  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
+  await expect(dialog.getByText("Outros: Entrega parcial")).toBeVisible();
+  expect(spy.requests.some(x => x.path.endsWith("/a2/exchanges") && x.method === "PATCH")).toBe(true);
+  expect(spy.requests.some(x => x.path.endsWith("/a2/observation") && x.method === "PATCH")).toBe(true);
+});
+
+test("Admin React mantém dados e exibe conflito no status sem confirmar ação", async ({ page }) => {
+  await mock(page, "admin", { appointmentConflict: true });
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await dialog.getByRole("button", { name: "Editar agenda" }).click();
+  await dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
+    .getByRole("button", { name: "Recebido" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Este registro mudou");
+  await expect(dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
+    .getByRole("button", { name: "Recebido" })).toBeVisible();
+});
+
+test("Visualizador React não consegue alterar status, observações ou trocas", async ({ page }) => {
+  const spy = await mock(page, "visualizador");
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await expect(dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })).toHaveCount(0);
+  await expect(dialog.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Observação de Fornecedor Verde" })).toHaveCount(0);
+  expect(spy.requests.filter(x => x.method !== "GET")).toEqual([]);
 });
