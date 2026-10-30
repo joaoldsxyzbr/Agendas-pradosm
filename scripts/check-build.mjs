@@ -25,7 +25,7 @@ for (const file of required) {
 }
 const html = read("index.html");
 // Verifica os assets CSS reais após a migração por tela.
-const stylesheetPaths = [...html.matchAll(/<link\\s+[^>]*rel="stylesheet"[^>]*href="(\\/frontend\\/[^"]+\\.css)"/g)]
+const stylesheetPaths = [...html.matchAll(/<link\s+[^>]*rel="stylesheet"[^>]*href="(\/frontend\/[^"]+\.css)"/g)]
   .map(match => match[1].slice(1));
 if (stylesheetPaths.length === 0) throw Error("Nenhuma folha CSS encontrada no HTML.");
 if (new Set(stylesheetPaths).size !== stylesheetPaths.length) throw Error("Folha CSS duplicada no HTML.");
