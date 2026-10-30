@@ -61,7 +61,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
       </header>
       <div className="overflow-x-auto border-b border-[#2b415b] bg-[#111e2e] p-2 md:hidden">{nav}</div>
       {signout.isError && <p role="alert" className="px-5 pt-2 text-xs text-rose-300">Não foi possível encerrar a sessão.</p>}
-      <main className="min-w-0 flex-1 p-4 md:p-6"><Outlet /></main>
+      <main className="w-full min-w-0 max-w-full flex-1 overflow-x-clip p-4 md:p-6"><Outlet /></main>
     </div>
   </div>;
 }

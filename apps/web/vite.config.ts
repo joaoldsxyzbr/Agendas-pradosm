@@ -27,6 +27,11 @@ export default defineConfig({
               request.setHeader("origin", workerOrigin);
             }
           });
+          proxy.on("proxyReqWs", (request, incoming) => {
+            if (incoming.headers.origin === viteOrigin) {
+              request.setHeader("origin", workerOrigin);
+            }
+          });
         },
       },
     },

@@ -7,6 +7,7 @@ import { StatusBadge } from "@/components/operations/status-badge";
 import { MetricCard } from "@/components/operations/metric-card";
 import { useSession } from "@/app/session-query";
 import { AgendaDetailDialog } from "./agenda-detail-dialog";
+import { useReceivingRealtime } from "./use-realtime";
 import { getAgendas, getPresence, getStores } from "./api";
 import {
   businessToday, formatDay, pendingLabels, receivingModel, shiftDay,
@@ -30,8 +31,8 @@ function PresenceStatus({ status, unavailable }: {
 function ReceivingTable({ rows, onDetails, presenceUnavailable }: {
   rows: ReceivingRow[]; onDetails: (id: string) => void; presenceUnavailable: boolean;
 }) {
-  return <div className="overflow-hidden rounded-xl border border-[#38516d] bg-[#142235] shadow-lg">
-    <div className="w-full overflow-x-auto" data-testid="receiving-table-scroll">
+  return <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-[#38516d] bg-[#142235] shadow-lg">
+    <div className="w-full min-w-0 max-w-full overflow-x-auto" data-testid="receiving-table-scroll">
       <table className="w-full min-w-[930px] table-fixed border-collapse" aria-label="Recebimento por loja">
         <colgroup>
           <col className="w-[24%]" /><col className="w-[15%]" />
@@ -94,6 +95,7 @@ export function ReceivingPage() {
   const [today, setToday] = useState(() => businessToday());
   const [selectedDate, setSelectedDate] = useState(today);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const realtimeStatus = useReceivingRealtime(session.data?.id, selectedDate);
   const stores = useQuery({ queryKey: ["receiving", "stores"], queryFn: getStores, refetchInterval: 60_000, refetchOnWindowFocus: true });
   const agendas = useQuery({ queryKey: ["receiving", "agendas", selectedDate], queryFn: () => getAgendas(selectedDate), refetchInterval: 30_000, refetchOnWindowFocus: true });
   const presence = useQuery({ queryKey: ["receiving", "presence"], queryFn: getPresence, refetchInterval: 30_000, refetchOnWindowFocus: true });
@@ -126,7 +128,7 @@ export function ReceivingPage() {
   const readonly = session.data?.papel === "visualizador";
   const reload = () => void queryClient.invalidateQueries({ queryKey: ["receiving"] });
 
-  return <section className="mx-auto max-w-[1530px] space-y-3" aria-label="Recebimento">
+  return <section className="mx-auto w-full min-w-0 max-w-[1530px] space-y-3" aria-label="Recebimento">
     <PageHeader eyebrow={readonly ? "Acompanhamento" : "Administração"} title="Recebimento"
       description={readonly ? "Acompanhe o andamento das agendas por loja." : "Acompanhe as agendas e gerencie a operação do dia."}
       actions={<div className="flex flex-wrap items-center gap-2">
@@ -154,7 +156,7 @@ export function ReceivingPage() {
     />
     <div className="flex items-center justify-between gap-3">
       <h2 className="text-sm font-bold text-slate-100">Recebimento por loja</h2>
-      <span className="text-[11px] text-slate-400 tabular-nums">Referência: {formatDay(selectedDate)}</span>
+      <span className="text-[11px] text-slate-400 tabular-nums">Referência: {formatDay(selectedDate)}{realtimeStatus === "connected" ? " · Tempo real conectado" : ""}</span>
     </div>
     {loading && <p role="status" className="rounded-lg border border-[#37516d] bg-[#182a40] p-4 text-xs text-slate-300">Carregando agendas…</p>}
     {failure && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200">

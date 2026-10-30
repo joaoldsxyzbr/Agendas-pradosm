@@ -21,25 +21,27 @@ const detail = {
     { id: "a2", supplier: "Fornecedor Verde", protocol: "P002", startTime: "09:00", endTime: "10:00", status: "aguardando" },
   ],
 };
-async function mock(page, role = "admin") {
+async function mock(page, role = "admin", options = {}) {
   const requests = [];
   let failAgenda = false;
+  let agendasNow = agendas;
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
     const path = url.pathname;
     requests.push({ path, date: url.searchParams.get("date") });
     const json = data => route.fulfill({ json: data });
     if (path === "/api/auth/me") return json(role === "admin" ? admin : viewer);
+    if (path === "/api/realtime/config") return json({ mode: options.realtime ?? "off", protocolVersion: 1 });
     if (path === "/api/admin/stores") return json(stores);
     if (path === "/api/admin/presence") return json([{ storeId: "s1", status: "online" }]);
     if (path === "/api/admin/agendas") {
       if (failAgenda) return route.fulfill({ status: 500, json: { error: "FALHOU" } });
-      return json(url.searchParams.get("date") === "2026-10-30" ? agendas : []);
+      return json(url.searchParams.get("date") === "2026-10-30" ? agendasNow : []);
     }
     if (path === "/api/admin/agendas/agenda1") return json(detail);
     throw Error("API inesperada: " + path);
   });
-  return { requests, setFailAgenda: value => { failAgenda = value; } };
+  return { requests, setFailAgenda: value => { failAgenda = value; }, setAgendas: value => { agendasNow = value; } };
 }
 
 test("Recebimento React mantém cinco indicadores, seis colunas e estados", async ({ page }) => {
@@ -134,6 +136,67 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
     const scroll = document.querySelector('[data-testid="receiving-table-scroll"]');
     return { table: scroll.scrollWidth - scroll.clientWidth, page: document.documentElement.scrollWidth - innerWidth };
   });
+  if (dimensions.page > 2) {
+    const offenders = await page.evaluate(() => [...document.querySelectorAll("body *")]
+      .map(el => ({ element: el.tagName.toLowerCase(), className: typeof el.className === "string" ? el.className.slice(0, 80) : "",
+        right: Math.round(el.getBoundingClientRect().right) }))
+      .filter(el => el.right > innerWidth + 2).slice(0, 12));
+    console.log("Mobile overflow offenders:", offenders);
+  }
   expect(dimensions.table).toBeGreaterThan(100);
   expect(dimensions.page).toBeLessThanOrEqual(2);
+});
+
+test("Recebimento React atualiza presença e agenda por eventos WebSocket validados", async ({ page }) => {
+  await page.addInitScript(() => {
+    window.WebSocket = class FakeRealtimeSocket {
+      static CONNECTING = 0;
+      static OPEN = 1;
+      readyState = 0;
+      constructor() {
+        window.__fakeRealtimeSocket = this;
+        setTimeout(() => {
+          this.readyState = 1;
+          this.onopen?.();
+          this.onmessage?.({ data: JSON.stringify({ version: 1, type: "realtime.ready" }) });
+        }, 0);
+      }
+      send() {}
+      close(code = 1000) {
+        this.readyState = 3;
+        this.onclose?.({ code });
+      }
+    };
+    window.__emitRealtime = event => window.__fakeRealtimeSocket?.onmessage?.({ data: JSON.stringify(event) });
+  });
+  const controls = await mock(page, "admin", { realtime: "on" });
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await expect(page.getByText("Tempo real conectado")).toBeVisible();
+  await expect(page.getByTestId("receiving-store-F02").getByText("Offline")).toBeVisible();
+
+  await page.evaluate(() => window.__emitRealtime({ version: 1, type: "presence.changed", storeId: "s1", status: "online" }));
+  await expect(page.getByTestId("receiving-store-F02").getByText("Online")).toBeVisible();
+  // Eventos incompletos não devem substituir dados válidos.
+  await page.evaluate(() => window.__emitRealtime({ version: 1, type: "presence.changed", status: "offline" }));
+  await expect(page.getByTestId("receiving-store-F02").getByText("Online")).toBeVisible();
+
+  const changed = agendas.map((agenda, i) => i === 1
+    ? { ...agenda, dayStatus: "concluido", recebido: 20, aguardando: 0 }
+    : agenda);
+  controls.setAgendas(changed);
+  await page.evaluate(() => window.__emitRealtime({
+    version: 1, type: "agenda.changed", agendaId: "agenda1",
+    storeId: "s1", date: "2026-10-30", reason: "status",
+  }));
+  await expect(page.getByLabel("Situação do dia").locator("strong")).toHaveText(["8", "7", "5", "2", "1"]);
+  await expect(page.getByTestId("receiving-store-F02").getByText("Concluído")).toBeVisible();
+});
+
+test("Recebimento React mantém polling se o realtime estiver desativado", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await expect(page.getByRole("table", { name: "Recebimento por loja" }).locator("tbody tr")).toHaveCount(8);
+  await expect(page.getByText("Tempo real conectado")).toHaveCount(0);
 });

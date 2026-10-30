@@ -6,6 +6,7 @@ const conference = { id: "conf", nome: "Doca 01", papel: "conferente", lojaId: "
 
 async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
+  await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });
@@ -86,7 +87,7 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
     ["/admin/diagnostics", "Logs e Auditoria"],
   ]) {
     await page.goto(path);
-    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+    await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     if (path === "/admin") {
       await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
     } else {
