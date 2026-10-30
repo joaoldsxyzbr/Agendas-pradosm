@@ -76,7 +76,7 @@ test("React: conferente acessa Tags e não acessa rotas administrativas", async 
   await expect(page).toHaveURL(/\/app$/);
   await page.getByRole("link", { name: "Tags" }).click();
   await expect(page).toHaveURL(/\/app\/tags$/);
-  await expect(page.getByRole("heading", { name: "Tags" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tags", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
 });
 test("React: administrador pode navegar nas rotas sem dados operacionais falsos", async ({ page }) => {
