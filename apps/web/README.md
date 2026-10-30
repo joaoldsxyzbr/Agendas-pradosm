@@ -57,3 +57,14 @@ mas ainda não representa migração de todas as telas.
   oficial até aprovação de paridade funcional.
 - Antes de substituir `dist/`, validar CSP, PDFs/WASM, rotas profundas,
   os três perfis e dez telas com dados sintéticos e preview isolada.
+
+## Teste na Preview Cloudflare
+
+A versão React de avaliação é publicada **em paralelo** à interface operacional da branch `preview`:
+
+- Interface operacional (sem alterações): `/login`.
+- Nova interface React: `/modern/index.html#/login`.
+- Após autenticação, as rotas usam `#/admin`, `#/app`, `#/admin/import` etc.
+- Páginas ainda não migradas exibem explicitamente `Em migração` e **não substituem** funcionalidades da versão operacional.
+
+O build Cloudflare da branch `preview` roda `npm run verify:production`, que cria `dist/` da interface legada, compila a nova interface com base `/modern/` e a copia para `dist/modern/`. O Worker de teste usa `wrangler.preview.jsonc`, com D1 isolado. A `main`, seu build e seu D1 não são alterados por esta integração. Testes React usam API sintética no Playwright; os testes manuais da Preview hospedada ainda precisam ser feitos.
