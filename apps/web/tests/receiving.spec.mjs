@@ -132,21 +132,19 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/admin");
   await page.getByLabel("Data da agenda").fill("2026-10-30");
-  const behavior = await page.evaluate(async () => {
+  const behavior = await page.evaluate(() => {
     const table = document.querySelector('[data-testid="receiving-table-scroll"]');
     const menu = document.querySelector('[data-testid="mobile-navigation"]');
     const tableScrollable = table.scrollWidth - table.clientWidth;
     const menuScrollable = menu.scrollWidth - menu.clientWidth;
     table.scrollLeft = 120;
     menu.scrollLeft = 120;
-    window.scrollTo({ left: 500, top: 0, behavior: "instant" });
-    await new Promise(resolve => requestAnimationFrame(resolve));
     return {
       tableScrollable,
       menuScrollable,
       tablePosition: table.scrollLeft,
       menuPosition: menu.scrollLeft,
-      viewportPosition: window.scrollX,
+      viewportWidth: document.documentElement.clientWidth,
       documentOverflow: getComputedStyle(document.documentElement).overflowX,
     };
   });
@@ -154,32 +152,16 @@ test("Recebimento React mantém rolagem somente na tabela em tela móvel", async
   expect(behavior.menuScrollable).toBeGreaterThan(100);
   expect(behavior.tablePosition).toBeGreaterThan(0);
   expect(behavior.menuPosition).toBeGreaterThan(0);
+  expect(behavior.viewportWidth).toBe(390);
   expect(behavior.documentOverflow).toBe("clip");
-  if (behavior.viewportPosition !== 0) {
-    const snapshot = await page.evaluate(() => {
-      const box = selector => {
-        const element = document.querySelector(selector);
-        if (!element) return null;
-        const rect = element.getBoundingClientRect();
-        const style = getComputedStyle(element);
-        return {
-          selector, client: element.clientWidth, scroll: element.scrollWidth,
-          rect: Math.round(rect.width), left: Math.round(rect.left),
-          overflowX: style.overflowX, overflowY: style.overflowY,
-          minWidth: style.minWidth, width: style.width,
-          display: style.display,
-        };
-      };
-      return {
-        viewport: innerWidth, scrollX, root: document.scrollingElement?.tagName,
-        nodes: ["html", "body", "#root", "#root > div", "#root > div > div",
-          '[data-testid="mobile-navigation"]', '[data-testid="mobile-navigation"] nav',
-          "main", '[data-testid="receiving-table-scroll"]'].map(box),
-      };
-    });
-    console.log("LAYOUT DIAGNOSTIC:", JSON.stringify(snapshot));
-  }
-  expect(behavior.viewportPosition).toBe(0);
+
+  // Simula movimento horizontal real fora dos scrollers; window.scrollTo()
+  // nao serve para testar isso, porque pode deslocar programaticamente
+  // mesmo quando o viewport tem overflow-x: clip.
+  await page.mouse.move(150, 20);
+  await page.mouse.wheel(600, 0);
+  await page.waitForTimeout(80);
+  expect(await page.evaluate(() => window.scrollX)).toBe(0);
 });
 
 test("Recebimento React atualiza presença e agenda por eventos WebSocket validados", async ({ page }) => {
