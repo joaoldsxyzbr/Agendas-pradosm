@@ -3,6 +3,7 @@ import { AppLayout } from "./layouts";
 import { useSession } from "./session-query";
 import { LoginPage } from "@/features/auth/login-page";
 import { PlaceholderPage } from "@/features/placeholder-page";
+import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -39,7 +40,7 @@ export function AppRoutes() {
     <Route path="/login" element={<LoginPage />} />
     <Route element={<Guard roles={["admin", "visualizador"]} />}>
       <Route element={<LayoutRoute />}>
-        <Route path="/admin" element={<Page title="Recebimento" description="Operação e acompanhamento por loja." />} />
+        <Route path="/admin" element={<ReceivingPage />} />
         <Route path="/admin/reports" element={<Page title="Relatório Gerencial" description="Indicadores, filtros e gráficos." />} />
       </Route>
     </Route>

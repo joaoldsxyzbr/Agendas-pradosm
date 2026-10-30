@@ -6,6 +6,13 @@ const conference = { id: "conf", nome: "Doca 01", login: "conf", papel: "confere
 
 async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
+  await page.route("**/api/admin/**", async route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path === "/api/admin/stores") return route.fulfill({ json: [] });
+    if (path === "/api/admin/agendas") return route.fulfill({ json: [] });
+    if (path === "/api/admin/presence") return route.fulfill({ json: [] });
+    throw new Error("Endpoint administrativo não previsto: " + path);
+  });
   await page.route("**/api/auth/**", async route => {
     const path = new URL(route.request().url()).pathname;
     const method = route.request().method();
@@ -38,7 +45,7 @@ test("React: login usa API e redireciona corretamente, sem frontend legado", asy
   await page.getByRole("button", { name: "Entrar" }).click();
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Recebimento" })).toBeVisible();
-  await expect(page.getByText("Em migração")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
   await expect(page.locator(".prado-admin")).toHaveCount(0);
 });
 test("React: login inválido exibe erro sem trocar de página", async ({ page }) => {
