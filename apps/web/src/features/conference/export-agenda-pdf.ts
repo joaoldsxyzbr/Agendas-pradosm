@@ -336,14 +336,14 @@ function pageContent(agenda: PdfAgenda, rows: LayoutRow[], total: number, pageIn
   content += textCommand(PAGE_WIDTH - MARGIN - 72, 18, `P\u00E1gina ${pageIndex + 1} de ${pageCount}`, 6.5, "F1", "0.42 0.42 0.46");
   return content;
 }
-function binaryStringToBytes(value: string) {
+function binaryStringToBytes(value: string): Uint8Array<ArrayBuffer> {
   const bytes = new Uint8Array(value.length);
   for (let index = 0; index < value.length; index += 1) {
     bytes[index] = value.charCodeAt(index) & 255;
   }
   return bytes;
 }
-export function buildAgendaPdf(agenda: PdfAgenda, appointments: PdfAppointment[]): Uint8Array {
+export function buildAgendaPdf(agenda: PdfAgenda, appointments: PdfAppointment[]): Uint8Array<ArrayBuffer> {
   const sorted = [...appointments].sort(
     (a, b) => a.startTime.localeCompare(b.startTime) || a.protocol.localeCompare(b.protocol)
   );
