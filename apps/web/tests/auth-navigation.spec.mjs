@@ -96,6 +96,8 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
       await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
     } else if (path === "/admin/import") {
       await expect(page.getByRole("group", { name: "Área para arrastar arquivos de agenda" })).toBeVisible();
+    } else if (path === "/admin/history") {
+      await expect(page.getByRole("form", { name: "Filtros do histórico" })).toBeVisible();
     } else if (path === "/admin/reports") {
       await expect(page.getByRole("heading", { name: "Filtros da análise" })).toBeVisible();
     } else if (path === "/admin/stores") {
