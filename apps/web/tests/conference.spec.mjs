@@ -27,7 +27,7 @@ async function setup(page, { conflict = false, empty = false, completed = false 
       data={...data,appointments:data.appointments.map(x=>x.id==="a1"?{...x,hasExchanges}:x)};
       return route.fulfill({json:data.appointments[0]});
     }
-    if(url.pathname==="/api/store/agenda/2026-10-30/complete"&&method==="POST"){
+    if(/^\/api\/store\/agenda\/\d{4}-\d{2}-\d{2}\/complete$/.test(url.pathname)&&method==="POST"){
       if(conflict)return route.fulfill({status:409,json:{error:"CONFLITO_ESTADO",message:"Este registro mudou."}});
       data={...data,agenda:{...data.agenda,dayStatus:"concluido"}};
       return route.fulfill({json:data.agenda});
