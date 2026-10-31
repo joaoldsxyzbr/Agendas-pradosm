@@ -155,7 +155,24 @@ export function StoresPage() {
       {query.isPending && <p role="status" className="p-5 text-xs text-slate-300">Carregando lojas…</p>}
       {query.isError && <div role="alert" className="flex flex-wrap items-center gap-3 p-5 text-xs text-rose-300">Não foi possível carregar as lojas.
         <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>Tentar novamente</Button></div>}
-      {query.data && <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
+      {query.data && <>
+        <div className="min-w-0 max-w-full divide-y divide-[#344d69] sm:hidden" aria-label="Lojas no celular">
+          {visible.map(store => <article key={store.id} data-testid={"mobile-store-" + store.codigo}
+            className="flex min-w-0 items-center justify-between gap-3 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <strong className="text-xs text-white">{store.codigo}</strong>
+                <StatusBadge tone={store.ativo ? "success" : "neutral"}>{store.ativo ? "Ativa" : "Inativa"}</StatusBadge>
+              </div>
+              <p className="mt-1 break-words text-xs text-slate-300">{store.nome}</p>
+            </div>
+            <Button size="sm" variant="secondary" aria-label={"Editar loja " + store.codigo} onClick={() => setEditing(store)}>
+              <Pencil size={13} />Editar
+            </Button>
+          </article>)}
+          {!visible.length && <p className="p-5 text-center text-xs text-slate-400">Nenhuma loja encontrada.</p>}
+        </div>
+        <div className="hidden w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain sm:block">
         <table aria-label="Lojas cadastradas" className="w-full min-w-[580px] border-collapse">
           <thead className="bg-[#203750] text-left text-[11px] font-semibold text-slate-300"><tr>
             <th className="px-4 py-3">Código</th><th className="px-4 py-3">Nome</th><th className="px-4 py-3">Situação</th>
@@ -170,7 +187,8 @@ export function StoresPage() {
             {!visible.length && <tr><td colSpan={4} className="px-4 py-8 text-center text-xs text-slate-400">Nenhuma loja encontrada.</td></tr>}
           </tbody>
         </table>
-      </div>}
+        </div>
+      </>}
     </div>
     {editing !== null && <StoreDialog key={editing === "new" ? "new" : editing.id} store={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
   </section>;
