@@ -16,6 +16,7 @@ async function setup(page, options = {}) {
     const body = method === "GET" ? null : route.request().postDataJSON();
     requests.push({ path, method, body });
     if (path === "/api/auth/me") return route.fulfill({ json: user });
+    if (path === "/api/realtime/config") return route.fulfill({ json: { mode: "off", protocolVersion: 1 } });
     if (path === "/api/store/tags" && method === "GET") return route.fulfill({ json: tags });
     if (path === "/api/store/tags" && method === "POST") {
       if (options.duplicate) return route.fulfill({ status: 409, json: { error: "TAG_DUPLICADA", message: "Já existe uma tag com este nome." } });

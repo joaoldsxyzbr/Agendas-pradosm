@@ -9,18 +9,39 @@ export const storeAppointment = z.object({
   hasExchanges: z.boolean().default(false),
   observation: z.string().nullable().optional(),
   origin: z.enum(["manual", "imported"]).optional(),
-  tags: z.array(z.object({ id: z.string(), name: z.string(), color: z.string() })).optional(),
+  items: z.string().nullable().optional(),
+  volumes: z.string().nullable().optional(),
+  pallets: z.string().nullable().optional(),
+  cargaBatida: z.string().nullable().optional(),
+  nfe: z.array(z.string()).default([]),
+  orders: z.array(z.string()).default([]),
+});
+export const storeAgendaMeta = z.object({
+  id: z.string(), storeCode: z.string(), storeName: z.string(),
+  date: z.string(), dayStatus: z.enum(["aberto", "concluido"]),
+  completedAt: z.string().nullable().optional(),
+  completedBy: z.object({ id: z.string(), name: z.string() }).nullable().optional(),
 });
 export const storeAgenda = z.object({
-  agenda: z.object({
-    id: z.string(), storeCode: z.string(), storeName: z.string(),
-    date: z.string(), dayStatus: z.enum(["aberto", "concluido"]),
-    completedAt: z.string().nullable().optional(),
-  }).nullable(),
+  agenda: storeAgendaMeta.nullable(),
   appointments: z.array(storeAppointment),
+});
+export const historyEntry = z.object({
+  id: z.string(),
+  statusAnterior: z.string(),
+  statusNovo: z.string(),
+  observation: z.string().nullable().optional(),
+  alteradoEm: z.string(),
+  usuario: z.object({ id: z.string().nullable().optional(), nome: z.string() }),
+});
+export const storeAppointmentDetail = storeAppointment.extend({
+  history: z.array(historyEntry).default([]),
 });
 export type StoreAppointment = z.infer<typeof storeAppointment>;
 export type StoreAgenda = z.infer<typeof storeAgenda>;
+export type StoreAgendaMeta = z.infer<typeof storeAgendaMeta>;
+export type StoreAppointmentDetail = z.infer<typeof storeAppointmentDetail>;
+export type HistoryEntry = z.infer<typeof historyEntry>;
 export const metricValues = (items: StoreAppointment[]) => ({
   total: items.length,
   aguardando: items.filter(i => i.status === "aguardando").length,
@@ -47,16 +68,40 @@ export async function loadStoreAgenda(date: string, today: string) {
   }
 }
 export async function patchStoreStatus(id: string, status: StoreAppointment["status"], observation: string | null = null) {
-  return apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/status`, {
+  return storeAppointment.parse(await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/status`, {
     method:"PATCH",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({ status, observation }),
-  });
+  }));
 }
 export async function patchStoreExchanges(id: string, hasExchanges: boolean) {
-  return apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/exchanges`, {
+  return storeAppointment.parse(await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/exchanges`, {
     method:"PATCH",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({hasExchanges}),
-  });
+  }));
+}
+export async function patchStoreObservation(id: string, observation: string | null) {
+  return storeAppointment.parse(await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/observation`, {
+    method:"PATCH",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ observation }),
+  }));
+}
+export async function createManualAppointment(date: string, supplier: string) {
+  return storeAppointment.parse(await apiFetch<unknown>(`/api/store/agenda/${encodeURIComponent(date)}/manual`, {
+    method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ supplier }),
+  }));
+}
+export async function patchManualSupplier(id: string, supplier: string) {
+  return storeAppointment.parse(await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/manual`, {
+    method:"PATCH",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({ supplier }),
+  }));
+}
+export async function deleteManualSupplier(id: string) {
+  await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}/manual`, { method:"DELETE" });
+}
+export async function getStoreAppointmentDetail(id: string) {
+  return storeAppointmentDetail.parse(await apiFetch<unknown>(`/api/store/appointments/${encodeURIComponent(id)}`));
 }
 export async function completeStoreDay(date: string) {
   return apiFetch<unknown>(`/api/store/agenda/${encodeURIComponent(date)}/complete`, {method:"POST"});
