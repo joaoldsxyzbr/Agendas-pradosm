@@ -8,6 +8,7 @@ async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
   await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
   await page.route("**/api/store/today", route => route.fulfill({ json: { agenda: null, appointments: [] } }));
+  await page.route("**/api/store/tags", route => route.fulfill({ json: [] }));
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });
@@ -75,7 +76,7 @@ test("React: conferente acessa Tags e não acessa rotas administrativas", async 
   await expect(page).toHaveURL(/\/app$/);
   await page.getByRole("link", { name: "Tags" }).click();
   await expect(page).toHaveURL(/\/app\/tags$/);
-  await expect(page.getByRole("heading", { name: "Tags" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Tags", exact: true })).toBeVisible();
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
 });
 test("React: administrador pode navegar nas rotas sem dados operacionais falsos", async ({ page }) => {

@@ -6,6 +6,7 @@ import { PlaceholderPage } from "@/features/placeholder-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { ImportPage } from "@/features/import/import-page";
 import { ConferencePage } from "@/features/conference/conference-page";
+import { TagsPage } from "@/features/tags/tags-page";
 import { ReportsPage } from "@/features/reports/reports-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
@@ -59,7 +60,7 @@ export function AppRoutes() {
     <Route element={<Guard roles={["conferente"]} />}>
       <Route element={<LayoutRoute />}>
         <Route path="/app" element={<ConferencePage />} />
-        <Route path="/app/tags" element={<Page title="Tags" description="Organização e classificação das agendas." />} />
+        <Route path="/app/tags" element={<TagsPage />} />
       </Route>
     </Route>
     <Route path="*" element={<UnknownRoute />} />
