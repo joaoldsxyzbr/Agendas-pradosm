@@ -164,15 +164,27 @@ test("Lojas React não causa rolagem horizontal do documento no celular", async 
   await setup(page);
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
   const diagnosis = await page.evaluate(() => {
-    const width = innerWidth;
-    const escape = element => element.tagName.toLowerCase() + "." + [...element.classList].slice(0, 4).join(".");
-    const elements = [...document.body.querySelectorAll("*")].map(el => {
-      const rect = el.getBoundingClientRect();
-      const style = getComputedStyle(el);
-      return { name: escape(el), left: Math.round(rect.left), right: Math.round(rect.right),
-        client: el.clientWidth, scroll: el.scrollWidth, overflowX: style.overflowX };
-    }).filter(item => item.right > width + 2 || item.scroll > item.client + 2);
-    return { overflow: document.documentElement.scrollWidth - width, offenders: elements.slice(0, 30) };
+    const measure = () => document.documentElement.scrollWidth - innerWidth;
+    const without = selector => {
+      const element = document.querySelector(selector);
+      if (!element) return "not found";
+      const original = element.style.display;
+      element.style.display = "none";
+      const width = measure();
+      element.style.display = original;
+      return width;
+    };
+    return {
+      overflow: measure(),
+      noNavigation: without('[data-testid="mobile-navigation"]'),
+      noStoresPage: without('[aria-label="Cadastro de lojas"]'),
+      noStoreHeader: without('[aria-label="Cadastro de lojas"] > header'),
+      noStorePanel: without('[aria-label="Cadastro de lojas"] > div'),
+      noStoreTable: without('table[aria-label="Lojas cadastradas"]'),
+      noStoreToolbar: without('[aria-label="Cadastro de lojas"] > div > div:first-child'),
+      body: document.body.scrollWidth - innerWidth,
+      root: document.getElementById("root")?.scrollWidth - innerWidth,
+    };
   });
   expect(diagnosis.overflow, JSON.stringify(diagnosis)).toBeLessThanOrEqual(2);
 });
