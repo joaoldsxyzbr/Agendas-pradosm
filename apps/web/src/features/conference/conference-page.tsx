@@ -57,7 +57,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
     onSuccess: async (_saved, action) => {
       if (action.kind === "delete") await onDeleted();
       else await onSaved();
-      ref.current?.close();
+      onClose();
     },
   });
   useEffect(() => {
@@ -68,8 +68,9 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
   }, []);
   const busy = mutation.isPending;
   const message = mutation.isError ? errorText(mutation.error) : "";
-  return <dialog ref={ref} aria-labelledby="manual-supplier-heading" onClose={onClose}
-    onClick={event => { if (event.target === ref.current && !busy) ref.current?.close(); }}
+  return <dialog ref={ref} aria-labelledby="manual-supplier-heading"
+    onCancel={event => { if (busy) { event.preventDefault(); return; } onClose(); }}
+    onClick={event => { if (event.target === ref.current && !busy) onClose(); }}
     className="m-auto w-[min(94vw,460px)] rounded-xl border border-[#45617c] bg-[#162538] p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
     <div className="flex items-center justify-between gap-3 border-b border-[#34516d] px-4 py-3">
       <div>
@@ -79,7 +80,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
         </h2>
       </div>
       {!confirmDelete && <Button aria-label="Fechar" size="icon" variant="secondary" disabled={busy}
-        onClick={() => ref.current?.close()}><X size={16} /></Button>}
+        onClick={onClose}><X size={16} /></Button>}
     </div>
     {confirmDelete && editing && target.mode === "edit" ? <div className="space-y-3 p-4">
       <p className="text-xs text-slate-300">Remover <strong>{target.item.supplier}</strong>?
@@ -103,7 +104,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
         {editing && target.mode === "edit" && <Button type="button" size="sm" variant="danger" disabled={busy}
           onClick={() => { setConfirmDelete(true); mutation.reset(); }}><Trash2 size={13} aria-hidden="true" />Remover</Button>}
         <div className="ml-auto flex gap-2">
-          <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={() => ref.current?.close()}>Cancelar</Button>
+          <Button type="button" size="sm" variant="secondary" disabled={busy} onClick={onClose}>Cancelar</Button>
           <Button type="submit" size="sm" disabled={busy || !supplier.trim()}>
             {busy ? "Salvando…" : editing ? "Salvar" : "Adicionar"}
           </Button>
@@ -128,15 +129,16 @@ function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: s
   }, []);
   const show = (value: string | null | undefined) => value === null || value === undefined || value === "" ? "-" : value;
   const item: StoreAppointmentDetail | undefined = query.data;
-  return <dialog ref={ref} aria-labelledby="appointment-details-heading" onClose={onClose}
-    onClick={event => { if (event.target === ref.current) ref.current?.close(); }}
+  return <dialog ref={ref} aria-labelledby="appointment-details-heading"
+    onCancel={event => { if (query.isPending) { event.preventDefault(); return; } onClose(); }}
+    onClick={event => { if (event.target === ref.current && !query.isPending) onClose(); }}
     className="m-auto max-h-[min(92dvh,860px)] w-[min(94vw,640px)] overflow-y-auto rounded-xl border border-[#45617c] bg-[#162538] p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
     <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#34516d] bg-[#1a2b40] px-4 py-3">
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-widest text-sky-400">Recebimento</p>
         <h2 id="appointment-details-heading" className="text-base font-bold">Detalhes do agendamento</h2>
       </div>
-      <Button aria-label="Fechar detalhes" size="icon" variant="secondary" onClick={() => ref.current?.close()}><X size={16} /></Button>
+      <Button aria-label="Fechar detalhes" size="icon" variant="secondary" onClick={onClose}><X size={16} /></Button>
     </div>
     <div className="space-y-4 p-4">
       {query.isPending && <p role="status" className="text-sm text-slate-300">Carregando detalhes…</p>}
