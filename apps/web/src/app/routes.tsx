@@ -9,6 +9,7 @@ import { ConferencePage } from "@/features/conference/conference-page";
 import { TagsPage } from "@/features/tags/tags-page";
 import { ReportsPage } from "@/features/reports/reports-page";
 import { StoresPage } from "@/features/stores/stores-page";
+import { HistoryPage } from "@/features/history/history-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -51,7 +52,7 @@ export function AppRoutes() {
     </Route>
     <Route element={<Guard roles={["admin"]} />}>
       <Route element={<LayoutRoute />}>
-        <Route path="/admin/history" element={<Page title="Histórico" description="Agendas e observações anteriores." />} />
+        <Route path="/admin/history" element={<HistoryPage />} />
         <Route path="/admin/import" element={<ImportPage />} />
         <Route path="/admin/stores" element={<StoresPage />} />
         <Route path="/admin/users" element={<Page title="Usuários" description="Perfis, acesso e auditoria." />} />
