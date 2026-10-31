@@ -2,7 +2,6 @@ import { Navigate, Outlet, Route, Routes } from "react-router";
 import { AppLayout } from "./layouts";
 import { useSession } from "./session-query";
 import { LoginPage } from "@/features/auth/login-page";
-import { PlaceholderPage } from "@/features/placeholder-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { ImportPage } from "@/features/import/import-page";
 import { ConferencePage } from "@/features/conference/conference-page";
@@ -10,6 +9,8 @@ import { TagsPage } from "@/features/tags/tags-page";
 import { ReportsPage } from "@/features/reports/reports-page";
 import { StoresPage } from "@/features/stores/stores-page";
 import { HistoryPage } from "@/features/history/history-page";
+import { UsersPage } from "@/features/users/users-page";
+import { DiagnosticsPage } from "@/features/diagnostics/diagnostics-page";
 import { Button } from "@/components/ui/button";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
@@ -29,10 +30,6 @@ function LayoutRoute() {
   const session = useSession();
   // O Guard garante que o papel foi validado antes de renderizar a estrutura.
   return session.data ? <AppLayout user={session.data} /> : null;
-}
-
-function Page({ title, description }: { title: string; description: string }) {
-  return <PlaceholderPage title={title} description={description} />;
 }
 
 function UnknownRoute() {
@@ -55,8 +52,8 @@ export function AppRoutes() {
         <Route path="/admin/history" element={<HistoryPage />} />
         <Route path="/admin/import" element={<ImportPage />} />
         <Route path="/admin/stores" element={<StoresPage />} />
-        <Route path="/admin/users" element={<Page title="Usuários" description="Perfis, acesso e auditoria." />} />
-        <Route path="/admin/diagnostics" element={<Page title="Logs e Auditoria" description="Diagnósticos e eventos do sistema." />} />
+        <Route path="/admin/users" element={<UsersPage />} />
+        <Route path="/admin/diagnostics" element={<DiagnosticsPage />} />
       </Route>
     </Route>
     <Route element={<Guard roles={["conferente"]} />}>
