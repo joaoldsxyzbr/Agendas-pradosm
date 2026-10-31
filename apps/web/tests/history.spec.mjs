@@ -29,6 +29,7 @@ async function setup(page, { role = "admin", conflict = false, listError = false
     requests.push({ path, method, body, params: url.searchParams });
     if (path === "/api/auth/me") return route.fulfill({ json: current });
     if (path === "/api/realtime/config") return route.fulfill({ json: { mode: "off", protocolVersion: 1 } });
+    if (path === "/api/admin/presence") return route.fulfill({ json: [] });
     if (path === "/api/admin/stores") return route.fulfill({ json: [
       { id: uuid(1), codigo: "F01", nome: "Unidade Central", ativo: true, temConferenteAtivo: true },
       { id: uuid(2), codigo: "F02", nome: "Unidade Sul", ativo: true, temConferenteAtivo: true },
@@ -127,6 +128,10 @@ test("Histórico React altera status direto e marcação de trocas", async ({ pa
   await openAgenda(page);
   await page.getByRole("combobox", { name: "Status de Transporte Beta" }).selectOption("recebido");
   await expect(page.getByRole("combobox", { name: "Status de Transporte Beta" })).toHaveValue("recebido");
+  const patchIndex = () => state.requests.findIndex(r => r.method === "PATCH" && r.path.endsWith("/status"));
+  const refetchAfterPatch = () => state.requests.some((r, i) =>
+    i > patchIndex() && r.method === "GET" && r.path === `/api/admin/agendas/${uuid(10)}`);
+  await expect.poll(refetchAfterPatch).toBe(true);
   await page.getByRole("checkbox", { name: "Trocas de Transporte Beta" }).uncheck();
   await expect(page.getByRole("checkbox", { name: "Trocas de Transporte Beta" })).not.toBeChecked();
   const statusPatch = state.requests.find(r => r.method === "PATCH" && r.path.endsWith("/status"));
