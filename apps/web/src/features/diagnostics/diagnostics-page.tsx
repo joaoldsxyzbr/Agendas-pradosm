@@ -80,7 +80,8 @@ export function DiagnosticsPage() {
   const storesQuery = useQuery({ queryKey: storesKey, queryFn: listStores });
   const records = useQuery({
     queryKey: [...(tab === "audit" ? auditLogKey : diagnosticsKey), tab, applied],
-    queryFn: () => tab === "audit" ? listAuditRecords(applied) : listDiagnosticRecords(applied, tab === "errors"),
+    queryFn: async (): Promise<AuditRecord[] | DiagnosticRecord[]> =>
+      tab === "audit" ? listAuditRecords(applied) : listDiagnosticRecords(applied, tab === "errors"),
   });
   const data = records.data;
   const auditItems: AuditRecord[] = tab === "audit" ? (data ?? []) as AuditRecord[] : [];

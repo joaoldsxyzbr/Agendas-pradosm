@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { apiFetch } from "@/lib/api";
-import { storeSchema, type Store } from "@/features/receiving/model";
+import type { Store } from "@/features/receiving/model";
 
 const userSchema = z.object({
   id: z.string(),
