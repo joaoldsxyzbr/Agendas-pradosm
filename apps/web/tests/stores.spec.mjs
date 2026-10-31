@@ -163,6 +163,16 @@ test("Lojas React não causa rolagem horizontal do documento no celular", async 
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
-  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-  expect(overflow).toBeLessThanOrEqual(2);
+  const diagnosis = await page.evaluate(() => {
+    const width = innerWidth;
+    const escape = element => element.tagName.toLowerCase() + "." + [...element.classList].slice(0, 4).join(".");
+    const elements = [...document.body.querySelectorAll("*")].map(el => {
+      const rect = el.getBoundingClientRect();
+      const style = getComputedStyle(el);
+      return { name: escape(el), left: Math.round(rect.left), right: Math.round(rect.right),
+        client: el.clientWidth, scroll: el.scrollWidth, overflowX: style.overflowX };
+    }).filter(item => item.right > width + 2 || item.scroll > item.client + 2);
+    return { overflow: document.documentElement.scrollWidth - width, offenders: elements.slice(0, 30) };
+  });
+  expect(diagnosis.overflow, JSON.stringify(diagnosis)).toBeLessThanOrEqual(2);
 });
