@@ -132,7 +132,7 @@ test("Histórico React altera status direto e marcação de trocas", async ({ pa
   const refetchAfterPatch = () => state.requests.some((r, i) =>
     i > patchIndex() && r.method === "GET" && r.path === `/api/admin/agendas/${uuid(10)}`);
   await expect.poll(refetchAfterPatch).toBe(true);
-  await page.getByRole("checkbox", { name: "Trocas de Transporte Beta" }).uncheck();
+  await page.getByRole("checkbox", { name: "Trocas de Transporte Beta" }).click();
   await expect(page.getByRole("checkbox", { name: "Trocas de Transporte Beta" })).not.toBeChecked();
   const statusPatch = state.requests.find(r => r.method === "PATCH" && r.path.endsWith("/status"));
   expect(statusPatch.body).toEqual({ status: "recebido", observation: null });
