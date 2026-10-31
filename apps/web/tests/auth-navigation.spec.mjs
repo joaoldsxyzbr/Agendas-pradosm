@@ -12,6 +12,9 @@ async function sessionMocks(page, initialUser = null) {
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });
+    if (path === "/api/admin/users") return route.fulfill({ json: [] });
+    if (path === "/api/admin/audit") return route.fulfill({ json: [] });
+    if (path === "/api/admin/diagnostics") return route.fulfill({ json: [] });
     if (path === "/api/admin/reports") return route.fulfill({ json: { start: new URL(route.request().url()).searchParams.get("start"), end: new URL(route.request().url()).searchParams.get("end"), storeCodes: [], rows: [], suppliers: [] } });
     if (path === "/api/admin/reports/latest" || path === "/api/admin/reports/occurrences") return route.fulfill({ json: { total: 0, offset: Number(new URL(route.request().url()).searchParams.get("offset") || 0), limit: 50, rows: [] } });
     if (path === "/api/admin/agendas") return route.fulfill({ json: [] });
@@ -102,6 +105,10 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
       await expect(page.getByRole("heading", { name: "Filtros da análise" })).toBeVisible();
     } else if (path === "/admin/stores") {
       await expect(page.getByRole("table", { name: "Lojas cadastradas" })).toBeVisible();
+    } else if (path === "/admin/users") {
+      await expect(page.getByRole("table", { name: "Usuários cadastrados" })).toBeVisible();
+    } else if (path === "/admin/diagnostics") {
+      await expect(page.getByRole("tablist", { name: "Categoria de registros" })).toBeVisible();
     } else {
       await expect(page.getByText("Esta tela ainda funciona somente na versão atual")).toBeVisible();
     }
