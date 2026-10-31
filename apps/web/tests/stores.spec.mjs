@@ -163,28 +163,11 @@ test("Lojas React não causa rolagem horizontal do documento no celular", async 
   await page.setViewportSize({ width: 390, height: 844 });
   await setup(page);
   await expect(page.getByRole("heading", { name: "Lojas", exact: true })).toBeVisible();
-  const diagnosis = await page.evaluate(() => {
-    const measure = () => document.documentElement.scrollWidth - innerWidth;
-    const without = selector => {
-      const element = document.querySelector(selector);
-      if (!element) return "not found";
-      const original = element.style.display;
-      element.style.display = "none";
-      const width = measure();
-      element.style.display = original;
-      return width;
-    };
-    return {
-      overflow: measure(),
-      noNavigation: without('[data-testid="mobile-navigation"]'),
-      noStoresPage: without('[aria-label="Cadastro de lojas"]'),
-      noStoreHeader: without('[aria-label="Cadastro de lojas"] > header'),
-      noStorePanel: without('[aria-label="Cadastro de lojas"] > div'),
-      noStoreTable: without('table[aria-label="Lojas cadastradas"]'),
-      noStoreToolbar: without('[aria-label="Cadastro de lojas"] > div > div:first-child'),
-      body: document.body.scrollWidth - innerWidth,
-      root: document.getElementById("root")?.scrollWidth - innerWidth,
-    };
-  });
-  expect(diagnosis.overflow, JSON.stringify(diagnosis)).toBeLessThanOrEqual(2);
+  const cards = page.getByLabel("Lojas no celular");
+  await expect(cards.locator("article")).toHaveCount(2);
+  await expect(page.getByRole("table", { name: "Lojas cadastradas" })).toHaveCount(0);
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+  expect(overflow).toBeLessThanOrEqual(2);
+  await cards.getByRole("button", { name: "Editar loja F01" }).click();
+  await expect(page.getByRole("dialog", { name: "Editar loja" })).toBeVisible();
 });
