@@ -17,7 +17,8 @@ const auditActions: Record<string, string> = {
 function auditValue(value: Record<string, unknown> | null | undefined) {
   if (!value) return null;
   return Object.entries(value).filter(([key]) => key !== "senha" && key !== "token").map(([key, item]) => {
-    const label = { codigo: "Código", nome: "Nome", ativo: "Ativa" }[key] ?? key;
+    const labels: Record<string, string> = { codigo: "Código", nome: "Nome", ativo: "Ativa" };
+    const label = labels[key] ?? key;
     return label + ": " + (typeof item === "boolean" ? item ? "Sim" : "Não" : String(item ?? "—"));
   }).join(" · ");
 }
