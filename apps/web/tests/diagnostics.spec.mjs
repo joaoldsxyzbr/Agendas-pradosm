@@ -33,7 +33,7 @@ const audit = [
   { id: "a1", action: "usuario_atualizado", entity: "usuario", entityId: uuid(10), storeId: null,
     agendaId: null, appointmentId: null, before: { nome: "Maria Antiga" }, after: { nome: "Maria Silva" },
     details: "Usuário atualizado.", createdAt: "2026-10-28T12:00:00.000Z",
-    user: { id: admin.id, name: admin.nome } },
+    user: { id: uuid(10), name: "Maria Silva" } },
   { id: "a2", action: "loja_criada", entity: "loja", entityId: uuid(2), storeId: uuid(2),
     agendaId: null, appointmentId: null, before: null, after: { codigo: "F02" },
     details: "Loja criada.", createdAt: "2026-10-28T11:00:00.000Z", user: null },
