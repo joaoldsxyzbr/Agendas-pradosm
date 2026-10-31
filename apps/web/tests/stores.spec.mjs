@@ -18,6 +18,7 @@ async function setup(page, { role = "admin", duplicate = false, hasUsers = false
     const body = method === "GET" || method === "DELETE" ? null : route.request().postDataJSON();
     requests.push({ path, method, body, params: url.searchParams });
     if (path === "/api/auth/me") return route.fulfill({ json: current });
+    if (path === "/api/realtime/config") return route.fulfill({ json: { mode: "off", protocolVersion: 1 } });
     if (path === "/api/admin/stores" && method === "GET") {
       if (listingError) { listingError = false; return route.fulfill({ status: 503, json: { error: "FALHA" } }); }
       return route.fulfill({ json: stores });
