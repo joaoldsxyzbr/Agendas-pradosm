@@ -8,7 +8,7 @@ import { ApiError } from "@/lib/api";
 import type { Store } from "@/features/receiving/model";
 import { deleteStore, filterStores, listStoreAudit, listStores, saveStore, storesKey, validStore, type StoreForm } from "./api";
 
-const surface = "rounded-xl border border-[#344d69] bg-[#142338] shadow-lg";
+const surface = "w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-[#344d69] bg-[#142338] shadow-lg";
 const input = "h-9 min-w-0 w-full rounded-md border border-[#48617b] bg-[#192d46] px-3 text-xs text-white outline-none focus-visible:border-sky-400";
 const errorText = (e: unknown) => e instanceof ApiError ? e.message : "A operação não pôde ser concluída. Tente novamente.";
 const auditActions: Record<string, string> = {
@@ -130,14 +130,14 @@ export function StoresPage() {
   const query = useQuery({ queryKey: storesKey, queryFn: listStores });
   const stores = query.data ?? [];
   const visible = filterStores(stores, search, status);
-  return <section className="mx-auto w-full min-w-0 max-w-[1450px] space-y-5" aria-label="Cadastro de lojas">
+  return <section className="mx-auto w-full min-w-0 max-w-[1450px] overflow-x-clip space-y-5" aria-label="Cadastro de lojas">
     <PageHeader eyebrow="Cadastros" title="Lojas" description="Gerencie as unidades habilitadas para recebimento."
-      actions={<div className="flex flex-wrap items-center gap-2">
+      actions={<div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
         <span className="text-xs tabular-nums text-slate-400">{stores.length} lojas · {stores.filter(s => s.ativo).length} ativas</span>
         <Button onClick={() => setEditing("new")}><Plus size={14} />Nova loja</Button>
       </div>} />
     <div className={surface}>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#344d69] p-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 border-b border-[#344d69] p-4">
         <label className="flex w-full min-w-0 items-center gap-2 rounded-md border border-[#48617b] bg-[#192d46] px-3 sm:max-w-sm">
           <Search size={15} className="shrink-0 text-slate-400" aria-hidden="true" /><span className="sr-only">Buscar loja</span>
           <input type="search" aria-label="Buscar loja" value={search} onChange={event => setSearch(event.target.value)}
@@ -155,7 +155,7 @@ export function StoresPage() {
       {query.isPending && <p role="status" className="p-5 text-xs text-slate-300">Carregando lojas…</p>}
       {query.isError && <div role="alert" className="flex flex-wrap items-center gap-3 p-5 text-xs text-rose-300">Não foi possível carregar as lojas.
         <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>Tentar novamente</Button></div>}
-      {query.data && <div className="w-full min-w-0 overflow-x-auto">
+      {query.data && <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain">
         <table aria-label="Lojas cadastradas" className="w-full min-w-[580px] border-collapse">
           <thead className="bg-[#203750] text-left text-[11px] font-semibold text-slate-300"><tr>
             <th className="px-4 py-3">Código</th><th className="px-4 py-3">Nome</th><th className="px-4 py-3">Situação</th>
