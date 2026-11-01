@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import { normalizeStoreCode } from "../../shared/store.js";
 import { BUSINESS_TIME_ZONE, businessDate, businessTime } from "../../shared/time.js";
 import { REALTIME_PROTOCOL_VERSION } from "../../shared/realtime.js";
-import { parseAgendaText } from "../../frontend/import/parseAgendaText.js";
-import { parseAgendaCsv, parseAgendaPdfText } from "../../frontend/import/parseAgendaBatch.js";
+import { parseAgendaText } from "../../shared/import/parseAgendaText.js";
+import { parseAgendaCsv, parseAgendaPdfText } from "../../shared/import/parseAgendaBatch.js";
 
 describe("Contratos preservados na migração JS puro", () => {
   it("normalização de códigos de loja", () => {

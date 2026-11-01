@@ -1,12 +1,12 @@
 import { apiFetch } from "@/lib/api";
 
-// O React reutiliza o parser oficial do JS nativo, sem duplicar a logica de negocio.
-// @ts-ignore - Modulo JS legado sem declaracoes TS nesta etapa.
-import { parseAgendaCsv, parseAgendaPdfText } from "../../../../../frontend/import/parseAgendaBatch.js";
-// @ts-ignore - Modulo JS legado sem declaracoes TS nesta etapa.
-import { readCsvText } from "../../../../../frontend/import/readCsvText.js";
+// O React reutiliza o parser oficial, sem duplicar a logica de negocio.
+// @ts-ignore - Modulo JS sem declaracoes TS nesta etapa.
+import { parseAgendaCsv, parseAgendaPdfText } from "../../../../../shared/import/parseAgendaBatch.js";
+// @ts-ignore - Modulo JS sem declaracoes TS nesta etapa.
+import { readCsvText } from "../../../../../shared/import/readCsvText.js";
 // @ts-ignore - Extração PDF WASM lazy, já utilizada e testada no sistema original.
-import { extractPdfText } from "../../../../../frontend/import/extractPdfText.js";
+import { extractPdfText } from "../../../../../shared/import/extractPdfText.js";
 
 export const MAX_SOURCE_FILE_BYTES = 10 * 1024 * 1024;
 

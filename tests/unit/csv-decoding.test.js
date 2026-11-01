@@ -1,9 +1,8 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { readCsvText } from "../../frontend/import/readCsvText.js";
-import { parseAgendaCsv } from "../../frontend/import/parseAgendaBatch.js";
-import { buildImportPayload, canConfirmImport } from "../../frontend/import-agenda.js";
+import { readCsvText } from "../../shared/import/readCsvText.js";
+import { parseAgendaCsv } from "../../shared/import/parseAgendaBatch.js";
 
 const source = readFileSync(new URL("../fixtures/agenda-todas-lojas-real-sanitizada.csv", import.meta.url));
 const sourceWithDock = readFileSync(new URL("../fixtures/agenda-todas-lojas-com-doca-sanitizada.csv", import.meta.url));
@@ -12,10 +11,7 @@ const checkParsed = parsed => {
   assert.equal(parsed.totalAppointments, 4);
   assert.deepEqual(parsed.agendas.map(a => a.storeCode), ["CD", "F01", "F08"]);
   assert.deepEqual(parsed.blockingErrors, []);
-  assert.ok(canConfirmImport({ name: "agenda.csv" }, parsed));
-  const payload = buildImportPayload({ name: "agenda.csv" }, parsed);
-  assert.equal(payload.agendas.reduce((sum,a)=>sum+a.appointments.length,0),4);
-  assert.equal(payload.agendas[0].appointments[0].status, undefined);
+  assert.ok(parsed.agendas.every(agenda => agenda.storeCode && agenda.date));
 };
 describe("Compatibilidade CSV do importador — decodificação nativa", () => {
   it("interpreta UTF-8 da agenda exportada", async () => {
@@ -45,10 +41,8 @@ describe("Compatibilidade CSV do importador — decodificação nativa", () => {
     assert.equal(result.totalAppointments, 4);
     assert.deepEqual(result.agendas.map(a=>a.storeCode),["CD DOCA 01","CD DOCA 02","F01","F08"]);
   });
-  it("bloqueia CSV sem colunas exigidas e nunca gera payload parcial", () => {
+  it("bloqueia CSV sem colunas exigidas e nunca gera prévia parcial", () => {
     const parsed = parseAgendaCsv("Qualquer;Coisa\n1;2\n");
     assert.ok(parsed.blockingErrors.includes("FORMATO_CSV_NAO_RECONHECIDO"));
-    assert.equal(canConfirmImport({name:"ruim.csv"},parsed),false);
-    assert.equal(buildImportPayload({name:"ruim.csv"},parsed),null);
   });
 });

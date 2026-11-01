@@ -40,15 +40,13 @@ jobs:
           node scripts/check-modern-boundary.mjs
           node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const n of ["react","react-dom","react-router-dom","vite","vitest","typescript"])if(d[n])process.exit(1)'
           node scripts/check-worker.mjs
-          node scripts/check-frontend.mjs
       - name: Validar migrations e Worker
         run: npm run check:migrations
-      - name: Testes JavaScript e design
+      - name: Testes JavaScript e bootstrap administrativo
         run: |
           npm test
-          npm run test:design
           npm run test:bootstrap-admin
-      - name: Build nativo e integridade dos assets
+      - name: Build da UI React e integridade dos assets
         run: |
           npm run build
           node scripts/check-build.mjs
@@ -57,12 +55,6 @@ jobs:
         run: npx wrangler deploy --dry-run --config wrangler.preview.jsonc
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
-      - name: Preparar D1 local para testes de integracao
-        run: node scripts/prepare-e2e.mjs
-      - name: Testes de navegador sem dados reais
-        env:
-          CI: "true"
-        run: npm run test:e2e
       - name: E2E React isolado com dados sinteticos
         env:
           CI: "true"

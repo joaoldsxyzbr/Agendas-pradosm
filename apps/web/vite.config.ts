@@ -10,8 +10,9 @@ const viteOrigin = "http://127.0.0.1:5173";
 const workerOrigin = "http://127.0.0.1:8787";
 
 export default defineConfig({
-  // A versão publicada na Preview usa prefixo isolado, sem substituir a UI operacional.
-  base: process.env.MODERN_PREVIEW === "1" ? "/modern/" : "/",
+  // O React é a única UI publicada; o build vai para a raiz de dist/ e o
+  // fallback SPA do Workers atende os links diretos de todas as rotas.
+  base: "/",
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   server: {
