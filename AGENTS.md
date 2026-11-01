@@ -82,7 +82,7 @@ Antes de entregar uma alteração:
 
 - Executar os testes pertinentes ao código modificado.
 - Executar `npm run verify:production` antes de propor um merge para produção.
-- Executar `npm run test:e2e` quando a mudança afetar fluxos de navegador.
+- Executar `npx playwright test --config apps/web/playwright.config.mjs` quando a mudança afetar fluxos de navegador.
 - Confirmar o sucesso do gate `verify` do CI antes do merge.
 - Testar cenários de erro, permissões e casos extremos quando aplicável.
 - Corrigir falhas introduzidas pela alteração.

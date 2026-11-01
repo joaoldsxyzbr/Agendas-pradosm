@@ -39,8 +39,7 @@ jobs:
         run: |
           node scripts/check-modern-boundary.mjs
           node scripts/check-worker.mjs
-          node scripts/check-frontend.mjs
-      - name: Validar codigo legado, migrations, build e design
+      - name: Validar migrations, testes, build e integridade
         run: |
           npm run verify:production
           npx wrangler deploy --dry-run --config wrangler.preview.jsonc
@@ -48,12 +47,6 @@ jobs:
         run: npm run build --prefix apps/web
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
-      - name: Preparar D1 local sintetico
-        run: node scripts/prepare-e2e.mjs
-      - name: E2E legado
-        env:
-          CI: "true"
-        run: npm run test:e2e
       - name: E2E React com API mockada
         env:
           CI: "true"

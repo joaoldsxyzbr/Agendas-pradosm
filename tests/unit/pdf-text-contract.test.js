@@ -1,7 +1,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
-import { extractPdfText, PdfExtractionError } from "../../frontend/import/extractPdfText.js";
+import { extractPdfText, PdfExtractionError } from "../../shared/import/extractPdfText.js";
 
 const read = p => readFileSync(new URL(p, import.meta.url), "utf8");
 
@@ -40,8 +40,8 @@ describe("Contrato de extração de texto PDF", () => {
   });
 
   it("isola a dependência WASM no módulo de motor", () => {
-    const facade = read("../../frontend/import/extractPdfText.js");
-    const engine = read("../../frontend/import/pdf-engine-liteparse.js");
+    const facade = read("../../shared/import/extractPdfText.js");
+    const engine = read("../../shared/import/pdf-engine-liteparse.js");
     assert.doesNotMatch(facade, /@llamaindex/);
     assert.match(facade, /import\("\.\/pdf-engine-liteparse\.js"\)/);
     assert.ok(engine.includes('from "@llamaindex/liteparse-wasm"'));

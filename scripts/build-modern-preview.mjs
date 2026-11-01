@@ -1,35 +1,14 @@
-import { spawnSync } from "node:child_process";
-import { cp, readFile, readdir, stat } from "node:fs/promises";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { fileURLToPath } from "node:url";
 
-const root = fileURLToPath(new URL("../", import.meta.url));
-const dist = join(root, "dist");
-const modernBuild = join(root, "dist-modern");
-const modernAssets = join(dist, "modern");
-const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-
-function run(args, env = process.env) {
-  const result = spawnSync(npm, args, { cwd: root, env, stdio: "inherit" });
-  if (result.error) throw result.error;
-  if (result.status !== 0) throw new Error(`Falha no comando npm ${args.join(" ")} (${result.status ?? "sem status"})`);
-}
-
-// A interface antiga deve existir e continuar como entrada da Preview.
-await stat(join(dist, "index.html"));
-await stat(join(root, "apps", "web", "package-lock.json"));
-
-// Build reproduzível; não instala dependências React no pacote do Worker.
-run(["ci", "--prefix", "apps/web"]);
-run(["run", "build", "--prefix", "apps/web"], { ...process.env, MODERN_PREVIEW: "1" });
-
-const built = await readFile(join(modernBuild, "index.html"), "utf8");
-if (!built.includes("/modern/assets/") || built.includes('src="/src/'))
-  throw new Error("Bundle React sem prefixo /modern/ ou com entrada de desenvolvimento.");
-if ((await readdir(join(modernBuild, "assets"))).length === 0)
-  throw new Error("Assets React ausentes do build.");
-
-await cp(modernBuild, modernAssets, { recursive: true, force: true });
-const published = await readFile(join(modernAssets, "index.html"), "utf8");
-if (published !== built) throw new Error("O HTML React não foi copiado corretamente.");
-console.log("Preview pronta: legado em /login, React isolado em /modern/index.html#/login.");
+// A Preview publica o React na raiz desde a remoção da UI legada (31/10/2026).
+// Este script segue existindo como validador pós-build para os pipelines que o invocam.
+const dist = join("dist");
+if (!existsSync(join(dist, "index.html")))
+  throw Error("dist/index.html ausente: rode npm run build primeiro.");
+const html = readFileSync(join(dist, "index.html"), "utf8");
+if (!html.includes('src="/assets/'))
+  throw Error("index.html publicado não aponta para o bundle React na raiz.");
+const assets = readdirSync(join(dist, "assets"));
+if (assets.length === 0) throw Error("Assets React ausentes do dist.");
+console.log("Preview pronta: React na raiz; /modern/ e rotas antigas caem no app pelo fallback SPA.");
