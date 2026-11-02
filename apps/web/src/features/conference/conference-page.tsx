@@ -451,7 +451,7 @@ export function ConferencePage(){
       {manualTarget && <ManualSupplierDialog target={manualTarget} date={date} onClose={()=>setManualTarget(null)}
         onSaved={async()=>{setSearch("");await refresh();}}
         onDeleted={async()=>{setSearch("");await refresh();}}/>}
-      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} onClose={()=>setDetailsId(null}/>}
+      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} onClose={()=>setDetailsId(null)}/>}
     </>}
   </section>;
 }
