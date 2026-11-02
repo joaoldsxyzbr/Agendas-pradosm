@@ -163,7 +163,8 @@ async function createManualForDate(c, user, date) {
       agenda,
       user.id,
       parsed.data.supplier,
-      businessTime(/* @__PURE__ */ new Date())
+      businessTime(/* @__PURE__ */ new Date()),
+      null
     );
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,
@@ -352,7 +353,8 @@ storeAppointmentRoutes.patch("/:id/manual", async (c) => {
       agenda,
       appointment,
       user.id,
-      parsed.data.supplier
+      parsed.data.supplier,
+      null
     );
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,
@@ -392,7 +394,7 @@ storeAppointmentRoutes.delete("/:id/manual", async (c) => {
   }
   if (agenda.status_dia === "concluido") return concludedDay(c);
   try {
-    await softDeleteManualAppointment(c.env.DB, agenda, appointment, user.id);
+    await softDeleteManualAppointment(c.env.DB, agenda, appointment, user.id, null);
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,
       storeId: agenda.loja_id,
@@ -443,7 +445,8 @@ storeAppointmentRoutes.patch("/:id/exchanges", async (c) => {
       c.env.DB,
       appointment,
       user.id,
-      parsed.data.hasExchanges
+      parsed.data.hasExchanges,
+      null
     );
     await publishAgendaChanged(c.env, {
       agendaId: agenda.id,

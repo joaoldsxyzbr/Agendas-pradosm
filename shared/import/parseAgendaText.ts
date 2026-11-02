@@ -274,7 +274,7 @@ function parseStructuredText(text: string): { appointments: ParsedAppointment[];
   return { appointments, invalidCount };
 }
 function parseFallbackLists(type: string, rawTail: string, protocol: string, warnings: string[]): { valid: boolean; nfe: string[]; orders: string[] } {
-  const tokens = rawTail.match(/-|\d+/g) ?? [];
+  const tokens: string[] = rawTail.match(/-|\d+/g) ?? [];
   if (type === "Pedido") {
     return {
       valid: true,

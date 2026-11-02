@@ -42,7 +42,7 @@ function auditStatement(db, input) {
 async function recordAudit(db, input) {
   await auditStatement(db, input).run();
 }
-async function listAudit(db, filters = {}) {
+async function listAudit(db, filters: { entity?: string; entityId?: string; agendaId?: string; userId?: string; storeId?: string; date?: string; limit?: number } = {}) {
   const clauses = [];
   const values = [];
   if (filters.entity) {

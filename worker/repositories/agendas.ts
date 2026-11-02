@@ -24,7 +24,7 @@ async function findAgendaById(db, id) {
        LIMIT 1`
   ).bind(id).first();
 }
-async function listAdminAgendas(db, filters = {}) {
+async function listAdminAgendas(db, filters: { date?: string; storeCode?: string } = {}) {
   const clauses = [];
   const values = [];
   if (filters.date) {
@@ -154,7 +154,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
   const importedExisting = existing.filter(
     (appointment) => appointment.origem !== "manual"
   );
-  const byProtocol = new Map(
+  const byProtocol = new Map<string, any>(
     importedExisting.map((appointment) => [appointment.protocolo, appointment])
   );
   const incomingProtocols = new Set(
@@ -290,7 +290,7 @@ async function importAgendaBatchAtomic(db, userId, entries) {
     const importedExisting = existingAppointments.filter(
       (appointment) => appointment.origem !== "manual"
     );
-    const byProtocol = new Map(
+    const byProtocol = new Map<string, any>(
       importedExisting.map((appointment) => [
         appointment.protocolo,
         appointment
@@ -551,7 +551,7 @@ function agendaAdminAdjustmentStatement(db, agenda, userId, details, changedAt, 
 function assertMutationApplied(results) {
   if (results[0]?.meta?.changes !== 1) {
     const error = new Error("O registro foi alterado por outra operação. Atualize a tela.");
-    error.code = "CONFLITO_ESTADO";
+    (error as any).code = "CONFLITO_ESTADO";
     throw error;
   }
 }

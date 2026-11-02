@@ -57,7 +57,7 @@ export async function recordDiagnosticSafe(db, data) {
   catch { console.warn("Diagnostic persistence unavailable", { event: data.evento }); return null; }
 }
 
-export async function listDiagnostics(db, filters = {}) {
+export async function listDiagnostics(db, filters: { nivel?: string; operacao?: string; origem?: string; userId?: string; storeId?: string; date?: string; limit?: number } = {}) {
   const clauses = [], values = [];
   if (filters.nivel) { clauses.push("d.nivel = ?"); values.push(filters.nivel); }
   if (filters.operacao) { clauses.push("d.operacao = ?"); values.push(filters.operacao); }
