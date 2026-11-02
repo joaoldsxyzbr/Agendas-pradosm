@@ -8,7 +8,6 @@ async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
   await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
   await page.route("**/api/store/today", route => route.fulfill({ json: { agenda: null, appointments: [] } }));
-  await page.route("**/api/store/tags", route => route.fulfill({ json: [] }));
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });
@@ -73,14 +72,13 @@ test("React: visualizador mantém somente as duas rotas permitidas", async ({ pa
   await page.getByRole("link", { name: "Relatório Gerencial" }).click();
   await expect(page.getByRole("heading", { name: "Relatório Gerencial" })).toBeVisible();
 });
-test("React: conferente acessa Tags e não acessa rotas administrativas", async ({ page }) => {
+test("React: conferente fica na conferência e não acessa rotas administrativas", async ({ page }) => {
   await sessionMocks(page, conference);
   await page.goto("/admin");
   await expect(page).toHaveURL(/\/app$/);
-  await page.getByRole("link", { name: "Tags" }).click();
-  await expect(page).toHaveURL(/\/app\/tags$/);
-  await expect(page.getByRole("heading", { name: "Tags", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Conferência de recebimentos" })).toBeVisible();
   await expect(page.getByRole("link", { name: "Usuários" })).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Tags" })).toHaveCount(0);
 });
 test("React: administrador pode navegar nas rotas sem dados operacionais falsos", async ({ page }) => {
   await sessionMocks(page, admin);
