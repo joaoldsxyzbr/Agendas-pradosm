@@ -76,7 +76,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
     </NavLink>)}
   </nav>;
   return <div className="flex min-h-svh w-screen min-w-0 max-w-[100vw] flex-col overflow-x-clip md:w-full md:max-w-full md:flex-row">
-    <aside className={cn("hidden shrink-0 flex-col border-r border-[#2b415b] bg-[#111e2e] p-3 md:flex", collapsed ? "w-[76px]" : "w-56")}>
+    <aside className={cn("hidden shrink-0 flex-col border-r border-[#2b415b] bg-[#111e2e] p-3 md:sticky md:top-0 md:flex md:h-svh md:max-h-svh md:overflow-y-auto", collapsed ? "w-[76px]" : "w-56")}>
       <div className={cn("mb-7 border-b border-slate-700/70 p-3", collapsed && "flex flex-col items-center gap-2")}>
         {collapsed ? <>
           <strong className="text-sm tracking-tight text-white">AP</strong>
