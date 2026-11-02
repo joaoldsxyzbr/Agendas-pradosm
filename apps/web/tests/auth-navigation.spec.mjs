@@ -102,7 +102,7 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
     } else if (path === "/admin/history") {
       await expect(page.getByRole("form", { name: "Filtros do histórico" })).toBeVisible();
     } else if (path === "/admin/reports") {
-      await expect(page.getByRole("heading", { name: "Filtros da análise" })).toBeVisible();
+      await expect(page.locator('summary[aria-label="Editar período e lojas"]')).toBeVisible();
     } else if (path === "/admin/stores") {
       await expect(page.getByRole("table", { name: "Lojas cadastradas" })).toBeVisible();
     } else if (path === "/admin/users") {
