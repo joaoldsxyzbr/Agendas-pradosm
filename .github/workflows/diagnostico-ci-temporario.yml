@@ -1,0 +1,94 @@
+name: Diagnostico temporario do job de qualidade
+
+on:
+  push:
+    branches: [Migracao-stack-nova]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+concurrency:
+  group: diagnostico-ci-migracao
+  cancel-in-progress: true
+
+jobs:
+  diagnostico:
+    name: Reproduzir passos do job de qualidade e publicar saida
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            apps/web/package-lock.json
+      - name: Dependencias reproduziveis
+        continue-on-error: true
+        run: set -o pipefail; npm ci --legacy-peer-deps 2>&1 | tee passo-1-ci.log
+      - name: Auditoria de producao
+        continue-on-error: true
+        run: set -o pipefail; npm audit --omit=dev 2>&1 | tee passo-2-auditoria-producao.log
+      - name: Auditoria de desenvolvimento
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { npm audit --audit-level=high; npm audit --prefix apps/web --audit-level=high; } 2>&1 | tee passo-3-auditoria-dev.log
+      - name: Isolamento da UI React e do Worker
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { node scripts/check-modern-boundary.mjs
+            node -e 'const p=require("./package.json");const d={...p.dependencies,...p.devDependencies};for(const n of ["react","react-dom","react-router-dom","vite","vitest","typescript"])if(d[n])process.exit(1)'
+            node scripts/check-worker.mjs
+          } 2>&1 | tee passo-4-isolamento.log
+      - name: Migrations
+        continue-on-error: true
+        run: set -o pipefail; npm run check:migrations 2>&1 | tee passo-5-migrations.log
+      - name: Testes JavaScript e bootstrap
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { npm test; npm run test:bootstrap-admin; } 2>&1 | tee passo-6-testes.log
+      - name: Build da UI React e integridade
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          { npm run build; node scripts/check-build.mjs; node scripts/build-modern-preview.mjs; } 2>&1 | tee passo-7-build.log
+      - name: Dry-run do Worker de producao
+        continue-on-error: true
+        run: set -o pipefail; npx wrangler deploy --dry-run --config wrangler.preview.jsonc 2>&1 | tee passo-8-wrangler.log
+      - name: Preparar Chromium
+        continue-on-error: true
+        run: set -o pipefail; npx playwright install --with-deps chromium 2>&1 | tee passo-9-chromium.log
+      - name: E2E React isolado
+        continue-on-error: true
+        env:
+          CI: "true"
+        run: set -o pipefail; npx playwright test --config apps/web/playwright.config.mjs 2>&1 | tee passo-10-e2e.log
+      - name: Publicar diagnostico no PR 154
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Diagnostico automatico do job de qualidade (workflow temporario; sera removido apos o uso)."
+            for passo in 1-ci 2-auditoria-producao 3-auditoria-dev 4-isolamento 5-migrations 6-testes 7-build 8-wrangler 9-chromium 10-e2e; do
+              echo
+              echo "### Passo ${passo/-/ }"
+              echo
+              echo '```'
+              if [ "$passo" = "7-build" ] || [ "$passo" = "10-e2e" ]; then
+                tail -n 120 "passo-$passo.log" 2>/dev/null || echo "(sem saida)"
+              else
+                tail -n 50 "passo-$passo.log" 2>/dev/null || echo "(sem saida)"
+              fi
+              echo '```'
+            done
+          } > comentario-diagnostico.md
+          gh pr comment 154 --repo "$GITHUB_REPOSITORY" --body-file comentario-diagnostico.md
