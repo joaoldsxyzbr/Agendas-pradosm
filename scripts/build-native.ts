@@ -36,6 +36,6 @@ await cp(join(base, "public"), output, { recursive: true });
 await cp(modern, output, { recursive: true });
 
 const security = await readFile(join(output, "_headers"), "utf8");
-if (!security.includes("script-src 'self' 'wasm-unsafe-eval';"))
+if (!security.includes("script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com;"))
   throw Error("CSP de produção diferente. Revisão de segurança necessária.");
 console.log("Build da UI React: index.html + " + assets.length + " assets publicados na raiz de dist/.");
