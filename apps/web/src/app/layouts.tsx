@@ -68,12 +68,11 @@ export function AppLayout({ user }: { user: SessionUser }) {
   };
   const renderNav = (compact: boolean) => <nav aria-label="Navegação principal" className={cn("flex min-w-0 gap-1 md:flex-col", compact && "md:items-center")}>
     {items.map(({ path, label, icon: Icon }) => <NavLink key={path} to={path} end
-      aria-label={label}
       className={({ isActive }) => cn("flex shrink-0 items-center gap-2.5 rounded-md px-3 py-2.5 text-xs font-medium outline-offset-2 focus-visible:outline-2 focus-visible:outline-sky-400",
         compact && "md:justify-center md:px-2",
         isActive ? "bg-sky-500/15 text-sky-200" : "text-slate-400 hover:bg-slate-800 hover:text-slate-200")}>
       <Icon size={16} aria-hidden="true" />
-      <span className={compact ? "md:hidden" : undefined}>{label}</span>
+      <span className={compact ? "sr-only" : undefined}>{label}</span>
     </NavLink>)}
   </nav>;
   return <div className="flex min-h-svh w-screen min-w-0 max-w-[100vw] flex-col overflow-x-clip md:w-full md:max-w-full md:flex-row">
