@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { DatabaseSync } from "node:sqlite";
-import { listAdminAgendas, listStoreAgendas } from "../worker/repositories/agendas.js";
+import { listAdminAgendas, listStoreAgendas } from "../worker/repositories/agendas.ts";
 
 const quick = process.argv.includes("--quick");
 const sizes = quick ? [40] : [162, 1_000, 5_000];
