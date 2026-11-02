@@ -30,25 +30,25 @@ A autorização real é aplicada no Worker. A interface também oculta ações q
 
 ## Organização do repositório
 
-O código em produção está em JavaScript puro (ES Modules); a antiga etapa `migration/frontend` foi consolidada na pasta definitiva `frontend`.
+A produção (`main`) permanece em JavaScript puro (ES Modules). Na homologação (`preview`), desde 31/10/2026, a UI legada foi removida e a interface é exclusivamente o React de `apps/web/`, servido na raiz pelo fallback SPA do Workers.
 
 | Pasta/arquivo | Responsabilidade |
 | --- | --- |
-| `frontend/` | Páginas, componentes, sessão, interações e navegação nativos |
-| `frontend/styles/` | CSS do sistema, tema e telas |
-| `frontend/import/` e `frontend/agenda/` | Importação de agendas e geração de PDF |
+| `apps/web/` | UI React (Vite, TypeScript estrito) — única interface da `preview` |
 | `worker/` | API, autenticação, serviços, D1 e tempo real do Cloudflare |
-| `shared/` | Contratos, datas e validações usados pelo Worker e frontend |
+| `shared/` | Contratos, datas e validações usados pelo Worker e pela UI |
+| `shared/import/` | Parser CSV/PDF de agendas, reaproveitado pelo React |
 | `migrations/` | Histórico **imutável** de migrações do D1 |
-| `public/` | Manifesto, ícone e headers HTTP |
-| `tests/unit/`, `tests/browser/`, `tests/fixtures/` | Testes JavaScript, Playwright e dados sintéticos |
+| `public/` | Ícone e headers HTTP (CSP) |
+| `tests/unit/`, `tests/fixtures/` | Testes JavaScript e dados sintéticos |
+| `apps/web/tests/` | E2E Playwright do React com API mockada |
 | `scripts/` | Build, testes de integridade e bootstrap administrativo |
 | `docs/operations/` | Procedimentos atuais; `docs/archive/` guarda históricos de migração |
 | `wrangler.jsonc`, `wrangler.local.jsonc` | Produção e ambiente local sintético |
 
-**Branches:** `main` = produção; `testes` = homologação (Preview), com dados isolados conforme a configuração do ambiente. Acesso: https://testes.agendaspradosm.joaolds.xyz.br. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem na `main`.
+**Branches:** `main` = produção (UI legada em JavaScript puro, intocável durante a homologação); `preview` = homologação isolada, só React, em https://previewagendaspradosm.joaolds.xyz.br. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem.
 
-Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). O projeto não usa React, Vite ou TypeScript.
+Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). A produção não usa React; a homologação (`preview`) é 100% React em `apps/web/`.
 
 ## Desenvolvimento local
 
@@ -90,13 +90,12 @@ O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especific
 
 | Comando | Função |
 | --- | --- |
-| `npm run dev` | HTML/CSS/JS puros e Worker com D1 exclusivamente local |
+| `npm run dev` | Worker com D1 exclusivamente local servindo a UI React de `dist/` |
 | `npm test` | Testes de contratos e funcionalidades JavaScript |
-| `npm run test:design` | Tokens CSS e layout |
 | `npm run test:bootstrap-admin` | Segurança do bootstrap emergencial |
-| `npm run test:e2e` | Navegador Chromium com APIs mockadas e Worker local |
-| `npm run build` | Arquivos JS/CSS/HTML de produção em `dist/` |
-| `npm run verify:production` | Migrations, testes, design, bootstrap e build íntegro |
+| `npx playwright test --config apps/web/playwright.config.mjs` | UI React no Chromium com APIs mockadas |
+| `npm run build` | Bundle React de produção em `dist/` |
+| `npm run verify:production` | Migrations, testes, bootstrap e build íntegro |
 | `npm run check:migrations` | Bloqueio de migrations destrutivas não aprovadas |
 | `npm run deploy` | Validação, migrations remotas e publicação explícita |
 | `npm run bootstrap-admin` | Bootstrap emergencial (somente com aprovação operacional) |
