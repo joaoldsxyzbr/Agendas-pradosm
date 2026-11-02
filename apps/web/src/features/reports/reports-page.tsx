@@ -23,7 +23,6 @@ const STATUS = [
   { key: "aguardando", label: "Aguardando", color: "#9464ed" },
   { key: "recusado", label: "Recusados", color: "#94a7bf" },
 ] as const;
-type StatusKey = (typeof STATUS)[number]["key"];
 
 const REPORT_HELP: Record<string, string> = {
   "Agendamentos": "Quantidade total de agendamentos no período selecionado, incluindo todos os status.",
@@ -130,6 +129,7 @@ function Failure({ retry, text }: { retry: () => void; text: string }) {
 }
 
 function DeltaTag({ delta: value }: { delta: Delta }) {
+  if (!value) return null;
   const tone = value.kind === "neutral" || (!value.up && !value.down)
     ? "text-slate-400"
     : value.up === (value.kind === "good") ? "text-emerald-300" : "text-rose-300";
@@ -350,6 +350,7 @@ function StoreHighlights({ stores }: { stores: Grouped[] }) {
   if (!ranked.length) return <Empty text="Sem movimentação por loja no período." />;
   const best = ranked[0];
   const low = ranked[ranked.length - 1];
+  if (!best || !low) return <Empty text="Sem movimentação por loja no período." />;
   return <div className="space-y-4">
     <Meter title={best.label} strong={percentBR(rate(best))} width={rate(best)} tone="#24c78b"
       footnote={"Maior taxa no período · " + numberBR(best.recebido) + " de " + numberBR(best.total) + " recebidos"} />
@@ -370,7 +371,7 @@ function SupplierRanking({ suppliers }: { suppliers: { supplier: string; total: 
 
 function WeekdayPattern({ weekdays }: { weekdays: { weekday: number; total: number; recebido: number; days: number }[] }) {
   if (!weekdays.length) return <Empty text="Sem movimentação no período." />;
-  return <div className="space-y-4">{weekdays.map(day => <Meter key={day.weekday} title={WEEKDAY_LABELS[day.weekday]}
+  return <div className="space-y-4">{weekdays.map(day => <Meter key={day.weekday} title={WEEKDAY_LABELS[day.weekday] ?? ""}
     strong={percentBR(rate(day))} width={rate(day)}
     footnote={numberBR(day.total) + " agendamento(s) em " + numberBR(day.days) + " dia(s) · " + numberBR(day.recebido) + " recebidos"} />)}</div>;
 }
@@ -615,3 +616,4 @@ export function ReportsPage() {
     </ReportDialog>}
   </section>;
 }
+
