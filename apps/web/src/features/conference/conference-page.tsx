@@ -6,9 +6,6 @@ import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDay } from "@/features/receiving/model";
-import { getAssignedTags, type Tag } from "@/features/tags/api";
-import { TagChip } from "@/features/tags/tags-page";
-import { TagPicker } from "@/features/tags/tag-picker";
 import { downloadAgendaPdf } from "./export-agenda-pdf";
 import { useStoreRealtime } from "./use-store-realtime";
 import {
@@ -190,13 +187,11 @@ function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: s
   </dialog>;
 }
 
-function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, tagsReady, onTagsUpdated, onEditManual, onOpenDetails }: {
+function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDetails }: {
   item: StoreAppointment; readOnly:boolean; day:string; onUpdated:()=>Promise<void>;
-  tags:Tag[]; availableTags:Tag[]; tagsReady:boolean; onTagsUpdated:()=>Promise<void>;
   onEditManual:(item:StoreAppointment)=>void; onOpenDetails:(id:string)=>void;
 }) {
   const [reasonOpen,setReasonOpen]=useState(false);
-  const [tagsOpen,setTagsOpen]=useState(false);
   const [noteOpen,setNoteOpen]=useState(false);
   const [reason,setReason]=useState("");
   const [other,setOther]=useState("");
@@ -253,11 +248,6 @@ function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, t
         </div>
         {item.observation && <p className="mt-1 text-[11px] text-amber-300">Obs.: {item.observation}</p>}
         {item.origin==="manual" && <span className="mt-1 block text-[10px] text-sky-300">Fornecedor sem agenda</span>}
-        <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label={"Tags de " + item.supplier}>
-          {tags.map(tag => <TagChip key={tag.id} tag={tag} />)}
-          {!readOnly && <Button size="sm" variant="ghost" className="h-7 border border-dashed border-slate-500 text-[11px]"
-            disabled={!tagsReady} onClick={() => setTagsOpen(value => !value)}>{tagsOpen ? "Fechar tags" : "+ Tag"}</Button>}
-        </div>
       </div>
       <div className="flex flex-col items-end gap-2">
         <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
@@ -292,8 +282,6 @@ function AppointmentRow({ item, readOnly, day, onUpdated, tags, availableTags, t
           onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
       </label>
     </div>
-    {tagsOpen && !readOnly && <TagPicker key={item.id} appointmentId={item.id} supplier={item.supplier}
-      choices={availableTags} assigned={tags} onSaved={onTagsUpdated} onCancel={() => setTagsOpen(false)} />}
     {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
     {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
       <label className="block text-xs text-slate-200">Motivo obrigatório
@@ -372,8 +360,6 @@ export function ConferencePage(){
     onSuccess:async()=>{setConfirmComplete(false);await refresh();},
   });
   const agenda=query.data?.agenda;
-  const tagsQuery=useQuery({ queryKey:["store-tags","agenda",date], queryFn:()=>getAssignedTags(date), enabled:Boolean(agenda) });
-  const refreshTags=async()=>{await client.invalidateQueries({queryKey:["store-tags","agenda",date]});};
   const appointments=query.data?.appointments??[];
   const metrics=metricValues(appointments);
   const filtered=useMemo(()=>filterAppointments(appointments,search),[appointments,search]);
@@ -441,10 +427,8 @@ export function ConferencePage(){
           </div>
         </div>
         <div className="grid gap-2" aria-label="Fornecedores">
-          {tagsQuery.isError && <p role="alert" className="text-xs text-amber-300">Tags indisponíveis. Os demais controles da conferência continuam disponíveis.</p>}
           {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-            tags={tagsQuery.data?.assignments[item.id] ?? []} availableTags={tagsQuery.data?.tags ?? []} tagsReady={Boolean(tagsQuery.data) && !tagsQuery.isError}
-            onUpdated={refresh} onTagsUpdated={refreshTags}
+            onUpdated={refresh}
             onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
           {filtered.length===0 && <p role="status" className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
         </div>
@@ -467,7 +451,7 @@ export function ConferencePage(){
       {manualTarget && <ManualSupplierDialog target={manualTarget} date={date} onClose={()=>setManualTarget(null)}
         onSaved={async()=>{setSearch("");await refresh();}}
         onDeleted={async()=>{setSearch("");await refresh();}}/>}
-      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} onClose={()=>setDetailsId(null)}/>}
+      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} onClose={()=>setDetailsId(null}/>}
     </>}
   </section>;
 }
