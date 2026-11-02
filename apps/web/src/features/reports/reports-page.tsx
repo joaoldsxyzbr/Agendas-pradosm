@@ -352,9 +352,9 @@ function StoreHighlights({ stores }: { stores: Grouped[] }) {
   const low = ranked[ranked.length - 1];
   return <div className="space-y-4">
     <Meter title={best.label} strong={percentBR(rate(best))} width={rate(best)} tone="#24c78b"
-      footnote="Maior taxa no período · " + numberBR(best.recebido) + " de " + numberBR(best.total) + " recebidos" />
+      footnote={"Maior taxa no período · " + numberBR(best.recebido) + " de " + numberBR(best.total) + " recebidos"} />
     {ranked.length > 1 && <Meter title={low.label} strong={percentBR(rate(low))} width={rate(low)} tone="#f0525f"
-      footnote="Menor taxa no período · " + numberBR(low.recebido) + " de " + numberBR(low.total) + " recebidos" />}
+      footnote={"Menor taxa no período · " + numberBR(low.recebido) + " de " + numberBR(low.total) + " recebidos"} />}
   </div>;
 }
 
