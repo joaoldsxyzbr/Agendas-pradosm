@@ -38,10 +38,10 @@ const KNOWN_TYPES: Record<string, string> = {
   cnpj: "CNPJ",
   "agenda fixa": "Agenda fixa"
 };
-function normalizeKey(value) {
+function normalizeKey(value: string): string {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/\s+/g, " ").trim();
 }
-function pushUnique(target, value) {
+function pushUnique(target: string[], value: string): void {
   if (!target.includes(value)) target.push(value);
 }
 function parseIsoDate(value: string): string | null {
@@ -232,7 +232,8 @@ function parseStructuredText(text: string): { appointments: ParsedAppointment[];
   for (const rawLine of text.replace(/\r/g, "").split("\n")) {
     if (!rawLine.trim() || isHeaderLine(rawLine)) continue;
     const cells = normalizeCells(rawLine);
-    const protocol = /^\d{6,20}$/.test(cells[0]) ? cells[0] : null;
+    const first = cells[0] ?? "";
+    const protocol = /^\d{6,20}$/.test(first) ? first : null;
     const startsRowBeforeProtocol = !protocol && parseIsoDate(cells[1] ?? "") !== null;
     if (startsRowBeforeProtocol) {
       finishCurrent();

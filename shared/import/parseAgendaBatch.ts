@@ -327,8 +327,19 @@ function parseTableRows(rows: string[][], sourceText: string, source: string): A
   };
 }
 function wrapSinglePdf(result: AgendaTextResult): AgendaBatchResult {
+  const agendas: BatchAgenda[] = [];
+  if (result.storeCode && result.date && result.appointments.length > 0) {
+    agendas.push({
+      storeCode: result.storeCode,
+      storeName: result.storeName,
+      date: result.date,
+      appointments: result.appointments,
+      warnings: result.warnings,
+      blockingErrors: result.blockingErrors
+    });
+  }
   return {
-    agendas: result.storeCode && result.date && result.appointments.length > 0 ? [result] : [],
+    agendas,
     date: result.date,
     totalAppointments: result.appointments.length,
     warnings: result.warnings,
