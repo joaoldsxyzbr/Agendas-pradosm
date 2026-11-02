@@ -53,17 +53,30 @@ async function mock(page, options = {}) {
   return requests;
 }
 
-test("Relatório React mostra KPIs calculados, gráficos, tabelas e fonte API", async ({ page }) => {
+test("Relatório React mostra KPIs, gráficos, visão gerencial e diálogos de detalhamento", async ({ page }) => {
   const requests = await mock(page);
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading", { name: "Relatório Gerencial" })).toBeVisible();
   await expect(page.getByLabel("Indicadores gerenciais")).toContainText("66,7%");
   await expect(page.getByLabel("Indicadores gerenciais")).toContainText("3");
-  await expect(page.getByRole("table", { name: "Consolidado por loja" }).locator("tbody tr")).toHaveCount(2);
-  await expect(page.getByRole("table", { name: "Ocorrências e observações" })).toContainText("Fornecedor Alfa");
-  await expect(page.getByRole("table", { name: "Agendamentos recentes" })).toContainText("Fornecedor Beta");
-  await expect(page.getByRole("heading", { name: "Evolução diária" })).toBeVisible();
+  await expect(page.getByLabel("Visão gerencial de recebimentos")).toContainText("Taxa de recebimento");
+  await expect(page.getByRole("heading", { name: "Evolução dos recebimentos" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Distribuição das situações" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Desempenho por loja" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Agendamentos por situação (por dia)" })).toBeVisible();
+  await page.getByRole("button", { name: "Ver análises completas" }).click();
+  await expect(page.getByRole("heading", { name: "Evolução diária" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Padrão por dia da semana" })).toBeVisible();
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("button", { name: "Ver todas as lojas" }).click();
+  await expect(page.getByRole("table", { name: "Consolidado por loja" }).locator("tbody tr")).toHaveCount(2);
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("button", { name: "Ver todas as ocorrências" }).click();
+  await expect(page.getByRole("table", { name: "Ocorrências e observações" })).toContainText("Fornecedor Alfa");
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("button", { name: "Ver detalhamento" }).click();
+  await expect(page.getByRole("table", { name: "Agendamentos recentes" })).toContainText("Fornecedor Beta");
+  await page.getByRole("button", { name: "Fechar" }).click();
   expect(requests.some(x => x.path === "/api/admin/reports")).toBe(true);
   expect(requests.some(x => x.path === "/api/admin/reports/latest")).toBe(true);
   expect(requests.some(x => x.path === "/api/admin/reports/occurrences")).toBe(true);
@@ -90,17 +103,19 @@ test("Relatório React filtra intervalo e múltiplas lojas sem permitir período
 test("Relatório React oferece pesquisa, paginação e comparação sem gravação", async ({ page }) => {
   const requests = await mock(page);
   await page.goto("/admin/reports");
+  await page.getByRole("button", { name: "Ver todas as ocorrências" }).click();
   await expect(page.getByRole("table", { name: "Ocorrências e observações" })).toBeVisible();
   await page.getByRole("searchbox", { name: "Buscar ocorrência por fornecedor ou protocolo" }).fill("Alfa");
   await page.getByRole("button", { name: "Buscar" }).click();
   await expect.poll(() => requests.some(x => x.path === "/api/admin/reports/occurrences" && x.search === "Alfa")).toBe(true);
-  await page.getByRole("button", { name: "Próxima" }).first().click();
+  await page.getByRole("button", { name: "Próxima" }).click();
   await expect.poll(() => requests.some(x => x.path === "/api/admin/reports/occurrences" && x.offset === "50")).toBe(true);
   await page.getByRole("button", { name: "Limpar" }).click();
   await expect.poll(() => requests.some(x => x.path === "/api/admin/reports/occurrences" && x.search === null && x.offset === "0")).toBe(true);
+  await page.getByRole("button", { name: "Fechar" }).click();
   await page.getByRole("checkbox", { name: "Comparar período anterior" }).uncheck();
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
-  await expect(page.getByLabel("Indicadores gerenciais")).toContainText("Sem comparação disponível");
+  await expect(page.getByText("Sem comparação disponível")).toBeVisible();
   expect(requests.every(x => x.path === "/api/admin/stores" || x.path.startsWith("/api/admin/reports"))).toBe(true);
 });
 
