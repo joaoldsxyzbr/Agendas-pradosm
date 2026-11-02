@@ -1,5 +1,5 @@
 import { performance } from "node:perf_hooks";
-import { verifyPassword } from "../worker/lib/password.js";
+import { verifyPassword } from "../worker/lib/password.ts";
 
 // Benchmark local e opcional; números NÃO equivalem à latência/custo de CPU nos Workers.
 const password = "SenhaSinteticaApenasBenchmark2026";

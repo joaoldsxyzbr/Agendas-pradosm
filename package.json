@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "npm run build && wrangler dev --config wrangler.local.jsonc",
     "build": "node scripts/build-native.mjs",
-    "test": "node scripts/check-worker.mjs && node --test tests/unit/*.test.js",
+    "test": "node scripts/check-worker.mjs && node --experimental-strip-types --test tests/unit/*.test.ts",
     "preview": "npm run dev",
     "check:migrations": "node scripts/check-migration-safety.mjs",
     "test:bootstrap-admin": "node scripts/check-bootstrap-admin.mjs",
@@ -14,8 +14,8 @@
     "verify:production": "npm run check:migrations && npm test && npm run test:bootstrap-admin && npm run build && node scripts/check-build.mjs && node scripts/build-modern-preview.mjs",
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
-    "benchmark:password": "node scripts/benchmark-password.mjs",
-    "benchmark:agendas": "node scripts/benchmark-agendas.mjs"
+    "benchmark:password": "node --experimental-strip-types scripts/benchmark-password.mjs",
+    "benchmark:agendas": "node --experimental-strip-types scripts/benchmark-agendas.mjs"
   },
   "dependencies": {
     "@llamaindex/liteparse-wasm": "^2.14.7",
