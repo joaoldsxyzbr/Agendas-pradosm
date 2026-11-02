@@ -19,7 +19,7 @@ const listed = [
   "worker/routes/admin-users.ts", "worker/routes/auth.ts",
   "worker/routes/diagnostics.ts", "worker/routes/presence.ts",
   "worker/routes/realtime.ts", "worker/routes/store-agendas.ts",
-  "shared/agenda.ts", "shared/api.ts", "shared/auth.ts", "shared/realtime.ts",
+  "shared/agenda.ts", "shared/api.ts", "shared/auth.ts", "shared/observations.ts", "shared/realtime.ts",
   "shared/store.ts", "shared/time.ts",
   "shared/import/extractPdfText.ts", "shared/import/pdf-engine-liteparse.ts",
   "shared/import/parseAgendaBatch.ts", "shared/import/parseAgendaText.ts",
