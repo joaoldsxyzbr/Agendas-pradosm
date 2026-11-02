@@ -217,8 +217,8 @@ class RealtimeHub extends DurableObject {
   }
   async alarm() {
     const now = Date.now();
-    const expired = /* @__PURE__ */ new Set();
-    const stale = /* @__PURE__ */ new Set();
+    const expired = /* @__PURE__ */ new Set<WebSocket>();
+    const stale = /* @__PURE__ */ new Set<WebSocket>();
     const affectedStores = /* @__PURE__ */ new Set();
     for (const ws of this.ctx.getWebSockets()) {
       const attachment = this.attachment(ws);
