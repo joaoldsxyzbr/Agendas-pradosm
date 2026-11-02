@@ -128,3 +128,21 @@ test("React: layout compacto não cria rolagem lateral em celular", async ({ pag
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
 });
+test("React: sidebar colapsa e persiste o estado entre recarregamentos", async ({ page }) => {
+  await sessionMocks(page, admin);
+  await page.setViewportSize({ width: 1600, height: 900 });
+  await page.goto("/admin");
+  const collapse = page.getByRole("button", { name: "Recolher navegação" });
+  await expect(collapse).toBeVisible();
+  await collapse.click();
+  const expand = page.getByRole("button", { name: "Expandir navegação" });
+  await expect(expand).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Expandir navegação" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Recolher navegação" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Expandir navegação" }).click();
+  await expect(page.getByRole("button", { name: "Recolher navegação" })).toBeVisible();
+  await page.reload();
+  await expect(page.getByRole("button", { name: "Recolher navegação" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Recebimento" })).toBeVisible();
+});
