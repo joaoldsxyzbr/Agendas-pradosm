@@ -1,6 +1,6 @@
 import { useEffect, useRef, useMemo, useState, type FormEvent, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, CheckCircle2, Clock3, Info, RefreshCw, Users, X, XCircle } from "lucide-react";
+import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, CheckCircle2, ChevronDown, Clock3, Info, RefreshCw, Users, X, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/features/receiving/model";
@@ -395,12 +395,44 @@ function ReportTable({ headings, children, label }: { headings: string[]; childr
   </div>;
 }
 
+// Persistência dos filtros do relatório, no mesmo contrato da UI em produção.
+const FILTERS_STORAGE_KEY = "agenda-prado-report-filters";
+
+function restoreFilters(): ReportFilters | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.localStorage.getItem(FILTERS_STORAGE_KEY);
+    if (!raw) return null;
+    const saved = JSON.parse(raw) as Partial<ReportFilters> | null;
+    if (!saved || !validRange(String(saved.start), String(saved.end))) return null;
+    const stores = Array.isArray(saved.stores)
+      ? [...new Set(saved.stores.filter(code => typeof code === "string" && code.trim().length > 0 && code.length <= 20))]
+      : [];
+    return { start: String(saved.start), end: String(saved.end), stores, compare: !!saved.compare };
+  } catch {
+    // Armazenamento corrompido ou bloqueado: usa os filtros padrão.
+    return null;
+  }
+}
+
+function persistFilters(filters: ReportFilters) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({
+      start: filters.start, end: filters.end, stores: filters.stores, compare: filters.compare,
+    }));
+  } catch {
+    // A preferência vale apenas até o recarregamento quando o armazenamento está bloqueado.
+  }
+}
+
 type DialogName = "analysis" | "stores" | "occurrences" | "appointments";
 
 export function ReportsPage() {
   const queryClient = useQueryClient();
-  const [draft, setDraft] = useState<ReportFilters>(initialFilters);
-  const [applied, setApplied] = useState<ReportFilters>(initialFilters);
+  const [base] = useState(() => restoreFilters() ?? initialFilters());
+  const [draft, setDraft] = useState<ReportFilters>(base);
+  const [applied, setApplied] = useState<ReportFilters>(base);
   const [filterError, setFilterError] = useState("");
   const [occurrenceInput, setOccurrenceInput] = useState("");
   const [occurrenceQuery, setOccurrenceQuery] = useState("");
@@ -408,6 +440,7 @@ export function ReportsPage() {
   const [recentOffset, setRecentOffset] = useState(0);
   const [chartMode, setChartMode] = useState<"volume" | "rate">("volume");
   const [dialog, setDialog] = useState<DialogName | null>(null);
+  const filterRef = useRef<HTMLDetailsElement>(null);
   const stores = useQuery({ queryKey: ["manager-report", "stores"], queryFn: getStores, staleTime: 60_000 });
   const report = useQuery({ queryKey: ["manager-report", "rows", applied], queryFn: () => getReport(applied) });
   const previous = previousRange(applied);
@@ -436,10 +469,57 @@ export function ReportsPage() {
       return;
     }
     setFilterError("");
-    setApplied({ ...draft, stores: [...draft.stores].sort() });
+    const next: ReportFilters = { ...draft, stores: [...draft.stores].sort() };
+    setApplied(next);
+    persistFilters(next);
     setOccurrenceOffset(0);
     setRecentOffset(0);
+    if (filterRef.current) filterRef.current.open = false;
   };
+  const storeLabel = (codes: string[]) => {
+    if (!codes.length) return "Todas as lojas";
+    if (codes.length === 1) {
+      const single = codes[0] ?? "";
+      const store = stores.data?.find(item => item.codigo === single);
+      return store ? store.codigo + " · " + store.nome : single;
+    }
+    return numberBR(codes.length) + " lojas selecionadas";
+  };
+  const applyPreset = (key: "7" | "30" | "90" | "month") => {
+    const range = presetRange(key);
+    if (!validRange(range.start, range.end)) return;
+    setFilterError("");
+    setDraft(value => ({ ...value, ...range }));
+    setApplied(value => ({ ...value, ...range }));
+    persistFilters({ ...applied, ...range });
+    setOccurrenceOffset(0);
+    setRecentOffset(0);
+    if (filterRef.current) filterRef.current.open = false;
+  };
+  // Descarta códigos de loja salvos que não existem mais, como a main faz após carregar as lojas.
+  useEffect(() => {
+    const known = stores.data?.map(store => store.codigo);
+    if (!known) return;
+    const valid = new Set(known);
+    if (applied.stores.every(code => valid.has(code))) return;
+    const next: ReportFilters = { ...applied, stores: applied.stores.filter(code => valid.has(code)) };
+    setApplied(next);
+    setDraft(next);
+    persistFilters(next);
+  }, [stores.data, applied]);
+  useEffect(() => {
+    const details = filterRef.current;
+    if (!details) return;
+    const dismiss = (event: MouseEvent) => { if (details.open && !details.contains(event.target as Node)) details.open = false; };
+    const escape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || !details.open) return;
+      details.open = false;
+      details.querySelector<HTMLElement>("summary")?.focus();
+    };
+    document.addEventListener("click", dismiss);
+    document.addEventListener("keydown", escape);
+    return () => { document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escape); };
+  }, []);
   return <section className="mx-auto w-full min-w-0 max-w-[1530px] space-y-5" aria-label="Relatório Gerencial">
     <PageHeader eyebrow="Inteligência operacional" title="Relatório Gerencial"
       description="Panorama dos recebimentos, desempenho das lojas e ocorrências registradas."
@@ -449,24 +529,30 @@ export function ReportsPage() {
           <RefreshCw size={14} aria-hidden="true" />{working ? "Atualizando…" : "Atualizar"}
         </Button>
       </div>} />
-    <form onSubmit={apply} className={panel} aria-label="Filtros do relatório">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <div><h2 className="text-sm font-bold text-white">Filtros da análise</h2><p className="mt-1 text-xs text-slate-400">Período de até 93 dias, por uma ou várias lojas.</p></div>
-        <span className="text-xs text-sky-200">{formatDay(applied.start)} a {formatDay(applied.end)}</span>
-      </div>
-      <div role="group" aria-label="Períodos rápidos" className="mb-4 flex flex-wrap gap-2">
-        {([["7", "Últimos 7 dias"], ["30", "Últimos 30 dias"], ["90", "Últimos 90 dias"], ["month", "Mês atual"]] as const).map(([key, text]) =>
-          <Button key={key} size="sm" variant="secondary" aria-pressed={draft.start === presetRange(key).start && draft.end === presetRange(key).end}
-            onClick={() => setDraft(value => ({ ...value, ...presetRange(key) }))}>{text}</Button>)}
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(180px,1.2fr)_auto] lg:items-end">
-        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-300">De
-          <input className={input} type="date" value={draft.start} onChange={event => setDraft(value => ({ ...value, start: event.target.value }))} />
-        </label>
-        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-300">Até
-          <input className={input} type="date" value={draft.end} onChange={event => setDraft(value => ({ ...value, end: event.target.value }))} />
-        </label>
-        <details className="relative min-w-0 rounded-md border border-[#48617b] bg-[#192d46] text-xs text-white">
+    <div className="flex justify-end">
+      <details ref={filterRef} className="group relative">
+        <summary aria-label="Editar período e lojas"
+          className="flex min-h-[35px] w-max max-w-full cursor-pointer list-none items-center justify-between gap-2.5 rounded-lg border border-[#314b66] bg-[#142338] px-2.5 text-[11px] font-semibold text-white shadow-lg transition-colors hover:border-sky-400 group-open:border-sky-400 group-open:bg-[#192d46] [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0 max-w-[min(420px,60vw)] truncate text-slate-200">
+            {formatDay(applied.start)} a {formatDay(applied.end)} · {storeLabel(applied.stores)}
+          </span>
+          <ChevronDown size={15} aria-hidden="true" className="shrink-0 text-sky-400 transition-transform duration-150 group-open:rotate-180" />
+        </summary>
+        <form onSubmit={apply} aria-label="Filtros do relatório"
+          className="absolute right-0 top-full z-40 mt-1.5 grid w-[min(525px,calc(100vw-36px))] grid-cols-2 gap-3 rounded-xl border border-[#48617b] bg-[#142338] p-4 shadow-2xl">
+          <div role="group" aria-label="Períodos rápidos" className="col-span-2 flex flex-wrap gap-1.5">
+            {([["7", "Últimos 7 dias"], ["30", "Últimos 30 dias"], ["90", "Últimos 90 dias"], ["month", "Mês atual"]] as const).map(([key, text]) =>
+              <Button key={key} size="sm" variant="secondary" aria-pressed={applied.start === presetRange(key).start && applied.end === presetRange(key).end}
+                onClick={() => applyPreset(key)}>{text}</Button>)}
+          </div>
+          <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-300">De
+            <input className={input} type="date" value={draft.start} onChange={event => setDraft(value => ({ ...value, start: event.target.value }))} />
+          </label>
+          <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-slate-300">Até
+            <input className={input} type="date" value={draft.end} onChange={event => setDraft(value => ({ ...value, end: event.target.value }))} />
+          </label>
+          <div className="col-span-2 grid min-w-0 gap-1.5 text-xs font-semibold text-slate-300"><span>Lojas</span>
+          <details className="relative min-w-0 rounded-md border border-[#48617b] bg-[#192d46] text-xs text-white">
           <summary className="flex min-h-9 cursor-pointer items-center px-3" aria-label="Selecionar lojas">
             {draft.stores.length ? draft.stores.length + " loja(s) selecionada(s)" : "Todas as lojas"}
           </summary>
@@ -484,15 +570,17 @@ export function ReportsPage() {
                 <span>{store.codigo} · {store.nome}</span>
               </label>)}
           </div>
-        </details>
-        <Button type="submit">Aplicar filtros</Button>
-      </div>
-      <label className="mt-4 flex items-center gap-2 text-xs text-slate-300">
-        <input type="checkbox" checked={draft.compare} onChange={event => setDraft(value => ({ ...value, compare: event.target.checked }))} />
-        Comparar período anterior
-      </label>
-      {filterError && <p role="alert" className="mt-2 text-xs text-rose-300">{filterError}</p>}
-    </form>
+          </details>
+          </div>
+          <label className="flex items-center gap-2 self-center text-xs text-slate-300">
+            <input type="checkbox" checked={draft.compare} onChange={event => setDraft(value => ({ ...value, compare: event.target.checked }))} />
+            Comparar período anterior
+          </label>
+          <Button type="submit" className="self-end">Aplicar filtros</Button>
+          {filterError && <p role="alert" className="col-span-2 text-xs text-rose-300">{filterError}</p>}
+        </form>
+      </details>
+    </div>
     {report.isPending && <p role="status" className={panel}>Carregando relatório…</p>}
     {report.isError && <Failure retry={() => void report.refetch()} text="Não foi possível carregar os indicadores gerenciais." />}
     {report.data && <>
@@ -616,4 +704,3 @@ export function ReportsPage() {
     </ReportDialog>}
   </section>;
 }
-
