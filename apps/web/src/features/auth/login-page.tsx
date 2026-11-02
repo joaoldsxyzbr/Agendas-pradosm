@@ -53,7 +53,7 @@ export function LoginPage() {
         {errorMessage && <p role="alert" className="text-xs text-rose-300">{errorMessage}</p>}
         <Button type="submit" disabled={signin.isPending} className="mt-1 w-full">{signin.isPending ? "Entrando…" : "Entrar"}</Button>
       </form>
-      <p className="mt-5 text-center text-[11px] text-slate-500">Base React em migração · ambiente de desenvolvimento</p>
+      <p className="mt-5 text-center text-[11px] text-slate-500">Agenda Prado · Gestão de recebimentos</p>
     </section>
   </main>;
 }
