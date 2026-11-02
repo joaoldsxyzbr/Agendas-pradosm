@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #101923;
+  --color-surface: #142338;
+  --color-surface-raised: #192c43;
+  --color-action: #438ffc;
+}
+
+:root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+/* Rolagem horizontal existe apenas nos componentes de tabela e navegação;
+ * nunca no documento. A camada clip não altera os contêineres internos. */
+html, body, #root { min-height: 100%; max-width: 100%; overflow-x: clip; }
+body { margin: 0; background: #101923; color: #eaf2fc; }
+button, input { font: inherit; }
+::selection { background: #275a91; color: white; }

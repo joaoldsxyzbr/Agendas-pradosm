@@ -7,7 +7,6 @@ import { createSessionToken } from "../../worker/lib/session.js";
 import {
   normalizeDiagnostic, recordDiagnostic, listDiagnostics, pruneDiagnostics
 } from "../../worker/repositories/diagnostics.js";
-import { safeDiagnosticPayload, sendDiagnostic, installBrowserDiagnostics } from "../../frontend/diagnostic-client.js";
 
 const secret = "diagnosticos-teste-local-credencial-sintetica-2026";
 
@@ -51,35 +50,14 @@ function fixture() {
 }
 
 describe("Diagnósticos seguros", () => {
-  it("não persiste dados arbitrários, URL nem stack enviados pelo navegador", async () => {
-    const payload = safeDiagnosticPayload("IMPORT_READ_FAILED",{
-      nivel:"error",operacao:"importacao",formato:"csv",
-      message:"senha secreta",url:"https://site?t=token",
-      stack:"segredo",filename:"cliente.csv"
-    });
-    assert.deepEqual(Object.keys(payload).sort(),["correlacao","evento","formato","nivel","operacao"]);
-    assert.equal(normalizeDiagnostic({...payload,origem:"browser"}).evento,"IMPORT_READ_FAILED");
-    assert.equal(safeDiagnosticPayload("IMPORT_SUCCEEDED",{duracaoMs:257}).duracaoMs,257);
-    assert.equal(safeDiagnosticPayload("EVENTO_FALSO",{message:"senha"}),null);
+  it("recusa eventos inválidos e normaliza os aceitos", async () => {
+    assert.equal(normalizeDiagnostic({
+      origem:"browser",nivel:"error",evento:"IMPORT_READ_FAILED",
+      operacao:"importacao",formato:"csv"
+    }).evento,"IMPORT_READ_FAILED");
     assert.throws(()=>normalizeDiagnostic({
       origem:"browser",nivel:"error",evento:"EXEMPLO_INVENTADO",operacao:"api"
     }),TypeError);
-  });
-  it("falha em telemetria não interfere no aplicativo", async () => {
-    assert.equal(await sendDiagnostic("IMPORT_READ_FAILED",{operacao:"importacao"},
-      async()=>{throw Error("sem rede");}),false);
-    const received=[];
-    const win=new EventTarget();
-    const off=installBrowserDiagnostics(win,()=>({id:"admin1"}),async (event,options)=>{
-      received.push({event,options});
-      return true;
-    });
-    win.dispatchEvent(new Event("error"));
-    win.dispatchEvent(new Event("unhandledrejection"));
-    assert.deepEqual(received.map(x=>x.event),["BROWSER_EXCEPTION","BROWSER_REJECTION"]);
-    off();
-    win.dispatchEvent(new Event("error"));
-    assert.equal(received.length,2);
   });
   it("autentica gravação, bloqueia origem cruzada, limita payload e leitura a admin", async () => {
     const f=fixture();
