@@ -85,15 +85,22 @@ test("Relatório React mostra KPIs, gráficos, visão gerencial e diálogos de d
 test("Relatório React filtra intervalo e múltiplas lojas sem permitir período inválido", async ({ page }) => {
   const requests = await mock(page);
   await page.goto("/admin/reports");
+  await page.locator('summary[aria-label="Editar período e lojas"]').click();
+  await expect(page.getByRole("form", { name: "Filtros do relatório" })).toBeVisible();
   await page.getByText("Todas as lojas", { exact: true }).first().click();
   await page.locator('input[type="checkbox"][value="F01"]').check();
   await page.locator('input[type="checkbox"][value="F02"]').check();
+  await page.locator('summary[aria-label="Selecionar lojas"]').click();
   const fields = page.getByRole("form", { name: "Filtros do relatório" }).locator('input[type="date"]');
   await fields.nth(0).fill("2026-10-20");
   await fields.nth(1).fill("2026-10-30");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect.poll(() => requests.filter(x => x.path === "/api/admin/reports" && x.start === "2026-10-20" && x.end === "2026-10-30" && x.stores.length === 2).length).toBeGreaterThan(0);
+  await expect(page.getByRole("form", { name: "Filtros do relatório" })).toBeHidden();
+  await expect(page.locator('summary[aria-label="Editar período e lojas"]')).toContainText("20/10/2026 a 30/10/2026");
   const count = requests.length;
+  await page.locator('summary[aria-label="Editar período e lojas"]').click();
+  await expect(page.getByRole("form", { name: "Filtros do relatório" })).toBeVisible();
   await fields.nth(0).fill("2026-01-01");
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect(page.getByRole("alert")).toContainText("até 93 dias");
@@ -113,7 +120,9 @@ test("Relatório React oferece pesquisa, paginação e comparação sem gravaç�
   await page.getByRole("button", { name: "Limpar" }).click();
   await expect.poll(() => requests.some(x => x.path === "/api/admin/reports/occurrences" && x.search === null && x.offset === "0")).toBe(true);
   await page.getByRole("button", { name: "Fechar" }).click();
-  await page.getByRole("checkbox", { name: "Comparar período anterior" }).uncheck();
+  await page.locator('summary[aria-label="Editar período e lojas"]').click();
+  await expect(page.getByRole("form", { name: "Filtros do relatório" })).toBeVisible();
+  await page.getByRole("checkbox", { name: "Comparar período anterior" }).click();
   await page.getByRole("button", { name: "Aplicar filtros" }).click();
   await expect(page.getByText("Sem comparação disponível")).toBeVisible();
   expect(requests.every(x => x.path === "/api/admin/stores" || x.path.startsWith("/api/admin/reports"))).toBe(true);
@@ -136,4 +145,19 @@ test("Relatório React não provoca overflow horizontal do documento no celular"
   await expect(page.getByLabel("Indicadores gerenciais")).toBeVisible();
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
   expect(overflow).toBeLessThanOrEqual(2);
+});
+
+test("Relatório React restaura os filtros salvos ao recarregar", async ({ page }) => {
+  const requests = await mock(page);
+  await page.goto("/admin/reports");
+  await page.locator('summary[aria-label="Editar período e lojas"]').click();
+  const fields = page.getByRole("form", { name: "Filtros do relatório" }).locator('input[type="date"]');
+  await fields.nth(0).fill("2026-10-05");
+  await fields.nth(1).fill("2026-10-26");
+  await page.getByRole("button", { name: "Aplicar filtros" }).click();
+  await expect.poll(() => requests.some(x => x.path === "/api/admin/reports" && x.start === "2026-10-05" && x.end === "2026-10-26")).toBe(true);
+  await page.reload();
+  await expect(page.getByRole("heading", { name: "Relatório Gerencial" })).toBeVisible();
+  await expect(page.locator('summary[aria-label="Editar período e lojas"]')).toContainText("05/10/2026 a 26/10/2026");
+  await expect.poll(() => requests.filter(x => x.path === "/api/admin/reports" && x.start === "2026-10-05" && x.end === "2026-10-26").length).toBeGreaterThanOrEqual(2);
 });
