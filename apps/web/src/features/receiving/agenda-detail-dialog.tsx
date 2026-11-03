@@ -123,7 +123,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
       <Button aria-label="Fechar detalhes" size="icon" variant="secondary" disabled={busy}
         onClick={() => ref.current?.close()}><X size={17} /></Button>
     </div>
-    <div className="space-y-4 p-4">
+    <div className="space-y-3 p-3">
       {query.isPending && <p role="status" className="text-sm text-slate-300">Carregando detalhes…</p>}
       {query.isError && <div role="alert" className="space-y-2">
         <p className="text-sm text-rose-300">Não foi possível carregar os detalhes da agenda.</p>
@@ -163,7 +163,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
             ["aguardando", query.data?.appointments.filter(x => x.status === "aguardando").length ?? 0],
             ["recebidos", query.data?.appointments.filter(x => x.status === "recebido").length ?? 0],
             ["não recebidos", query.data?.appointments.filter(x => x.status === "nao_chegou").length ?? 0],
-          ].map(([label, value]) => <span key={label} className="rounded-md border border-[#37516b] bg-[#20334c] px-3 py-2 text-xs text-slate-300"><strong className="mr-2 text-white tabular-nums">{value}</strong>{label}</span>)}
+          ].map(([label, value]) => <span key={label} className="rounded-md border border-[#37516b] bg-[#20334c] px-2.5 py-1.5 text-[11px] text-slate-300"><strong className="mr-2 text-white tabular-nums">{value}</strong>{label}</span>)}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <label className="relative min-w-[190px] flex-1">
@@ -201,34 +201,33 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
             </div>
           </form>}
         </section>}
-        <div className="max-h-[45dvh] space-y-2 overflow-y-auto" aria-label="Agendamentos">
-          {appointments.length === 0 && <p className="rounded-md border border-[#37516b] p-3 text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
+        <div className="max-h-[45dvh] space-y-1 overflow-y-auto" aria-label="Agendamentos">
+          {appointments.length === 0 && <p className="rounded-md border border-[#37516b] p-2.5 text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
           {appointments.map(item => {
             const status = statusInfo[item.status] ?? { label: item.status, tone: "neutral" as const };
-            return <article key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-[#38516e] bg-[#1b2d43] p-3">
-              <div className="min-w-0 space-y-1">
-                <strong className="block text-xs text-white">{item.supplier}</strong>
-                <span className="text-[11px] text-slate-400">Protocolo {item.protocol} · {item.startTime}–{item.endTime}</span>
-                {item.observation && <p className="text-xs text-amber-200">{item.observation}</p>}
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
+            return <article key={item.id} className="rounded-md border border-[#38516e] bg-[#1b2d43] px-2.5 py-1.5">
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="shrink-0 text-[11px] tabular-nums text-slate-300">{item.startTime}–{item.endTime}</span>
+                <strong className="min-w-0 flex-1 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
+                <span className="shrink-0 text-[11px] tabular-nums text-slate-400" title={`Protocolo ${item.protocol}`}>{item.protocol}</span>
                 <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                {editable && item.origin === "manual" && <>
-                  <Button size="sm" variant="secondary" aria-label={`Renomear ${item.supplier}`} disabled={busy}
+                {item.origin === "manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+                {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
+                  title={item.observation}>Obs.: {item.observation}</span>}
+                {editable && item.origin === "manual" && <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+                  <Button size="sm" className="h-7 px-2 text-[11px]" variant="secondary" aria-label={`Renomear ${item.supplier}`} disabled={busy}
                     onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
-                    <Pencil size={13} aria-hidden="true" />Editar
+                    <Pencil size={12} aria-hidden="true" />Editar
                   </Button>
-                  <Button size="sm" variant="danger" aria-label={`Excluir ${item.supplier}`} disabled={busy}
+                  <Button size="sm" className="h-7 px-2 text-[11px]" variant="danger" aria-label={`Excluir ${item.supplier}`} disabled={busy}
                     onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
-                    <Trash2 size={13} aria-hidden="true" />Excluir
+                    <Trash2 size={12} aria-hidden="true" />Excluir
                   </Button>
-                </>}
+                </div>}
               </div>
-              <div className="w-full">
-                <AppointmentControls key={item.id} item={item} editable={editable}
-                  disabled={busy || Boolean(manualAction) || reopenConfirmation}
-                  onBusyChange={setAppointmentBusy} onSaved={refresh} />
-              </div>
+              <AppointmentControls key={item.id} item={item} editable={editable}
+                disabled={busy || Boolean(manualAction) || reopenConfirmation}
+                onBusyChange={setAppointmentBusy} onSaved={refresh} />
             </article>;
           })}
         </div>
