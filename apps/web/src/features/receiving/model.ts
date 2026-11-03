@@ -16,8 +16,17 @@ export const presenceSchema = z.object({
 export const appointmentSchema = z.object({
   id: z.string(), supplier: z.string(), protocol: z.string(),
   startTime: z.string(), endTime: z.string(), status: z.string(),
-  type: z.string().optional(), items: z.number().optional(),
-  volumes: z.number().optional(), pallets: z.number().optional(),
+  // Contrato do Worker: tipo chega como texto (ou null em registros legados) e
+  // itens/volumes/paletes como número (INTEGER no D1) ou null. Opcional não
+  // aceita null, o que quebrava o parse do detalhe com agendamentos antigos.
+  // O transform normaliza números para string, mantendo os tipos da UI estáveis.
+  type: z.string().nullable().optional(),
+  items: z.union([z.number(), z.string()]).nullable().optional()
+    .transform(value => value == null ? value : String(value)),
+  volumes: z.union([z.number(), z.string()]).nullable().optional()
+    .transform(value => value == null ? value : String(value)),
+  pallets: z.union([z.number(), z.string()]).nullable().optional()
+    .transform(value => value == null ? value : String(value)),
   hasExchanges: z.boolean().optional(), origin: z.enum(["manual", "imported"]).optional(),
   observation: z.string().nullable().optional(),
 });
