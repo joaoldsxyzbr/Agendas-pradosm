@@ -263,10 +263,7 @@ storeAgendaRoutes.get("/history/:date", async (c) => {
   }
   const result = await agendaDetails(c.env.DB, user.lojaId, parsed.data);
   if (!result) {
-    return c.json(
-      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda n\xE3o encontrada." },
-      404
-    );
+    return c.json({ agenda: null, appointments: [] });
   }
   return c.json(result);
 });

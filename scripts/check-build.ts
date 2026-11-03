@@ -17,7 +17,7 @@ for (const needle of ["Fornecedor sem agenda", "Exportar PDF", "Detalhes do agen
   if (!bundle.includes(needle)) throw Error("Funcionalidade ausente do bundle: " + needle);
 }
 const security = read("_headers");
-if (!security.includes("script-src 'self' 'wasm-unsafe-eval';"))
+if (!security.includes("script-src 'self' 'wasm-unsafe-eval' https://static.cloudflareinsights.com;"))
   throw Error("CSP de produção diferente. Revisão de segurança necessária.");
 if (existsSync(join(dist, "frontend")) || existsSync(join(dist, "vendor")))
   throw Error("Artefatos da UI legada não devem mais existir no dist.");
