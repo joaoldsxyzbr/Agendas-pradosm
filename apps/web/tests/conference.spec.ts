@@ -175,6 +175,20 @@ test("Conferente React edita e limpa observação opcional",async({page})=>{
   expect(cleared.payload).toEqual({observation:null});
 });
 
+test("Conferente React remove observação com botão dedicado",async({page})=>{
+  const requests=await setup(page);
+  const row=page.getByTestId("conference-row-a1");
+  await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
+  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Sem pedido");
+  await row.getByRole("button",{name:"Confirmar",exact:true}).click();
+  await expect(row).toContainText("Obs.: Sem pedido");
+  await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
+  await row.getByRole("button",{name:"Remover observação"}).click();
+  await expect(row.getByText("Obs.: Sem pedido")).toHaveCount(0);
+  const removed=requests.filter(x=>x.path.endsWith("/a1/observation")).at(-1);
+  expect(removed.payload).toEqual({observation:null});
+});
+
 test("Conferente React exporta a agenda em PDF",async({page})=>{
   await setup(page);
   const downloadPromise=page.waitForEvent("download");
