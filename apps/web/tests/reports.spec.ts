@@ -161,3 +161,25 @@ test("Relatório React restaura os filtros salvos ao recarregar", async ({ page 
   await expect(page.locator('summary[aria-label="Editar período e lojas"]')).toContainText("05/10/2026 a 26/10/2026");
   await expect.poll(() => requests.filter(x => x.path === "/api/admin/reports" && x.start === "2026-10-05" && x.end === "2026-10-26").length).toBeGreaterThanOrEqual(2);
 });
+
+test("Rosca do relatório mantém o rótulo central dentro do anel colorido", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin/reports");
+  const label = page.getByTestId("donut-center-label");
+  await expect(label).toHaveText("agendamentos");
+  const inside = await page.evaluate(() => {
+    const label = document.querySelector('[data-testid="donut-center-label"]');
+    const circle = document.querySelector('[data-testid="donut-center"]');
+    if (!label || !circle) return false;
+    const box = label.getBoundingClientRect();
+    const area = circle.getBoundingClientRect();
+    const cx = area.left + area.width / 2;
+    const cy = area.top + area.height / 2;
+    const radius = area.width / 2;
+    const corners: [number, number][] = [
+      [box.left, box.top], [box.right, box.top], [box.left, box.bottom], [box.right, box.bottom],
+    ];
+    return corners.every(([x, y]) => Math.hypot(x - cx, y - cy) <= radius);
+  });
+  expect(inside).toBe(true);
+});

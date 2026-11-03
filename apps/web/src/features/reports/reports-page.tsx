@@ -211,9 +211,9 @@ function Donut({ sum }: { sum: Totals }) {
   return <div className="flex flex-wrap items-center gap-5">
     <div className="relative size-32 shrink-0 rounded-full" style={{ background: "conic-gradient(" + stops + ")" }}
       role="img" aria-label={"Distribuição dos " + numberBR(sum.total) + " agendamentos por situação."}>
-      <div className="absolute inset-[22%] flex flex-col items-center justify-center rounded-full bg-[#142338]">
-        <strong className="text-xl font-bold tabular-nums text-white">{numberBR(sum.total)}</strong>
-        <small className="text-[10px] text-slate-400">agendamentos</small>
+      <div data-testid="donut-center" className="absolute inset-[20%] flex flex-col items-center justify-center rounded-full bg-[#142338]">
+        <strong className="text-xl font-bold leading-none tabular-nums text-white">{numberBR(sum.total)}</strong>
+        <small data-testid="donut-center-label" className="mt-0.5 whitespace-nowrap text-[9px] leading-none text-slate-400">agendamentos</small>
       </div>
     </div>
     <ul className="min-w-0 flex-1 space-y-1.5">{shown.map(status => <li key={status.key} className="flex items-center justify-between gap-2 text-xs">
