@@ -11,8 +11,12 @@ function buildState() {
       { id: uuid(11), storeCode: "F02", storeName: "Unidade Sul", date: "2026-10-28", dayStatus: "aberto", total: 5, recebido: 2, aguardando: 3, naoChegou: 0, recusado: 0, semAgenda: 0 },
     ],
     appointments: [
-      { id: uuid(20), supplier: "Distribuidora Alfa", protocol: "P100", startTime: "08:00", endTime: "10:00", status: "recebido", hasExchanges: false, origin: "imported", observation: null },
-      { id: uuid(21), supplier: "Transporte Beta", protocol: "P101", startTime: "10:00", endTime: "12:00", status: "aguardando", hasExchanges: true, origin: "manual", observation: null },
+      { id: uuid(20), supplier: "Distribuidora Alfa", protocol: "P100", startTime: "08:00", endTime: "10:00", status: "recebido", hasExchanges: false, origin: "imported", observation: null,
+        // Contrato real do Worker: agendamento importado com contadores numéricos.
+        type: "Nota fiscal", items: 5, volumes: 50, pallets: 1, cargaBatida: "Normal", nfe: ["45427"], orders: ["47121"] },
+      { id: uuid(21), supplier: "Transporte Beta", protocol: "P101", startTime: "10:00", endTime: "12:00", status: "aguardando", hasExchanges: true, origin: "manual", observation: null,
+        // Fornecedor manual: contadores e tipo chegam como null — antes quebrava o parse do detalhe.
+        type: "Sem agenda", items: null, volumes: null, pallets: null, cargaBatida: null, nfe: [], orders: [] },
     ],
   };
 }
