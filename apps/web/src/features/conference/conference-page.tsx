@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftRight, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { downloadAgendaPdf } from "./export-agenda-pdf";
 import { useStoreRealtime } from "./use-store-realtime";
 import {
   businessToday, shiftDay, loadStoreAgenda, filterAppointments, metricValues,
+  nextAgendaSort, sortAppointments, type AgendaSort, type AgendaSortKey,
   patchStoreExchanges, patchStoreStatus, patchStoreObservation,
   createManualAppointment, patchManualSupplier, deleteManualSupplier,
   getStoreAppointmentDetail, completeStoreDay, type StoreAppointment, type StoreAppointmentDetail,
@@ -18,6 +19,13 @@ import {
 const reasonOptions = ["Sem agenda", "Sem pedido", "Sem boleto", "Prazo de pagamento incorreto", "Temperatura acima do OK", "Não veio"];
 const statusLabels = { aguardando:"Aguardando", recebido:"Recebido", nao_chegou:"Não recebido", recusado:"Recusado" } as const;
 type StatusKey = keyof typeof statusLabels;
+const sortableColumns: { key: AgendaSortKey; label: string; width: string }[] = [
+  { key: "startTime", label: "Horário", width: "w-[96px]" },
+  { key: "supplier", label: "Fornecedor", width: "" },
+  { key: "protocol", label: "Protocolo", width: "w-[100px]" },
+  { key: "type", label: "Tipo", width: "w-[104px]" },
+  { key: "status", label: "Status", width: "w-[116px]" },
+];
 function displayStatus(status: string, observation?: string | null) {
   if (status === "nao_chegou" && observation === "Não compareceu") return "Não compareceu";
   return statusLabels[status as StatusKey] ?? status;
@@ -237,93 +245,113 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
     if(required&&!value){setNoteError("Selecione um motivo para Não recebido.");return;}
     patch.mutate({kind:"observation",observation:value||null});
   };
-  return <article data-testid={`conference-row-${item.id}`} className="rounded-md border border-[#36516d] bg-[#1a2c41] px-2.5 py-1.5">
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="shrink-0 text-[11px] tabular-nums text-slate-300">{item.startTime}{item.endTime ? "–"+item.endTime : ""}</span>
-      <strong className="min-w-0 flex-1 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
-      <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{item.protocol}</span>
-      {item.type && <span className="hidden shrink-0 text-[11px] text-slate-400 sm:inline">{item.type}</span>}
-      <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
-        {displayStatus(item.status,item.observation)}
-      </StatusBadge>
-      {item.origin==="manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
-      <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
-        {!readOnly && <>
-          <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
-            aria-pressed={item.status==="recebido"} title={item.status==="recebido"?"Desmarcar recebido":"Marcar como recebido"}
-            aria-label={item.status==="recebido"?"Desmarcar recebido":"Recebido"} onClick={()=>changeStatus("recebido")}>
-            <Check size={15} aria-hidden="true"/>
-          </Button>
-          <Button size="icon" className="h-7 w-7" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
-            aria-pressed={item.status==="nao_chegou"} title={item.status==="nao_chegou"?"Desmarcar não recebido":"Marcar como não recebido"}
-            aria-label={item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"} onClick={()=>changeStatus("nao_chegou")}>
-            <X size={15} aria-hidden="true"/>
-          </Button>
-          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={inactive}
-            aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
-            {item.observation ? "Editar observação" : "+ Obs."}
-          </Button>
-          {item.origin==="manual" && <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
-            title={`Editar fornecedor ${item.supplier}`} aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
-            <Pencil size={13} aria-hidden="true" />
-          </Button>}
-        </>}
+  return <tbody data-testid={`conference-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
+    <tr className="align-middle">
+      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-300">
+        {item.startTime||item.endTime ? <>{item.startTime}{item.endTime ? "–"+item.endTime : ""}</> : "—"}
+        {day && <span className="sr-only">Agenda de {day}</span>}
+      </td>
+      <td className="px-2.5 py-1.5">
+        <div className="flex items-center gap-1.5">
+          <strong className="min-w-0 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
+          {item.origin==="manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+        </div>
+      </td>
+      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-400">{item.protocol}</td>
+      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-400">{item.type ?? "—"}</td>
+      <td className="whitespace-nowrap px-2.5 py-1.5">
+        <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
+          {displayStatus(item.status,item.observation)}
+        </StatusBadge>
+      </td>
+      <td className="px-2.5 py-1.5">
+        <div className="flex flex-wrap items-center gap-1.5">
+          {!readOnly && <>
+            <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
+              aria-pressed={item.status==="recebido"} title={item.status==="recebido"?"Desmarcar recebido":"Marcar como recebido"}
+              aria-label={item.status==="recebido"?"Desmarcar recebido":"Recebido"} onClick={()=>changeStatus("recebido")}>
+              <Check size={15} aria-hidden="true"/>
+            </Button>
+            <Button size="icon" className="h-7 w-7" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
+              aria-pressed={item.status==="nao_chegou"} title={item.status==="nao_chegou"?"Desmarcar não recebido":"Marcar como não recebido"}
+              aria-label={item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"} onClick={()=>changeStatus("nao_chegou")}>
+              <X size={15} aria-hidden="true"/>
+            </Button>
+            {item.origin==="manual" && <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
+              title={`Editar fornecedor ${item.supplier}`} aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
+              <Pencil size={13} aria-hidden="true" />
+            </Button>}
+          </>}
+          {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
+            onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
+        </div>
+      </td>
+      <td className="px-2.5 py-1.5">
         <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-200">
           <input aria-label={`Trocas de ${item.supplier}`} type="checkbox" className="size-4 accent-sky-500"
             checked={item.hasExchanges} disabled={inactive}
             onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
         </label>
-        {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
-          title={item.observation}>Obs.: {item.observation}</span>}
-        {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
-          onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
-      </div>
-    </div>
-    {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
-    {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
-      <label className="block text-xs text-slate-200">Motivo obrigatório
-        <select aria-label={`Motivo de ${item.supplier}`} value={reason} onChange={event=>setReason(event.target.value)}
-          className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
-          <option value="">Selecione o motivo</option>
-          {reasonOptions.map(value=><option key={value}>{value}</option>)}
-          <option value="Outros">Personalizado</option>
-        </select>
-      </label>
-      {reason==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
-        <textarea maxLength={242} rows={2} value={other} onChange={event=>setOther(event.target.value)}
-          className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
-      </label>}
-      <div className="flex gap-2">
-        <Button size="sm" disabled={patch.isPending||!reason||(reason==="Outros"&&!other.trim())} onClick={sendReason}>Confirmar motivo</Button>
-        <Button size="sm" variant="secondary" disabled={patch.isPending} onClick={()=>{setReasonOpen(false);setReason("");setOther("");}}>Cancelar</Button>
-      </div>
-    </section>}
-    {noteOpen && !readOnly && <section aria-label={`Observação de ${item.supplier}`} className="space-y-2 rounded-lg border border-sky-500/40 bg-[#203650] p-3">
-      <p className="text-xs font-semibold text-slate-100">
-        Observação — {item.supplier} <span className="font-normal text-slate-400">({item.status==="nao_chegou"?"obrigatória":"opcional"})</span>
-      </p>
-      <label className="block text-xs text-slate-200">Motivo
-        <select aria-label={`Editar observação de ${item.supplier}`} value={note} disabled={inactive}
-          onChange={event=>{setNote(event.target.value);setNoteError("");}}
-          className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
-          <option value="">Sem observação</option>
-          {reasonOptions.map(value=><option key={value}>{value}</option>)}
-          <option value="Outros">Personalizado</option>
-        </select>
-      </label>
-      {note==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
-        <textarea maxLength={242} rows={2} value={noteCustom} disabled={inactive}
-          onChange={event=>{setNoteCustom(event.target.value);setNoteError("");}}
-          className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
-      </label>}
-      {noteError && <p role="alert" className="text-xs text-rose-300">{noteError}</p>}
-      <div className="flex gap-2">
-        <Button size="sm" disabled={inactive} onClick={sendNote}>{patch.isPending?"Salvando…":"Confirmar"}</Button>
-        <Button size="sm" variant="secondary" disabled={inactive} onClick={()=>{setNoteOpen(false);setNoteError("");}}>Cancelar</Button>
-      </div>
-    </section>}
-    {day && <span className="sr-only">Agenda de {day}</span>}
-  </article>;
+      </td>
+      <td className="max-w-[280px] px-2.5 py-1.5">
+        <div className="flex items-center gap-1.5">
+          {item.observation && <span className="min-w-0 flex-1 truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>}
+          {!readOnly && <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-[11px]" disabled={inactive}
+            aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
+            {item.observation ? "Editar observação" : "+ Obs."}
+          </Button>}
+          {!item.observation && readOnly && <span className="text-[11px] text-slate-500">—</span>}
+        </div>
+      </td>
+    </tr>
+    {(patch.isError || ((reasonOpen || noteOpen) && !readOnly)) && <tr>
+      <td colSpan={8} className="px-2.5 pb-2.5">
+        {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
+        {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
+          <label className="block text-xs text-slate-200">Motivo obrigatório
+            <select aria-label={`Motivo de ${item.supplier}`} value={reason} onChange={event=>setReason(event.target.value)}
+              className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
+              <option value="">Selecione o motivo</option>
+              {reasonOptions.map(value=><option key={value}>{value}</option>)}
+              <option value="Outros">Personalizado</option>
+            </select>
+          </label>
+          {reason==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
+            <textarea maxLength={242} rows={2} value={other} onChange={event=>setOther(event.target.value)}
+              className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
+          </label>}
+          <div className="flex gap-2">
+            <Button size="sm" disabled={patch.isPending||!reason||(reason==="Outros"&&!other.trim())} onClick={sendReason}>Confirmar motivo</Button>
+            <Button size="sm" variant="secondary" disabled={patch.isPending} onClick={()=>{setReasonOpen(false);setReason("");setOther("");}}>Cancelar</Button>
+          </div>
+        </section>}
+        {noteOpen && !readOnly && <section aria-label={`Observação de ${item.supplier}`} className="space-y-2 rounded-lg border border-sky-500/40 bg-[#203650] p-3">
+          <p className="text-xs font-semibold text-slate-100">
+            Observação — {item.supplier} <span className="font-normal text-slate-400">({item.status==="nao_chegou"?"obrigatória":"opcional"})</span>
+          </p>
+          <label className="block text-xs text-slate-200">Motivo
+            <select aria-label={`Editar observação de ${item.supplier}`} value={note} disabled={inactive}
+              onChange={event=>{setNote(event.target.value);setNoteError("");}}
+              className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
+              <option value="">Sem observação</option>
+              {reasonOptions.map(value=><option key={value}>{value}</option>)}
+              <option value="Outros">Personalizado</option>
+            </select>
+          </label>
+          {note==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
+            <textarea maxLength={242} rows={2} value={noteCustom} disabled={inactive}
+              onChange={event=>{setNoteCustom(event.target.value);setNoteError("");}}
+              className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
+          </label>}
+          {noteError && <p role="alert" className="text-xs text-rose-300">{noteError}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" disabled={inactive} onClick={sendNote}>{patch.isPending?"Salvando…":"Confirmar"}</Button>
+            <Button size="sm" variant="secondary" disabled={inactive} onClick={()=>{setNoteOpen(false);setNoteError("");}}>Cancelar</Button>
+          </div>
+        </section>}
+      </td>
+    </tr>}
+  </tbody>;
 }
 
 export function ConferencePage(){
@@ -331,6 +359,7 @@ export function ConferencePage(){
   const [today,setToday]=useState(()=>businessToday());
   const [date,setDate]=useState(today);
   const [search,setSearch]=useState("");
+  const [sort,setSort]=useState<AgendaSort>(null);
   const [confirmComplete,setConfirmComplete]=useState(false);
   const [manualTarget,setManualTarget]=useState<{mode:"create"}|{mode:"edit";item:StoreAppointment}|null>(null);
   const [detailsId,setDetailsId]=useState<string|null>(null);
@@ -360,8 +389,9 @@ export function ConferencePage(){
   const appointments=query.data?.appointments??[];
   const metrics=metricValues(appointments);
   const filtered=useMemo(()=>filterAppointments(appointments,search),[appointments,search]);
+  const sorted=useMemo(()=>sortAppointments(filtered,sort),[filtered,sort]);
   const readOnly=agenda?.dayStatus!=="aberto";
-  const changeDate=(next:string)=>{setDate(next);setSearch("");setConfirmComplete(false);setManualTarget(null);setDetailsId(null);};
+  const changeDate=(next:string)=>{setDate(next);setSearch("");setSort(null);setConfirmComplete(false);setManualTarget(null);setDetailsId(null);};
   const pct=(count:number)=>metrics.total?Math.round(count/metrics.total*100):0;
 
   return <section aria-label="Conferência" className="mx-auto max-w-[1430px] space-y-4">
@@ -424,11 +454,35 @@ export function ConferencePage(){
               onClick={()=>setManualTarget({mode:"create"})}><Plus size={13}/>Fornecedor sem agenda</Button>}
           </div>
         </div>
-        <div className="grid gap-1" aria-label="Fornecedores">
-          {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-            onUpdated={refresh}
-            onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
-          {filtered.length===0 && <p role="status" className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
+        <div className="overflow-x-auto rounded-lg border border-[#36516d]" aria-label="Fornecedores">
+          <table className="w-full min-w-[960px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#36516d] bg-[#16283c] text-[11px] uppercase tracking-wide text-slate-400">
+                {sortableColumns.map(column=>{
+                  const ariaSort=!sort||sort.key!==column.key ? "none"
+                    : sort.direction==="ascending" ? "ascending" : "descending";
+                  return <th key={column.key} scope="col" aria-sort={ariaSort}
+                    className={`whitespace-nowrap px-2.5 py-2 font-semibold ${column.width}`}>
+                    <button type="button" title={`Ordenar por ${column.label}`}
+                      className={`flex w-full items-center gap-1 uppercase ${ariaSort==="none" ? "hover:text-slate-100" : "text-slate-100"}`}
+                      onClick={()=>setSort(current=>nextAgendaSort(current,column.key))}>
+                      {column.label}
+                      {ariaSort==="ascending" && <ArrowUp size={12} aria-hidden="true"/>}
+                      {ariaSort==="descending" && <ArrowDown size={12} aria-hidden="true"/>}
+                      {ariaSort==="none" && <ArrowUpDown size={12} aria-hidden="true" className="opacity-40"/>}
+                    </button>
+                  </th>;
+                })}
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[160px]">Ações</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[280px]">Obs.</th>
+              </tr>
+            </thead>
+            {sorted.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
+              onUpdated={refresh}
+              onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
+            {sorted.length===0 && <tbody><tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr></tbody>}
+          </table>
         </div>
       </section>
       <div className="flex flex-wrap items-center justify-end gap-2">

@@ -233,6 +233,41 @@ test("Conferente React mostra tela sem agenda, sem oferecer conclusões",async({
   await expect(page.getByRole("button",{name:"Concluir dia"})).toHaveCount(0);
   await expect(page.getByRole("button",{name:"Exportar PDF"})).toHaveCount(0);
 });
+test("Conferente React ordena por coluna clicável em ciclo crescente decrescente e normal",async({page})=>{
+  await setup(page);
+  const header=page.getByRole("columnheader",{name:"Fornecedor"});
+  const order=async()=>page.locator('[data-testid^="conference-row-"]').evaluateAll(rows=>rows.map(row=>row.getAttribute("data-testid")));
+  await expect(header).toHaveAttribute("aria-sort","none");
+  expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort","ascending");
+  expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort","descending");
+  expect(await order()).toEqual(["conference-row-a2","conference-row-a1"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort","none");
+  expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
+});
+
+test("Conferente React ordena por horário e tipo e combina com a busca",async({page})=>{
+  await setup(page);
+  const order=async()=>page.locator('[data-testid^="conference-row-"]').evaluateAll(rows=>rows.map(row=>row.getAttribute("data-testid")));
+  const horario=page.getByRole("columnheader",{name:"Horário"});
+  await horario.click();
+  await expect(horario).toHaveAttribute("aria-sort","ascending");
+  expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
+  await horario.click();
+  await expect(horario).toHaveAttribute("aria-sort","descending");
+  expect(await order()).toEqual(["conference-row-a2","conference-row-a1"]);
+  const tipo=page.getByRole("columnheader",{name:"Tipo"});
+  await tipo.click();
+  await expect(tipo).toHaveAttribute("aria-sort","ascending");
+  expect(await order()).toEqual(["conference-row-a2","conference-row-a1"]);
+  await page.getByRole("searchbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("outro");
+  await expect(page.getByTestId("conference-row-a1")).toHaveCount(0);
+  await expect(page.getByTestId("conference-row-a2")).toBeVisible();
+});
 test("Conferente React é responsivo e não cria rolagem horizontal da página",async({page})=>{
   await page.setViewportSize({width:390,height:844});
   await setup(page);
