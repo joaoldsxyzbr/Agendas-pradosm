@@ -65,17 +65,23 @@ export function filterAppointments(items: StoreAppointment[], text: string) {
 }
 export type AgendaSortKey = "startTime" | "supplier" | "protocol" | "type" | "status";
 export type AgendaSort = { key: AgendaSortKey; direction: "ascending" | "descending" } | null;
+// Contrato estrutural para reutilizar a mesma ordenação em outras telas
+// (ex.: diálogo de detalhes da agenda do admin) sem acoplar tipos de feature.
+export type SortableAppointment = {
+  startTime: string; endTime: string; supplier: string; protocol: string;
+  type?: string | null; status: string;
+};
 const agendaCollator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
 export function nextAgendaSort(current: AgendaSort, key: AgendaSortKey): AgendaSort {
   if (!current || current.key !== key) return { key, direction: "ascending" };
   if (current.direction === "ascending") return { key, direction: "descending" };
   return null;
 }
-export function sortAppointments(items: StoreAppointment[], sort: AgendaSort) {
+export function sortAppointments<T extends SortableAppointment>(items: T[], sort: AgendaSort): T[] {
   if (!sort) return items;
   const active = sort;
   const factor = active.direction === "ascending" ? 1 : -1;
-  const value = (item: StoreAppointment) => {
+  const value = (item: T) => {
     if (active.key === "startTime") return item.startTime || item.endTime || "";
     if (active.key === "type") return item.type ?? "";
     return item[active.key];

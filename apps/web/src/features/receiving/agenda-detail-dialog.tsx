@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Pencil, Plus, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUpDown, ArrowUp, Pencil, Plus, Search, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { ApiError } from "@/lib/api";
+import { nextAgendaSort, sortAppointments, type AgendaSort, type AgendaSortKey } from "@/features/conference/model";
 import {
   addManualSupplier, deleteManualSupplier, getAgendaDetail,
   renameManualSupplier, reopenAgenda,
@@ -17,6 +18,14 @@ const statusInfo: Record<string, { label: string; tone: "success" | "warning" | 
   nao_chegou: { label: "Não recebido", tone: "danger" },
   recusado: { label: "Recusado", tone: "danger" },
 };
+// Mesmas colunas ordenáveis da tela de Conferência, com o mesmo ciclo de ordenação.
+const sortableColumns: { key: AgendaSortKey; label: string; width: string }[] = [
+  { key: "startTime", label: "Horário", width: "w-[96px]" },
+  { key: "supplier", label: "Fornecedor", width: "" },
+  { key: "protocol", label: "Protocolo", width: "w-[100px]" },
+  { key: "type", label: "Tipo", width: "w-[104px]" },
+  { key: "status", label: "Status", width: "w-[116px]" },
+];
 type ManualAction =
   | { type: "add" }
   | { type: "rename"; id: string; name: string }
@@ -36,6 +45,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
   const ref = useRef<HTMLDialogElement>(null);
   const client = useQueryClient();
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<AgendaSort>(null);
   const [editMode, setEditMode] = useState(false);
   const [reopenConfirmation, setReopenConfirmation] = useState(false);
   const [manualAction, setManualAction] = useState<ManualAction | null>(null);
@@ -81,10 +91,15 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
     return () => { if (dialog.open) dialog.close(); };
   }, []);
 
-  const appointments = query.data?.appointments.filter(item => {
+  const filtered = (query.data?.appointments ?? []).filter(item => {
     const term = search.trim().toLocaleLowerCase("pt-BR");
     return !term || `${item.supplier} ${item.protocol}`.toLocaleLowerCase("pt-BR").includes(term);
-  }) ?? [];
+  });
+  // Ordem padrão igual à Conferência: horário e protocolo sem ordenação ativa.
+  const appointments = sortAppointments(
+    [...filtered].sort((a, b) => a.startTime.localeCompare(b.startTime) || a.protocol.localeCompare(b.protocol)),
+    sort,
+  );
   const agenda = query.data?.agenda;
   const completed = agenda?.dayStatus === "concluido";
   const editable = canEdit && editMode;
@@ -114,7 +129,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
         ref.current?.close();
       }
     }}
-    className="m-auto max-h-[min(92dvh,900px)] w-[min(94vw,850px)] max-w-none overflow-y-auto rounded-xl border border-[#45617c] bg-[#162538] p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
+    className="m-auto max-h-[min(92dvh,900px)] w-[min(94vw,1100px)] max-w-none overflow-y-auto rounded-xl border border-[#45617c] bg-[#162538] p-0 text-slate-100 shadow-2xl backdrop:bg-black/75">
     <div className="sticky top-0 z-10 flex items-center justify-between gap-3 border-b border-[#34516d] bg-[#1a2b40] px-4 py-3">
       <div className="min-w-0">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-sky-400">Agenda por loja</p>
@@ -201,35 +216,68 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
             </div>
           </form>}
         </section>}
-        <div className="max-h-[45dvh] space-y-1 overflow-y-auto" aria-label="Agendamentos">
-          {appointments.length === 0 && <p className="rounded-md border border-[#37516b] p-2.5 text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</p>}
-          {appointments.map(item => {
-            const status = statusInfo[item.status] ?? { label: item.status, tone: "neutral" as const };
-            return <article key={item.id} className="rounded-md border border-[#38516e] bg-[#1b2d43] px-2.5 py-1.5">
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="shrink-0 text-[11px] tabular-nums text-slate-300">{item.startTime}–{item.endTime}</span>
-                <strong className="min-w-0 flex-1 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
-                <span className="shrink-0 text-[11px] tabular-nums text-slate-400" title={`Protocolo ${item.protocol}`}>{item.protocol}</span>
-                <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                {item.origin === "manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
-                {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
-                  title={item.observation}>Obs.: {item.observation}</span>}
-                {editable && item.origin === "manual" && <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
-                  <Button size="sm" className="h-7 px-2 text-[11px]" variant="secondary" aria-label={`Renomear ${item.supplier}`} disabled={busy}
-                    onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
-                    <Pencil size={12} aria-hidden="true" />Editar
-                  </Button>
-                  <Button size="sm" className="h-7 px-2 text-[11px]" variant="danger" aria-label={`Excluir ${item.supplier}`} disabled={busy}
-                    onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
-                    <Trash2 size={12} aria-hidden="true" />Excluir
-                  </Button>
-                </div>}
-              </div>
-              <AppointmentControls key={item.id} item={item} editable={editable}
-                disabled={busy || Boolean(manualAction) || reopenConfirmation}
-                onBusyChange={setAppointmentBusy} onSaved={refresh} />
-            </article>;
-          })}
+        <div className="max-h-[45dvh] overflow-auto rounded-lg border border-[#36516d]" aria-label="Agendamentos">
+          <table className="w-full min-w-[960px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-[#36516d] bg-[#16283c] text-[11px] uppercase tracking-wide text-slate-400">
+                {sortableColumns.map(column => {
+                  const ariaSort = !sort || sort.key !== column.key ? "none"
+                    : sort.direction === "ascending" ? "ascending" : "descending";
+                  return <th key={column.key} scope="col" aria-sort={ariaSort}
+                    className={`whitespace-nowrap px-2.5 py-2 font-semibold ${column.width}`}>
+                    <button type="button" title={`Ordenar por ${column.label}`}
+                      className={`flex w-full items-center gap-1 uppercase ${ariaSort === "none" ? "hover:text-slate-100" : "text-slate-100"}`}
+                      onClick={() => setSort(current => nextAgendaSort(current, column.key))}>
+                      {column.label}
+                      {ariaSort === "ascending" && <ArrowUp size={12} aria-hidden="true" />}
+                      {ariaSort === "descending" && <ArrowDown size={12} aria-hidden="true" />}
+                      {ariaSort === "none" && <ArrowUpDown size={12} aria-hidden="true" className="opacity-40" />}
+                    </button>
+                  </th>;
+                })}
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[160px]">Ações</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[280px]">Obs.</th>
+              </tr>
+            </thead>
+            {appointments.map(item => {
+              const status = statusInfo[item.status] ?? { label: item.status, tone: "neutral" as const };
+              return <tbody key={item.id} data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
+                <tr className="align-middle">
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-300">
+                    {item.startTime || item.endTime ? <>{item.startTime}{item.endTime ? "–" + item.endTime : ""}</> : "—"}
+                  </td>
+                  <td className="px-2.5 py-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <strong className="min-w-0 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
+                      {item.origin === "manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+                    </div>
+                  </td>
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-400" title={`Protocolo ${item.protocol}`}>{item.protocol}</td>
+                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-400">{item.type ?? "—"}</td>
+                  <td className="whitespace-nowrap px-2.5 py-1.5">
+                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+                  </td>
+                </tr>
+                <AppointmentControls key={item.id} item={item} editable={editable}
+                  disabled={busy || Boolean(manualAction) || reopenConfirmation}
+                  onBusyChange={setAppointmentBusy} onSaved={refresh}
+                  extraActions={editable && item.origin === "manual" ? <div className="flex shrink-0 flex-wrap items-center gap-1.5">
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="secondary" aria-label={`Renomear ${item.supplier}`} disabled={busy}
+                      onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
+                      <Pencil size={12} aria-hidden="true" />Editar
+                    </Button>
+                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="danger" aria-label={`Excluir ${item.supplier}`} disabled={busy}
+                      onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
+                      <Trash2 size={12} aria-hidden="true" />Excluir
+                    </Button>
+                  </div> : null} />
+              </tbody>;
+            })}
+            {appointments.length === 0 && <tbody>
+              <tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr>
+            </tbody>}
+          </table>
         </div>
         {!canEdit && <p className="border-t border-[#34516d] pt-3 text-[11px] text-slate-400">Somente consulta nesta etapa. Edição e reabertura não estão disponíveis para o perfil visualizador.</p>}
         {canEdit && <p className="border-t border-[#34516d] pt-3 text-[11px] text-slate-400">

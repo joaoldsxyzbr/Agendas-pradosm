@@ -152,6 +152,28 @@ test("Recebimento React abre consulta real de agendamentos, pesquisa e fecha com
   await expect(dialog).toHaveCount(0);
 });
 
+test("Agenda por loja React ordena por coluna clicável em ciclo crescente decrescente e normal", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
+  const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
+  await expect(dialog).toBeVisible();
+  const header = dialog.getByRole("columnheader", { name: "Fornecedor" });
+  const order = async () => dialog.locator('[data-testid^="detail-row-"]').evaluateAll(rows => rows.map(row => row.getAttribute("data-testid")));
+  await expect(header).toHaveAttribute("aria-sort", "none");
+  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort", "ascending");
+  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort", "descending");
+  expect(await order()).toEqual(["detail-row-a2", "detail-row-a1"]);
+  await header.click();
+  await expect(header).toHaveAttribute("aria-sort", "none");
+  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+});
+
 test("Recebimento React aplica permissões e impede importação não migrada", async ({ page }) => {
   await mock(page, "visualizador");
   await page.goto("/admin");
