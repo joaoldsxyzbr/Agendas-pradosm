@@ -5,7 +5,7 @@ const fixture = readFileSync(new URL("../../../tests/fixtures/agenda-todas-lojas
 const admin = { id: "adm", nome: "Admin Teste", papel: "admin" };
 const viewer = { id: "view", nome: "Visualizador", papel: "visualizador" };
 
-async function setup(page, { conflict = false, role = "admin" } = {}) {
+async function setup(page, { conflict = false, missingStores = false, role = "admin" } = {}) {
   const submissions = [];
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
@@ -19,6 +19,13 @@ async function setup(page, { conflict = false, role = "admin" } = {}) {
     if (path === "/api/admin/agendas/import/bulk" && method === "POST") {
       const payload = route.request().postDataJSON();
       submissions.push(payload);
+      if (missingStores) {
+        return route.fulfill({ status: 422, json: {
+          error: "LOJAS_NAO_ENCONTRADAS",
+          message: "Uma ou mais lojas do arquivo não estão cadastradas ou estão inativas.",
+          stores: ["CD DOCA 07"],
+        } });
+      }
       if (conflict && !payload.agendas.every(a => a.replace === true)) {
         return route.fulfill({ status: 409, json: { error: "AGENDAS_JA_EXISTEM", message: "Agendas existentes" } });
       }
@@ -63,6 +70,15 @@ test("CSV React: conflito 409 exige segunda confirmação explícita", async ({ 
   await expect(page.getByRole("status", { name: "Importação concluída" })).toBeVisible();
   expect(submissions).toHaveLength(2);
   expect(submissions[1].agendas.every(a => a.replace === true)).toBe(true);
+});
+
+test("CSV React: 422 lista as lojas do arquivo não cadastradas", async ({ page }) => {
+  const submissions = await setup(page, { missingStores: true });
+  await upload(page);
+  await page.getByRole("button", { name: "Confirmar importação" }).click();
+  await expect(page.getByText(/não cadastradas ou inativas/)).toContainText("CD DOCA 07");
+  await expect(page.getByRole("button", { name: "Substituir agendas existentes" })).toHaveCount(0);
+  expect(submissions).toHaveLength(1);
 });
 
 test("CSV React: erro bloqueante impede envio", async ({ page }) => {

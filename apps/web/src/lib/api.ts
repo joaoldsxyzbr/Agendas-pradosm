@@ -1,7 +1,8 @@
 import { z } from "zod";
 
 export class ApiError extends Error {
-  constructor(readonly status: number, readonly code: string | null, message: string) {
+  constructor(readonly status: number, readonly code: string | null, message: string,
+    readonly details: Record<string, unknown> | null = null) {
     super(message);
     this.name = "ApiError";
   }
@@ -14,10 +15,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (!response.ok) {
     const body: unknown = await response.json().catch(() => null);
     const error = z.object({ error: z.string().optional(), message: z.string().optional() }).safeParse(body);
+    const details = body && typeof body === "object" && !Array.isArray(body)
+      ? body as Record<string, unknown>
+      : null;
     throw new ApiError(
       response.status,
       error.success ? error.data.error ?? null : null,
       error.success ? error.data.message ?? "Não foi possível concluir a operação." : "Não foi possível concluir a operação.",
+      details,
     );
   }
   if (response.status === 204) return undefined as T;
