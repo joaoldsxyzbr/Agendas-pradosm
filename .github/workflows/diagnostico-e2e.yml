@@ -1,0 +1,49 @@
+name: Diagnostico E2E (temporario)
+
+on:
+  push:
+    branches: [feat/tela-agendas-digitado]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: diagnostico-e2e-temporario
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    name: E2E com log publicado no PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+          cache: npm
+      - name: Dependencias reproduziveis
+        run: npm ci --legacy-peer-deps
+      - name: Preparar Chromium
+        run: npx playwright install --with-deps chromium
+      - name: E2E React isolado com dados sinteticos
+        env:
+          CI: "true"
+        run: |
+          set -o pipefail
+          npx playwright test --config apps/web/playwright.config.mjs 2>&1 | tee e2e-diag.log
+      - name: Publicar log no PR
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "Diagnostico E2E do workflow temporario (commit ${{ github.sha }})."
+            echo ""
+            echo '```'
+            tail -n 250 e2e-diag.log
+            echo '```'
+          } > comentario-diag.md
+          gh pr comment 175 --repo "${{ github.repository }}" --body-file comentario-diag.md
