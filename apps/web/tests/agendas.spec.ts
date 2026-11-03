@@ -37,7 +37,8 @@ async function mock(page, role = "admin", options = {}) {
     if (path === "/api/auth/me") return json(role === "viewer" ? viewer : admin);
     if (path === "/api/realtime/config") return json({ mode: "off", protocolVersion: 1 });
     if (path === "/api/admin/agendas" && method === "GET") return json(boardsNow);
-    const digitadoMatch = new RegExp("^/api/admin/agendas/([^/]+)/digitado$").exec(path);
+    const digitadoMatch = new RegExp("
+^/api/admin/agendas/([^/]+)/digitado$").exec(path);
     if (digitadoMatch && method === "PATCH") {
       if (options.conflict) return route.fulfill({ status: 409, json: { error: "CONFLITO_ESTADO", message: "Este registro mudou. Atualize a tela e tente novamente." } });
       const id = digitadoMatch[1];
@@ -73,7 +74,8 @@ test("Tela Agendas lista importações por loja com marcação de digitação", 
   await expect(page.getByLabel("Agendas do dia").locator("strong")).toHaveText(["2", "1", "1"]);
 });
 
-test("Tela Agendas marca e desmarca a digitação para o conferente", async ({ page }) => {
+test("Tela Agendas marca e desmarca a digitação para o conferente", async 
+({ page }) => {
   const spy = await mock(page);
   await page.goto("/admin/agendas");
   await page.getByTestId("agendas-row-F02").getByRole("button", { name: "Marcar como digitada" }).click();
@@ -96,7 +98,7 @@ test("Tela Agendas preserva aviso em conflito de digitação", async ({ page }) 
 test("Visualizador não acessa a tela de Agendas", async ({ page }) => {
   await mock(page, "viewer");
   await page.goto("/admin/agendas");
-  await expect(page).toHaveURL(//admin$/);
+  await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("link", { name: "Agendas" })).toHaveCount(0);
 });
 
@@ -108,5 +110,6 @@ test("Tela Agendas abre a consulta de agendamentos da loja", async ({ page }) =>
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("Fornecedor Azul")).toBeVisible();
   await page.keyboard.press("Escape");
-  await expect(dialog).toHaveCount(0);
+  await expect(dialog).t
+oHaveCount(0);
 });
