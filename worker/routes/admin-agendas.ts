@@ -23,6 +23,7 @@ import {
   listAppointmentHistory,
   listAppointmentsByAgenda,
   replaceAgendaImport,
+  setAgendaDigitado,
   softDeleteManualAppointment,
   updateManualAppointmentSupplier
 } from "../repositories/agendas.ts";
@@ -74,6 +75,8 @@ function agendaJson(agenda) {
     dayStatus: agenda.status_dia,
     completedAt: agenda.concluido_em,
     completedBy: agenda.concluido_por ? { id: agenda.concluido_por, name: agenda.concluido_por_nome } : null,
+    digitadoEm: agenda.digitado_em ?? null,
+    digitadoPor: agenda.digitado_por ? { id: agenda.digitado_por, name: agenda.digitado_por_nome ?? "Usuário" } : null,
     createdBy: agenda.criado_por,
     createdAt: agenda.criado_em,
     updatedAt: agenda.atualizado_em
@@ -394,6 +397,49 @@ adminAgendaRoutes.patch("/:id/status", async (c) => {
     );
   }
 });
+const AgendaDigitadoInput = z.object({
+  digitado: z.boolean()
+});
+adminAgendaRoutes.patch("/:id/digitado", async (c) => {
+  const parsed = AgendaDigitadoInput.safeParse(
+    await c.req.json().catch(() => null)
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Marcação de digitação inválida." },
+      400
+    );
+  }
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404
+    );
+  }
+  const user = c.get("authUser");
+  try {
+    const updated = await setAgendaDigitado(
+      c.env.DB,
+      agenda,
+      user.id,
+      parsed.data.digitado
+    );
+    return c.json(agendaJson(updated));
+  } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
+    console.error("Agenda digitado change failed", error instanceof Error ? error.message : String(error));
+    return c.json(
+      {
+        error: "ALTERACAO_DIGITADO_FALHOU",
+        message: "A marcação de digitação não foi alterada."
+      },
+      500
+    );
+  }
+});
+
 adminAgendaRoutes.get("/:id/history", async (c) => {
   const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
   if (!agenda) {
