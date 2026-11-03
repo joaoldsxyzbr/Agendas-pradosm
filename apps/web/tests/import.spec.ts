@@ -5,7 +5,7 @@ const fixture = readFileSync(new URL("../../../tests/fixtures/agenda-todas-lojas
 const admin = { id: "adm", nome: "Admin Teste", papel: "admin" };
 const viewer = { id: "view", nome: "Visualizador", papel: "visualizador" };
 
-async function setup(page, { conflict = false, role = "admin" } = {}) {
+async function setup(page, { conflict = false, missingStores = false, role = "admin" } = {}) {
   const submissions = [];
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
@@ -19,6 +19,13 @@ async function setup(page, { conflict = false, role = "admin" } = {}) {
     if (path === "/api/admin/agendas/import/bulk" && method === "POST") {
       const payload = route.request().postDataJSON();
       submissions.push(payload);
+      if (missingStores) {
+        return route.fulfill({ status: 422, json: {
+          error: "LOJAS_NAO_ENCONTRADAS",
+          message: "Uma ou mais lojas do arquivo não estão cadastradas ou estão inativas.",
+          stores: ["CD DOCA 07"],
+        } });
+      }
       if (conflict && !payload.agendas.every(a => a.replace === true)) {
         return route.fulfill({ status: 409, json: { error: "AGENDAS_JA_EXISTEM", message: "Agendas existentes" } });
       }
@@ -34,7 +41,6 @@ async function setup(page, { conflict = false, role = "admin" } = {}) {
 }
 const upload = (page, { name = "agenda.csv", mimeType = "text/csv", buffer = fixture } = {}) =>
   page.getByLabel("Arquivo CSV ou PDF").setInputFiles({ name, mimeType, buffer });
-
 test("CSV React: prévia correta, sem gravar antes de confirmação", async ({ page }) => {
   const submissions = await setup(page);
   await upload(page);
@@ -51,7 +57,6 @@ test("CSV React: prévia correta, sem gravar antes de confirmação", async ({ p
   expect(submissions[0].agendas.flatMap(a => a.appointments).every(a => !("status" in a))).toBe(true);
   await expect(page.getByRole("button", { name: "Confirmar importação" })).toHaveCount(0);
 });
-
 test("CSV React: conflito 409 exige segunda confirmação explícita", async ({ page }) => {
   const submissions = await setup(page, { conflict: true });
   await upload(page);
@@ -64,7 +69,14 @@ test("CSV React: conflito 409 exige segunda confirmação explícita", async ({ 
   expect(submissions).toHaveLength(2);
   expect(submissions[1].agendas.every(a => a.replace === true)).toBe(true);
 });
-
+test("CSV React: 422 lista as lojas do arquivo não cadastradas", async ({ page }) => {
+  const submissions = await setup(page, { missingStores: true });
+  await upload(page);
+  await page.getByRole("button", { name: "Confirmar importação" }).click();
+  await expect(page.getByText(/não cadastradas ou inativas/)).toContainText("CD DOCA 07");
+  await expect(page.getByRole("button", { name: "Substituir agendas existentes" })).toHaveCount(0);
+  expect(submissions).toHaveLength(1);
+});
 test("CSV React: erro bloqueante impede envio", async ({ page }) => {
   const submissions = await setup(page);
   await upload(page, { name: "invalido.csv", buffer: Buffer.from("x;y\n1;2\n") });
@@ -72,7 +84,6 @@ test("CSV React: erro bloqueante impede envio", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Confirmar importação" })).toBeDisabled();
   expect(submissions).toHaveLength(0);
 });
-
 test("CSV React: interpreta Windows-1252 e UTF-16LE", async ({ page }) => {
   await setup(page);
   await upload(page, { name: "agenda-ansi.csv", buffer: Buffer.from(fixture.toString("utf8"), "latin1") });
@@ -81,7 +92,6 @@ test("CSV React: interpreta Windows-1252 e UTF-16LE", async ({ page }) => {
   await upload(page, { name: "agenda-utf16.csv", buffer: utf16 });
   await expect(page.getByLabel("Resumo da prévia")).toContainText("4 agendamentos");
 });
-
 test("Importação React rejeita arquivo vazio, formato estranho e arquivo maior que 10MB", async ({ page }) => {
   const submissions = await setup(page);
   await upload(page, { name: "vazio.csv", buffer: Buffer.alloc(0) });
@@ -92,20 +102,17 @@ test("Importação React rejeita arquivo vazio, formato estranho e arquivo maior
   await expect(page.getByText("O arquivo excede o limite de 10 MB.")).toBeVisible();
   expect(submissions).toHaveLength(0);
 });
-
 test("Importação React: PDF inválido não é tratado como agenda válida", async ({ page }) => {
   const submissions = await setup(page);
   await upload(page, { name: "invalid.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.4\ninvalid") });
   await expect(page.getByText("Não foi possível ler o PDF selecionado.")).toBeVisible({ timeout: 20000 });
   expect(submissions).toHaveLength(0);
 });
-
 test("Visualizador não acessa importação React", async ({ page }) => {
   await setup(page, { role: "visualizador" });
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Importar agenda" })).toHaveCount(0);
 });
-
 test("Importação React mantém conteúdo dentro do viewport móvel", async ({ page }) => {
   await setup(page);
   await page.setViewportSize({ width: 390, height: 844 });
