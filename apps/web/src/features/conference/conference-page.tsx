@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, SquarePen, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
@@ -245,6 +245,10 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
     if(required&&!value){setNoteError("Selecione um motivo para Não recebido.");return;}
     patch.mutate({kind:"observation",observation:value||null});
   };
+  const removeNote=()=>{
+    if(inactive)return;
+    patch.mutate({kind:"observation",observation:null});
+  };
   return <tbody data-testid={`conference-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
     <tr className="align-middle">
       <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-300">
@@ -281,6 +285,11 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
               title={`Editar fornecedor ${item.supplier}`} aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
               <Pencil size={13} aria-hidden="true" />
             </Button>}
+            <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
+              title={item.observation?`Editar observação de ${item.supplier}`:`Adicionar observação a ${item.supplier}`}
+              aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
+              <SquarePen size={13} aria-hidden="true"/>
+            </Button>
           </>}
           {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
             onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
@@ -293,15 +302,10 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
             onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
         </label>
       </td>
-      <td className="max-w-[280px] px-2.5 py-1.5">
-        <div className="flex items-center gap-1.5">
-          {item.observation && <span className="min-w-0 flex-1 truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>}
-          {!readOnly && <Button size="sm" variant="ghost" className="h-7 shrink-0 px-2 text-[11px]" disabled={inactive}
-            aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
-            {item.observation ? "Editar observação" : "+ Obs."}
-          </Button>}
-          {!item.observation && readOnly && <span className="text-[11px] text-slate-500">—</span>}
-        </div>
+      <td className="max-w-[220px] px-2.5 py-1.5">
+        {item.observation
+          ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
+          : <span className="text-[11px] text-slate-500">—</span>}
       </td>
     </tr>
     {(patch.isError || ((reasonOpen || noteOpen) && !readOnly)) && <tr>
@@ -344,8 +348,10 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
               className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
           </label>}
           {noteError && <p role="alert" className="text-xs text-rose-300">{noteError}</p>}
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Button size="sm" disabled={inactive} onClick={sendNote}>{patch.isPending?"Salvando…":"Confirmar"}</Button>
+            {item.observation && item.status!=="nao_chegou" && <Button size="sm" variant="danger" disabled={inactive}
+              title={`Remover a observação de ${item.supplier}`} onClick={removeNote}>Remover observação</Button>}
             <Button size="sm" variant="secondary" disabled={inactive} onClick={()=>{setNoteOpen(false);setNoteError("");}}>Cancelar</Button>
           </div>
         </section>}
@@ -409,6 +415,9 @@ export function ConferencePage(){
         </div>
         {date!==today && <Button size="sm" variant="secondary" onClick={()=>changeDate(today)}>Hoje</Button>}
         <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>void refresh()}><RefreshCw size={14}/>{query.isFetching?"Atualizando…":"Atualizar"}</Button>
+        {agenda && <Button size="sm" variant="secondary" onClick={()=>downloadAgendaPdf(agenda,appointments)}>
+          <FileDown size={14}/>Exportar PDF
+        </Button>}
         {!readOnly && <Button size="sm" disabled={complete.isPending} onClick={()=>setConfirmComplete(true)}>Concluir dia</Button>}
       </div>}/>
     {query.isPending && <p role="status" className="rounded-lg border border-[#36516d] p-4 text-sm text-slate-300">Carregando agenda…</p>}
@@ -473,9 +482,9 @@ export function ConferencePage(){
                     </button>
                   </th>;
                 })}
-                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[160px]">Ações</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[190px]">Ações</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
-                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[280px]">Obs.</th>
+                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[220px]">Obs.</th>
               </tr>
             </thead>
             {sorted.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
@@ -485,11 +494,6 @@ export function ConferencePage(){
           </table>
         </div>
       </section>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        <Button size="sm" variant="secondary" onClick={()=>downloadAgendaPdf(agenda,appointments)}>
-          <FileDown size={14}/>Exportar PDF
-        </Button>
-      </div>
       {confirmComplete && !readOnly && <section aria-label="Confirmar conclusão do dia" className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
         <strong className="text-sm text-amber-100">Concluir a agenda de {formatDay(date)}?</strong>
         <p className="text-xs text-slate-300">Após a conclusão, os registros não poderão mais ser editados pelo conferente.</p>
@@ -506,3 +510,4 @@ export function ConferencePage(){
     </>}
   </section>;
 }
+
