@@ -3,7 +3,6 @@ import { AppLayout } from "./layouts";
 import { useSession } from "./session-query";
 import { LoginPage } from "@/features/auth/login-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
-import { ImportPage } from "@/features/import/import-page";
 import { ConferencePage } from "@/features/conference/conference-page";
 import { ReportsPage } from "@/features/reports/reports-page";
 import { StoresPage } from "@/features/stores/stores-page";
@@ -49,7 +48,6 @@ export function AppRoutes() {
     <Route element={<Guard roles={["admin"]} />}>
       <Route element={<LayoutRoute />}>
         <Route path="/admin/history" element={<HistoryPage />} />
-        <Route path="/admin/import" element={<ImportPage />} />
         <Route path="/admin/stores" element={<StoresPage />} />
         <Route path="/admin/users" element={<UsersPage />} />
         <Route path="/admin/diagnostics" element={<DiagnosticsPage />} />

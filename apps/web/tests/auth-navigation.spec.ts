@@ -88,7 +88,6 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
   for (const [path, heading] of [
     ["/admin", "Recebimento"],
     ["/admin/history", "Histórico"],
-    ["/admin/import", "Importar agenda"],
     ["/admin/stores", "Lojas"],
     ["/admin/users", "Usuários"],
     ["/admin/reports", "Relatório Gerencial"],
@@ -98,8 +97,6 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
     await expect(page.getByRole("heading", { name: heading, exact: true })).toBeVisible();
     if (path === "/admin") {
       await expect(page.getByRole("heading", { name: "Recebimento por loja" })).toBeVisible();
-    } else if (path === "/admin/import") {
-      await expect(page.getByRole("group", { name: "Área para arrastar arquivos de agenda" })).toBeVisible();
     } else if (path === "/admin/history") {
       await expect(page.getByRole("form", { name: "Filtros do histórico" })).toBeVisible();
     } else if (path === "/admin/reports") {
