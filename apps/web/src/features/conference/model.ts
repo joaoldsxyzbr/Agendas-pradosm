@@ -4,14 +4,18 @@ import { businessToday, shiftDay } from "@/features/receiving/model";
 
 export const storeAppointment = z.object({
   id: z.string(), supplier: z.string(), protocol: z.string(),
-  startTime: z.string(), endTime: z.string(), type: z.string(),
+  startTime: z.string(), endTime: z.string(),
+  // Contrato do Worker: tipo como texto (ou null em registros legados) e
+  // itens/volumes/paletes como número (INTEGER no D1) ou null. Declarar como
+  // string rejeitava números e quebrava o carregamento de agendas antigas.
+  type: z.string().nullable().optional(),
   status: z.enum(["aguardando", "recebido", "nao_chegou", "recusado"]),
   hasExchanges: z.boolean().default(false),
   observation: z.string().nullable().optional(),
   origin: z.enum(["manual", "imported"]).optional(),
-  items: z.string().nullable().optional(),
-  volumes: z.string().nullable().optional(),
-  pallets: z.string().nullable().optional(),
+  items: z.union([z.number(), z.string()]).nullable().optional(),
+  volumes: z.union([z.number(), z.string()]).nullable().optional(),
+  pallets: z.union([z.number(), z.string()]).nullable().optional(),
   cargaBatida: z.string().nullable().optional(),
   nfe: z.array(z.string()).default([]),
   orders: z.array(z.string()).default([]),
