@@ -63,6 +63,28 @@ export function filterAppointments(items: StoreAppointment[], text: string) {
   return [...items].sort((a,b) => a.startTime.localeCompare(b.startTime) || a.protocol.localeCompare(b.protocol))
     .filter(item => !query || normalize(item.supplier+" "+item.protocol).includes(query));
 }
+export type AgendaSortKey = "startTime" | "supplier" | "protocol" | "type" | "status";
+export type AgendaSort = { key: AgendaSortKey; direction: "ascending" | "descending" } | null;
+const agendaCollator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+export function nextAgendaSort(current: AgendaSort, key: AgendaSortKey): AgendaSort {
+  if (!current || current.key !== key) return { key, direction: "ascending" };
+  if (current.direction === "ascending") return { key, direction: "descending" };
+  return null;
+}
+export function sortAppointments(items: StoreAppointment[], sort: AgendaSort) {
+  if (!sort) return items;
+  const active = sort;
+  const factor = active.direction === "ascending" ? 1 : -1;
+  const value = (item: StoreAppointment) => {
+    if (active.key === "startTime") return item.startTime || item.endTime || "";
+    if (active.key === "type") return item.type ?? "";
+    return item[active.key];
+  };
+  return [...items].sort((a, b) => {
+    const comparison = agendaCollator.compare(value(a), value(b)) * factor;
+    return comparison !== 0 ? comparison : agendaCollator.compare(a.protocol, b.protocol);
+  });
+}
 export function endpointForDate(selected: string, today: string) {
   return selected === today ? "/api/store/today" : `/api/store/history/${encodeURIComponent(selected)}`;
 }
