@@ -2,6 +2,7 @@ import { Navigate, Outlet, Route, Routes } from "react-router";
 import { AppLayout } from "./layouts";
 import { useSession } from "./session-query";
 import { LoginPage } from "@/features/auth/login-page";
+import { AgendasPage } from "@/features/agendas/agendas-page";
 import { ReceivingPage } from "@/features/receiving/receiving-page";
 import { ConferencePage } from "@/features/conference/conference-page";
 import { ReportsPage } from "@/features/reports/reports-page";
@@ -47,6 +48,7 @@ export function AppRoutes() {
     </Route>
     <Route element={<Guard roles={["admin"]} />}>
       <Route element={<LayoutRoute />}>
+        <Route path="/admin/agendas" element={<AgendasPage />} />
         <Route path="/admin/history" element={<HistoryPage />} />
         <Route path="/admin/stores" element={<StoresPage />} />
         <Route path="/admin/users" element={<UsersPage />} />

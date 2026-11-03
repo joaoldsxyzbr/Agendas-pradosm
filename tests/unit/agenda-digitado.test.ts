@@ -65,7 +65,7 @@ describe("Marcação de agenda digitada para o conferente", () => {
     const audit = db.statements.find(s => s.sql.includes("INSERT INTO auditoria"));
     assert.ok(audit);
     assert.equal(audit.params[2], "agenda_digitada_para_conferente");
-    assert.match(audit.sql, /WHERE changes\\(\\) = 1/);
+    assert.ok(audit.sql.includes("WHERE changes() = 1"));
   });
 
   it("remove a marcação com guarda e auditoria próprias", async () => {
@@ -90,7 +90,7 @@ describe("Marcação de agenda digitada para o conferente", () => {
     db.failChanges = true;
     await assert.rejects(
       setAgendaDigitado(db, { ...baseAgenda }, "admin1", true),
-      /alterada por outra operação/
+      error => error instanceof Error && error.message.includes("alterada por outra operação")
     );
     assert.equal(db.batches.length, 1);
   });
