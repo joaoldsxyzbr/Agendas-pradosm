@@ -12,8 +12,8 @@ async function setup(page, { conflict = false, missingStores = false, role = "ad
     const method = route.request().method();
     if (path === "/api/auth/me") return route.fulfill({ json: role === "admin" ? admin : viewer });
     if (path === "/api/realtime/config") return route.fulfill({ json: { mode: "off", protocolVersion: 1 } });
-    // O visualizador redirecionado para /admin carrega as consultas de Recebimento.
-    if (role === "visualizador" && ["/api/admin/stores", "/api/admin/agendas", "/api/admin/presence"].includes(path)) {
+    // O Recebimento, que carrega atrás do popup de importação, consulta lojas, agendas e presença.
+    if (["/api/admin/stores", "/api/admin/agendas", "/api/admin/presence"].includes(path)) {
       return route.fulfill({ json: [] });
     }
     if (path === "/api/admin/agendas/import/bulk" && method === "POST") {
@@ -36,7 +36,11 @@ async function setup(page, { conflict = false, missingStores = false, role = "ad
     }
     throw Error("API inesperada no teste React: " + method + " " + path);
   });
-  await page.goto("/admin/import");
+  await page.goto("/admin");
+  if (role === "admin") {
+    await page.getByRole("button", { name: "Importar agenda" }).click();
+    await expect(page.getByRole("dialog", { name: "Importar agenda" })).toBeVisible();
+  }
   return submissions;
 }
 const upload = (page, { name = "agenda.csv", mimeType = "text/csv", buffer = fixture } = {}) =>
@@ -118,6 +122,7 @@ test("Importação React: PDF inválido não é tratado como agenda válida", as
 
 test("Visualizador não acessa importação React", async ({ page }) => {
   await setup(page, { role: "visualizador" });
+  await page.goto("/admin/import");
   await expect(page).toHaveURL(/\/admin$/);
   await expect(page.getByRole("heading", { name: "Importar agenda" })).toHaveCount(0);
 });

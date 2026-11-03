@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RefreshCw, Store as StoreIcon, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { StatusBadge } from "@/components/operations/status-badge";
 import { MetricCard } from "@/components/operations/metric-card";
 import { useSession } from "@/app/session-query";
 import { AgendaDetailDialog } from "./agenda-detail-dialog";
+import { ImportAgendaDialog } from "@/features/import/import-agenda-dialog";
 import { useReceivingRealtime } from "./use-realtime";
 import { getAgendas, getPresence, getStores } from "./api";
 import {
@@ -91,12 +91,12 @@ function ReceivingTable({ rows, onDetails, presenceUnavailable }: {
 }
 
 export function ReceivingPage() {
-  const navigate = useNavigate();
   const session = useSession();
   const queryClient = useQueryClient();
   const [today, setToday] = useState(() => businessToday());
   const [selectedDate, setSelectedDate] = useState(today);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const realtimeStatus = useReceivingRealtime(session.data?.id, selectedDate);
   const stores = useQuery({ queryKey: ["receiving", "stores"], queryFn: getStores, refetchInterval: 60_000, refetchOnWindowFocus: true });
   const agendas = useQuery({ queryKey: ["receiving", "agendas", selectedDate], queryFn: () => getAgendas(selectedDate), refetchInterval: 30_000, refetchOnWindowFocus: true });
@@ -150,7 +150,7 @@ export function ReceivingPage() {
         <Button size="sm" variant="secondary" disabled={updating} onClick={reload}>
           <RefreshCw size={14} aria-hidden="true" className={updating ? "animate-spin" : ""} />{updating ? "Atualizando…" : "Atualizar"}
         </Button>
-        {!readonly && <Button size="sm" onClick={() => navigate("/admin/import")}>
+        {!readonly && <Button size="sm" onClick={() => setImportOpen(true)}>
           <Upload size={14} aria-hidden="true" />Importar agenda
         </Button>}
       </div>}
@@ -178,5 +178,6 @@ export function ReceivingPage() {
       {!readonly && <p className="text-[11px] text-slate-500">Versão em migração: a importação CSV/PDF já está disponível na interface React.</p>}
     </>}
     {detailId && <AgendaDetailDialog key={detailId} agendaId={detailId} canEdit={session.data?.papel === "admin"} onClose={() => setDetailId(null)} />}
+    {importOpen && <ImportAgendaDialog onClose={() => setImportOpen(false)} />}
   </section>;
 }
