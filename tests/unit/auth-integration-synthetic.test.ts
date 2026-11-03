@@ -21,6 +21,7 @@ function syntheticDB() {
     CREATE TABLE agendas (
       id TEXT PRIMARY KEY, loja_id TEXT NOT NULL, data_agenda TEXT NOT NULL,
       status_dia TEXT NOT NULL, concluido_em TEXT, concluido_por TEXT,
+      digitado_em TEXT, digitado_por TEXT,
       atualizado_em TEXT, arquivo_original TEXT, criado_por TEXT, criado_em TEXT
     );
     CREATE TABLE agendamentos (
