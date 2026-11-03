@@ -8,6 +8,9 @@ async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
   await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
   await page.route("**/api/store/today", route => route.fulfill({ json: { agenda: null, appointments: [] } }));
+  await page.route("**/api/store/presence", route => route.request().method() === "DELETE"
+    ? route.fulfill({ status: 204, body: "" })
+    : route.fulfill({ json: { ok: true, recordedAt: "2026-10-30T09:00:00.000Z" } }));
   await page.route("**/api/admin/**", async route => {
     const path = new URL(route.request().url()).pathname;
     if (path === "/api/admin/stores") return route.fulfill({ json: [] });

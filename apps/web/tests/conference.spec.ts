@@ -72,6 +72,10 @@ async function setup(page, { conflict = false, empty = false, completed = false,
       data={...data,agenda:{...data.agenda,dayStatus:"concluido"}};
       return route.fulfill({json:data.agenda});
     }
+    if(url.pathname==="/api/store/presence"){
+      if(method==="DELETE")return route.fulfill({status:204,body:""});
+      return route.fulfill({json:{ok:true,recordedAt:"2026-10-30T09:00:00.000Z"}});
+    }
     throw Error("Rota de Conferente não preparada: "+method+" "+url.pathname);
   });
   await page.goto("/app");

@@ -22,11 +22,53 @@ const readySchema = z.object({ version: z.literal(1), type: z.literal("realtime.
 const delays = [1_000, 2_000, 5_000, 10_000, 30_000];
 export type StoreRealtimeStatus = "off" | "connecting" | "connected" | "reconnecting";
 
+// Presenca do conferente para os paineis do admin. O servidor ja expoe as duas
+// vias; este hook passa a alimenta-las:
+// - WebSocket presence.set: o RealtimeHub retransmite presence.changed em tempo real.
+// - REST /api/store/presence: mantem o polling de 30s do Recebimento coerente com o
+//   WebSocket (mesma janela de interacao do worker/lib/presence.ts).
+const PRESENCE_REPORT_MS = 30_000;
+const PRESENCE_ONLINE_MS = 3 * 60_000;
+type LivePresenceStatus = "online" | "away";
+
+function presenceSetMessage(status: LivePresenceStatus) {
+  return JSON.stringify({ version: 1, type: "presence.set", status });
+}
+
 export function useStoreRealtime(selectedDate: string) {
   const client = useQueryClient();
   const [status, setStatus] = useState<StoreRealtimeStatus>("off");
   const selectedDateRef = useRef(selectedDate);
   useEffect(() => { selectedDateRef.current = selectedDate; }, [selectedDate]);
+  const sendRef = useRef<(message: string) => boolean>(() => false);
+  const lastInteractionRef = useRef(Date.now());
+  const lastSentPresenceRef = useRef<LivePresenceStatus | null>(null);
+  const restReportedRef = useRef(false);
+
+  const currentPresence = (): LivePresenceStatus =>
+    document.hidden || Date.now() - lastInteractionRef.current > PRESENCE_ONLINE_MS ? "away" : "online";
+  const userInteracted = () => Date.now() - lastInteractionRef.current <= PRESENCE_ONLINE_MS;
+  const pushPresence = () => {
+    const next = currentPresence();
+    if (next === lastSentPresenceRef.current) return;
+    lastSentPresenceRef.current = next;
+    sendRef.current(presenceSetMessage(next));
+  };
+  const reportRestPresence = (interacted: boolean) => {
+    restReportedRef.current = true;
+    void apiFetch("/api/store/presence", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ interacted }),
+    }).catch(() => undefined); // Best-effort: o painel do admin mantem o polling REST.
+  };
+  const clearRestPresence = (keepalive: boolean) => {
+    if (!restReportedRef.current) return;
+    restReportedRef.current = false;
+    void apiFetch("/api/store/presence", { method: "DELETE", ...(keepalive ? { keepalive: true } : {}) })
+      .catch(() => undefined);
+  };
+
   useEffect(() => {
     let cancelled = false;
     let socket: WebSocket | null = null;
@@ -70,6 +112,16 @@ export function useStoreRealtime(selectedDate: string) {
       socket = ws;
       ws.onopen = () => {
         if (cancelled || socket !== ws) return;
+        sendRef.current = (message: string) => {
+          if (ws.readyState !== WebSocket.OPEN) return false;
+          ws.send(message);
+          return true;
+        };
+        // O hub aceita mensagens de presenca desde a conexao: envia o status
+        // atual para os paineis sairem do "offline" sem esperar o primeiro ciclo.
+        const initialPresence = currentPresence();
+        lastSentPresenceRef.current = initialPresence;
+        ws.send(presenceSetMessage(initialPresence));
         pingTimer = setInterval(() => {
           if (ws.readyState !== WebSocket.OPEN) return;
           ws.send("ping");
@@ -101,6 +153,8 @@ export function useStoreRealtime(selectedDate: string) {
       ws.onclose = event => {
         if (socket !== ws || cancelled) return;
         socket = null;
+        sendRef.current = () => false;
+        lastSentPresenceRef.current = null; // Reconexao cria novo attachment no hub: o onopen reenvia.
         clearConnectionTimers();
         if (event.code === 4003) {
           mode = "off";
@@ -128,11 +182,42 @@ export function useStoreRealtime(selectedDate: string) {
       cancelled = true;
       if (reconnectTimer !== null) clearTimeout(reconnectTimer);
       clearConnectionTimers();
+      sendRef.current = () => false;
       if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
         socket.close(1000, "Página encerrada");
       }
       socket = null;
     };
   }, [client]);
+
+  // Sinal de presenca: atividade recente define online; heartbeat REST a cada
+  // 30s e saida no pagehide mantem o D1 coerente com o WebSocket.
+  useEffect(() => {
+    let cancelled = false;
+    let reportTimer: number | null = null;
+    const markInteraction = () => { lastInteractionRef.current = Date.now(); };
+    const report = () => {
+      if (cancelled) return;
+      reportRestPresence(userInteracted());
+      pushPresence();
+    };
+    const onPageHide = () => { if (!cancelled) clearRestPresence(true); };
+    document.addEventListener("pointerdown", markInteraction, { passive: true });
+    document.addEventListener("keydown", markInteraction, { passive: true });
+    document.addEventListener("visibilitychange", report);
+    window.addEventListener("pagehide", onPageHide);
+    report();
+    reportTimer = window.setInterval(report, PRESENCE_REPORT_MS);
+    return () => {
+      cancelled = true;
+      if (reportTimer !== null) window.clearInterval(reportTimer);
+      document.removeEventListener("pointerdown", markInteraction);
+      document.removeEventListener("keydown", markInteraction);
+      document.removeEventListener("visibilitychange", report);
+      window.removeEventListener("pagehide", onPageHide);
+      clearRestPresence(false);
+    };
+  }, []);
+
   return status;
 }
