@@ -17,7 +17,7 @@ jobs:
   e2e:
     name: E2E com log publicado no PR
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
@@ -26,6 +26,8 @@ jobs:
           cache: npm
       - name: Dependencias reproduziveis
         run: npm ci --legacy-peer-deps
+      - name: Build da UI React (instala dependencias do apps/web)
+        run: npm run build
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
       - name: E2E React isolado com dados sinteticos
