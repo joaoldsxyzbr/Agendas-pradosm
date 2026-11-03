@@ -2,6 +2,8 @@ import { test, expect } from "@playwright/test";
 
 const conf = { id:"c1",nome:"Conferente Doca",papel:"conferente",lojaId:"s1",lojaCodigo:"F03",lojaNome:"Loja Central" };
 const entry = { id:"a1",supplier:"FORNECEDOR TESTE",protocol:"1234567",type:"Nota fiscal",
+  // Contrato real do Worker: itens/volumes/paletes chegam como números (INTEGER no D1).
+  items:5,volumes:50,pallets:1,
   startTime:"08:00",endTime:"08:30",status:"aguardando",hasExchanges:false,observation:null,origin:"imported" };
 async function setup(page, { conflict = false, empty = false, completed = false, noShow = false } = {}) {
   const requests = [];
@@ -9,7 +11,9 @@ async function setup(page, { conflict = false, empty = false, completed = false,
   let data = { agenda:empty?null:{ id:"agenda1",date:"2026-10-30",storeCode:"F03",
     storeName:"Loja Central",dayStatus:completed?"concluido":"aberto",completedAt:null },
     appointments:empty?[]:[{...entry,status:noShow?"nao_chegou":"aguardando",observation:noShow?"Não compareceu":null},
-      {...entry,id:"a2",supplier:"Outro Fornecedor",protocol:"99988877",startTime:"09:00"}],
+      {...entry,id:"a2",supplier:"Outro Fornecedor",protocol:"99988877",startTime:"09:00",
+        // Registro legado sem itens/volumes/paletes e sem tipo preenchido.
+        items:null,volumes:null,pallets:null,type:null}],
   };
   await page.route("**/api/**", async route => {
     const url = new URL(route.request().url());
@@ -59,7 +63,7 @@ async function setup(page, { conflict = false, empty = false, completed = false,
     }
     if(url.pathname==="/api/store/appointments/a1" && method==="GET"){
       return route.fulfill({json:{...data.appointments.find(x=>x.id==="a1"),
-        items:"12",volumes:"5",pallets:"2",cargaBatida:null,
+        items:12,volumes:5,pallets:2,cargaBatida:null,
         history:[{id:"h1",statusAnterior:"aguardando",statusNovo:"nao_chegou",observation:"Não veio",
           alteradoEm:"2026-10-30T09:00:00.000Z",usuario:{id:"c1",nome:"Conferente Doca"}}]}});
     }
