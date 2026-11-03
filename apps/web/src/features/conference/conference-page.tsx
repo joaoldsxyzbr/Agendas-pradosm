@@ -360,6 +360,30 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
   </tbody>;
 }
 
+function CompleteDayDialog({ date, busy, error, onConfirm, onClose }: {
+  date: string; busy: boolean; error: string; onConfirm: () => void; onClose: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => { if (dialog.open) dialog.close(); };
+  }, []);
+  return <dialog ref={ref} aria-label="Confirmar conclusão do dia"
+    onCancel={event => { if (busy) { event.preventDefault(); return; } onClose(); }}
+    onClick={event => { if (event.target === ref.current && !busy) onClose(); }}
+    className="m-auto w-[min(94vw,460px)] rounded-xl border border-[#45617c] bg-[#162538] p-4 text-slate-100 shadow-2xl backdrop:bg-black/75">
+    <p className="text-sm font-bold text-amber-100">Concluir a agenda de {formatDay(date)}?</p>
+    <p className="mt-2 text-xs text-slate-300">Após a conclusão, os registros não poderão mais ser editados pelo conferente.</p>
+    {error && <p role="alert" className="mt-3 text-xs text-rose-200">{error}</p>}
+    <div className="mt-4 flex justify-end gap-2">
+      <Button size="sm" variant="secondary" disabled={busy} onClick={onClose}>Cancelar</Button>
+      <Button size="sm" disabled={busy} onClick={onConfirm}>{busy?"Concluindo…":"Confirmar conclusão"}</Button>
+    </div>
+  </dialog>;
+}
+
 export function ConferencePage(){
   const client=useQueryClient();
   const [today,setToday]=useState(()=>businessToday());
@@ -494,15 +518,9 @@ export function ConferencePage(){
           </table>
         </div>
       </section>
-      {confirmComplete && !readOnly && <section aria-label="Confirmar conclusão do dia" className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
-        <strong className="text-sm text-amber-100">Concluir a agenda de {formatDay(date)}?</strong>
-        <p className="text-xs text-slate-300">Após a conclusão, os registros não poderão mais ser editados pelo conferente.</p>
-        {complete.isError && <p role="alert" className="text-xs text-rose-200">{errorText(complete.error)}</p>}
-        <div className="flex gap-2">
-          <Button size="sm" disabled={complete.isPending} onClick={()=>complete.mutate()}>{complete.isPending?"Concluindo…":"Confirmar conclusão"}</Button>
-          <Button size="sm" variant="secondary" disabled={complete.isPending} onClick={()=>setConfirmComplete(false)}>Cancelar</Button>
-        </div>
-      </section>}
+      {confirmComplete && !readOnly && <CompleteDayDialog date={date} busy={complete.isPending}
+        error={complete.isError?errorText(complete.error):""}
+        onConfirm={()=>complete.mutate()} onClose={()=>setConfirmComplete(false)}/>}
       {manualTarget && <ManualSupplierDialog target={manualTarget} date={date} onClose={()=>setManualTarget(null)}
         onSaved={async()=>{setSearch("");await refresh();}}
         onDeleted={async()=>{setSearch("");await refresh();}}/>}
