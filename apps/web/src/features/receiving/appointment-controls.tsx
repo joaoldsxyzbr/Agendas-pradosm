@@ -98,15 +98,15 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
     }
   };
 
-  return <div className="mt-2 space-y-2 border-t border-[#38516e] pt-2">
-    <div className="flex flex-wrap items-center gap-2">
+  return <div className="mt-1.5 space-y-1.5 border-t border-[#38516e] pt-1.5">
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
       <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-wrap gap-1">
-        <Button size="sm" variant={item.status === "recebido" ? "default" : "secondary"}
+        <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status === "recebido" ? "default" : "secondary"}
           disabled={blocked} aria-pressed={item.status === "recebido"}
           onClick={() => setStatus("recebido")}>
           {item.status === "recebido" ? "Desmarcar recebido" : "Recebido"}
         </Button>
-        <Button size="sm" variant={item.status === "nao_chegou" ? "danger" : "secondary"}
+        <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status === "nao_chegou" ? "danger" : "secondary"}
           disabled={blocked} aria-pressed={item.status === "nao_chegou"}
           onClick={() => setStatus("nao_chegou")}>
           {item.status === "nao_chegou" ? "Desmarcar não recebido" : "Não recebido"}
@@ -117,7 +117,7 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
           disabled={blocked} onChange={event => mutation.mutate({ kind: "exchanges", hasExchanges: event.target.checked })}
           className="size-4 accent-sky-500" />Trocas
       </label>
-      <Button variant="ghost" size="sm" disabled={blocked}
+      <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px]" disabled={blocked}
         aria-label={`Observação de ${item.supplier}`} onClick={() => openNote("observation")}>
         {item.observation ? "Editar observação" : "+ Obs."}
       </Button>
