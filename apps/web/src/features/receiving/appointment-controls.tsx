@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Check, X } from "lucide-react";
+import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import {
@@ -16,6 +17,12 @@ const reasons = [
   "Sem agenda", "Sem pedido", "Sem boleto", "Prazo de pagamento incorreto",
   "Temperatura acima do OK", "Não veio",
 ] as const; // Mesmos motivos do contrato em shared/observations.js.
+const statusInfo: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
+  aguardando: { label: "Aguardando", tone: "warning" },
+  recebido: { label: "Recebido", tone: "success" },
+  nao_chegou: { label: "Não recebido", tone: "danger" },
+  recusado: { label: "Recusado", tone: "danger" },
+};
 type Change =
   | { kind: "status"; status: AppointmentStatus; observation: string | null }
   | { kind: "exchanges"; hasExchanges: boolean }
@@ -26,11 +33,11 @@ function explanation(error: unknown) {
     : error instanceof Error ? error.message : "Não foi possível salvar. Tente novamente.";
 }
 
-// Células de Ações, Trocas e Obs. da linha do agendamento no diálogo de detalhes.
-// Botões de ícone compactos iguais aos da tela de Conferência, para manter as
-// linhas em altura única; nomes acessíveis preservados para os testes e2e.
-// Quando um motivo/observação está aberto (ou há erro), renderiza uma linha
-// extra com colSpan 8, igual ao comportamento da tela de Conferência.
+// Linha completa do agendamento na tabela do diálogo de detalhes, no mesmo
+// formato da tela de Conferência: uma única linha física com as 8 células
+// (Horário, Fornecedor, Protocolo, Tipo, Status, Ações, Trocas, Obs.).
+// Motivo, observação e erro abrem em linha extra com colSpan 8 quando necessário.
+// Botões de ícone compactos com nomes acessíveis preservados para os testes e2e.
 export function AppointmentControls({ item, editable, disabled, onSaved, onBusyChange, extraActions }: {
   item: Appointment;
   editable: boolean;
@@ -58,17 +65,38 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
     return () => onBusyChange(false);
   }, [mutation.isPending, onBusyChange]);
 
-  if (!editable) return <tr className="align-middle">
-    <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-500">—</td>
-    <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px]">
-      <strong className={item.hasExchanges ? "text-emerald-300" : "text-slate-300"}>{item.hasExchanges ? "Sim" : "Não"}</strong>
+  const status = statusInfo[item.status] ?? { label: item.status, tone: "neutral" as const };
+  const rowBody = <>
+    <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-300">
+      {item.startTime || item.endTime ? <>{item.startTime}{item.endTime ? "–" + item.endTime : ""}</> : "—"}
     </td>
-    <td className="max-w-[280px] px-2.5 py-1.5">
-      {item.observation
-        ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
-        : <span className="text-[11px] text-slate-500">—</span>}
+    <td className="px-2.5 py-1.5">
+      <div className="flex items-center gap-1.5">
+        <strong className="min-w-0 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
+        {item.origin === "manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+      </div>
     </td>
-  </tr>;
+    <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-400" title={`Protocolo ${item.protocol}`}>{item.protocol}</td>
+    <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-400">{item.type ?? "—"}</td>
+    <td className="whitespace-nowrap px-2.5 py-1.5">
+      <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
+    </td>
+  </>;
+
+  if (!editable) return <tbody data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
+    <tr className="align-middle">
+      {rowBody}
+      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-500">—</td>
+      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px]">
+        <strong className={item.hasExchanges ? "text-emerald-300" : "text-slate-300"}>{item.hasExchanges ? "Sim" : "Não"}</strong>
+      </td>
+      <td className="max-w-[280px] px-2.5 py-1.5">
+        {item.observation
+          ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
+          : <span className="text-[11px] text-slate-500">—</span>}
+      </td>
+    </tr>
+  </tbody>;
 
   const blocked = disabled || mutation.isPending;
   const openNote = (kind: Draft["kind"]) => {
@@ -113,8 +141,9 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
     }
   };
 
-  return <>
+  return <tbody data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
     <tr className="align-middle">
+      {rowBody}
       <td className="px-2.5 py-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-wrap gap-1">
@@ -185,5 +214,5 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
         </form>}
       </td>
     </tr>}
-  </>;
+  </tbody>;
 }

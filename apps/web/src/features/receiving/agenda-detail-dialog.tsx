@@ -12,12 +12,6 @@ import {
 import { formatDay } from "./model";
 import { AppointmentControls } from "./appointment-controls";
 
-const statusInfo: Record<string, { label: string; tone: "success" | "warning" | "danger" | "neutral" }> = {
-  aguardando: { label: "Aguardando", tone: "warning" },
-  recebido: { label: "Recebido", tone: "success" },
-  nao_chegou: { label: "Não recebido", tone: "danger" },
-  recusado: { label: "Recusado", tone: "danger" },
-};
 // Mesmas colunas ordenáveis da tela de Conferência, com o mesmo ciclo de ordenação.
 const sortableColumns: { key: AgendaSortKey; label: string; width: string }[] = [
   { key: "startTime", label: "Horário", width: "w-[96px]" },
@@ -240,42 +234,21 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[280px]">Obs.</th>
               </tr>
             </thead>
-            {appointments.map(item => {
-              const status = statusInfo[item.status] ?? { label: item.status, tone: "neutral" as const };
-              return <tbody key={item.id} data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
-                <tr className="align-middle">
-                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-300">
-                    {item.startTime || item.endTime ? <>{item.startTime}{item.endTime ? "–" + item.endTime : ""}</> : "—"}
-                  </td>
-                  <td className="px-2.5 py-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <strong className="min-w-0 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
-                      {item.origin === "manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
-                    </div>
-                  </td>
-                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-400" title={`Protocolo ${item.protocol}`}>{item.protocol}</td>
-                  <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-400">{item.type ?? "—"}</td>
-                  <td className="whitespace-nowrap px-2.5 py-1.5">
-                    <StatusBadge tone={status.tone}>{status.label}</StatusBadge>
-                  </td>
-                </tr>
-                <AppointmentControls key={item.id} item={item} editable={editable}
-                  disabled={busy || Boolean(manualAction) || reopenConfirmation}
-                  onBusyChange={setAppointmentBusy} onSaved={refresh}
-                  extraActions={editable && item.origin === "manual" ? <>
-                    <Button size="icon" variant="secondary" className="h-7 w-7" disabled={busy}
-                      title={`Renomear ${item.supplier}`} aria-label={`Renomear ${item.supplier}`}
-                      onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
-                      <Pencil size={13} aria-hidden="true" />
-                    </Button>
-                    <Button size="icon" variant="danger" className="h-7 w-7" disabled={busy}
-                      title={`Excluir ${item.supplier}`} aria-label={`Excluir ${item.supplier}`}
-                      onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
-                      <Trash2 size={13} aria-hidden="true" />
-                    </Button>
-                  </> : null} />
-              </tbody>;
-            })}
+            {appointments.map(item => <AppointmentControls key={item.id} item={item} editable={editable}
+              disabled={busy || Boolean(manualAction) || reopenConfirmation}
+              onBusyChange={setAppointmentBusy} onSaved={refresh}
+              extraActions={editable && item.origin === "manual" ? <>
+                <Button size="icon" variant="secondary" className="h-7 w-7" disabled={busy}
+                  title={`Renomear ${item.supplier}`} aria-label={`Renomear ${item.supplier}`}
+                  onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
+                  <Pencil size={13} aria-hidden="true" />
+                </Button>
+                <Button size="icon" variant="danger" className="h-7 w-7" disabled={busy}
+                  title={`Excluir ${item.supplier}`} aria-label={`Excluir ${item.supplier}`}
+                  onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
+                  <Trash2 size={13} aria-hidden="true" />
+                </Button>
+              </> : null} />)}
             {appointments.length === 0 && <tbody>
               <tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr>
             </tbody>}
