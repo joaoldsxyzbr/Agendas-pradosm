@@ -262,16 +262,18 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
                 <AppointmentControls key={item.id} item={item} editable={editable}
                   disabled={busy || Boolean(manualAction) || reopenConfirmation}
                   onBusyChange={setAppointmentBusy} onSaved={refresh}
-                  extraActions={editable && item.origin === "manual" ? <div className="flex shrink-0 flex-wrap items-center gap-1.5">
-                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="secondary" aria-label={`Renomear ${item.supplier}`} disabled={busy}
+                  extraActions={editable && item.origin === "manual" ? <>
+                    <Button size="icon" variant="secondary" className="h-7 w-7" disabled={busy}
+                      title={`Renomear ${item.supplier}`} aria-label={`Renomear ${item.supplier}`}
                       onClick={() => openManual({ type: "rename", id: item.id, name: item.supplier })}>
-                      <Pencil size={12} aria-hidden="true" />Editar
+                      <Pencil size={13} aria-hidden="true" />
                     </Button>
-                    <Button size="sm" className="h-7 px-2 text-[11px]" variant="danger" aria-label={`Excluir ${item.supplier}`} disabled={busy}
+                    <Button size="icon" variant="danger" className="h-7 w-7" disabled={busy}
+                      title={`Excluir ${item.supplier}`} aria-label={`Excluir ${item.supplier}`}
                       onClick={() => openManual({ type: "delete", id: item.id, name: item.supplier })}>
-                      <Trash2 size={12} aria-hidden="true" />Excluir
+                      <Trash2 size={13} aria-hidden="true" />
                     </Button>
-                  </div> : null} />
+                  </> : null} />
               </tbody>;
             })}
             {appointments.length === 0 && <tbody>

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { useMutation } from "@tanstack/react-query";
+import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import {
@@ -26,6 +27,8 @@ function explanation(error: unknown) {
 }
 
 // Células de Ações, Trocas e Obs. da linha do agendamento no diálogo de detalhes.
+// Botões de ícone compactos iguais aos da tela de Conferência, para manter as
+// linhas em altura única; nomes acessíveis preservados para os testes e2e.
 // Quando um motivo/observação está aberto (ou há erro), renderiza uma linha
 // extra com colSpan 8, igual ao comportamento da tela de Conferência.
 export function AppointmentControls({ item, editable, disabled, onSaved, onBusyChange, extraActions }: {
@@ -115,15 +118,19 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
       <td className="px-2.5 py-1.5">
         <div className="flex flex-wrap items-center gap-1.5">
           <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-wrap gap-1">
-            <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status === "recebido" ? "default" : "secondary"}
+            <Button size="icon" className="h-7 w-7" variant={item.status === "recebido" ? "default" : "secondary"}
               disabled={blocked} aria-pressed={item.status === "recebido"}
+              title={item.status === "recebido" ? "Desmarcar recebido" : "Marcar como recebido"}
+              aria-label={item.status === "recebido" ? "Desmarcar recebido" : "Recebido"}
               onClick={() => setStatus("recebido")}>
-              {item.status === "recebido" ? "Desmarcar recebido" : "Recebido"}
+              <Check size={15} aria-hidden="true" />
             </Button>
-            <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status === "nao_chegou" ? "danger" : "secondary"}
+            <Button size="icon" className="h-7 w-7" variant={item.status === "nao_chegou" ? "danger" : "secondary"}
               disabled={blocked} aria-pressed={item.status === "nao_chegou"}
+              title={item.status === "nao_chegou" ? "Desmarcar não recebido" : "Marcar como não recebido"}
+              aria-label={item.status === "nao_chegou" ? "Desmarcar não recebido" : "Não recebido"}
               onClick={() => setStatus("nao_chegou")}>
-              {item.status === "nao_chegou" ? "Desmarcar não recebido" : "Não recebido"}
+              <X size={15} aria-hidden="true" />
             </Button>
           </div>
           {extraActions}
