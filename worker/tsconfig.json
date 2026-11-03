@@ -8,7 +8,7 @@
     "isolatedModules": true,
     "noEmit": true,
     "skipLibCheck": true,
-    "strict": false,
+    "strict": true,
     "types": []
   },
   "include": ["./**/*.ts", "../shared/**/*.ts"]
