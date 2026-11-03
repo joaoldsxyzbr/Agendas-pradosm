@@ -575,7 +575,7 @@ adminAppointmentRoutes.patch("/:id/observation", async (c) => {
   try {
     observation = validateStatusObservation(appointment.status, parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const updated = await changeAppointmentStatus(c.env.DB, appointment, c.get("authUser").id, appointment.status, undefined, observation);
@@ -619,7 +619,7 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
   try {
     observation = validateStatusObservation(parsed.data.status, parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const user = c.get("authUser");
