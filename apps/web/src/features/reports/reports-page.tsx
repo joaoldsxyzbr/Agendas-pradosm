@@ -173,18 +173,26 @@ function TrendChart({ days }: { days: Grouped[] }) {
     const y = (91 - value * 0.76).toFixed(2);
     return <line key={value} x1="6" y1={y} x2="94" y2={y} stroke="#2d4764" strokeWidth=".6" vectorEffect="non-scaling-stroke" />;
   });
-  const labels = recent.filter((_, index) => index === 0 || index === recent.length - 1 || recent.length > 4 && index === Math.floor((recent.length - 1) / 2));
+  // Rótulos de data: mostra todos enquanto cabem (até 10 pontos) e dilui com
+  // passo fixo acima disso, preservando sempre a primeira e a última datas.
+  const labelStep = Math.max(1, Math.ceil(recent.length / 10));
+  const labels = recent.filter((_, index) => index % labelStep === 0 || index === recent.length - 1);
   return <div role="img" aria-label={"Taxa de recebimento diária dos últimos " + numberBR(recent.length) + " dias com agendas."}>
-    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-32 w-full" aria-hidden="true">
-      <defs><linearGradient id="report-trend-fill" x1="0" x2="0" y1="0" y2="1">
-        <stop offset="0%" stopColor="#3f9cff" stopOpacity=".34" />
-        <stop offset="100%" stopColor="#3f9cff" stopOpacity=".015" />
-      </linearGradient></defs>
-      {gridlines}
-      <polygon points={"6,91 " + coordinates + " 94,91"} fill="url(#report-trend-fill)" />
-      <polyline points={coordinates} fill="none" stroke="#449eff" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      {points.map(point => <circle key={point.date} cx={point.x.toFixed(2)} cy={point.y.toFixed(2)} r=".85" fill="#70baff" />)}
-    </svg>
+    <div className="relative h-32 w-full">
+      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-32 w-full" aria-hidden="true">
+        <defs><linearGradient id="report-trend-fill" x1="0" x2="0" y1="0" y2="1">
+          <stop offset="0%" stopColor="#3f9cff" stopOpacity=".34" />
+          <stop offset="100%" stopColor="#3f9cff" stopOpacity=".015" />
+        </linearGradient></defs>
+        {gridlines}
+        <polygon points={"6,91 " + coordinates + " 94,91"} fill="url(#report-trend-fill)" />
+        <polyline points={coordinates} fill="none" stroke="#449eff" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+      </svg>
+      {/* Pontos em camada própria: o preserveAspectRatio="none" achataria os círculos dentro do SVG. */}
+      {points.map(point => <span key={point.date} aria-hidden="true"
+        className="absolute size-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#70baff]"
+        style={{ left: point.x + "%", top: point.y + "%" }} />)}
+    </div>
     <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">{labels.map(day => <span key={day.key}>{shortDate(day.key)}</span>)}</div>
     <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400"><i className="size-2 rounded-full bg-[#449eff]" aria-hidden="true" /> Taxa de recebimento por dia</p>
   </div>;
@@ -192,8 +200,10 @@ function TrendChart({ days }: { days: Grouped[] }) {
 
 function Donut({ sum }: { sum: Totals }) {
   if (!sum.total) return <Empty text="Nenhum agendamento no período." />;
+  // Situações com valor no período: categorias zeradas não ocupam a legenda.
+  const shown = STATUS.filter(status => sum[status.key] > 0);
   let used = 0;
-  const stops = STATUS.map(status => {
+  const stops = shown.map(status => {
     const current = used;
     used += sum[status.key] / sum.total * 100;
     return status.color + " " + current.toFixed(3) + "% " + Math.min(100, used).toFixed(3) + "%";
@@ -206,7 +216,7 @@ function Donut({ sum }: { sum: Totals }) {
         <small className="text-[10px] text-slate-400">agendamentos</small>
       </div>
     </div>
-    <ul className="min-w-0 flex-1 space-y-1.5">{STATUS.map(status => <li key={status.key} className="flex items-center justify-between gap-2 text-xs">
+    <ul className="min-w-0 flex-1 space-y-1.5">{shown.map(status => <li key={status.key} className="flex items-center justify-between gap-2 text-xs">
       <span className="flex min-w-0 items-center gap-2 text-slate-300"><i className="size-2 shrink-0 rounded-sm" style={{ background: status.color }} />{status.label}</span>
       <strong className="shrink-0 text-slate-100">{numberBR(sum[status.key])} <span className="font-normal text-slate-400">({percentBR(sum[status.key] / sum.total * 100)})</span></strong>
     </li>)}</ul>
@@ -217,6 +227,8 @@ function StackedSeven({ daily, range }: { daily: Grouped[]; range: { start: stri
   const days: CalendarDay[] = lastSevenCalendarDays(daily, range);
   if (!days.length) return <Empty text="Sem datas no período." />;
   const max = Math.max(1, ...days.map(day => day.total));
+  // Legenda só com as situações presentes nos dias exibidos.
+  const legendStatuses = STATUS.filter(status => days.some(day => day[status.key] > 0));
   return <>
     <div className="flex h-36 items-end gap-2" role="img" aria-label="Agendamentos por situação nos últimos sete dias corridos do período">
       {days.map(day => {
@@ -235,7 +247,7 @@ function StackedSeven({ daily, range }: { daily: Grouped[]; range: { start: stri
         </div>;
       })}
     </div>
-    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">{STATUS.map(status =>
+    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">{legendStatuses.map(status =>
       <span key={status.key} className="flex items-center gap-1.5 text-[10px] text-slate-400"><i className="size-2 rounded-sm" style={{ background: status.color }} />{status.label}</span>)}</div>
   </>;
 }
