@@ -237,50 +237,45 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
     if(required&&!value){setNoteError("Selecione um motivo para Não recebido.");return;}
     patch.mutate({kind:"observation",observation:value||null});
   };
-  return <article data-testid={`conference-row-${item.id}`} className="space-y-2 rounded-lg border border-[#36516d] bg-[#1a2c41] p-3">
-    <div className="flex flex-wrap items-start justify-between gap-3">
-      <div className="min-w-0 flex-1">
-        <strong className="block break-words text-xs text-slate-50">{item.supplier}</strong>
-        <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-slate-400">
-          <span>Protocolo: {item.protocol}</span>
-          <span>{item.startTime}{item.endTime ? "–"+item.endTime : ""}</span>
-          <span>{item.type}</span>
-        </div>
-        {item.observation && <p className="mt-1 text-[11px] text-amber-300">Obs.: {item.observation}</p>}
-        {item.origin==="manual" && <span className="mt-1 block text-[10px] text-sky-300">Fornecedor sem agenda</span>}
-      </div>
-      <div className="flex flex-col items-end gap-2">
-        <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
-          {displayStatus(item.status,item.observation)}
-        </StatusBadge>
-        {readOnly && <Button size="sm" variant="secondary" aria-label={`Detalhes de ${item.supplier}`}
+  return <article data-testid={`conference-row-${item.id}`} className="rounded-md border border-[#36516d] bg-[#1a2c41] px-2.5 py-1.5">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+      <span className="shrink-0 text-[11px] tabular-nums text-slate-300">{item.startTime}{item.endTime ? "–"+item.endTime : ""}</span>
+      <strong className="min-w-0 flex-1 truncate text-xs text-slate-50" title={item.supplier}>{item.supplier}</strong>
+      <span className="shrink-0 text-[11px] tabular-nums text-slate-400">{item.protocol}</span>
+      {item.type && <span className="hidden shrink-0 text-[11px] text-slate-400 sm:inline">{item.type}</span>}
+      <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
+        {displayStatus(item.status,item.observation)}
+      </StatusBadge>
+      {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
+        title={item.observation}>Obs.: {item.observation}</span>}
+      {item.origin==="manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
+      <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
+        {!readOnly && <>
+          <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
+            aria-pressed={item.status==="recebido"} onClick={()=>changeStatus("recebido")}>
+            {item.status==="recebido"?"Desmarcar recebido":"Recebido"}
+          </Button>
+          <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
+            aria-pressed={item.status==="nao_chegou"} onClick={()=>changeStatus("nao_chegou")}>
+            {item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"}
+          </Button>
+          <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={inactive}
+            aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
+            {item.observation ? "Editar observação" : "+ Obs."}
+          </Button>
+          {item.origin==="manual" && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" disabled={inactive}
+            aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
+            <Pencil size={12} aria-hidden="true" />Editar fornecedor
+          </Button>}
+        </>}
+        <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-200">
+          <input aria-label={`Trocas de ${item.supplier}`} type="checkbox" className="size-4 accent-sky-500"
+            checked={item.hasExchanges} disabled={inactive}
+            onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
+        </label>
+        {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
           onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
       </div>
-    </div>
-    <div className="flex flex-wrap items-center gap-2 border-t border-[#36516d] pt-2">
-      {!readOnly && <>
-        <Button size="sm" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
-          aria-pressed={item.status==="recebido"} onClick={()=>changeStatus("recebido")}>
-          {item.status==="recebido"?"Desmarcar recebido":"Recebido"}
-        </Button>
-        <Button size="sm" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
-          aria-pressed={item.status==="nao_chegou"} onClick={()=>changeStatus("nao_chegou")}>
-          {item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"}
-        </Button>
-        <Button size="sm" variant="ghost" className="h-7 text-[11px]" disabled={inactive}
-          aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
-          {item.observation ? "Editar observação" : "+ Obs."}
-        </Button>
-        {item.origin==="manual" && <Button size="sm" variant="secondary" className="h-7 text-[11px]" disabled={inactive}
-          aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
-          <Pencil size={12} aria-hidden="true" />Editar fornecedor
-        </Button>}
-      </>}
-      <label className="inline-flex items-center gap-2 text-[11px] text-slate-200">
-        <input aria-label={`Trocas de ${item.supplier}`} type="checkbox" className="size-4 accent-sky-500"
-          checked={item.hasExchanges} disabled={inactive}
-          onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
-      </label>
     </div>
     {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
     {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
@@ -403,15 +398,15 @@ export function ConferencePage(){
           ["Recebidos",metrics.recebido,CheckCircle2],
           ["Não recebidos",metrics.naoChegou,Ban],
           ["Trocas",metrics.trocas,ArrowLeftRight],
-        ] as const).map(([label,value,Icon])=><div key={label} className="flex min-h-[88px] items-center gap-2 rounded-lg border border-[#36516d] bg-[#1a2c41] p-3">
-          <Icon size={20} className="shrink-0 text-sky-300"/>
-          <div><span className="block text-[11px] text-slate-300">{label}</span>
-            <strong className="block text-xl font-bold text-white tabular-nums">{value}</strong>
-            <small className="text-[10px] text-slate-400">{label==="Total"?"100% do dia":pct(value)+"%"}</small>
+        ] as const).map(([label,value,Icon])=><div key={label} className="flex items-center gap-2 rounded-md border border-[#36516d] bg-[#1a2c41] px-2.5 py-1.5">
+          <Icon size={14} className="shrink-0 text-sky-300"/>
+          <div className="min-w-0"><span className="block text-[10px] leading-tight text-slate-300">{label}</span>
+            <strong className="block text-base font-bold leading-tight text-white tabular-nums">{value}</strong>
           </div>
+          <small className="ml-auto text-[10px] text-slate-400 tabular-nums">{label==="Total"?"100% do dia":pct(value)+"%"}</small>
         </div>)}
       </div>
-      <section className="space-y-3 rounded-xl border border-[#36516d] bg-[#142438] p-3 sm:p-4">
+      <section className="space-y-2 rounded-xl border border-[#36516d] bg-[#142438] p-2.5 sm:p-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div><h2 className="text-sm font-bold text-white">Agenda do dia</h2>
             <p className="text-xs text-slate-400">Fornecedores agendados para recebimento.</p></div>
@@ -426,7 +421,7 @@ export function ConferencePage(){
               onClick={()=>setManualTarget({mode:"create"})}><Plus size={13}/>Fornecedor sem agenda</Button>}
           </div>
         </div>
-        <div className="grid gap-2" aria-label="Fornecedores">
+        <div className="grid gap-1" aria-label="Fornecedores">
           {filtered.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
             onUpdated={refresh}
             onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
