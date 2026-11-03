@@ -90,7 +90,7 @@ describe("Marcação de agenda digitada para o conferente", () => {
     db.failChanges = true;
     await assert.rejects(
       setAgendaDigitado(db, { ...baseAgenda }, "admin1", true),
-      error => error instanceof Error && error.message.includes("alterada por outra operação")
+      error => error instanceof Error && error.message.includes("alterado por outra operação")
     );
     assert.equal(db.batches.length, 1);
   });
