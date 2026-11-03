@@ -17,8 +17,9 @@ const agendas = stores.slice(0, 7).map((store, index) => ({
 const detail = {
   agenda: { id: "agenda1", storeCode: "F02", storeName: "Loja 2", date: "2026-10-30", dayStatus: "aberto" },
   appointments: [
-    { id: "a1", supplier: "Fornecedor Azul", protocol: "P001", startTime: "08:00", endTime: "09:00", status: "recebido" },
-    { id: "a2", supplier: "Fornecedor Verde", protocol: "P002", startTime: "09:00", endTime: "10:00", status: "aguardando" },
+    // Contrato real do Worker: contadores como número (importado) ou null (sem dados).
+    { id: "a1", supplier: "Fornecedor Azul", protocol: "P001", startTime: "08:00", endTime: "09:00", status: "recebido", type: "Nota fiscal", items: 12, volumes: 4, pallets: 2, hasExchanges: false, origin: "imported" },
+    { id: "a2", supplier: "Fornecedor Verde", protocol: "P002", startTime: "09:00", endTime: "10:00", status: "aguardando", type: "Nota fiscal", items: null, volumes: null, pallets: null, hasExchanges: false, origin: "imported" },
   ],
 };
 async function mock(page, role = "admin", options = {}) {
@@ -53,7 +54,7 @@ async function mock(page, role = "admin", options = {}) {
     if (path === "/api/admin/agendas/agenda1/manual" && route.request().method() === "POST") {
       const body = route.request().postDataJSON();
       if (!body.supplier?.trim()) return route.fulfill({ status: 400, json: { error: "REQUISICAO_INVALIDA", message: "Informe o fornecedor." } });
-      const saved = { id: "manual3", supplier: body.supplier, protocol: "Sem agenda", startTime: "", endTime: "", status: "aguardando", origin: "manual" };
+      const saved = { id: "manual3", supplier: body.supplier, protocol: "Sem agenda", startTime: "", endTime: "", status: "aguardando", origin: "manual", type: "Sem agenda", items: null, volumes: null, pallets: null };
       detailsNow.appointments = [...detailsNow.appointments, saved];
       return route.fulfill({ status: 201, json: saved });
     }
@@ -134,7 +135,6 @@ test("Recebimento React atualiza a data e permite voltar ao dia selecionado", as
   await expect(page.getByLabel("Situação do dia").locator("strong")).toHaveText(["8","7","6","1","1"]);
   expect(spy.requests.some(x => x.path === "/api/admin/agendas" && x.date === "2026-10-29")).toBe(true);
 });
-
 test("Recebimento React abre consulta real de agendamentos, pesquisa e fecha com Escape", async ({ page }) => {
   await mock(page);
   await page.goto("/admin");
