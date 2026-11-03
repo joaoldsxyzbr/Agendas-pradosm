@@ -14,6 +14,19 @@ import {
 
 const labelCount = (count: number, singular: string, plural: string) => `${count} ${count === 1 ? singular : plural}`;
 const fileType = (file: File) => isCsvAgenda(file) ? "CSV" : "PDF";
+const stringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+const conflictLabels = (details: Record<string, unknown> | null): string => {
+  const conflicts = Array.isArray(details?.conflicts) ? details.conflicts : [];
+  const labels = conflicts.flatMap(item => {
+    if (typeof item !== "object" || item === null) return [];
+    const storeCode = (item as Record<string, unknown>).storeCode;
+    const date = (item as Record<string, unknown>).date;
+    if (typeof storeCode !== "string" || typeof date !== "string") return [];
+    return [`${storeCode} em ${date.split("-").reverse().join("/")}`];
+  });
+  return labels.length ? `Já existe agenda para: ${labels.join(", ")}.` : "";
+};
 
 export function ImportPage() {
   const navigate = useNavigate();
@@ -77,7 +90,12 @@ export function ImportPage() {
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setReplacePending(true);
-        setMessage("Já existe agenda para uma ou mais lojas e datas deste arquivo.");
+        setMessage(conflictLabels(error.details) || "Já existe agenda para uma ou mais lojas e datas deste arquivo.");
+      } else if (error instanceof ApiError && error.status === 422) {
+        const missing = stringList(error.details?.stores);
+        setMessage(missing.length
+          ? `Lojas do arquivo não cadastradas ou inativas: ${missing.join(", ")}. Cadastre-as na tela Lojas ou corrija o arquivo e tente novamente.`
+          : error.message);
       } else {
         setMessage(error instanceof ApiError ? error.message : "Não foi possível importar as agendas.");
       }
