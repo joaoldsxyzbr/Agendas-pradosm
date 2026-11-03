@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeftRight, Ban, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowLeftRight, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
@@ -246,26 +246,26 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
       <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
         {displayStatus(item.status,item.observation)}
       </StatusBadge>
-      {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
-        title={item.observation}>Obs.: {item.observation}</span>}
       {item.origin==="manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
       <div className="ml-auto flex shrink-0 flex-wrap items-center gap-1.5">
         {!readOnly && <>
-          <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
-            aria-pressed={item.status==="recebido"} onClick={()=>changeStatus("recebido")}>
-            {item.status==="recebido"?"Desmarcar recebido":"Recebido"}
+          <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
+            aria-pressed={item.status==="recebido"} title={item.status==="recebido"?"Desmarcar recebido":"Marcar como recebido"}
+            aria-label={item.status==="recebido"?"Desmarcar recebido":"Recebido"} onClick={()=>changeStatus("recebido")}>
+            <Check size={15} aria-hidden="true"/>
           </Button>
-          <Button size="sm" className="h-7 px-2 text-[11px]" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
-            aria-pressed={item.status==="nao_chegou"} onClick={()=>changeStatus("nao_chegou")}>
-            {item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"}
+          <Button size="icon" className="h-7 w-7" variant={item.status==="nao_chegou"?"danger":"secondary"} disabled={inactive}
+            aria-pressed={item.status==="nao_chegou"} title={item.status==="nao_chegou"?"Desmarcar não recebido":"Marcar como não recebido"}
+            aria-label={item.status==="nao_chegou"?"Desmarcar não recebido":"Não recebido"} onClick={()=>changeStatus("nao_chegou")}>
+            <X size={15} aria-hidden="true"/>
           </Button>
           <Button size="sm" variant="ghost" className="h-7 px-2 text-[11px]" disabled={inactive}
             aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
             {item.observation ? "Editar observação" : "+ Obs."}
           </Button>
-          {item.origin==="manual" && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" disabled={inactive}
-            aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
-            <Pencil size={12} aria-hidden="true" />Editar fornecedor
+          {item.origin==="manual" && <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
+            title={`Editar fornecedor ${item.supplier}`} aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
+            <Pencil size={13} aria-hidden="true" />
           </Button>}
         </>}
         <label className="inline-flex items-center gap-1.5 text-[11px] text-slate-200">
@@ -273,6 +273,8 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
             checked={item.hasExchanges} disabled={inactive}
             onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
         </label>
+        {item.observation && <span className="max-w-[260px] shrink-0 truncate text-[11px] text-amber-300"
+          title={item.observation}>Obs.: {item.observation}</span>}
         {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
           onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
       </div>
@@ -377,6 +379,7 @@ export function ConferencePage(){
         </div>
         {date!==today && <Button size="sm" variant="secondary" onClick={()=>changeDate(today)}>Hoje</Button>}
         <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>void refresh()}><RefreshCw size={14}/>{query.isFetching?"Atualizando…":"Atualizar"}</Button>
+        {!readOnly && <Button size="sm" disabled={complete.isPending} onClick={()=>setConfirmComplete(true)}>Concluir dia</Button>}
       </div>}/>
     {query.isPending && <p role="status" className="rounded-lg border border-[#36516d] p-4 text-sm text-slate-300">Carregando agenda…</p>}
     {query.isError && <div role="alert" className="rounded-lg border border-rose-500/40 p-4 text-xs text-rose-200">
@@ -432,7 +435,6 @@ export function ConferencePage(){
         <Button size="sm" variant="secondary" onClick={()=>downloadAgendaPdf(agenda,appointments)}>
           <FileDown size={14}/>Exportar PDF
         </Button>
-        {!readOnly && <Button size="sm" disabled={complete.isPending} onClick={()=>setConfirmComplete(true)}>Concluir dia</Button>}
       </div>
       {confirmComplete && !readOnly && <section aria-label="Confirmar conclusão do dia" className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4">
         <strong className="text-sm text-amber-100">Concluir a agenda de {formatDay(date)}?</strong>
