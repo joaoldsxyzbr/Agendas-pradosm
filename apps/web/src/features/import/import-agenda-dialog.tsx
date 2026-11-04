@@ -92,7 +92,11 @@ export function ImportAgendaDialog({ onClose }: { onClose: () => void }) {
       const result = await submitImport(file, preview, replace);
       setSuccess(result);
       setReplacePending(false);
-      await client.invalidateQueries({ queryKey: ["receiving"] });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["receiving"] }),
+        client.invalidateQueries({ queryKey: ["agendas-board"] }),
+        client.invalidateQueries({ queryKey: ["agenda-suppliers"] }),
+      ]);
     } catch (error) {
       if (error instanceof ApiError && error.status === 409) {
         setReplacePending(true);
