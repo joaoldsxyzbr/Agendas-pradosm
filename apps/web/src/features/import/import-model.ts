@@ -13,6 +13,7 @@ export type ImportedAppointment = {
   type: string; items?: number | null; volumes?: number | null;
   pallets?: number | null; cargaBatida?: string | null;
   nfe?: string[]; orders?: string[];
+  csvFields?: Record<string, string>;
   status?: string;
 };
 export type ImportAgenda = {
