@@ -12,6 +12,8 @@ if (html.includes("/modern/") || html.includes("/frontend/"))
 const assets = readdirSync(join(dist, "assets"));
 const bundles = assets.filter(name => name.endsWith(".js"));
 if (bundles.length === 0) throw Error("Bundle JS do React ausente.");
+if (!bundles.some(name => name.startsWith("export-agenda-pdf-")))
+  throw Error("Exportação PDF deve permanecer em um chunk carregado sob demanda.");
 const bundle = bundles.map(name => read(join("assets", name))).join("\n");
 for (const needle of ["Fornecedor sem agenda", "Exportar PDF", "Detalhes do agendamento", "Registros de auditoria"]) {
   if (!bundle.includes(needle)) throw Error("Funcionalidade ausente do bundle: " + needle);
