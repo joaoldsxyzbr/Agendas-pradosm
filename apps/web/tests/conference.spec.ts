@@ -5,7 +5,7 @@ const entry = { id:"a1",supplier:"FORNECEDOR TESTE",protocol:"1234567",type:"Not
   // Contrato real do Worker: itens/volumes/paletes chegam como números (INTEGER no D1).
   items:5,volumes:50,pallets:1,
   startTime:"08:00",endTime:"08:30",status:"aguardando",hasExchanges:false,observation:null,origin:"imported" };
-async function setup(page, { conflict = false, empty = false, completed = false, noShow = false } = {}) {
+async function setup(page, { conflict = false, empty = false, completed = false, noShow = false, realtime = false } = {}) {
   const requests = [];
   let manualSeq = 0;
   let data = { agenda:empty?null:{ id:"agenda1",date:"2026-10-30",storeCode:"F03",
@@ -20,7 +20,7 @@ async function setup(page, { conflict = false, empty = false, completed = false,
     const method = route.request().method();
     requests.push({ path:url.pathname,method,payload:method==="GET"||!route.request().postData()?null:route.request().postDataJSON() });
     if(url.pathname==="/api/auth/me")return route.fulfill({json:conf});
-    if(url.pathname==="/api/realtime/config")return route.fulfill({json:{mode:"off",protocolVersion:1}});
+    if(url.pathname==="/api/realtime/config")return route.fulfill({json:{mode:realtime?"on":"off",protocolVersion:1}});
     if(url.pathname.startsWith("/api/store/tags/agenda/"))return route.fulfill({json:{tags:[],assignments:{}}});
     if(url.pathname==="/api/store/today"||url.pathname.startsWith("/api/store/history/"))return route.fulfill({json:data});
     if(url.pathname==="/api/store/appointments/a1/status" && method==="PATCH"){
@@ -287,4 +287,28 @@ test("Conferente React é responsivo e não cria rolagem horizontal da página",
   await setup(page);
   await expect(page.getByRole("heading",{name:"Conferência de recebimentos"})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(2);
+});
+
+
+test("Conferente React refaz consulta ao receber agenda.changed e realtime.ready",async({page})=>{
+  let socket = null;
+  let presenceSent = false;
+  await page.routeWebSocket("**/api/realtime", route=>{
+    socket = route;
+    route.onMessage(message=>{
+      if(typeof message==="string" && message.includes('"presence.set"'))presenceSent=true;
+      if(message==="ping")route.send("pong");
+    });
+  });
+  const requests=await setup(page,{realtime:true});
+  await expect(page.getByTestId("conference-row-a1")).toBeVisible();
+  await expect.poll(()=>presenceSent).toBe(true);
+  const getCount=()=>requests.filter(x=>x.method==="GET" && x.path==="/api/store/today").length;
+  const beforeChange=getCount();
+  const date=await page.getByLabel("Data da conferência").inputValue();
+  socket.send(JSON.stringify({version:1,type:"agenda.changed",agendaId:"agenda1",storeId:"s1",date,reason:"status"}));
+  await expect.poll(getCount).toBeGreaterThan(beforeChange);
+  const beforeReady=getCount();
+  socket.send(JSON.stringify({version:1,type:"realtime.ready"}));
+  await expect.poll(getCount).toBeGreaterThan(beforeReady);
 });
