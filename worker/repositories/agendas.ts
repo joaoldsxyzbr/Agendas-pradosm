@@ -63,6 +63,57 @@ async function listAdminAgendas(db, filters: { date?: string; storeCode?: string
   const result = await (values.length ? statement.bind(...values) : statement).all();
   return result.results;
 }
+/**
+ * Paginação opt-in para o Histórico administrativo. Seleciona as agendas da
+ * página ANTES de agregar agendamentos, evitando GROUP BY da base inteira.
+ * A listagem antiga permanece inalterada para Recebimento e outros clientes.
+ */
+async function listAdminAgendasPage(db, filters: { date?: string; storeCode?: string } = {}, limit = 20, offset = 0) {
+  const clauses = [];
+  const values = [];
+  if (filters.date) {
+    clauses.push("a.data_agenda = ?");
+    values.push(filters.date);
+  }
+  if (filters.storeCode) {
+    clauses.push("l.codigo = ? COLLATE NOCASE");
+    values.push(filters.storeCode);
+  }
+  const where = clauses.length ? `WHERE ${clauses.join(" AND ")}` : "";
+  // A linha adicional permite descobrir se há próxima página sem COUNT(*).
+  const result = await db.prepare(
+    `WITH selected AS (
+       SELECT a.id, a.data_agenda AS sorted_date, l.codigo AS sorted_code
+       FROM agendas a JOIN lojas l ON l.id = a.loja_id
+       ${where}
+       ORDER BY a.data_agenda DESC, l.codigo ASC, a.id ASC
+       LIMIT ? OFFSET ?
+     )
+     SELECT
+       a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
+       l.codigo AS store_code,
+       l.nome AS store_name,
+       concluidor.nome AS concluido_por_nome,
+       digitador.nome AS digitado_por_nome,
+       SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS nao_chegou,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.origem = 'manual' THEN 1 ELSE 0 END) AS sem_agenda
+     FROM selected p
+     JOIN agendas a ON a.id = p.id
+     JOIN lojas l ON l.id = a.loja_id
+     LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
+     LEFT JOIN usuarios digitador ON digitador.id = a.digitado_por
+     LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
+     GROUP BY a.id, l.codigo, l.nome, concluidor.nome, digitador.nome
+     ORDER BY p.sorted_date DESC, p.sorted_code ASC, a.id ASC`
+  ).bind(...values, limit + 1, offset).all();
+  const rows = result.results ?? [];
+  return { items: rows.slice(0, limit), hasMore: rows.length > limit };
+}
+
 async function listAppointmentsByAgenda(db, agendaId, activeOnly = true) {
   const query = activeOnly ? `SELECT ${APPOINTMENT_COLUMNS} FROM agendamentos WHERE agenda_id = ? AND ativo = 1 ORDER BY horario_inicio ASC, protocolo ASC` : `SELECT ${APPOINTMENT_COLUMNS} FROM agendamentos WHERE agenda_id = ? ORDER BY horario_inicio ASC, protocolo ASC`;
   const result = await db.prepare(query).bind(agendaId).all();
@@ -808,6 +859,7 @@ export {
   findStoreByCode,
   importAgendaBatchAtomic,
   listAdminAgendas,
+  listAdminAgendasPage,
   listAgendaHistory,
   listAppointmentHistory,
   listAppointmentsByAgenda,

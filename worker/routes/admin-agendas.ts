@@ -20,6 +20,7 @@ import {
   findAppointmentById,
   findStoreByCode,
   listAdminAgendas,
+  listAdminAgendasPage,
   listAgendaHistory,
   listAppointmentHistory,
   listAppointmentsByAgenda,
@@ -334,18 +335,27 @@ adminAgendaRoutes.get("/today", async (c) => {
 });
 const AgendaFilters = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  storeCode: z.string().trim().min(1).max(20).transform((value) => value.toUpperCase()).optional()
+  storeCode: z.string().trim().min(1).max(20).transform((value) => value.toUpperCase()).optional(),
+  // Opt-in: o contrato legado continua retornando um array.
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  offset: z.coerce.number().int().min(0).max(100000).optional()
 });
 adminAgendaRoutes.get("/", async (c) => {
   const parsed = AgendaFilters.safeParse({
     date: c.req.query("date") || void 0,
-    storeCode: c.req.query("storeCode") || void 0
+    storeCode: c.req.query("storeCode") || void 0,
+    limit: c.req.query("limit") || void 0,
+    offset: c.req.query("offset") || void 0
   });
-  if (!parsed.success) {
+  if (!parsed.success || (parsed.success && parsed.data.limit === undefined && parsed.data.offset !== undefined)) {
     return c.json(
       { error: "REQUISICAO_INVALIDA", message: "Filtros inv\xE1lidos." },
       400
     );
+  }
+  if (parsed.data.limit !== undefined) {
+    const page = await listAdminAgendasPage(c.env.DB, parsed.data, parsed.data.limit, parsed.data.offset ?? 0);
+    return c.json({ items: page.items.map(agendaSummaryJson), hasMore: page.hasMore });
   }
   const agendas = await listAdminAgendas(c.env.DB, parsed.data);
   // Os totais são usados apenas pela visão administrativa filtrada por data.

@@ -138,6 +138,7 @@ export function HistoryPage() {
   const [storeCode, setStoreCode] = useState("");
   const [date, setDate] = useState("");
   const [filters, setFilters] = useState<{ storeCode: string; date: string } | null>(null);
+  const [page, setPage] = useState(0);
   const [agendaId, setAgendaId] = useState<string | null>(null);
   const [statusAppointmentId, setStatusAppointmentId] = useState<string | null>(null);
   const [reasonAppointment, setReasonAppointment] = useState<Appointment | null>(null);
@@ -146,8 +147,8 @@ export function HistoryPage() {
 
   const stores = useQuery({ queryKey: ["admin", "stores"], queryFn: getStores });
   const agendas = useQuery({
-    queryKey: [...historyAgendasKey, filters?.storeCode ?? "", filters?.date ?? ""],
-    queryFn: () => listHistoryAgendas(filters!.storeCode, filters!.date),
+    queryKey: [...historyAgendasKey, filters?.storeCode ?? "", filters?.date ?? "", page],
+    queryFn: () => listHistoryAgendas(filters!.storeCode, filters!.date, page),
     enabled: filters !== null,
   });
   const detail = useQuery({
@@ -212,10 +213,16 @@ export function HistoryPage() {
     setAgendaId(null);
     setStatusAppointmentId(null);
     setMutationError("");
+    setPage(0);
     setFilters({ storeCode, date });
   };
 
-  const rows = agendas.data ?? [];
+  const rows = agendas.data?.items ?? [];
+  const changePage = (nextPage: number) => {
+    setAgendaId(null);
+    setStatusAppointmentId(null);
+    setPage(nextPage);
+  };
   const agenda = detail.data?.agenda;
   const appointments = detail.data?.appointments ?? [];
 
@@ -285,6 +292,18 @@ export function HistoryPage() {
               {!rows.length && <tr><td colSpan={7} className="px-4 py-8 text-center text-xs text-slate-400">Nenhuma agenda encontrada para os filtros.</td></tr>}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#344d69] px-4 py-3">
+          <p className="text-xs text-slate-300" aria-live="polite">
+            Página {page + 1} · {rows.length} {rows.length === 1 ? "agenda" : "agendas"} nesta página
+            {agendas.data.hasMore ? " · há mais resultados" : ""}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" disabled={page === 0 || agendas.isFetching}
+              onClick={() => changePage(Math.max(0, page - 1))}>Anterior</Button>
+            <Button size="sm" variant="secondary" disabled={!agendas.data.hasMore || agendas.isFetching}
+              onClick={() => changePage(page + 1)}>Próxima</Button>
+          </div>
         </div>
       </>}
       {!filters && <p className="p-5 text-xs text-slate-400">Use os filtros para consultar agendas.</p>}
