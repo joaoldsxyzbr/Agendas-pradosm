@@ -436,7 +436,7 @@ test("Admin e visualizador mantêm OBS longa em uma linha com texto completo no 
   await page.getByTestId("receiving-store-F02").getByRole("button",{name:"Ver detalhes"}).click();
   const dialog=page.getByRole("dialog",{name:/Agenda F02/});
   await dialog.getByRole("button",{name:"Editar agenda"}).click();
-  const full="Outros: "+"Observação extensa sobre o recebimento desta entrega. ".repeat(4);
+  const full=("Outros: "+"Observação extensa sobre o recebimento desta entrega. ".repeat(4)).trim();
   const row=dialog.getByTestId("detail-row-a2");
   await row.getByRole("button",{name:"Observação de Fornecedor Verde"}).click();
   await dialog.getByRole("combobox",{name:"Motivo de Fornecedor Verde"}).selectOption("Outros");

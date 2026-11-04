@@ -291,7 +291,7 @@ test("Conferente React é responsivo e não cria rolagem horizontal da página",
 
 test("Conferente mantém linhas compactas e exibe a observação completa no mouse",async({page})=>{
   await setup(page);
-  const full="Outros: "+ "Registro extenso da entrega para conferir com o motorista. ".repeat(4);
+  const full=("Outros: "+ "Registro extenso da entrega para conferir com o motorista. ".repeat(4)).trim();
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
   await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Outros");
