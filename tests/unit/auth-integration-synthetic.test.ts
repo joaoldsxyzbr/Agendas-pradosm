@@ -26,7 +26,7 @@ function syntheticDB() {
     );
     CREATE TABLE agendamentos (
       id TEXT PRIMARY KEY, agenda_id TEXT, ativo INTEGER, status TEXT,
-      origem TEXT, fornecedor TEXT, protocolo TEXT, observacao TEXT
+      origem TEXT, fornecedor TEXT, protocolo TEXT, observacao TEXT, csv_campos TEXT
     );
     CREATE TABLE historico_agenda (
       id TEXT PRIMARY KEY, agenda_id TEXT, acao TEXT, detalhes TEXT, alterado_em TEXT,
