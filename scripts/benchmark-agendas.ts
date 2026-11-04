@@ -18,6 +18,7 @@ db.exec(`
     id TEXT PRIMARY KEY, loja_id TEXT NOT NULL, data_agenda TEXT NOT NULL,
     arquivo_original TEXT NOT NULL, criado_por TEXT NOT NULL,
     status_dia TEXT NOT NULL, concluido_em TEXT, concluido_por TEXT,
+    digitado_em TEXT, digitado_por TEXT,
     criado_em TEXT NOT NULL, atualizado_em TEXT NOT NULL,
     UNIQUE (loja_id, data_agenda)
   );

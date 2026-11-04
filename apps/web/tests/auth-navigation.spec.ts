@@ -91,6 +91,7 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
     ["/admin/stores", "Lojas"],
     ["/admin/users", "Usuários"],
     ["/admin/reports", "Relatório Gerencial"],
+    ["/admin/agendas", "Agendas"],
     ["/admin/diagnostics", "Logs e Auditoria"],
   ]) {
     await page.goto(path);
@@ -101,6 +102,8 @@ test("React: administrador pode navegar nas rotas sem dados operacionais falsos"
       await expect(page.getByRole("form", { name: "Filtros do histórico" })).toBeVisible();
     } else if (path === "/admin/reports") {
       await expect(page.locator('summary[aria-label="Editar período e lojas"]')).toBeVisible();
+    } else if (path === "/admin/agendas") {
+      await expect(page.getByText("Nenhuma agenda importada nesta data.")).toBeVisible();
     } else if (path === "/admin/stores") {
       await expect(page.getByRole("table", { name: "Lojas cadastradas" })).toBeVisible();
     } else if (path === "/admin/users") {

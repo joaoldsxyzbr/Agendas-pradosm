@@ -13,7 +13,7 @@ function fixture() {
   sql.exec([
     "CREATE TABLE lojas (id TEXT PRIMARY KEY, codigo TEXT, nome TEXT)",
     "CREATE TABLE usuarios (id TEXT PRIMARY KEY, nome TEXT)",
-    "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT, data_agenda TEXT, arquivo_original TEXT, criado_por TEXT, status_dia TEXT, concluido_em TEXT, concluido_por TEXT, criado_em TEXT, atualizado_em TEXT)",
+    "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT, data_agenda TEXT, arquivo_original TEXT, criado_por TEXT, status_dia TEXT, concluido_em TEXT, concluido_por TEXT, digitado_em TEXT, digitado_por TEXT, criado_em TEXT, atualizado_em TEXT)",
     "CREATE TABLE agendamentos (id TEXT PRIMARY KEY, agenda_id TEXT, protocolo TEXT, horario_inicio TEXT, horario_fim TEXT, fornecedor TEXT, itens INTEGER, volumes INTEGER, paletes INTEGER, carga_batida TEXT, tipo TEXT, nfe TEXT, pedidos TEXT, status TEXT, trocas INTEGER, observacao TEXT, origem TEXT, ativo INTEGER, criado_em TEXT, atualizado_em TEXT)",
     "CREATE TABLE historico_status (id TEXT PRIMARY KEY, agendamento_id TEXT NOT NULL, usuario_id TEXT NOT NULL, status_anterior TEXT NOT NULL, status_novo TEXT NOT NULL, observacao TEXT, alterado_em TEXT NOT NULL)",
     "CREATE TABLE historico_agenda (id TEXT PRIMARY KEY, agenda_id TEXT, usuario_id TEXT, acao TEXT, detalhes TEXT, alterado_em TEXT)",
@@ -21,7 +21,7 @@ function fixture() {
   ].join(";\n") + ";");
   sql.prepare("INSERT INTO lojas VALUES ('loja1','01','Loja sintética')").run();
   sql.prepare("INSERT INTO usuarios VALUES ('adm1','Administrador')").run();
-  sql.prepare("INSERT INTO agendas VALUES ('agenda1','loja1','2026-10-29','teste.csv','adm1','aberto',NULL,NULL,'t0','t0')").run();
+  sql.prepare("INSERT INTO agendas VALUES ('agenda1','loja1','2026-10-29','teste.csv','adm1','aberto',NULL,NULL,NULL,NULL,'t0','t0')").run();
   sql.prepare("INSERT INTO agendamentos (id,agenda_id,protocolo,horario_inicio,horario_fim,fornecedor,status,trocas,observacao,origem,ativo,criado_em,atualizado_em) VALUES ('appt1','agenda1','P1','08:00','08:30','Fornecedor sintético','aguardando',0,NULL,'importado',1,'t0','t0')").run();
   const db = {
     prepare(query) {
