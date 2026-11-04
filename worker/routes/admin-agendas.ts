@@ -6,7 +6,7 @@ import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.t
 import { businessTime } from "../lib/time.ts";
 import { recordDiagnosticSafe } from "../repositories/diagnostics.ts";
 import { publishAgendaChanged } from "../services/realtime.ts";
-import { listAgendaSuppliers, changeSupplierCheck } from "../services/agenda-digitacao.ts";
+import { listAgendaSuppliers, listDigitacaoProgressByDate, changeSupplierCheck } from "../services/agenda-digitacao.ts";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
@@ -348,7 +348,15 @@ adminAgendaRoutes.get("/", async (c) => {
     );
   }
   const agendas = await listAdminAgendas(c.env.DB, parsed.data);
-  return c.json(agendas.map(agendaSummaryJson));
+  // Os totais são usados apenas pela visão administrativa filtrada por data.
+  // Endpoints antigos e consultas sem data mantêm exatamente seu contrato.
+  if (!parsed.data.date) return c.json(agendas.map(agendaSummaryJson));
+  const progress = await listDigitacaoProgressByDate(c.env.DB, parsed.data.date);
+  return c.json(agendas.map(agenda => ({
+    ...agendaSummaryJson(agenda),
+    digitadas: progress.get(agenda.id)?.digitadas ?? 0,
+    fornecedores: progress.get(agenda.id)?.fornecedores ?? 0
+  })));
 });
 const AgendaDayStatusInput = z.object({
   status: z.enum(["aberto", "concluido"])

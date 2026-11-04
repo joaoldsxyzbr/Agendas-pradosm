@@ -104,8 +104,9 @@ function StoreRow({ board, index, busy, onToggle }: {
     staleTime: 10_000
   });
   const suppliers = result.data?.suppliers ?? [];
-  const completed = suppliers.filter(supplier => supplier.digitadoEm).length;
-  const progress = result.data ? completed + "/" + suppliers.length + " fornecedores" : "Ver fornecedores";
+  const completed = result.data
+    ? suppliers.filter(supplier => supplier.digitadoEm).length : board.digitadas;
+  const totalSuppliers = result.data ? suppliers.length : board.fornecedores;
   return <Fragment>
     <tr data-testid={"agendas-row-" + board.storeCode} className={"hover:bg-[#29405a] " + (index % 2 ? "bg-[#1a2a40]" : "bg-[#142235]")}>
       <td className={tableCell}>
@@ -119,10 +120,19 @@ function StoreRow({ board, index, busy, onToggle }: {
           </span>
         </button>
       </td>
-      <td className={tableCell}><span className="block truncate" title={board.originalFileName ?? undefined}>{board.originalFileName ?? "—"}</span></td>
+      <td className={tableCell} data-testid={"agendas-progress-" + board.storeCode}>
+        <strong className="tabular-nums text-white">{completed}/{totalSuppliers}</strong>
+        <span className="ml-1 text-[11px] text-slate-400">digitadas</span>
+      </td>
       <td className={tableCell}><strong className="tabular-nums text-white">{board.total}</strong><span className="block text-[10px] text-slate-400">{board.recebido} recebidos</span></td>
       <td className={tableCell}><StatusBadge tone={board.dayStatus === "concluido" ? "success" : "warning"}>{board.dayStatus === "concluido" ? "Concluído" : "Em andamento"}</StatusBadge></td>
-      <td className={tableCell}><span className="text-[11px] text-slate-200">{progress}</span></td>
+      <td className={tableCell}>
+        <button type="button" aria-expanded={expanded} aria-controls={"agendas-details-" + board.id}
+          onClick={() => setExpanded(value => !value)}
+          className="text-[11px] font-medium text-sky-200 hover:underline focus-visible:outline-2 focus-visible:outline-sky-300">
+          {expanded ? "Ocultar fornecedores" : "Ver fornecedores"}
+        </button>
+      </td>
     </tr>
     {expanded && <tr className="bg-[#112236]" data-testid={"agendas-details-" + board.storeCode}>
       <td colSpan={5} id={"agendas-details-" + board.id} className="border-b border-[#38516d] p-3 sm:p-4">
@@ -134,10 +144,10 @@ function StoreRow({ board, index, busy, onToggle }: {
         {result.data && <div className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <strong className="text-xs text-slate-100">Fornecedores desta loja</strong>
-            <span className="text-[11px] text-slate-300">{completed} de {suppliers.length} digitados</span>
+            <span className="text-[11px] text-slate-300">{completed} de {totalSuppliers} digitados</span>
           </div>
           <div className="h-1.5 overflow-hidden rounded-full bg-[#304865]" aria-label="Progresso de digitação">
-            <div className="h-full rounded-full bg-emerald-500" style={{ width: (suppliers.length ? completed / suppliers.length * 100 : 0) + "%" }}/>
+            <div className="h-full rounded-full bg-emerald-500" style={{ width: (totalSuppliers ? completed / totalSuppliers * 100 : 0) + "%" }}/>
           </div>
           {suppliers.length
             ? <ul aria-label="Fornecedores desta loja" className="min-w-0 divide-y divide-[#304865] overflow-hidden rounded-lg border border-[#38516d]">{suppliers.map(item =>
@@ -181,7 +191,10 @@ export function AgendasPage() {
       updateSupplierCheck(args.agendaId, args),
     onMutate: () => setFailure(null),
     onSuccess: async (_data, vars) => {
-      await client.invalidateQueries({ queryKey: ["agenda-suppliers", vars.agendaId] });
+      await Promise.all([
+        client.invalidateQueries({ queryKey: ["agenda-suppliers", vars.agendaId] }),
+        client.invalidateQueries({ queryKey: ["agendas-board"] })
+      ]);
     },
     onError: error => {
       setFailure(error instanceof ApiError && error.status === 409
@@ -241,9 +254,9 @@ export function AgendasPage() {
       {list.length ? <div className="w-full overflow-hidden rounded-xl border border-[#38516d] bg-[#142235] shadow-lg">
         <div className="overflow-x-auto" data-testid="agendas-table-scroll">
           <table className="w-full min-w-[800px] table-fixed border-collapse" aria-label="Agendas por loja">
-            <colgroup><col className="w-[24%]"/><col className="w-[30%]"/><col className="w-[14%]"/><col className="w-[15%]"/><col className="w-[17%]"/></colgroup>
+            <colgroup><col className="w-[27%]"/><col className="w-[18%]"/><col className="w-[18%]"/><col className="w-[17%]"/><col className="w-[20%]"/></colgroup>
             <thead className="border-b border-[#38516d] bg-[#21374f]"><tr>
-              {["Loja", "Arquivo importado", "Agendamentos", "Situação", "Digitação"].map(h => <th key={h} scope="col" className={tableHead}>{h}</th>)}
+              {["Loja", "Digitadas", "Agendamentos", "Situação", "Fornecedores"].map(h => <th key={h} scope="col" className={tableHead}>{h}</th>)}
             </tr></thead>
             <tbody className="divide-y divide-[#304865]">
               {list.map((board, index) => <StoreRow key={board.id} board={board} index={index}
