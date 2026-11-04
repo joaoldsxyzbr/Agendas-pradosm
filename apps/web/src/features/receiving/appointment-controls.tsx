@@ -145,9 +145,9 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
   return <tbody data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
     <tr className="align-middle">
       {rowBody}
-      <td className="px-2.5 py-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-wrap gap-1">
+      <td className="w-[148px] min-w-[148px] px-2.5 py-1.5">
+        <div className="flex w-max flex-nowrap items-center gap-1">
+          <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-nowrap gap-1">
             <Button size="icon" className="h-7 w-7" variant={item.status === "recebido" ? "default" : "secondary"}
               disabled={blocked} aria-pressed={item.status === "recebido"}
               title={item.status === "recebido" ? "Desmarcar recebido" : "Marcar como recebido"}

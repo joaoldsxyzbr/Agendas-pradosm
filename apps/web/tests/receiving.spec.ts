@@ -458,3 +458,30 @@ test("Admin e visualizador mantêm OBS longa em uma linha com texto completo no 
   await expect(readonly).toHaveCSS("text-overflow","ellipsis");
   expect(await readonly.evaluate(element=>element.scrollWidth-element.clientWidth)).toBeGreaterThan(0);
 });
+
+test("Admin organiza ações em linha única e mantém linhas baixas na agenda detalhada",async({page})=>{
+  await page.setViewportSize({width:1200,height:800});
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button",{name:"Ver detalhes"}).click();
+  const dialog=page.getByRole("dialog",{name:/Agenda F02/});
+  await dialog.getByRole("button",{name:"Editar agenda"}).click();
+  const check=async(row,count)=>{
+    const cell=row.locator("tr").first().locator("td").nth(5);
+    const tops=await cell.locator("button").evaluateAll(buttons=>buttons.map(button=>{
+      const {top,width}=button.getBoundingClientRect();return {top,width};
+    }));
+    expect(tops).toHaveLength(count);
+    expect(Math.max(...tops.map(x=>x.top))-Math.min(...tops.map(x=>x.top))).toBeLessThanOrEqual(1);
+    expect(tops.every(x=>x.width>=27)).toBe(true);
+    expect(await row.locator("tr").first().evaluate(tr=>tr.getBoundingClientRect().height)).toBeLessThanOrEqual(48);
+  };
+  await check(dialog.getByTestId("detail-row-a2"),2);
+  await dialog.getByRole("button",{name:"Fornecedor sem agenda"}).click();
+  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
+  await dialog.getByRole("button",{name:"Adicionar fornecedor"}).click();
+  const manual=dialog.getByTestId("detail-row-manual3");
+  await expect(manual).toBeVisible();
+  await check(manual,4);
+});

@@ -267,8 +267,8 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
           {displayStatus(item.status,item.observation)}
         </StatusBadge>
       </td>
-      <td className="px-2.5 py-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <td className="w-[148px] min-w-[148px] px-2.5 py-1.5">
+        <div className="flex w-max flex-nowrap items-center gap-1">
           {!readOnly && <>
             <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
               aria-pressed={item.status==="recebido"} title={item.status==="recebido"?"Desmarcar recebido":"Marcar como recebido"}
@@ -523,7 +523,7 @@ export function ConferencePage(){
                     </button>
                   </th>;
                 })}
-                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[190px]">Ações</th>
+                <th scope="col" className="w-[148px] min-w-[148px] whitespace-nowrap px-2.5 py-2 font-semibold">Ações</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[220px]">Obs.</th>
               </tr>
