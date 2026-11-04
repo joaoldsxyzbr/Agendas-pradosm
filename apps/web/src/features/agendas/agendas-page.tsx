@@ -60,25 +60,28 @@ function SupplierItem({ item, busy, onToggle }: {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
   const documents = `NF-e: ${supplierDocumentNumbers(item.appointments, "nfe")} | Pedidos: ${supplierDocumentNumbers(item.appointments, "orders")}`;
-  return <li data-testid="agendas-supplier-item" className="min-w-0 bg-[#182a40] hover:bg-[#21354c]">
-    <div className="flex min-h-10 items-center gap-2 px-3 py-1.5">
-      <label className="flex min-w-0 flex-[1.2] cursor-pointer items-center gap-2">
+  return <li data-testid="agendas-supplier-item"
+    className={"min-w-0 transition-colors hover:bg-[#21354c] " + (item.digitadoEm ? "bg-[#172d3c]" : "bg-[#182a40]")}>
+    <div className="flex min-h-10 flex-wrap items-center gap-x-2 gap-y-1 px-3 py-1.5 lg:flex-nowrap">
+      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 lg:flex-[1.2]">
         <input type="checkbox" aria-label={"Digitado: " + item.supplier}
           checked={Boolean(item.digitadoEm)} disabled={busy}
           onChange={event => onToggle(item, event.target.checked)}
-          className="size-4 shrink-0 accent-emerald-500"/>
+          className="size-4 shrink-0 accent-emerald-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-300"/>
         <strong className="min-w-0 truncate text-[12px] font-semibold text-white" title={item.supplier}>
           {item.supplier}
         </strong>
       </label>
       <span data-testid="agendas-supplier-documents" title={documents}
-        className="min-w-0 flex-[1.4] truncate whitespace-nowrap text-[11px] text-slate-300">{documents}</span>
+        className="order-last ml-6 w-full min-w-0 truncate whitespace-nowrap pb-0.5 text-[11px] text-slate-300 lg:order-none lg:ml-0 lg:w-auto lg:flex-[1.4] lg:pb-0">{documents}</span>
       <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-slate-400"
         aria-label={item.appointments.length + " agendamentos"}>
         {item.appointments.length} ag.
       </span>
-      <span className={"w-[54px] shrink-0 text-right text-[10px] font-medium " +
-        (item.digitadoEm ? "text-emerald-300" : "text-amber-300")}
+      <span className={"w-[66px] shrink-0 rounded-md border px-1.5 py-0.5 text-center text-[10px] font-semibold " +
+        (item.digitadoEm
+          ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-300"
+          : "border-amber-500/25 bg-amber-500/10 text-amber-300")}
         title={item.digitadoEm ? "Digitado em " + formatStamp(item.digitadoEm) : undefined}>
         {item.digitadoEm ? "Digitado" : "Pendente"}
       </span>
@@ -155,7 +158,8 @@ function StoreRow({ board, index, busy, onToggle }: {
             <strong className="text-xs text-slate-100">Fornecedores desta loja</strong>
             <span className="text-[11px] text-slate-300">{completed} de {totalSuppliers} digitados</span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-[#304865]" aria-label="Progresso de digitação">
+          <div className="h-1.5 overflow-hidden rounded-full bg-[#304865]" role="progressbar"
+            aria-label="Progresso de digitação" aria-valuemin={0} aria-valuemax={totalSuppliers} aria-valuenow={completed}>
             <div className="h-full rounded-full bg-emerald-500" style={{ width: (totalSuppliers ? completed / totalSuppliers * 100 : 0) + "%" }}/>
           </div>
           {suppliers.length

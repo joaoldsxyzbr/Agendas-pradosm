@@ -137,6 +137,28 @@ test("Linha compacta mostra NF-e e Pedidos agregados por fornecedor, sem abrir d
     .toHaveText("NF-e: 99999 | Pedidos: —");
 });
 
+test("Polimento mantém os números visíveis em tela estreita e informa progresso acessível", async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 780 });
+  await mock(page);
+  await page.goto("/admin/agendas");
+  await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
+  const section = page.getByTestId("agendas-details-F01");
+  const item = section.getByTestId("agendas-supplier-item");
+  const documents = item.getByTestId("agendas-supplier-documents");
+  await expect(documents).toBeVisible();
+  await expect(documents).toHaveText("NF-e: 332211, 443322 | Pedidos: 8899, 8898");
+  const nameBox = await item.getByText("Fornecedor Azul").boundingBox();
+  const documentsBox = await documents.boundingBox();
+  expect(nameBox).not.toBeNull();
+  expect(documentsBox).not.toBeNull();
+  expect(documentsBox.y).toBeGreaterThan(nameBox.y);
+  const progress = section.getByRole("progressbar", { name: "Progresso de digitação" });
+  await expect(progress).toHaveAttribute("aria-valuenow", "0");
+  await expect(progress).toHaveAttribute("aria-valuemax", "1");
+  await item.getByRole("checkbox", { name: "Digitado: Fornecedor Azul" }).click();
+  await expect(progress).toHaveAttribute("aria-valuenow", "1");
+});
+
 test("Progresso por loja é visível sem abrir fornecedores e não cria consultas por loja", async ({ page }) => {
   const spy = await mock(page, "admin", { multipleSuppliers: true });
   await page.goto("/admin/agendas");
