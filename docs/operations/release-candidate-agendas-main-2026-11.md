@@ -37,6 +37,7 @@ Não executar `wrangler d1 migrations apply --remote` ou qualquer consulta de es
 - [ ] CI de PR da branch de release: `npm run verify:production`, CodeQL, `verify`, Playwright.
 - [ ] Testes de imports CSV/PDF (com e sem pedidos/NF-e), substituição de agendas, check/descheck, concorrência, hash de fornecedor, datas e permissão por perfil.
 - [ ] Teste de migrações `0020`/`0021` num D1 **local/sintético** com migrations `0001`–`0019`.
+  - Teste reproduzível: `tests/unit/release-agendas-migrations.test.ts` executa 0001–0021 com SQLite em memória e verifica compatibilidade de tabelas e FKs.
 - [ ] Verificar a paridade do conferente com a correção de realtime mantida, dos relatórios e da rota de recebimento.
 - [ ] Validar visualmente com login real na `preview`; confirmar tamanho dos arquivos e desempenho das consultas em dia movimentado.
 - [ ] Confirmar plano de backup do D1 de produção (export/Time Travel) e anotar identificador do ponto de recuperação, sem executá-lo antes de aprovação.
