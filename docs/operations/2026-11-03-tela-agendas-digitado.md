@@ -22,3 +22,16 @@ A tela é exclusiva do papel admin e não muda nada para o conferente.
 ## Histórico
 
 - 2026-11-03: criação da tela com a marcação interna de digitação.
+
+## Migração somente na Preview
+
+O D1 de homologação contém migrations históricas adicionais que não existem mais no histórico atual do repositório. Para evitar a reaplicação de migrações antigas e preservar o banco de teste, o arquivo `wrangler.preview-agendas-migrations.jsonc` seleciona **somente** a migration aditiva `0020_agenda_digitado_para_conferente.sql`, com o ID explícito do D1 de testes.
+
+A implantação isolada, antes de publicar o Worker da `preview`, deve usar:
+
+```sh
+npx wrangler d1 migrations apply DB --remote --config wrangler.preview-agendas-migrations.jsonc
+npx wrangler deploy --config wrangler.preview.jsonc
+```
+
+Não utilizar `wrangler.jsonc` nem aplicar migrations no D1 de produção para validar esta tela. A migration deve constar em `d1_migrations` antes de o Worker novo ser publicado. Em homologação, Tags e Cross Docking permanecem fora do escopo desta alteração; seus dados históricos não são apagados.
