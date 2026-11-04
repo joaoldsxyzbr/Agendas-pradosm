@@ -121,8 +121,8 @@ function StoreRow({ board, index, busy, onToggle }: {
         </button>
       </td>
       <td className={tableCell} data-testid={"agendas-progress-" + board.storeCode}>
-        <strong className="tabular-nums text-white">{completed}/{totalSuppliers}</strong>
-        <span className="ml-1 text-[11px] text-slate-400">digitadas</span>
+        <strong className="tabular-nums text-white">{completed}/{totalSuppliers}</strong>{" "}
+        <span className="text-[11px] text-slate-400">digitadas</span>
       </td>
       <td className={tableCell}><strong className="tabular-nums text-white">{board.total}</strong><span className="block text-[10px] text-slate-400">{board.recebido} recebidos</span></td>
       <td className={tableCell}><StatusBadge tone={board.dayStatus === "concluido" ? "success" : "warning"}>{board.dayStatus === "concluido" ? "Concluído" : "Em andamento"}</StatusBadge></td>
