@@ -6,7 +6,6 @@ import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDay } from "@/features/receiving/model";
-import { downloadAgendaPdf } from "./export-agenda-pdf";
 import { useStoreRealtime } from "./use-store-realtime";
 import {
   businessToday, shiftDay, loadStoreAgenda, filterAppointments, metricValues,
@@ -393,6 +392,8 @@ export function ConferencePage(){
   const [confirmComplete,setConfirmComplete]=useState(false);
   const [manualTarget,setManualTarget]=useState<{mode:"create"}|{mode:"edit";item:StoreAppointment}|null>(null);
   const [detailsId,setDetailsId]=useState<string|null>(null);
+  const [pdfBusy,setPdfBusy]=useState(false);
+  const [pdfError,setPdfError]=useState("");
   useStoreRealtime(date);
   useEffect(()=>{
     const check=()=>{
@@ -423,6 +424,20 @@ export function ConferencePage(){
   const readOnly=agenda?.dayStatus!=="aberto";
   const changeDate=(next:string)=>{setDate(next);setSearch("");setSort(null);setConfirmComplete(false);setManualTarget(null);setDetailsId(null);};
   const pct=(count:number)=>metrics.total?Math.round(count/metrics.total*100):0;
+  const exportPdf=async()=>{
+    if(!agenda || pdfBusy)return;
+    setPdfError("");
+    setPdfBusy(true);
+    try{
+      // Módulo de exportação carregado somente após solicitação.
+      const {downloadAgendaPdf}=await import("./export-agenda-pdf");
+      downloadAgendaPdf(agenda,appointments);
+    }catch{
+      setPdfError("Não foi possível gerar o PDF. Tente novamente.");
+    }finally{
+      setPdfBusy(false);
+    }
+  };
 
   return <section aria-label="Conferência" className="mx-auto max-w-[1430px] space-y-4">
     <PageHeader eyebrow="Operação da loja" title="Conferência de recebimentos"
@@ -439,11 +454,12 @@ export function ConferencePage(){
         </div>
         {date!==today && <Button size="sm" variant="secondary" onClick={()=>changeDate(today)}>Hoje</Button>}
         <Button size="sm" variant="secondary" disabled={query.isFetching} onClick={()=>void refresh()}><RefreshCw size={14}/>{query.isFetching?"Atualizando…":"Atualizar"}</Button>
-        {agenda && <Button size="sm" variant="secondary" onClick={()=>downloadAgendaPdf(agenda,appointments)}>
-          <FileDown size={14}/>Exportar PDF
+        {agenda && <Button size="sm" variant="secondary" disabled={pdfBusy} onClick={()=>void exportPdf()}>
+          <FileDown size={14}/>{pdfBusy?"Preparando PDF…":"Exportar PDF"}
         </Button>}
         {!readOnly && <Button size="sm" disabled={complete.isPending} onClick={()=>setConfirmComplete(true)}>Concluir dia</Button>}
       </div>}/>
+    {pdfError && <p role="alert" className="rounded-lg border border-rose-500/40 p-3 text-xs text-rose-200">{pdfError}</p>}
     {query.isPending && <p role="status" className="rounded-lg border border-[#36516d] p-4 text-sm text-slate-300">Carregando agenda…</p>}
     {query.isError && <div role="alert" className="rounded-lg border border-rose-500/40 p-4 text-xs text-rose-200">
       Não foi possível carregar a agenda. <Button size="sm" variant="secondary" onClick={()=>void query.refetch()}>Tentar novamente</Button>

@@ -15,6 +15,7 @@ import {
   listAppointmentHistory,
   listAppointmentsByAgenda,
   listStoreAgendas,
+  listStoreAgendasPage,
   softDeleteManualAppointment,
   updateManualAppointmentSupplier
 } from "../repositories/agendas.ts";
@@ -29,6 +30,10 @@ const ChangeExchangesInput = z.object({
   hasExchanges: z.boolean()
 });
 const DateParam = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const StoreHistoryPage = z.object({
+  limit: z.coerce.number().int().min(1).max(50).optional(),
+  offset: z.coerce.number().int().min(0).max(100000).optional()
+});
 const ManualAppointmentInput = z.object({
   supplier: z.string().trim().min(1).max(160)
 });
@@ -248,6 +253,18 @@ storeAgendaRoutes.post("/agenda/:date/complete", async (c) => {
 storeAgendaRoutes.get("/history", async (c) => {
   const user = storeUser(c);
   if (!user) return forbidden(c);
+  const parsed = StoreHistoryPage.safeParse({
+    limit: c.req.query("limit") || undefined,
+    offset: c.req.query("offset") || undefined
+  });
+  if (!parsed.success || (parsed.success && parsed.data.limit === undefined && parsed.data.offset !== undefined)) {
+    return c.json({ error: "REQUISICAO_INVALIDA", message: "Paginação inválida." }, 400);
+  }
+  if (parsed.data.limit !== undefined) {
+    const page = await listStoreAgendasPage(c.env.DB, user.lojaId, parsed.data.limit, parsed.data.offset ?? 0);
+    return c.json({ items: page.items.map(summaryJson), hasMore: page.hasMore });
+  }
+  // Sem parâmetro de página mantém contrato anterior em array.
   const agendas = await listStoreAgendas(c.env.DB, user.lojaId);
   return c.json(agendas.map(summaryJson));
 });
