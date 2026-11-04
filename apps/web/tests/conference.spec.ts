@@ -339,7 +339,9 @@ test("Conferência exibe ações em linha única e altura compacta inclusive par
   await setup(page);
   const regular=page.getByTestId("conference-row-a1");
   const assertCompact=async(row,expected)=>{
+    await expect(row).toBeVisible();
     const actionCell=row.locator("tr").first().locator("td").nth(5);
+    await expect(actionCell.locator("button")).toHaveCount(expected);
     const rects=await actionCell.locator("button").evaluateAll(buttons=>buttons.map(button=>{
       const {top,width}=button.getBoundingClientRect();return {top,width};
     }));
