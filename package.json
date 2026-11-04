@@ -13,6 +13,8 @@
     "bootstrap-admin": "node scripts/bootstrap-admin.mjs",
     "verify:production": "npm run check:migrations && npm test && npm run test:bootstrap-admin && npm run build && node scripts/check-build.mjs && node scripts/build-modern-preview.mjs",
     "deploy:cloudflare": "npm run check:migrations && wrangler d1 migrations apply DB --remote && wrangler deploy --config wrangler.jsonc",
+    "db:migrate:preview:agendas": "wrangler d1 migrations apply DB --remote --config wrangler.preview-agendas-migrations.jsonc",
+    "deploy:preview": "npm run db:migrate:preview:agendas && wrangler deploy --config wrangler.preview.jsonc",
     "deploy": "npm run verify:production && npm run deploy:cloudflare",
     "benchmark:password": "node --experimental-strip-types scripts/benchmark-password.mjs",
     "benchmark:agendas": "node --experimental-strip-types scripts/benchmark-agendas.mjs"
