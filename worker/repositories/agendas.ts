@@ -586,6 +586,39 @@ async function listStoreAgendas(db, storeId) {
   ).bind(storeId).all();
   return result.results;
 }
+/** Consulta opt-in de histórico de uma loja, com IDs limitados antes dos totais. */
+async function listStoreAgendasPage(db, storeId, limit = 20, offset = 0) {
+  const result = await db.prepare(
+    `WITH selected AS (
+       SELECT id, data_agenda FROM agendas
+       WHERE loja_id = ?
+       ORDER BY data_agenda DESC, id ASC
+       LIMIT ? OFFSET ?
+     )
+     SELECT
+       a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
+       l.codigo AS store_code,
+       l.nome AS store_name,
+       concluidor.nome AS concluido_por_nome,
+       SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'nao_chegou' THEN 1 ELSE 0 END) AS nao_chegou,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado,
+       SUM(CASE WHEN ag.ativo = 1 AND ag.origem = 'manual' THEN 1 ELSE 0 END) AS sem_agenda
+     FROM selected p
+     CROSS JOIN agendas a ON a.id = p.id
+     JOIN lojas l ON l.id = a.loja_id
+     LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
+     LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
+     WHERE a.loja_id = ?
+     GROUP BY a.id, l.codigo, l.nome, concluidor.nome
+     ORDER BY p.data_agenda DESC, a.id ASC`
+  ).bind(storeId, limit + 1, offset, storeId).all();
+  const rows = result.results ?? [];
+  return { items: rows.slice(0, limit), hasMore: rows.length > limit };
+}
+
 async function findAppointmentForStore(db, appointmentId, storeId) {
   const prefixedColumns = APPOINTMENT_COLUMNS.split(", ").map((column) => `ag.${column}`).join(", ");
   return db.prepare(
@@ -864,6 +897,7 @@ export {
   listAppointmentHistory,
   listAppointmentsByAgenda,
   listStoreAgendas,
+  listStoreAgendasPage,
   replaceAgendaImport,
   setAgendaDigitado,
   softDeleteManualAppointment,
