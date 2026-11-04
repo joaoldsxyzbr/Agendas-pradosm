@@ -81,10 +81,10 @@ test("Check é por fornecedor, independente dos protocolos e dos status", async 
   await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
   const check = page.getByRole("checkbox", { name: "Digitado: Fornecedor Azul" });
   await expect(check).not.toBeChecked();
-  await check.check();
+  await check.click();
   await expect(check).toBeChecked();
   await expect(page.getByTestId("agendas-details-F01")).toContainText("1 de 1 digitados");
-  await check.uncheck();
+  await check.click();
   await expect(check).not.toBeChecked();
   const calls = spy.requests.filter(call => call.method === "PATCH" && call.path.endsWith("/digitacao"));
   expect(calls.map(call => ({ supplier: call.body.supplier, digitado: call.body.digitado })))
@@ -111,7 +111,7 @@ test("Conflito administrativo preserva o check anterior", async ({ page }) => {
   await page.goto("/admin/agendas");
   await page.getByTestId("agendas-row-F02").getByRole("button", { name: /F02/ }).click();
   const check = page.getByRole("checkbox", { name: "Digitado: Fornecedor Verde" });
-  await check.check();
+  await check.click();
   await expect(page.getByRole("alert")).toContainText("Este fornecedor mudou");
   await expect(check).not.toBeChecked();
 });
