@@ -301,9 +301,10 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
             onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
         </label>
       </td>
-      <td className="max-w-[220px] px-2.5 py-1.5">
+      <td className="w-[220px] min-w-[220px] max-w-[220px] px-2.5 py-1.5">
         {item.observation
-          ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
+          ? <span className="block w-[200px] max-w-full truncate whitespace-nowrap text-[11px] text-amber-300"
+              title={item.observation}>Obs.: {item.observation}</span>
           : <span className="text-[11px] text-slate-500">—</span>}
       </td>
     </tr>
