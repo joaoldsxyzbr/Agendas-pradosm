@@ -125,7 +125,10 @@ test("Conferente React registra fornecedor sem agenda",async({page})=>{
   await page.getByRole("button",{name:"Fornecedor sem agenda"}).click();
   const dialog=page.getByRole("dialog");
   await expect(dialog).toContainText("Fornecedor sem agenda");
-  await dialog.getByLabel("Nome do fornecedor").fill("Distribuidora Manual");
+  const supplierInput = dialog.getByLabel("Nome do fornecedor");
+  await expect(supplierInput).toBeFocused();
+  await page.keyboard.type("Distribuidora Manual");
+  await expect(supplierInput).toHaveValue("Distribuidora Manual");
   await dialog.getByRole("button",{name:"Adicionar",exact:true}).click();
   const row=page.getByTestId("conference-row-m1");
   await expect(row).toBeVisible();
@@ -145,6 +148,7 @@ test("Conferente React edita e remove fornecedor manual",async({page})=>{
   const row=page.getByTestId("conference-row-m1");
   await expect(row).toBeVisible();
   await row.getByRole("button",{name:"Editar fornecedor Distribuidora Manual"}).click();
+  await expect(dialog.getByLabel("Nome do fornecedor")).toBeFocused();
   await dialog.getByLabel("Nome do fornecedor").fill("Distribuidora Renomeada");
   await dialog.getByRole("button",{name:"Salvar",exact:true}).click();
   await expect(row).toContainText("Distribuidora Renomeada");
