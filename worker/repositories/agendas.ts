@@ -102,7 +102,7 @@ async function listAdminAgendasPage(db, filters: { date?: string; storeCode?: st
        SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recusado' THEN 1 ELSE 0 END) AS recusado,
        SUM(CASE WHEN ag.ativo = 1 AND ag.origem = 'manual' THEN 1 ELSE 0 END) AS sem_agenda
      FROM selected p
-     JOIN agendas a ON a.id = p.id
+     CROSS JOIN agendas a ON a.id = p.id
      JOIN lojas l ON l.id = a.loja_id
      LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
      LEFT JOIN usuarios digitador ON digitador.id = a.digitado_por
