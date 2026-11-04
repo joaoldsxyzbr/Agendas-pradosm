@@ -4,7 +4,7 @@ Sistema web para gestão diária das agendas de recebimento das lojas Prado Supe
 
 ## Stack
 
-- **JavaScript puro (ES Modules), HTML e CSS** — sem React, Vite ou TypeScript
+- **React 19, Vite, TypeScript estrito e Tailwind CSS** na interface, publicada na raiz do Worker
 - Hono em Cloudflare Workers
 - Cloudflare D1
 - Zod
@@ -30,11 +30,11 @@ A autorização real é aplicada no Worker. A interface também oculta ações q
 
 ## Organização do repositório
 
-A produção (`main`) permanece em JavaScript puro (ES Modules). Na homologação (`preview`), desde 31/10/2026, a UI legada foi removida e a interface é exclusivamente o React de `apps/web/`, servido na raiz pelo fallback SPA do Workers.
+As branches `main` (produção) e `preview` (homologação) utilizam a interface React de `apps/web/`, publicada na raiz pelo fallback SPA do Worker. A `preview` mantém ambiente e D1 isolados e pode receber mudanças ainda não integradas à `main`.
 
 | Pasta/arquivo | Responsabilidade |
 | --- | --- |
-| `apps/web/` | UI React (Vite, TypeScript estrito) — única interface da `preview` |
+| `apps/web/` | Interface React (Vite, TypeScript estrito) de produção e homologação |
 | `worker/` | API, autenticação, serviços, D1 e tempo real do Cloudflare |
 | `shared/` | Contratos, datas e validações usados pelo Worker e pela UI |
 | `shared/import/` | Parser CSV/PDF de agendas, reaproveitado pelo React |
@@ -46,9 +46,9 @@ A produção (`main`) permanece em JavaScript puro (ES Modules). Na homologaçã
 | `docs/operations/` | Procedimentos atuais; `docs/archive/` guarda históricos de migração |
 | `wrangler.jsonc`, `wrangler.local.jsonc` | Produção e ambiente local sintético |
 
-**Branches:** `main` = produção (UI legada em JavaScript puro, intocável durante a homologação); `preview` = homologação isolada, só React, em https://previewagendaspradosm.joaolds.xyz.br. Qualquer mudança estrutural deve ser validada em PR, com CI verde, antes da mesclagem.
+**Branches:** `main` = produção com React; `preview` = homologação React com D1 separado, em https://previewagendaspradosm.joaolds.xyz.br. Mudanças devem ser validadas em PR com CI verde antes da mesclagem.
 
-Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). A produção não usa React; a homologação (`preview`) é 100% React em `apps/web/`.
+Leia [Arquitetura](docs/architecture.md), [Índice da documentação](docs/README.md) e [Publicação segura](docs/operations/production-release.md). Ambas as branches usam React; cada ambiente mantém suas próprias configurações e recursos Cloudflare.
 
 ## Desenvolvimento local
 
@@ -84,7 +84,7 @@ Inicie a aplicação:
 npm run dev
 ```
 
-O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético especificado em `wrangler.local.jsonc`. Esse diretório é ignorado pelo Git. A interface é servida como arquivos ES Modules, sem bundler.
+O Wrangler usa `.wrangler/state` para o D1 local, com banco sintético configurado em `wrangler.local.jsonc`. Esse diretório é ignorado pelo Git. `npm run dev` compila o React com Vite e publica os assets locais por meio do Wrangler.
 
 ## Comandos principais
 
@@ -110,12 +110,7 @@ Para desenvolvimento:
 npx wrangler d1 migrations apply DB --local --config wrangler.local.jsonc
 ```
 
-No fluxo normal de produção, **não aplique migrations remotas separadamente**. O comando oficial é `npm run deploy`, executado pelo Cloudflare Workers Builds, que segue esta ordem:
-
-1. verificação completa da aplicação JavaScript;
-2. gate de segurança das migrations;
-3. `wrangler d1 migrations apply DB --remote`;
-4. `wrangler deploy`.
+No Cloudflare Workers Builds, o **build command** é `npm run verify:production` (migrations, testes, segurança e build) e o **deploy command** é `npm run deploy:cloudflare` (gate de migrations, aplicação remota do D1 e publicação do Worker). O comando local `npm run deploy` executa as duas etapas em sequência. **Não aplique migrations remotas separadamente nem execute deploy sem autorização operacional.**
 
 Mudanças incompatíveis de schema devem seguir expand/contract. Consulte [Release de produção](docs/operations/production-release.md).
 
@@ -145,35 +140,18 @@ Os arquivos reais exportados não devem ser versionados. Testes usam dados sint�
 
 ## Dashboard
 
-Os dados de agenda do dashboard não usam polling periódico. Eles atualizam:
+A tela de Recebimento consulta agendas e presença a cada **30 segundos**, além de atualizar ao receber eventos WebSocket, ao retomar o foco e quando o usuário seleciona outra data ou clica em **Atualizar**. As lojas são consultadas a cada 60 segundos. O polling HTTP/D1 continua ativo como reconciliação quando o WebSocket falha.
 
-- na carga e troca da data selecionada;
-- após ações internas como importação ou reabertura;
-- quando o usuário clica em **Atualizar**;
-- silenciosamente quando a aba volta a ficar visível.
+A presença do conferente usa dois canais complementares:
 
-A presença possui dois caminhos complementares:
+- **WebSocket**, com status `online` enquanto a aba está visível e houve interação nos últimos 3 minutos; `away` quando a aba está oculta ou sem atividade recente; e `offline` quando não há conexão válida.
+- **HTTP/D1**, com sinal enviado a cada 30 segundos: Online até 3 minutos desde a última interação, Ausente com sinal recente sem interação e Offline após 7 minutos sem sinal.
 
-- **realtime**, quando o WebSocket está conectado;
-- **fallback HTTP/D1**, usado na carga inicial e quando a conexão realtime não está disponível.
-
-No caminho realtime:
-
-- **verde / Online**: existe conexão viva, a aba está visível e houve interação nos últimos 30 segundos;
-- **amarelo / Ausente**: a conexão continua viva, mas a aba está oculta ou passou cerca de 30 segundos sem interação;
-- **vermelho / Offline**: não existe conexão viva de conferente para a loja/doca.
-
-O conferente envia um heartbeat realtime a cada 20 segundos e o cliente mantém ping/pong hibernável no WebSocket. O hub considera tanto o heartbeat funcional quanto o último auto-response do ping para avaliar liveness. Uma conexão sem qualquer sinal válido por aproximadamente 2 minutos é expirada; fechamento normal e logout continuam refletindo Offline sem esperar esse limite. Eventos de mouse, teclado, foco e rolagem mudam somente o estado realtime quando necessário; não geram escrita D1 por evento.
-
-O ADM recebe snapshot e transições de presença pelo WebSocket. O polling periódico de presença foi removido após a estabilização do realtime. O endpoint HTTP/D1 permanece como fallback de reconciliação na carga, mudança de estado da conexão, retorno de foco e botão **Atualizar**.
-
-O fallback D1 continua intacto nesta fase: heartbeat a cada 2 minutos e regra histórica de Online até 3 minutos, Ausente entre 3 e 7 minutos e Offline depois de 7 minutos. Ele permanece disponível para rollback e indisponibilidade do realtime.
-
-Se houver mais de um conferente ou mais de uma aba vinculada à mesma loja/doca, o dashboard mostra o estado mais ativo entre as conexões válidas.
+O cliente mantém ping/pong WebSocket a cada 30 segundos, e o Durable Object descarta conexões sem atividade válida depois de cerca de 2 minutos. Se houver várias sessões na mesma loja, o painel prioriza a condição mais ativa. O D1 permanece a fonte de verdade dos dados de agenda.
 
 ### Infraestrutura realtime
 
-A migração para atualização em tempo real está sendo feita em fases para não colocar a produção em risco.
+A infraestrutura de atualização em tempo real está ativa na produção e possui fallback HTTP.
 
 A infraestrutura realtime usa:
 - Durable Object `RealtimeHub` com WebSocket Hibernation;
@@ -183,9 +161,9 @@ A infraestrutura realtime usa:
 - protocolo realtime versionado;
 - configuração `REALTIME_MODE` com fallback seguro para `off`.
 
-Após a validação do **shadow mode**, a presença passa a usar `REALTIME_MODE=on`. O Durable Object mantém somente estado efêmero de conexão/presença; o D1 continua sendo a fonte da verdade dos dados de negócio.
+A produção usa `REALTIME_MODE=on` e a configuração de homologação usa `off`. O Durable Object mantém apenas estado efêmero de conexão/presença; o D1 permanece a fonte da verdade dos dados de negócio.
 
-O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valor ausente ou desconhecido é tratado como `off`. A presença D1 anterior permanece como fallback de segurança; sua tabela e endpoints continuam preservados para rollback e reconciliação, sem polling periódico no ADM.
+O endpoint `/api/realtime/config` informa o modo ativo apenas para sessões autenticadas. Valores desconhecidos são tratados como `off`. O endpoint HTTP/D1 permanece como fallback e reconciliação periódica.
 
 ### Dashboard em tempo real
 
@@ -202,7 +180,7 @@ A regra é sempre **D1 primeiro, evento depois**. O Durable Object não replica 
 
 O ADM/visualizador:
 - recarrega somente quando a data do evento é a data atualmente selecionada;
-- agrupa rajadas curtas de eventos para evitar várias consultas durante importação em lote;
+- invalida consultas relevantes quando recebe eventos, mantendo o polling como mecanismo de reconciliação;
 - atualiza também o modal **Ver detalhes** quando a agenda aberta recebe mudança;
 - mantém reconciliação ao voltar para a aba e o botão **Atualizar** como fallback.
 
