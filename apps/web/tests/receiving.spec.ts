@@ -184,10 +184,12 @@ test("Recebimento React aplica permissões e impede importação não migrada", 
   await expect(page.getByRole("dialog", { name: /Agenda F02/ })).toBeVisible();
   await expect(page.getByText("Somente consulta nesta etapa")).toBeVisible();
 });
-test("Admin React abre importação em popup sem contornar prévia obrigatória", async ({ page }) => {
+test("Admin React acessa a aba de importação sem contornar prévia obrigatória", async ({ page }) => {
   await mock(page);
   await page.goto("/admin");
-  await page.getByRole("button", { name: "Importar agenda" }).click();
+  await expect(page.getByRole("button", { name: "Importar agenda" })).toHaveCount(0);
+  await page.getByRole("link", { name: "Importação" }).click();
+  await page.getByRole("button", { name: "Selecionar arquivo CSV/PDF" }).click();
   const dialog = page.getByRole("dialog", { name: "Importar agenda" });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByRole("group", { name: "Área para arrastar arquivos de agenda" })).toBeVisible();

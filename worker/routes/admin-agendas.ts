@@ -6,6 +6,7 @@ import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.t
 import { businessTime } from "../lib/time.ts";
 import { recordDiagnosticSafe } from "../repositories/diagnostics.ts";
 import { publishAgendaChanged } from "../services/realtime.ts";
+import { listAgendaSuppliers, listDigitacaoProgressByDate, changeSupplierCheck } from "../services/agenda-digitacao.ts";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
@@ -23,6 +24,7 @@ import {
   listAppointmentHistory,
   listAppointmentsByAgenda,
   replaceAgendaImport,
+  setAgendaDigitado,
   softDeleteManualAppointment,
   updateManualAppointmentSupplier
 } from "../repositories/agendas.ts";
@@ -74,6 +76,8 @@ function agendaJson(agenda) {
     dayStatus: agenda.status_dia,
     completedAt: agenda.concluido_em,
     completedBy: agenda.concluido_por ? { id: agenda.concluido_por, name: agenda.concluido_por_nome } : null,
+    digitadoEm: agenda.digitado_em ?? null,
+    digitadoPor: agenda.digitado_por ? { id: agenda.digitado_por, name: agenda.digitado_por_nome ?? "Usuário" } : null,
     createdBy: agenda.criado_por,
     createdAt: agenda.criado_em,
     updatedAt: agenda.atualizado_em
@@ -344,7 +348,15 @@ adminAgendaRoutes.get("/", async (c) => {
     );
   }
   const agendas = await listAdminAgendas(c.env.DB, parsed.data);
-  return c.json(agendas.map(agendaSummaryJson));
+  // Os totais são usados apenas pela visão administrativa filtrada por data.
+  // Endpoints antigos e consultas sem data mantêm exatamente seu contrato.
+  if (!parsed.data.date) return c.json(agendas.map(agendaSummaryJson));
+  const progress = await listDigitacaoProgressByDate(c.env.DB, parsed.data.date);
+  return c.json(agendas.map(agenda => ({
+    ...agendaSummaryJson(agenda),
+    digitadas: progress.get(agenda.id)?.digitadas ?? 0,
+    fornecedores: progress.get(agenda.id)?.fornecedores ?? 0
+  })));
 });
 const AgendaDayStatusInput = z.object({
   status: z.enum(["aberto", "concluido"])
@@ -394,6 +406,78 @@ adminAgendaRoutes.patch("/:id/status", async (c) => {
     );
   }
 });
+const AgendaDigitadoInput = z.object({
+  digitado: z.boolean()
+});
+adminAgendaRoutes.patch("/:id/digitado", async (c) => {
+  const parsed = AgendaDigitadoInput.safeParse(
+    await c.req.json().catch(() => null)
+  );
+  if (!parsed.success) {
+    return c.json(
+      { error: "REQUISICAO_INVALIDA", message: "Marcação de digitação inválida." },
+      400
+    );
+  }
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) {
+    return c.json(
+      { error: "AGENDA_NAO_ENCONTRADA", message: "Agenda não encontrada." },
+      404
+    );
+  }
+  const user = c.get("authUser");
+  try {
+    const updated = await setAgendaDigitado(
+      c.env.DB,
+      agenda,
+      user.id,
+      parsed.data.digitado
+    );
+    return c.json(agendaJson(updated));
+  } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
+    console.error("Agenda digitado change failed", error instanceof Error ? error.message : String(error));
+    return c.json(
+      {
+        error: "ALTERACAO_DIGITADO_FALHOU",
+        message: "A marcação de digitação não foi alterada."
+      },
+      500
+    );
+  }
+});
+
+const SupplierCheckInput = z.object({
+  supplier: z.string().trim().min(1).max(200),
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+  digitado: z.boolean(),
+  expectedDigitadoEm: z.string().datetime().nullable()
+});
+adminAgendaRoutes.get("/:id/digitacao", async (c) => {
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) return c.json({ error: "AGENDA_NAO_ENCONTRADA" }, 404);
+  const suppliers = await listAgendaSuppliers(c.env.DB, agenda.id);
+  return c.json({ agendaId: agenda.id, suppliers });
+});
+adminAgendaRoutes.patch("/:id/digitacao", async (c) => {
+  const parsed = SupplierCheckInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "REQUISICAO_INVALIDA", message: "Marcação inválida." }, 400);
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) return c.json({ error: "AGENDA_NAO_ENCONTRADA" }, 404);
+  try {
+    const updated = await changeSupplierCheck(c.env.DB, agenda, c.get("authUser").id, parsed.data);
+    if (!updated) return c.json({ error: "FORNECEDOR_NAO_ENCONTRADO" }, 404);
+    return c.json(updated);
+  } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
+    console.error("Falha na marcação interna de fornecedor", { type: error?.name ?? "Error" });
+    return c.json({ error: "DIGITACAO_FALHOU", message: "Não foi possível salvar a marcação." }, 500);
+  }
+});
+
 adminAgendaRoutes.get("/:id/history", async (c) => {
   const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
   if (!agenda) {

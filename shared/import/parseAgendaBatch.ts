@@ -262,6 +262,28 @@ function parseTableRows(rows: string[][], sourceText: string, source: string): A
     }
     seenProtocols.add(protocolKey);
     const cargaRaw = cell(row, header.map.cargaBatida);
+    // Preserva a linha original para consulta administrativa sem alterar o contrato do conferente.
+    const headers = rows[header.index] ?? [];
+    const csvFields: Record<string, string> = {};
+    if (source === "csv") {
+      if (headers.length > 64 || row.length > headers.length) {
+        blockingErrors.push(`COLUNAS_CSV_EXCEDIDAS:${first}`);
+        continue;
+      }
+      for (let column = 0; column < headers.length; column++) {
+        const label = (headers[column] ?? "").trim() || `Coluna ${column + 1}`;
+        const value = cell(row, column);
+        if (label.length > 160 || value.length > 2048 || Object.hasOwn(csvFields, label)) {
+          blockingErrors.push(`CAMPO_CSV_INVALIDO:${first}`);
+          break;
+        }
+        csvFields[label] = value;
+      }
+      if (Object.keys(csvFields).length !== headers.length || JSON.stringify(csvFields).length > 16384) {
+        blockingErrors.push(`CAMPOS_CSV_EXCEDIDOS:${first}`);
+        continue;
+      }
+    }
     const appointment = {
       protocol: first,
       startTime: dateTime.startTime,
@@ -274,6 +296,7 @@ function parseTableRows(rows: string[][], sourceText: string, source: string): A
       type,
       nfe: parseNumberList(cell(row, header.map.nfe)),
       orders: parseNumberList(cell(row, header.map.orders)),
+      ...(source === "csv" ? { csvFields } : {}),
       status: "aguardando"
     };
     const group = appointmentsByAgenda.get(agendaKey);
