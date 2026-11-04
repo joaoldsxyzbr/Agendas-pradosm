@@ -32,20 +32,21 @@ const statusEventSchema = z.object({
 export type DayEvent = z.infer<typeof dayEventSchema>;
 export type StatusEvent = z.infer<typeof statusEventSchema>;
 export type HistorySummary = z.infer<typeof summarySchema>;
+const historyPageSchema = z.object({ items: z.array(summarySchema), hasMore: z.boolean() });
+export const HISTORY_PAGE_SIZE = 20;
 
 export const historyAgendasKey = ["admin", "history", "agendas"] as const;
 export const historyDetailKey = ["admin", "history", "agenda"] as const;
 export const historyDayEventsKey = ["admin", "history", "day-events"] as const;
 export const historyStatusEventsKey = ["admin", "history", "status-events"] as const;
 
-export async function listHistoryAgendas(storeCode: string, date: string) {
+export async function listHistoryAgendas(storeCode: string, date: string, page: number) {
   const params = new URLSearchParams();
   if (date) params.set("date", date);
   if (storeCode) params.set("storeCode", storeCode);
-  const query = params.toString();
-  return z.array(summarySchema).parse(await apiFetch<unknown>(
-    query ? `/api/admin/agendas?${query}` : "/api/admin/agendas",
-  ));
+  params.set("limit", String(HISTORY_PAGE_SIZE));
+  params.set("offset", String(page * HISTORY_PAGE_SIZE));
+  return historyPageSchema.parse(await apiFetch<unknown>(`/api/admin/agendas?${params}`));
 }
 
 export async function listDayEvents(agendaId: string) {

@@ -1,5 +1,8 @@
 # Release candidata: Agendas e Importação — novembro/2026
 
+> **Registro histórico atualizado em 04/11/2026:** a etapa descrita abaixo foi concluída com o merge do [PR #182](https://github.com/joaoldsxyzbr/Agendas-pradosm/pull/182) na `main`, commit `e4491d1b7cd94ee5af5b016606ef23fba04a98b5`. Os itens e instruções abaixo são o checklist **pré-merge** preservado para rastreabilidade, não o estado atual da release. O [CI da main](https://github.com/joaoldsxyzbr/Agendas-pradosm/actions/runs/41826105338) ficou verde; a validação operacional pós-publicação deve ser registrada separadamente.
+
+
 **Status:** candidata, sem autorização para produção. Esta branch é uma preparação técnica, **não** um deploy.
 **Destino futuro:** `main`, somente após nova autorização explícita.
 **Origem:** `main` no commit `101f71111d1295374cb26b4ec3817cafdaa11673`, incorporando as funcionalidades comprovadas da `preview` (`3cc6bafc1818c1a7ccdb06ed45429f370ded62c7`).
