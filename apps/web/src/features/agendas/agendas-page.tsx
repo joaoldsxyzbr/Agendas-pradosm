@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useId, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ClipboardList, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -51,30 +51,43 @@ function SupplierItem({ item, busy, onToggle }: {
   busy: boolean;
   onToggle: (item: Supplier, checked: boolean) => void;
 }) {
-  return <li className="rounded-lg border border-[#38516d] bg-[#182a40]">
-    <div className="flex flex-wrap items-center gap-3 p-3">
-      <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-3">
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsId = useId();
+  return <li data-testid="agendas-supplier-item" className="min-w-0 bg-[#182a40] hover:bg-[#21354c]">
+    <div className="flex min-h-10 items-center gap-2 px-3 py-1.5">
+      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
         <input type="checkbox" aria-label={"Digitado: " + item.supplier}
           checked={Boolean(item.digitadoEm)} disabled={busy}
           onChange={event => onToggle(item, event.target.checked)}
-          className="mt-0.5 size-4 shrink-0 accent-emerald-500" />
-        <span className="min-w-0">
-          <strong className="block break-words text-xs text-white">{item.supplier}</strong>
-          <span className="text-[11px] text-slate-400">{item.appointments.length} agendamento(s)</span>
-        </span>
+          className="size-4 shrink-0 accent-emerald-500"/>
+        <strong className="min-w-0 truncate text-[12px] font-semibold text-white" title={item.supplier}>
+          {item.supplier}
+        </strong>
       </label>
-      {item.digitadoEm
-        ? <span className="text-[10px] text-emerald-300">Digitado · {formatStamp(item.digitadoEm)}</span>
-        : <span className="text-[10px] text-amber-300">Pendente</span>}
+      <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-slate-400"
+        aria-label={item.appointments.length + " agendamentos"}>
+        {item.appointments.length} ag.
+      </span>
+      <span className={"w-[54px] shrink-0 text-right text-[10px] font-medium " +
+        (item.digitadoEm ? "text-emerald-300" : "text-amber-300")}
+        title={item.digitadoEm ? "Digitado em " + formatStamp(item.digitadoEm) : undefined}>
+        {item.digitadoEm ? "Digitado" : "Pendente"}
+      </span>
+      <button type="button" aria-label={"Detalhes de " + item.supplier}
+        aria-expanded={detailsOpen} aria-controls={detailsId}
+        onClick={() => setDetailsOpen(value => !value)}
+        className="inline-flex h-7 shrink-0 items-center gap-1 rounded px-1.5 text-[11px] text-sky-200 hover:bg-[#2b4560] focus-visible:outline-2 focus-visible:outline-sky-300">
+        {detailsOpen ? <ChevronUp size={14} aria-hidden="true"/> : <ChevronDown size={14} aria-hidden="true"/>}
+        <span className="hidden sm:inline">Detalhes</span>
+      </button>
     </div>
-    <details className="border-t border-[#304865]">
-      <summary className="cursor-pointer px-3 py-2 text-[11px] font-semibold text-sky-200 hover:bg-[#223b55]">
-        Ver protocolos, NF-e, pedidos e dados completos
-      </summary>
-      <div className="space-y-2 p-3">
-        {item.appointments.map(appointment => <AppointmentDetails key={appointment.id} item={appointment}/>)}
-      </div>
-    </details>
+    {detailsOpen && <div id={detailsId} className="space-y-2 border-t border-[#304865] bg-[#142438] p-3">
+      {item.digitadoEm && <p className="text-[11px] text-emerald-300">
+        Digitado em {formatStamp(item.digitadoEm)}
+        {item.digitadoPor?.name ? " por " + item.digitadoPor.name : ""}
+      </p>}
+      {item.appointments.map(appointment => <AppointmentDetails key={appointment.id} item={appointment}/>)}
+    </div>}
   </li>;
 }
 
@@ -127,7 +140,7 @@ function StoreRow({ board, index, busy, onToggle }: {
             <div className="h-full rounded-full bg-emerald-500" style={{ width: (suppliers.length ? completed / suppliers.length * 100 : 0) + "%" }}/>
           </div>
           {suppliers.length
-            ? <ul className="grid grid-cols-1 gap-2 lg:grid-cols-2">{suppliers.map(item =>
+            ? <ul aria-label="Fornecedores desta loja" className="min-w-0 divide-y divide-[#304865] overflow-hidden rounded-lg border border-[#38516d]">{suppliers.map(item =>
                 <SupplierItem key={item.supplier} item={item} busy={busy}
                   onToggle={(supplier, checked) => onToggle(board.id, supplier, checked)}/>)}</ul>
             : <p className="text-xs text-slate-400">Nenhum fornecedor importado nesta agenda.</p>}
