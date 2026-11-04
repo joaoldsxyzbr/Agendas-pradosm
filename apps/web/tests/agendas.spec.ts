@@ -37,6 +37,7 @@ async function mock(page, role = "admin", options = {}) {
     if (path === "/api/auth/me") return json(role === "viewer" ? viewer : admin);
     if (path === "/api/realtime/config") return json({ mode: "off", protocolVersion: 1 });
     if (path === "/api/admin/stores" && method === "GET") return json([]);
+    if (path === "/api/admin/presence" && method === "GET") return json([]);
     if (path === "/api/admin/agendas" && method === "GET") return json(boardsNow);
     const digitadoMatch = /^\/api\/admin\/agendas\/([^/]+)\/digitado$/.exec(path);
     if (digitadoMatch && method === "PATCH") {
