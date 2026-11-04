@@ -42,6 +42,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
   onDeleted: () => Promise<void>;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const supplierInputRef = useRef<HTMLInputElement>(null);
   const editing = target.mode === "edit";
   const [supplier, setSupplier] = useState(target.mode === "edit" ? target.item.supplier : "");
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -68,6 +69,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
     const dialog = ref.current;
     if (!dialog) return;
     dialog.showModal();
+    supplierInputRef.current?.focus();
     return () => { if (dialog.open) dialog.close(); };
   }, []);
   const busy = mutation.isPending;
@@ -100,7 +102,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
       if (!busy) mutation.mutate({ kind: "save" });
     }}>
       <label htmlFor="manual-supplier-name" className="block text-xs font-semibold text-slate-200">Nome do fornecedor</label>
-      <input id="manual-supplier-name" autoFocus type="text" required maxLength={160} value={supplier}
+      <input ref={supplierInputRef} id="manual-supplier-name" type="text" required maxLength={160} value={supplier}
         disabled={busy} onChange={event => { setSupplier(event.target.value); mutation.reset(); }}
         className="h-9 w-full rounded-md border border-slate-600 bg-[#101e30] px-3 text-xs text-white focus-visible:outline-2 focus-visible:outline-sky-300" />
       {message && <p role="alert" className="text-xs text-rose-300">{message}</p>}
