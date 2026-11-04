@@ -22,7 +22,7 @@ const appointments = [
     nfe: ["332211"], orders: ["8899"], csvFields: { "Doca": "01", "Pedidos": "8899", "N° NF-e": "332211" } },
   { id: "a2", supplier: "Fornecedor Azul", protocol: "123457", startTime: "10:00", endTime: "11:00",
     items: 2, volumes: 3, pallets: 0, cargaBatida: "Não", type: "Pedido",
-    nfe: [], orders: ["8898"], csvFields: {} },
+    nfe: ["332211", "443322"], orders: ["8898"], csvFields: {} },
   { id: "b1", supplier: "Fornecedor Verde", protocol: "123458", startTime: "12:00", endTime: "13:00",
     items: 1, volumes: 1, pallets: 1, cargaBatida: null, type: "Nota fiscal",
     nfe: ["99999"], orders: [], csvFields: {} }
@@ -118,6 +118,23 @@ test("Fornecedores aparecem em linhas compactas únicas, com detalhes sob demand
   await expect(section.getByRole("button", { name: "Detalhes de Fornecedor Azul" })).toHaveAttribute("aria-expanded", "true");
   await section.getByRole("button", { name: "Detalhes de Fornecedor Azul" }).click();
   await expect(section.getByTestId("agendas-protocol-123456")).toHaveCount(0);
+});
+
+test("Linha compacta mostra NF-e e Pedidos agregados por fornecedor, sem abrir detalhes", async ({ page }) => {
+  await mock(page);
+  await page.goto("/admin/agendas");
+  await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
+  const azul = page.getByTestId("agendas-details-F01").getByTestId("agendas-supplier-item");
+  await expect(azul.getByTestId("agendas-supplier-documents"))
+    .toHaveText("NF-e: 332211, 443322 | Pedidos: 8899, 8898");
+  await expect(azul.getByRole("button", { name: "Detalhes de Fornecedor Azul" }))
+    .toHaveAttribute("aria-expanded", "false");
+  await expect(page.getByTestId("agendas-protocol-123456")).toHaveCount(0);
+
+  await page.getByTestId("agendas-row-F02").getByRole("button", { name: /F02/ }).click();
+  const verde = page.getByTestId("agendas-details-F02").getByTestId("agendas-supplier-item");
+  await expect(verde.getByTestId("agendas-supplier-documents"))
+    .toHaveText("NF-e: 99999 | Pedidos: —");
 });
 
 test("Progresso por loja é visível sem abrir fornecedores e não cria consultas por loja", async ({ page }) => {

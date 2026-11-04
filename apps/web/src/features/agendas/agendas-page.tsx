@@ -46,6 +46,12 @@ function AppointmentDetails({ item }: { item: SupplierAppointment }) {
   </div>;
 }
 
+function supplierDocumentNumbers(appointments: SupplierAppointment[], kind: "nfe" | "orders") {
+  const values = appointments.flatMap(appointment => appointment[kind])
+    .map(number => number.trim()).filter(Boolean);
+  return [...new Set(values)].join(", ") || "—";
+}
+
 function SupplierItem({ item, busy, onToggle }: {
   item: Supplier;
   busy: boolean;
@@ -53,9 +59,10 @@ function SupplierItem({ item, busy, onToggle }: {
 }) {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const detailsId = useId();
+  const documents = `NF-e: ${supplierDocumentNumbers(item.appointments, "nfe")} | Pedidos: ${supplierDocumentNumbers(item.appointments, "orders")}`;
   return <li data-testid="agendas-supplier-item" className="min-w-0 bg-[#182a40] hover:bg-[#21354c]">
     <div className="flex min-h-10 items-center gap-2 px-3 py-1.5">
-      <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2">
+      <label className="flex min-w-0 flex-[1.2] cursor-pointer items-center gap-2">
         <input type="checkbox" aria-label={"Digitado: " + item.supplier}
           checked={Boolean(item.digitadoEm)} disabled={busy}
           onChange={event => onToggle(item, event.target.checked)}
@@ -64,6 +71,8 @@ function SupplierItem({ item, busy, onToggle }: {
           {item.supplier}
         </strong>
       </label>
+      <span data-testid="agendas-supplier-documents" title={documents}
+        className="min-w-0 flex-[1.4] truncate whitespace-nowrap text-[11px] text-slate-300">{documents}</span>
       <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-slate-400"
         aria-label={item.appointments.length + " agendamentos"}>
         {item.appointments.length} ag.
