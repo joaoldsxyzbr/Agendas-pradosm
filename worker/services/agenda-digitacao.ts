@@ -19,7 +19,7 @@ function parseCsvFields(raw: string | null): Record<string, string> {
   try {
     const value = JSON.parse(raw ?? "{}");
     return value && typeof value === "object" && !Array.isArray(value)
-      ? Object.fromEntries(Object.entries(value).filter(([key, cell]) => typeof key === "string" && typeof cell === "string"))
+      ? Object.fromEntries(Object.entries(value).filter(([key, cell]) => typeof key === "string" && typeof cell === "string")) as Record<string, string>
       : {};
   } catch {
     return {};
@@ -109,7 +109,7 @@ function stateConflict() {
 }
 
 async function changeSupplierCheck(db: any, agenda: { id: string; loja_id: string }, userId: string, input: {
-  supplier: string; hash: string; digitado: boolean; expectedDigitadoEm: string | null;
+  supplier: string; hash: string; digitado: boolean; expectedDigitadoEm?: string | null;
 }) {
   const rows = await listAppointmentsByAgenda(db, agenda.id);
   const group = groupRows(rows as ImportedRow[]).find(item => item.key === supplierKey(input.supplier));
