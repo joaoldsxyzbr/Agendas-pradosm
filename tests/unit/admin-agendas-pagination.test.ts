@@ -11,6 +11,7 @@ function fixture() {
     "CREATE TABLE lojas (id TEXT PRIMARY KEY, codigo TEXT NOT NULL, nome TEXT NOT NULL)",
     "CREATE TABLE usuarios (id TEXT PRIMARY KEY, loja_id TEXT, nome TEXT, login TEXT, senha_hash TEXT, papel TEXT, ativo INTEGER, session_version INTEGER, excluido_em TEXT, criado_em TEXT, atualizado_em TEXT)",
     "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT, data_agenda TEXT, arquivo_original TEXT, criado_por TEXT, status_dia TEXT, concluido_em TEXT, concluido_por TEXT, digitado_em TEXT, digitado_por TEXT, criado_em TEXT, atualizado_em TEXT)",
+    "CREATE TABLE historico_agenda (agenda_id TEXT, acao TEXT, alterado_em TEXT)",
     "CREATE TABLE agendamentos (id TEXT PRIMARY KEY, agenda_id TEXT, horario_inicio TEXT, ativo INTEGER, status TEXT, origem TEXT)",
     "CREATE INDEX idx_agendamentos_agenda_horario ON agendamentos (agenda_id, horario_inicio)"
   ].join(";") + ";");
@@ -18,7 +19,9 @@ function fixture() {
     sqlite.prepare("INSERT INTO lojas (id,codigo,nome) VALUES (?,?,?)").run(`l${s}`, `F0${s}`, `Loja ${s}`);
   }
   sqlite.prepare("INSERT INTO usuarios (id,nome,papel,ativo,session_version) VALUES ('admin-sintetico','Administrador','admin',1,1)").run();
-  const agenda = sqlite.prepare("INSERT INTO agendas (id,loja_id,data_agenda,status_dia) VALUES (?,?,?,'aberto')");
+  // GET /api/admin/agendas executa manutenção antes da leitura; dias já
+  // concluídos evitam mutações automáticas e isolam o contrato paginado.
+  const agenda = sqlite.prepare("INSERT INTO agendas (id,loja_id,data_agenda,status_dia) VALUES (?,?,?,'concluido')");
   const agendamento = sqlite.prepare("INSERT INTO agendamentos (id,agenda_id,horario_inicio,ativo,status,origem) VALUES (?,?,?,?,?,?)");
   for (let day = 1; day <= 18; day++) {
     const date = `2026-10-${String(day).padStart(2, "0")}`;
