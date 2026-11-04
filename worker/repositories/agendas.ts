@@ -1,6 +1,6 @@
 import { auditStatement } from "./audit.ts";
-const AGENDA_COLUMNS = "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, criado_em, atualizado_em";
-const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, observacao, origem, ativo, criado_em, atualizado_em";
+const AGENDA_COLUMNS = "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, digitado_em, digitado_por, criado_em, atualizado_em";
+const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, observacao, origem, ativo, criado_em, atualizado_em, csv_campos";
 async function findStoreByCode(db, code) {
   return db.prepare(
     "SELECT id, codigo, nome FROM lojas WHERE codigo = ? COLLATE NOCASE AND ativo = 1 AND excluido_em IS NULL LIMIT 1"
@@ -16,10 +16,12 @@ async function findAgendaById(db, id) {
     `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
               l.codigo AS store_code,
               l.nome AS store_name,
-              concluidor.nome AS concluido_por_nome
+              concluidor.nome AS concluido_por_nome,
+              digitador.nome AS digitado_por_nome
        FROM agendas a
        JOIN lojas l ON l.id = a.loja_id
        LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
+       LEFT JOIN usuarios digitador ON digitador.id = a.digitado_por
        WHERE a.id = ?
        LIMIT 1`
   ).bind(id).first();
@@ -42,6 +44,7 @@ async function listAdminAgendas(db, filters: { date?: string; storeCode?: string
        l.codigo AS store_code,
        l.nome AS store_name,
        concluidor.nome AS concluido_por_nome,
+       digitador.nome AS digitado_por_nome,
        SUM(CASE WHEN ag.ativo = 1 THEN 1 ELSE 0 END) AS total,
        SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'aguardando' THEN 1 ELSE 0 END) AS aguardando,
        SUM(CASE WHEN ag.ativo = 1 AND ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,
@@ -51,9 +54,10 @@ async function listAdminAgendas(db, filters: { date?: string; storeCode?: string
      FROM agendas a
      JOIN lojas l ON l.id = a.loja_id
      LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
+     LEFT JOIN usuarios digitador ON digitador.id = a.digitado_por
      LEFT JOIN agendamentos ag ON ag.agenda_id = a.id
      ${where}
-     GROUP BY a.id, l.codigo, l.nome, concluidor.nome
+     GROUP BY a.id, l.codigo, l.nome, concluidor.nome, digitador.nome
      ORDER BY a.data_agenda DESC, l.codigo ASC`
   );
   const result = await (values.length ? statement.bind(...values) : statement).all();
@@ -91,7 +95,7 @@ async function listAppointmentHistory(db, appointmentId) {
 }
 function appointmentInsert(db, agendaId, appointment, now) {
   return db.prepare(
-    "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 'importado', 1, ?, ?)"
+    "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em, csv_campos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 'importado', 1, ?, ?, ?)"
   ).bind(
     crypto.randomUUID(),
     agendaId,
@@ -107,7 +111,8 @@ function appointmentInsert(db, agendaId, appointment, now) {
     JSON.stringify(appointment.nfe),
     JSON.stringify(appointment.orders),
     now,
-    now
+    now,
+    appointment.csvFields ? JSON.stringify(appointment.csvFields) : null
   );
 }
 async function createAgendaImport(db, storeId, createdBy, input) {
@@ -171,7 +176,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
     if (current) {
       statements.push(
         db.prepare(
-          "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
+          "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, csv_campos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
         ).bind(
           appointment.startTime,
           appointment.endTime,
@@ -183,6 +188,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
           appointment.type,
           JSON.stringify(appointment.nfe),
           JSON.stringify(appointment.orders),
+          appointment.csvFields ? JSON.stringify(appointment.csvFields) : null,
           now,
           current.id
         )
@@ -321,6 +327,7 @@ async function importAgendaBatchAtomic(db, userId, entries) {
             appointment.type,
             JSON.stringify(appointment.nfe),
             JSON.stringify(appointment.orders),
+            appointment.csvFields ? JSON.stringify(appointment.csvFields) : null,
             now,
             current.id
           )
@@ -495,10 +502,12 @@ async function findStoreAgendaByDate(db, storeId, date) {
     `SELECT a.${AGENDA_COLUMNS.replaceAll(", ", ", a.")},
               l.codigo AS store_code,
               l.nome AS store_name,
-              concluidor.nome AS concluido_por_nome
+              concluidor.nome AS concluido_por_nome,
+              digitador.nome AS digitado_por_nome
        FROM agendas a
        JOIN lojas l ON l.id = a.loja_id
        LEFT JOIN usuarios concluidor ON concluidor.id = a.concluido_por
+       LEFT JOIN usuarios digitador ON digitador.id = a.digitado_por
        WHERE a.loja_id = ? AND a.data_agenda = ?
        LIMIT 1`
   ).bind(storeId, date).first();
@@ -704,6 +713,49 @@ async function changeAgendaDayStatus(db, agenda, userId, status) {
   return updated;
 }
 
+// Marcação interna do administrador: a agenda já foi digitada/repassada para o conferente.
+// Não altera o status do dia nem publica eventos de tempo real (invisível ao conferente).
+async function setAgendaDigitado(db, agenda, userId, digitado) {
+  const alreadyDigitado = agenda.digitado_em != null;
+  if (alreadyDigitado === digitado) {
+    const current = await findAgendaById(db, agenda.id);
+    if (!current) throw new Error("Agenda não pôde ser relida.");
+    return current;
+  }
+  const now = new Date().toISOString();
+  const auditId = crypto.randomUUID();
+  const update = digitado
+    ? db.prepare(
+      "UPDATE agendas SET digitado_em = ?, digitado_por = ?, atualizado_em = ? WHERE id = ? AND digitado_em IS NULL"
+    ).bind(now, userId, now, agenda.id)
+    : db.prepare(
+      "UPDATE agendas SET digitado_em = NULL, digitado_por = NULL, atualizado_em = ? WHERE id = ? AND digitado_em IS NOT NULL"
+    ).bind(now, agenda.id);
+  const statements = [
+    update,
+    auditStatement(db, {
+      id: auditId, onlyIfPreviousWrite: true,
+      userId,
+      action: digitado ? "agenda_digitada_para_conferente" : "agenda_digitacao_removida",
+      entity: "agenda",
+      entityId: agenda.id,
+      storeId: agenda.loja_id,
+      agendaId: agenda.id,
+      before: { digitadoEm: agenda.digitado_em ?? null, digitadoPor: agenda.digitado_por ?? null },
+      after: { digitadoEm: digitado ? now : null, digitadoPor: digitado ? userId : null },
+      details: digitado
+        ? "Agenda marcada como digitada para o conferente."
+        : "Marcação de digitação para o conferente removida.",
+      createdAt: now
+    })
+  ];
+  const result = await db.batch(statements);
+  assertMutationApplied(result);
+  const updated = await findAgendaById(db, agenda.id);
+  if (!updated) throw new Error("Agenda atualizada não pôde ser relida.");
+  return updated;
+}
+
 async function listAgendaHistory(db, agendaId) {
   const result = await db.prepare(
     `SELECT id, agenda_id, usuario_id, usuario_nome, acao, detalhes, alterado_em
@@ -761,6 +813,7 @@ export {
   listAppointmentsByAgenda,
   listStoreAgendas,
   replaceAgendaImport,
+  setAgendaDigitado,
   softDeleteManualAppointment,
   updateManualAppointmentSupplier
 };

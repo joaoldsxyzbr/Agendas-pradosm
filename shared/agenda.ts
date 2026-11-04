@@ -39,7 +39,10 @@ const ImportedAppointmentInput = z.object({
   cargaBatida: z.string().trim().min(1).max(120).nullable(),
   type: z.enum(AGENDA_DOCUMENT_TYPES),
   nfe: z.array(z.string().trim().min(1).max(80)).max(100),
-  orders: z.array(z.string().trim().min(1).max(80)).max(100)
+  orders: z.array(z.string().trim().min(1).max(80)).max(100),
+  csvFields: z.record(z.string().trim().min(1).max(160), z.string().max(2048))
+    .refine(value => Object.keys(value).length <= 64 && JSON.stringify(value).length <= 16384, "Campos CSV excedem o limite seguro.")
+    .optional()
 }).superRefine((value, ctx) => {
   if (timeToMinutes(value.startTime) >= timeToMinutes(value.endTime)) {
     ctx.addIssue({

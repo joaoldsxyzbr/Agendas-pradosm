@@ -10,6 +10,7 @@ interface ParsedAppointment {
   type: string;
   nfe: string[];
   orders: string[];
+  csvFields?: Record<string, string>;
   status: string;
 }
 interface AgendaTextResult {
