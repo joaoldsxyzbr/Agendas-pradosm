@@ -1,19 +1,19 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { DatabaseSync } from "node:sqlite";
-import { listAgendaSuppliers, changeSupplierCheck, supplierKey } from "../../worker/services/agenda-digitacao.ts";
+import { listAgendaSuppliers, listDigitacaoProgressByDate, changeSupplierCheck, supplierKey } from "../../worker/services/agenda-digitacao.ts";
 
 function setup() {
   const sqlite = new DatabaseSync(":memory:");
   sqlite.exec([
     "CREATE TABLE usuarios (id TEXT PRIMARY KEY, nome TEXT)",
-    "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT)",
+    "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT, data_agenda TEXT)",
     "CREATE TABLE agendamentos (id TEXT PRIMARY KEY, agenda_id TEXT, protocolo TEXT, horario_inicio TEXT, horario_fim TEXT, fornecedor TEXT, itens INTEGER, volumes INTEGER, paletes INTEGER, carga_batida TEXT, tipo TEXT, nfe TEXT, pedidos TEXT, status TEXT, trocas INTEGER, observacao TEXT, origem TEXT, ativo INTEGER, criado_em TEXT, atualizado_em TEXT, csv_campos TEXT)",
     "CREATE TABLE agenda_digitacao_fornecedor (agenda_id TEXT NOT NULL, fornecedor_chave TEXT NOT NULL, fornecedor_nome TEXT NOT NULL, dados_hash TEXT NOT NULL, digitado_em TEXT, digitado_por TEXT, PRIMARY KEY(agenda_id, fornecedor_chave))",
     "CREATE TABLE auditoria (id TEXT PRIMARY KEY, usuario_id TEXT, acao TEXT, entidade TEXT, entidade_id TEXT, loja_id TEXT, agenda_id TEXT, agendamento_id TEXT, antes TEXT, depois TEXT, detalhes TEXT, criado_em TEXT)"
   ].join(";") + ";");
   sqlite.prepare("INSERT INTO usuarios (id, nome) VALUES (?, ?)").run("adm", "Administradora");
-  sqlite.prepare("INSERT INTO agendas (id, loja_id) VALUES (?, ?)").run("agenda1", "loja1");
+  sqlite.prepare("INSERT INTO agendas (id, loja_id, data_agenda) VALUES (?, ?, ?)").run("agenda1", "loja1", "2026-11-03");
   const insert = sqlite.prepare(
     "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, csv_campos) VALUES (?, 'agenda1', ?, '08:00', '09:00', ?, 2, 3, 1, '-', 'Nota fiscal', '[\"123\"]', '[\"456\"]', 'aguardando', 'importado', 1, ?)"
   );
@@ -52,6 +52,27 @@ function setup() {
 }
 
 describe("Digitação administrativa por fornecedor — preview", () => {
+  it("resumo diário respeita checks válidos, agrupa fornecedores e invalida CSV alterado", async () => {
+    const { sqlite, d1, agenda } = setup();
+    try {
+      const before = await listDigitacaoProgressByDate(d1, "2026-11-03");
+      assert.deepEqual(before.get(agenda.id), { digitadas: 0, fornecedores: 1 });
+      assert.equal((await listDigitacaoProgressByDate(d1, "2026-11-04")).size, 0);
+      const supplier = (await listAgendaSuppliers(d1, agenda.id))[0];
+      await changeSupplierCheck(d1, agenda, "adm", {
+        supplier: supplier.supplier, hash: supplier.hash,
+        digitado: true, expectedDigitadoEm: null
+      });
+      const marked = await listDigitacaoProgressByDate(d1, "2026-11-03");
+      assert.deepEqual(marked.get(agenda.id), { digitadas: 1, fornecedores: 1 });
+      sqlite.prepare("UPDATE agendamentos SET pedidos = ? WHERE id = ?").run('["NOVO"]', "item1");
+      const changed = await listDigitacaoProgressByDate(d1, "2026-11-03");
+      assert.deepEqual(changed.get(agenda.id), { digitadas: 0, fornecedores: 1 });
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it("agrupa protocolos com nome equivalente e persiste check sem alterar recebimento", async () => {
     const { sqlite, d1, agenda } = setup();
     assert.equal(supplierKey("  FORNECEDOR Á "), "fornecedor a");

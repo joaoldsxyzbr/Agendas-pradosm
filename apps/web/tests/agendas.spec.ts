@@ -50,7 +50,13 @@ async function mock(page, role = "admin", options = {}) {
     if (path === "/api/auth/me") return json(role === "viewer" ? viewer : admin);
     if (path === "/api/realtime/config") return json({ mode: "off", protocolVersion: 1 });
     if (["/api/admin/stores", "/api/admin/presence"].includes(path)) return json([]);
-    if (path === "/api/admin/agendas" && method === "GET") return json(boards);
+    if (path === "/api/admin/agendas" && method === "GET") {
+      return json(boards.map(board => ({
+        ...board,
+        digitadas: rows[board.id].filter(supplier => supplier.digitadoEm).length,
+        fornecedores: rows[board.id].length
+      })));
+    }
     const id = /^\/api\/admin\/agendas\/(agenda[01])\/digitacao$/.exec(path)?.[1];
     if (id && method === "GET") return json({ agendaId: id, suppliers: rows[id] });
     if (id && method === "PATCH") {
@@ -72,6 +78,10 @@ test("Agendas expande lojas sem botões antigos e exibe fornecedores", async ({ 
   await expect(page.getByRole("heading", { name: "Agendas", exact: true })).toBeVisible();
   const table = page.getByRole("table", { name: "Agendas por loja" });
   await expect(table.locator("thead th")).toHaveCount(5);
+  await expect(table.locator("thead")).toContainText("Digitadas");
+  await expect(table.locator("thead")).not.toContainText("Arquivo importado");
+  await expect(page.getByTestId("agendas-progress-F01")).toContainText("0/1 digitadas");
+  await expect(page.getByTestId("agendas-progress-F02")).toContainText("0/1 digitadas");
   await expect(table.locator("tbody tr")).toHaveCount(2);
   await expect(page.getByRole("button", { name: "Marcar como digitada" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Ver agendamentos" })).toHaveCount(0);
@@ -110,6 +120,21 @@ test("Fornecedores aparecem em linhas compactas únicas, com detalhes sob demand
   await expect(section.getByTestId("agendas-protocol-123456")).toHaveCount(0);
 });
 
+test("Progresso por loja é visível sem abrir fornecedores e não cria consultas por loja", async ({ page }) => {
+  const spy = await mock(page, "admin", { multipleSuppliers: true });
+  await page.goto("/admin/agendas");
+  await expect(page.getByTestId("agendas-progress-F01")).toContainText("0/2 digitadas");
+  await expect(page.getByTestId("agendas-progress-F02")).toContainText("0/1 digitadas");
+  expect(spy.requests.filter(request => request.path.endsWith("/digitacao"))).toHaveLength(0);
+  const row = page.getByTestId("agendas-row-F01");
+  await row.getByRole("button", { name: "Ver fornecedores" }).click();
+  await expect(row.getByRole("button", { name: "Ocultar fornecedores" })).toBeVisible();
+  await expect(page.getByTestId("agendas-details-F01")).toContainText("Fornecedor Laranja");
+  await row.getByRole("button", { name: "Ocultar fornecedores" }).click();
+  await expect(page.getByTestId("agendas-details-F01")).toHaveCount(0);
+  await expect(page.getByTestId("agendas-progress-F01")).toContainText("0/2 digitadas");
+});
+
 test("Check é por fornecedor, independente dos protocolos e dos status", async ({ page }) => {
   const spy = await mock(page);
   await page.goto("/admin/agendas");
@@ -119,8 +144,10 @@ test("Check é por fornecedor, independente dos protocolos e dos status", async 
   await check.click();
   await expect(check).toBeChecked();
   await expect(page.getByTestId("agendas-details-F01")).toContainText("1 de 1 digitados");
+  await expect(page.getByTestId("agendas-progress-F01")).toContainText("1/1 digitadas");
   await check.click();
   await expect(check).not.toBeChecked();
+  await expect(page.getByTestId("agendas-progress-F01")).toContainText("0/1 digitadas");
   const calls = spy.requests.filter(call => call.method === "PATCH" && call.path.endsWith("/digitacao"));
   expect(calls.map(call => ({ supplier: call.body.supplier, digitado: call.body.digitado })))
     .toEqual([{ supplier: "Fornecedor Azul", digitado: true }, { supplier: "Fornecedor Azul", digitado: false }]);

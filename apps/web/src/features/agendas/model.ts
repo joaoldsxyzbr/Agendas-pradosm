@@ -6,6 +6,7 @@ export const agendaBoardSchema = z.object({
   originalFileName: z.string().nullable().optional(),
   dayStatus: z.string(),
   total: z.number(), recebido: z.number(), aguardando: z.number(),
+  digitadas: z.number().int().nonnegative(), fornecedores: z.number().int().nonnegative(),
   naoChegou: z.number(), recusado: z.number(), semAgenda: z.number(),
   // Compatibilidade com o campo legado; a nova tela não o utiliza.
   digitadoEm: z.string().nullable().optional(),

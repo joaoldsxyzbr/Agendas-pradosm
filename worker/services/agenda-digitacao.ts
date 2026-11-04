@@ -104,6 +104,50 @@ async function listAgendaSuppliers(db: any, agendaId: string) {
   }));
 }
 
+/**
+ * Resumo do dia em duas leituras D1, sem solicitar os detalhes de cada loja.
+ * O hash é o mesmo usado para validar o check no fornecedor expandido:
+ * marcações de um CSV substituído não são contadas se os dados mudaram.
+ */
+async function listDigitacaoProgressByDate(db: any, date: string) {
+  const [appointments, checks] = await Promise.all([
+    db.prepare(
+      "SELECT ag.id, ag.agenda_id, ag.protocolo, ag.fornecedor, ag.horario_inicio, " +
+      "ag.horario_fim, ag.itens, ag.volumes, ag.paletes, ag.carga_batida, " +
+      "ag.tipo, ag.nfe, ag.pedidos, ag.csv_campos, ag.origem, ag.ativo " +
+      "FROM agendamentos ag JOIN agendas a ON a.id = ag.agenda_id " +
+      "WHERE a.data_agenda = ? AND ag.ativo = 1"
+    ).bind(date).all(),
+    db.prepare(
+      "SELECT d.agenda_id, d.fornecedor_chave, d.dados_hash, d.digitado_em " +
+      "FROM agenda_digitacao_fornecedor d JOIN agendas a ON a.id = d.agenda_id " +
+      "WHERE a.data_agenda = ?"
+    ).bind(date).all()
+  ]);
+  const byAgenda = new Map<string, ImportedRow[]>();
+  for (const row of appointments.results as (ImportedRow & { agenda_id: string })[]) {
+    const rows = byAgenda.get(row.agenda_id) ?? [];
+    rows.push(row);
+    byAgenda.set(row.agenda_id, rows);
+  }
+  const saved = new Map<string, { dados_hash: string; digitado_em: string | null }>();
+  for (const check of checks.results as {
+    agenda_id: string; fornecedor_chave: string; dados_hash: string; digitado_em: string | null;
+  }[]) {
+    saved.set(JSON.stringify([check.agenda_id, check.fornecedor_chave]), check);
+  }
+  const progress = new Map<string, { digitadas: number; fornecedores: number }>();
+  await Promise.all([...byAgenda].map(async ([agendaId, rows]) => {
+    const groups = groupRows(rows);
+    const valid = await Promise.all(groups.map(async group => {
+      const check = saved.get(JSON.stringify([agendaId, group.key]));
+      return Boolean(check?.digitado_em && check.dados_hash === await fingerprint(group.rows));
+    }));
+    progress.set(agendaId, { digitadas: valid.filter(Boolean).length, fornecedores: groups.length });
+  }));
+  return progress;
+}
+
 function stateConflict() {
   return Object.assign(new Error("A marcação foi alterada; atualize a tela."), { code: "CONFLITO_ESTADO" });
 }
@@ -161,4 +205,4 @@ async function changeSupplierCheck(db: any, agenda: { id: string; loja_id: strin
   };
 }
 
-export { supplierKey, groupRows, fingerprint, listAgendaSuppliers, changeSupplierCheck };
+export { supplierKey, groupRows, fingerprint, listAgendaSuppliers, listDigitacaoProgressByDate, changeSupplierCheck };
