@@ -6,6 +6,7 @@ import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.t
 import { businessTime } from "../lib/time.ts";
 import { recordDiagnosticSafe } from "../repositories/diagnostics.ts";
 import { publishAgendaChanged } from "../services/realtime.ts";
+import { listAgendaSuppliers, changeSupplierCheck } from "../services/agenda-digitacao.ts";
 import {
   changeAgendaDayStatus,
   changeAppointmentExchanges,
@@ -437,6 +438,35 @@ adminAgendaRoutes.patch("/:id/digitado", async (c) => {
       },
       500
     );
+  }
+});
+
+const SupplierCheckInput = z.object({
+  supplier: z.string().trim().min(1).max(200),
+  hash: z.string().regex(/^[0-9a-f]{64}$/),
+  digitado: z.boolean(),
+  expectedDigitadoEm: z.string().datetime().nullable()
+});
+adminAgendaRoutes.get("/:id/digitacao", async (c) => {
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) return c.json({ error: "AGENDA_NAO_ENCONTRADA" }, 404);
+  const suppliers = await listAgendaSuppliers(c.env.DB, agenda.id);
+  return c.json({ agendaId: agenda.id, suppliers });
+});
+adminAgendaRoutes.patch("/:id/digitacao", async (c) => {
+  const parsed = SupplierCheckInput.safeParse(await c.req.json().catch(() => null));
+  if (!parsed.success) return c.json({ error: "REQUISICAO_INVALIDA", message: "Marcação inválida." }, 400);
+  const agenda = await findAgendaById(c.env.DB, c.req.param("id"));
+  if (!agenda) return c.json({ error: "AGENDA_NAO_ENCONTRADA" }, 404);
+  try {
+    const updated = await changeSupplierCheck(c.env.DB, agenda, c.get("authUser").id, parsed.data);
+    if (!updated) return c.json({ error: "FORNECEDOR_NAO_ENCONTRADO" }, 404);
+    return c.json(updated);
+  } catch (error) {
+    const conflict = conflictResponse(c, error);
+    if (conflict) return conflict;
+    console.error("Falha na marcação interna de fornecedor", { type: error?.name ?? "Error" });
+    return c.json({ error: "DIGITACAO_FALHOU", message: "Não foi possível salvar a marcação." }, 500);
   }
 });
 
