@@ -42,8 +42,14 @@ async function setup(page, { role = "admin", conflict = false, listError = false
       if (listError) { listError = false; return route.fulfill({ status: 503, json: { error: "FALHA" } }); }
       const storeCode = url.searchParams.get("storeCode") ?? "";
       const date = url.searchParams.get("date") ?? "";
-      return route.fulfill({ json: state.agendas.filter(agenda =>
-        (!storeCode || agenda.storeCode === storeCode) && (!date || agenda.date === date)) });
+      const filtered = state.agendas.filter(agenda =>
+        (!storeCode || agenda.storeCode === storeCode) && (!date || agenda.date === date));
+      const limit = Number(url.searchParams.get("limit") ?? 20);
+      const offset = Number(url.searchParams.get("offset") ?? 0);
+      return route.fulfill({ json: {
+        items: filtered.slice(offset, offset + limit),
+        hasMore: filtered.length > offset + limit,
+      } });
     }
     if (path === `/api/admin/agendas/${uuid(10)}` && method === "GET")
       return route.fulfill({ json: { agenda: { ...state.agendas[0] }, appointments: state.appointments } });
@@ -95,6 +101,8 @@ test("Histórico React consulta somente após filtrar e abre detalhe com eventos
   const query = state.requests.find(r => r.path === "/api/admin/agendas");
   expect(query.params.get("storeCode")).toBe("F01");
   expect(query.params.get("date")).toBe("2026-10-28");
+  expect(query.params.get("limit")).toBe("20");
+  expect(query.params.get("offset")).toBe("0");
 });
 
 test("Histórico React exige motivo para Não recebido antes de gravar", async ({ page }) => {
@@ -200,4 +208,33 @@ test("Histórico React usa cartões no celular sem rolagem horizontal do documen
   expect(detailOverflow).toBeLessThanOrEqual(2);
   await page.getByRole("combobox", { name: "Status de Transporte Beta" }).selectOption("nao_chegou");
   await expect(page.getByRole("dialog", { name: "Motivo de não recebimento de Transporte Beta" })).toBeVisible();
+});
+
+test("Histórico pagina resultados e volta à primeira página após alterar filtros", async ({ page }) => {
+  const state = await setup(page);
+  for (let i = 0; i < 43; i++) {
+    state.state.agendas.push({
+      ...state.state.agendas[0], id: uuid(100 + i),
+      date: `2026-09-${String(1 + (i % 28)).padStart(2, "0")}`,
+    });
+  }
+  await page.getByRole("button", { name: "Filtrar" }).click();
+  const table = page.getByRole("table", { name: "Agendas do histórico" });
+  await expect(table.locator("tbody tr")).toHaveCount(20);
+  await expect(page.getByText(/Página 1 · 20 agendas/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Anterior" })).toBeDisabled();
+  await page.getByRole("button", { name: "Próxima" }).click();
+  await expect(table.locator("tbody tr")).toHaveCount(20);
+  await expect(page.getByText(/Página 2 · 20 agendas/)).toBeVisible();
+  await page.getByRole("button", { name: "Próxima" }).click();
+  await expect(table.locator("tbody tr")).toHaveCount(5);
+  await expect(page.getByText(/Página 3 · 5 agendas/)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Próxima" })).toBeDisabled();
+  await page.getByRole("button", { name: "Anterior" }).click();
+  await expect(page.getByText(/Página 2 · 20 agendas/)).toBeVisible();
+  await page.getByRole("combobox", { name: "Loja" }).selectOption("F02");
+  await page.getByRole("button", { name: "Filtrar" }).click();
+  await expect(page.getByText(/Página 1 · 1 agenda nesta página/)).toBeVisible();
+  const requests = state.requests.filter(r => r.path === "/api/admin/agendas");
+  expect(requests.map(r => r.params.get("offset"))).toEqual(["0", "20", "40", "20", "0"]);
 });
