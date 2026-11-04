@@ -34,6 +34,13 @@ async function mock(page, role = "admin", options = {}) {
     agenda0: [{ supplier: "Fornecedor Azul", hash: hashA, digitadoEm: null, digitadoPor: null, appointments: appointments.slice(0, 2) }],
     agenda1: [{ supplier: "Fornecedor Verde", hash: hashB, digitadoEm: null, digitadoPor: null, appointments: appointments.slice(2) }]
   };
+  if (options.multipleSuppliers) {
+    rows.agenda0.push({
+      supplier: "Fornecedor Laranja", hash: "c".repeat(64),
+      digitadoEm: null, digitadoPor: null,
+      appointments: [{ ...appointments[2], id: "c1", protocol: "123459", supplier: "Fornecedor Laranja" }]
+    });
+  }
   await page.route("**/api/**", async route => {
     const path = new URL(route.request().url()).pathname;
     const method = route.request().method();
@@ -75,6 +82,34 @@ test("Agendas expande lojas sem botões antigos e exibe fornecedores", async ({ 
   await expect(page.getByTestId("agendas-details-F01").getByRole("checkbox")).toHaveCount(1);
 });
 
+test("Fornecedores aparecem em linhas compactas únicas, com detalhes sob demanda", async ({ page }) => {
+  await mock(page, "admin", { multipleSuppliers: true });
+  await page.goto("/admin/agendas");
+  await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
+  const section = page.getByTestId("agendas-details-F01");
+  const list = section.getByRole("list", { name: "Fornecedores desta loja" });
+  const items = list.getByTestId("agendas-supplier-item");
+  await expect(items).toHaveCount(2);
+  await expect(list).toContainText("Fornecedor Azul");
+  await expect(list).toContainText("Fornecedor Laranja");
+  await expect(section.getByRole("checkbox")).toHaveCount(2);
+  await expect(section.getByRole("button", { name: "Detalhes de Fornecedor Azul" })).toHaveAttribute("aria-expanded", "false");
+  await expect(section.getByTestId("agendas-protocol-123456")).toHaveCount(0);
+  const rects = await items.evaluateAll(nodes => nodes.map(node => {
+    const { x, y, height } = node.getBoundingClientRect();
+    return { x, y, height };
+  }));
+  expect(rects[0].height).toBeLessThan(54);
+  expect(rects[1].height).toBeLessThan(54);
+  expect(rects[1].y).toBeGreaterThan(rects[0].y);
+  expect(rects[1].x).toBe(rects[0].x);
+  await section.getByRole("button", { name: "Detalhes de Fornecedor Azul" }).click();
+  await expect(section.getByTestId("agendas-protocol-123456")).toBeVisible();
+  await expect(section.getByRole("button", { name: "Detalhes de Fornecedor Azul" })).toHaveAttribute("aria-expanded", "true");
+  await section.getByRole("button", { name: "Detalhes de Fornecedor Azul" }).click();
+  await expect(section.getByTestId("agendas-protocol-123456")).toHaveCount(0);
+});
+
 test("Check é por fornecedor, independente dos protocolos e dos status", async ({ page }) => {
   const spy = await mock(page);
   await page.goto("/admin/agendas");
@@ -96,7 +131,7 @@ test("Agendas mostra pedidos e campos CSV originais por protocolo", async ({ pag
   await mock(page);
   await page.goto("/admin/agendas");
   await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
-  await page.getByText("Ver protocolos, NF-e, pedidos e dados completos").click();
+  await page.getByRole("button", { name: "Detalhes de Fornecedor Azul" }).click();
   const protocol = page.getByTestId("agendas-protocol-123456");
   await expect(protocol).toContainText("8899");
   await expect(protocol).toContainText("332211");
