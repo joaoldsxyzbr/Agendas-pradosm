@@ -428,3 +428,33 @@ test("Visualizador React não consegue alterar status, observações ou trocas",
   await expect(dialog.getByRole("button", { name: "Observação de Fornecedor Verde" })).toHaveCount(0);
   expect(spy.requests.filter(x => x.method !== "GET")).toEqual([]);
 });
+
+test("Admin e visualizador mantêm OBS longa em uma linha com texto completo no hover",async({page})=>{
+  await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button",{name:"Ver detalhes"}).click();
+  const dialog=page.getByRole("dialog",{name:/Agenda F02/});
+  await dialog.getByRole("button",{name:"Editar agenda"}).click();
+  const full="Outros: "+"Observação extensa sobre o recebimento desta entrega. ".repeat(4);
+  const row=dialog.getByTestId("detail-row-a2");
+  await row.getByRole("button",{name:"Observação de Fornecedor Verde"}).click();
+  await dialog.getByRole("combobox",{name:"Motivo de Fornecedor Verde"}).selectOption("Outros");
+  await dialog.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
+  await dialog.getByRole("button",{name:"Confirmar",exact:true}).click();
+  const note=row.locator("td").nth(7).locator("span[title]");
+  await expect(note).toHaveAttribute("title",full);
+  await expect(note).toHaveCSS("white-space","nowrap");
+  await expect(note).toHaveCSS("text-overflow","ellipsis");
+  expect(await note.evaluate(element=>element.scrollWidth-element.clientWidth)).toBeGreaterThan(0);
+  const height=await row.locator("tr").first().evaluate(element=>element.getBoundingClientRect().height);
+  const normalHeight=await dialog.getByTestId("detail-row-a1").locator("tr").first()
+    .evaluate(element=>element.getBoundingClientRect().height);
+  expect(Math.abs(height-normalHeight)).toBeLessThanOrEqual(2);
+  await note.hover();
+  await dialog.getByRole("button",{name:"Sair da edição"}).click();
+  const readonly=dialog.getByTestId("detail-row-a2").locator("td").nth(7).locator("span[title]");
+  await expect(readonly).toHaveAttribute("title",full);
+  await expect(readonly).toHaveCSS("text-overflow","ellipsis");
+  expect(await readonly.evaluate(element=>element.scrollWidth-element.clientWidth)).toBeGreaterThan(0);
+});
