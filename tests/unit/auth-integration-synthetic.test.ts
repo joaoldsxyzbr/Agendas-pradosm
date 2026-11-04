@@ -21,11 +21,12 @@ function syntheticDB() {
     CREATE TABLE agendas (
       id TEXT PRIMARY KEY, loja_id TEXT NOT NULL, data_agenda TEXT NOT NULL,
       status_dia TEXT NOT NULL, concluido_em TEXT, concluido_por TEXT,
+      digitado_em TEXT, digitado_por TEXT,
       atualizado_em TEXT, arquivo_original TEXT, criado_por TEXT, criado_em TEXT
     );
     CREATE TABLE agendamentos (
       id TEXT PRIMARY KEY, agenda_id TEXT, ativo INTEGER, status TEXT,
-      origem TEXT, fornecedor TEXT, protocolo TEXT, observacao TEXT
+      origem TEXT, fornecedor TEXT, protocolo TEXT, observacao TEXT, csv_campos TEXT
     );
     CREATE TABLE historico_agenda (
       id TEXT PRIMARY KEY, agenda_id TEXT, acao TEXT, detalhes TEXT, alterado_em TEXT,
@@ -103,6 +104,15 @@ describe("API real com autenticação e dados sintéticos (sem mocks de rota)", 
         const me = await get("/api/auth/me");
         assert.equal(me.status, 200);
         assert.equal((await me.json()).papel, role);
+        // A listagem completa do CSV e os checks nunca podem ser consultados pelo visualizador ou conferente.
+        const supplierView = await get("/api/admin/agendas/agenda-inexistente/digitacao");
+        assert.equal(supplierView.status, role === "admin" ? 404 : 403);
+        const supplierMutation = await call("/api/admin/agendas/agenda-inexistente/digitacao", {
+          method: "PATCH",
+          headers: { cookie, origin: "http://localhost", "content-type": "application/json" },
+          body: JSON.stringify({ supplier: "Fornecedor de teste", hash: "a".repeat(64), digitado: true, expectedDigitadoEm: null })
+        });
+        assert.equal(supplierMutation.status, role === "admin" ? 404 : 403);
         const denied = await get("/api/admin/users");
         assert.equal(denied.status, role === "admin" ? 200 : 403,
           "Acesso aos usuários deve exigir administrador");
