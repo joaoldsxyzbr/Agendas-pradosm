@@ -288,3 +288,24 @@ test("Conferente React é responsivo e não cria rolagem horizontal da página",
   await expect(page.getByRole("heading",{name:"Conferência de recebimentos"})).toBeVisible();
   expect(await page.evaluate(()=>document.documentElement.scrollWidth-window.innerWidth)).toBeLessThanOrEqual(2);
 });
+
+test("Conferente mantém linhas compactas e exibe a observação completa no mouse",async({page})=>{
+  await setup(page);
+  const full=("Outros: "+ "Registro extenso da entrega para conferir com o motorista. ".repeat(4)).trim();
+  const row=page.getByTestId("conference-row-a1");
+  await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
+  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Outros");
+  await row.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
+  await row.getByRole("button",{name:"Confirmar",exact:true}).click();
+  const note=row.locator("td").nth(7).locator("span[title]");
+  await expect(note).toHaveAttribute("title",full);
+  await expect(note).toHaveCSS("white-space","nowrap");
+  await expect(note).toHaveCSS("text-overflow","ellipsis");
+  const size=await note.evaluate(element=>({visible:element.clientWidth,content:element.scrollWidth}));
+  expect(size.content).toBeGreaterThan(size.visible);
+  await note.hover();
+  const height=await row.locator("tr").first().evaluate(element=>element.getBoundingClientRect().height);
+  const normalHeight=await page.getByTestId("conference-row-a2").locator("tr").first()
+    .evaluate(element=>element.getBoundingClientRect().height);
+  expect(Math.abs(height-normalHeight)).toBeLessThanOrEqual(2);
+});
