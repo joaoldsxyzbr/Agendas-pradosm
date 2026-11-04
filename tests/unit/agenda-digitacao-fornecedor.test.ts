@@ -9,6 +9,7 @@ function setup() {
     "CREATE TABLE usuarios (id TEXT PRIMARY KEY, nome TEXT)",
     "CREATE TABLE agendas (id TEXT PRIMARY KEY, loja_id TEXT, data_agenda TEXT)",
     "CREATE TABLE agendamentos (id TEXT PRIMARY KEY, agenda_id TEXT, protocolo TEXT, horario_inicio TEXT, horario_fim TEXT, fornecedor TEXT, itens INTEGER, volumes INTEGER, paletes INTEGER, carga_batida TEXT, tipo TEXT, nfe TEXT, pedidos TEXT, status TEXT, trocas INTEGER, observacao TEXT, origem TEXT, ativo INTEGER, criado_em TEXT, atualizado_em TEXT, csv_campos TEXT)",
+    "CREATE INDEX idx_agendamentos_agenda_horario ON agendamentos(agenda_id, horario_inicio)",
     "CREATE TABLE agenda_digitacao_fornecedor (agenda_id TEXT NOT NULL, fornecedor_chave TEXT NOT NULL, fornecedor_nome TEXT NOT NULL, dados_hash TEXT NOT NULL, digitado_em TEXT, digitado_por TEXT, PRIMARY KEY(agenda_id, fornecedor_chave))",
     "CREATE TABLE auditoria (id TEXT PRIMARY KEY, usuario_id TEXT, acao TEXT, entidade TEXT, entidade_id TEXT, loja_id TEXT, agenda_id TEXT, agendamento_id TEXT, antes TEXT, depois TEXT, detalhes TEXT, criado_em TEXT)"
   ].join(";") + ";");
@@ -52,6 +53,39 @@ function setup() {
 }
 
 describe("Digitação administrativa por fornecedor — preview", () => {
+  it("usa o índice do agendamento para filtrar a data, sem alterar o total", async () => {
+    const { sqlite, d1 } = setup();
+    let dailyQuery = "";
+    const originalPrepare = d1.prepare;
+    d1.prepare = (sql) => {
+      if (sql.includes("SELECT ag.id, ag.agenda_id") && sql.includes("ag.csv_campos")) {
+        dailyQuery = sql;
+      }
+      return originalPrepare(sql);
+    };
+    try {
+      const progress = await listDigitacaoProgressByDate(d1, "2026-11-03");
+      assert.deepEqual(progress.get("agenda1"), { digitadas: 0, fornecedores: 1 });
+      assert.match(dailyQuery, /FROM agendas a CROSS JOIN agendamentos ag/);
+      const plan = sqlite.prepare("EXPLAIN QUERY PLAN " + dailyQuery).all("2026-11-03");
+      assert.ok(
+        plan.some(row => String(row.detail).includes("SEARCH ag USING INDEX idx_agendamentos_agenda_horario")),
+        JSON.stringify(plan)
+      );
+      assert.ok(!plan.some(row => String(row.detail).includes("SCAN ag")), JSON.stringify(plan));
+      const originalJoin = dailyQuery.replace(
+        "FROM agendas a CROSS JOIN agendamentos ag ON ag.agenda_id = a.id",
+        "FROM agendamentos ag JOIN agendas a ON a.id = ag.agenda_id"
+      );
+      assert.deepEqual(
+        sqlite.prepare(dailyQuery).all("2026-11-03"),
+        sqlite.prepare(originalJoin).all("2026-11-03")
+      );
+    } finally {
+      sqlite.close();
+    }
+  });
+
   it("resumo diário respeita checks válidos, agrupa fornecedores e invalida CSV alterado", async () => {
     const { sqlite, d1, agenda } = setup();
     try {

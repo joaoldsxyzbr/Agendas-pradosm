@@ -123,7 +123,11 @@ async function listDigitacaoProgressByDate(db: D1Database, date: string) {
       "SELECT ag.id, ag.agenda_id, ag.protocolo, ag.fornecedor, ag.horario_inicio, " +
       "ag.horario_fim, ag.itens, ag.volumes, ag.paletes, ag.carga_batida, " +
       "ag.tipo, ag.nfe, ag.pedidos, ag.csv_campos, ag.origem, ag.ativo " +
-      "FROM agendamentos ag JOIN agendas a ON a.id = ag.agenda_id " +
+      // Ordem fixa apenas neste resumo diário: o D1 da preview (04/11) usava
+      // SCAN ag (7.329 rows_read para COUNT da data). Dirigir pela agenda
+      // utiliza idx_agendamentos_agenda_horario (387 rows_read no COUNT),
+      // sem migration ou mudança na seleção das linhas.
+      "FROM agendas a CROSS JOIN agendamentos ag ON ag.agenda_id = a.id " +
       "WHERE a.data_agenda = ? AND ag.ativo = 1"
     ).bind(date).all<ImportedRow & { agenda_id: string }>(),
     db.prepare(
