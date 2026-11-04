@@ -36,9 +36,9 @@ async function setup(page, { conflict = false, missingStores = false, role = "ad
     }
     throw Error("API inesperada no teste React: " + method + " " + path);
   });
-  await page.goto("/admin");
+  await page.goto(role === "admin" ? "/admin/import" : "/admin");
   if (role === "admin") {
-    await page.getByRole("button", { name: "Importar agenda" }).click();
+    await page.getByRole("button", { name: "Selecionar arquivo CSV/PDF" }).click();
     await expect(page.getByRole("dialog", { name: "Importar agenda" })).toBeVisible();
   }
   return submissions;
