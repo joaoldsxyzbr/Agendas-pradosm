@@ -229,7 +229,7 @@ export function AgendaDetailDialog({ agendaId, canEdit = false, onClose }: {
                     </button>
                   </th>;
                 })}
-                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[160px]">Ações</th>
+                <th scope="col" className="w-[148px] min-w-[148px] whitespace-nowrap px-2.5 py-2 font-semibold">Ações</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[280px]">Obs.</th>
               </tr>
