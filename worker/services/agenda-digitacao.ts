@@ -131,21 +131,30 @@ async function changeSupplierCheck(db: any, agenda: { id: string; loja_id: strin
   const now = new Date().toISOString();
   const changedAt = input.digitado ? now : null;
   const changedBy = input.digitado ? userId : null;
-  const write = db.prepare(
-    "INSERT INTO agenda_digitacao_fornecedor " +
-    "(agenda_id, fornecedor_chave, fornecedor_nome, dados_hash, digitado_em, digitado_por) " +
-    "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(agenda_id, fornecedor_chave) DO UPDATE SET " +
-    "fornecedor_nome = excluded.fornecedor_nome, dados_hash = excluded.dados_hash, " +
-    "digitado_em = excluded.digitado_em, digitado_por = excluded.digitado_por"
-  ).bind(agenda.id, group.key, group.supplier, hash, changedAt, changedBy);
+  // Gravação otimista: uma segunda sessão não pode sobrescrever o check lido.
+  // A auditoria usa changes() e só existe quando o UPDATE/INSERT realmente venceu.
+  const write = current
+    ? db.prepare(
+        "UPDATE agenda_digitacao_fornecedor SET fornecedor_nome = ?, dados_hash = ?, " +
+        "digitado_em = ?, digitado_por = ? WHERE agenda_id = ? AND fornecedor_chave = ? " +
+        "AND dados_hash = ? AND digitado_em IS ?"
+      ).bind(group.supplier, hash, changedAt, changedBy, agenda.id, group.key,
+        current.dados_hash, current.digitado_em)
+    : db.prepare(
+        "INSERT INTO agenda_digitacao_fornecedor " +
+        "(agenda_id, fornecedor_chave, fornecedor_nome, dados_hash, digitado_em, digitado_por) " +
+        "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(agenda_id, fornecedor_chave) DO NOTHING"
+      ).bind(agenda.id, group.key, group.supplier, hash, changedAt, changedBy);
   const audit = auditStatement(db, {
+    onlyIfPreviousWrite: true,
     userId, action: input.digitado ? "fornecedor_agenda_digitado" : "fornecedor_agenda_digitacao_removida",
     entity: "agenda", entityId: agenda.id, agendaId: agenda.id, storeId: agenda.loja_id,
     before: { fornecedor: group.supplier, digitadoEm: visibleDate },
     after: { fornecedor: group.supplier, digitadoEm: changedAt },
     details: "Controle interno de digitação por fornecedor.", createdAt: now
   });
-  await db.batch([write, audit]);
+  const results = await db.batch([write, audit]);
+  if (Number(results?.[0]?.meta?.changes ?? 0) !== 1) throw stateConflict();
   return {
     supplier: group.supplier, hash, digitadoEm: changedAt,
     digitadoPor: changedBy ? { id: userId, name: "Administrador" } : null
