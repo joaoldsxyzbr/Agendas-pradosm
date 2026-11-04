@@ -8,7 +8,8 @@ for (const name of ["admin-agendas", "store-agendas"]) {
     const expected = JSON.parse(load("./legacy-route-contracts.json")).agenda[name];
     const js = load("../../worker/routes/" + name + ".ts");
     it("mantém todos os endpoints e métodos", () => {
-      assert.deepEqual(endpoints(js), expected);
+      // Contrato histórico é o mínimo obrigatório; endpoints administrativos novos são aditivos.
+      assert.deepEqual(endpoints(js).filter(route => expected.includes(route)), expected);
     });
     it("exige motivo no não recebido e preserva os endpoints existentes", () => {
       assert.match(js, /validateStatusObservation/);

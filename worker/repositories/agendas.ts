@@ -1,6 +1,6 @@
 import { auditStatement } from "./audit.ts";
 const AGENDA_COLUMNS = "id, loja_id, data_agenda, arquivo_original, criado_por, status_dia, concluido_em, concluido_por, digitado_em, digitado_por, criado_em, atualizado_em";
-const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, observacao, origem, ativo, criado_em, atualizado_em";
+const APPOINTMENT_COLUMNS = "id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, trocas, observacao, origem, ativo, criado_em, atualizado_em, csv_campos";
 async function findStoreByCode(db, code) {
   return db.prepare(
     "SELECT id, codigo, nome FROM lojas WHERE codigo = ? COLLATE NOCASE AND ativo = 1 AND excluido_em IS NULL LIMIT 1"
@@ -95,7 +95,7 @@ async function listAppointmentHistory(db, appointmentId) {
 }
 function appointmentInsert(db, agendaId, appointment, now) {
   return db.prepare(
-    "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 'importado', 1, ?, ?)"
+    "INSERT INTO agendamentos (id, agenda_id, protocolo, horario_inicio, horario_fim, fornecedor, itens, volumes, paletes, carga_batida, tipo, nfe, pedidos, status, origem, ativo, criado_em, atualizado_em, csv_campos) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'aguardando', 'importado', 1, ?, ?, ?)"
   ).bind(
     crypto.randomUUID(),
     agendaId,
@@ -111,7 +111,8 @@ function appointmentInsert(db, agendaId, appointment, now) {
     JSON.stringify(appointment.nfe),
     JSON.stringify(appointment.orders),
     now,
-    now
+    now,
+    appointment.csvFields ? JSON.stringify(appointment.csvFields) : null
   );
 }
 async function createAgendaImport(db, storeId, createdBy, input) {
@@ -175,7 +176,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
     if (current) {
       statements.push(
         db.prepare(
-          "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
+          "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, csv_campos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
         ).bind(
           appointment.startTime,
           appointment.endTime,
@@ -187,6 +188,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
           appointment.type,
           JSON.stringify(appointment.nfe),
           JSON.stringify(appointment.orders),
+          appointment.csvFields ? JSON.stringify(appointment.csvFields) : null,
           now,
           current.id
         )
@@ -325,6 +327,7 @@ async function importAgendaBatchAtomic(db, userId, entries) {
             appointment.type,
             JSON.stringify(appointment.nfe),
             JSON.stringify(appointment.orders),
+            appointment.csvFields ? JSON.stringify(appointment.csvFields) : null,
             now,
             current.id
           )

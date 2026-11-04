@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { NavLink, Outlet, useNavigate } from "react-router";
-import { ClipboardCheck, ClipboardList, FileBarChart, LogOut, PanelLeft, Settings2, Store, Users } from "lucide-react";
+import { ClipboardCheck, ClipboardList, FileBarChart, FileUp, LogOut, PanelLeft, Settings2, Store, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logout, type SessionUser, type Role } from "@/features/auth/session";
@@ -10,6 +10,7 @@ const menu = [
   { path: "/admin", label: "Recebimento", icon: ClipboardCheck, roles: ["admin", "visualizador"] },
   { path: "/admin/reports", label: "Relatório Gerencial", icon: FileBarChart, roles: ["admin", "visualizador"] },
   { path: "/admin/agendas", label: "Agendas", icon: ClipboardList, roles: ["admin"] },
+  { path: "/admin/import", label: "Importação", icon: FileUp, roles: ["admin"] },
   { path: "/admin/stores", label: "Lojas", icon: Store, roles: ["admin"] },
   { path: "/admin/users", label: "Usuários", icon: Users, roles: ["admin"] },
   { path: "/admin/diagnostics", label: "Logs e Auditoria", icon: Settings2, roles: ["admin"] },

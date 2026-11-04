@@ -13,6 +13,7 @@ export type ImportedAppointment = {
   type: string; items?: number | null; volumes?: number | null;
   pallets?: number | null; cargaBatida?: string | null;
   nfe?: string[]; orders?: string[];
+  csvFields?: Record<string, string>;
   status?: string;
 };
 export type ImportAgenda = {
@@ -40,6 +41,9 @@ const errorLabels: Record<string, string> = {
   DATAS_DIVERGENTES: "O arquivo contém mais de uma data de agenda.",
   DATA_DIVERGENTE: "A data dos registros diverge da data informada no filtro do arquivo.",
   FORMATO_CSV_NAO_RECONHECIDO: "O CSV não possui as colunas esperadas da agenda de recebimento.",
+  COLUNAS_CSV_EXCEDIDAS: "O CSV possui mais colunas do que o limite seguro.",
+  CAMPO_CSV_INVALIDO: "O CSV possui campos inválidos ou títulos repetidos.",
+  CAMPOS_CSV_EXCEDIDOS: "O CSV possui campos longos demais para armazenamento.",
 };
 
 export function importErrorLabel(error: string) {
