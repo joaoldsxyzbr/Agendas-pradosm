@@ -41,6 +41,13 @@ describe("Compatibilidade CSV do importador — decodificação nativa", () => {
     assert.equal(result.totalAppointments, 4);
     assert.deepEqual(result.agendas.map(a=>a.storeCode),["CD DOCA 01","CD DOCA 02","F01","F08"]);
   });
+  it("mantém todos os campos do CSV para a consulta exclusiva do administrador", async () => {
+    const parsed = parseAgendaCsv(await readCsvText(asFile(source)));
+    const first = parsed.agendas.flatMap(agenda => agenda.appointments)[0];
+    assert.equal(first.csvFields?.Protocolo, "90000001");
+    assert.equal(first.csvFields?.Pedidos, "47121");
+    assert.equal(first.csvFields?.["N° NFe"], "45427");
+  });
   it("bloqueia CSV sem colunas exigidas e nunca gera prévia parcial", () => {
     const parsed = parseAgendaCsv("Qualquer;Coisa\n1;2\n");
     assert.ok(parsed.blockingErrors.includes("FORMATO_CSV_NAO_RECONHECIDO"));
