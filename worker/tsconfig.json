@@ -9,6 +9,15 @@
     "noEmit": true,
     "skipLibCheck": true,
     "strict": false,
+    "useUnknownInCatchVariables": true,
+    "noImplicitThis": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "alwaysStrict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
     "types": []
   },
   "include": ["./**/*.ts", "../shared/**/*.ts"]

@@ -8,7 +8,7 @@ import { MetricCard } from "@/components/operations/metric-card";
 import { businessToday, formatDay, shiftDay } from "@/features/receiving/model";
 import { ApiError } from "@/lib/api";
 import { getAgendaBoards, getAgendaSuppliers, updateSupplierCheck } from "./api";
-import { formatStamp, type AgendaBoard, type Supplier, type SupplierAppointment } from "./model";
+import { formatStamp, type AgendaBoard, type AgendaSuppliers, type Supplier, type SupplierAppointment } from "./model";
 
 const tableHead = "px-3 py-2.5 text-left text-[11px] font-semibold text-slate-300";
 const tableCell = "px-3 py-2 align-middle text-xs text-slate-200";
@@ -103,8 +103,9 @@ function SupplierItem({ item, busy, onToggle }: {
   </li>;
 }
 
-function StoreRow({ board, index, busy, onToggle }: {
-  board: AgendaBoard; index: number; busy: boolean;
+function StoreRow({ board, index, isSupplierPending, onToggle }: {
+  board: AgendaBoard; index: number;
+  isSupplierPending: (supplier: string) => boolean;
   onToggle: (agendaId: string, item: Supplier, checked: boolean) => void;
 }) {
   const [expanded, setExpanded] = useState(false);
@@ -164,7 +165,7 @@ function StoreRow({ board, index, busy, onToggle }: {
           </div>
           {suppliers.length
             ? <ul aria-label="Fornecedores desta loja" className="min-w-0 divide-y divide-[#304865] overflow-hidden rounded-lg border border-[#38516d]">{suppliers.map(item =>
-                <SupplierItem key={item.supplier} item={item} busy={busy}
+                <SupplierItem key={item.supplier} item={item} busy={isSupplierPending(item.supplier)}
                   onToggle={(supplier, checked) => onToggle(board.id, supplier, checked)}/>)}</ul>
             : <p className="text-xs text-slate-400">Nenhum fornecedor importado nesta agenda.</p>}
         </div>}
@@ -199,20 +200,50 @@ export function AgendasPage() {
       document.removeEventListener("visibilitychange", check);
     };
   }, [today]);
+  const [pendingSuppliers, setPendingSuppliers] = useState<Set<string>>(() => new Set());
+  const pendingKey = (agendaId: string, supplier: string) => agendaId + "|" + supplier;
+  const applySupplierUpdate = (agendaId: string, supplier: string, update: Pick<Supplier, "hash" | "digitadoEm" | "digitadoPor">) => {
+    client.setQueryData<AgendaSuppliers>(["agenda-suppliers", agendaId], current => current
+      ? { ...current, suppliers: current.suppliers.map(item => item.supplier === supplier ? { ...item, ...update } : item) }
+      : current);
+  };
   const toggle = useMutation({
     mutationFn: (args: { agendaId: string; supplier: string; hash: string; digitado: boolean; expectedDigitadoEm: string | null }) =>
       updateSupplierCheck(args.agendaId, args),
-    onMutate: () => setFailure(null),
-    onSuccess: async (_data, vars) => {
-      await Promise.all([
-        client.invalidateQueries({ queryKey: ["agenda-suppliers", vars.agendaId] }),
-        client.invalidateQueries({ queryKey: ["agendas-board"] })
-      ]);
+    onMutate: async vars => {
+      setFailure(null);
+      const key = pendingKey(vars.agendaId, vars.supplier);
+      setPendingSuppliers(current => new Set(current).add(key));
+      const queryKey = ["agenda-suppliers", vars.agendaId];
+      await client.cancelQueries({ queryKey });
+      const current = client.getQueryData<AgendaSuppliers>(queryKey);
+      const previous = current?.suppliers.find(item => item.supplier === vars.supplier) ?? null;
+      // Atualização otimista: o check reflete o clique imediatamente, sem
+      // esperar a resposta do servidor. Só o próprio fornecedor fica
+      // bloqueado durante a gravação; os demais continuam clicáveis.
+      applySupplierUpdate(vars.agendaId, vars.supplier, {
+        hash: vars.hash,
+        digitadoEm: vars.digitado ? new Date().toISOString() : null,
+        digitadoPor: vars.digitado ? previous?.digitadoPor ?? null : null
+      });
+      return { previous };
     },
-    onError: error => {
+    onSuccess: (data, vars) => {
+      applySupplierUpdate(vars.agendaId, vars.supplier, data);
+    },
+    onError: (error, vars, context) => {
+      if (context?.previous) applySupplierUpdate(vars.agendaId, vars.supplier, context.previous);
       setFailure(error instanceof ApiError && error.status === 409
         ? "Este fornecedor mudou. Atualize a lista e tente novamente."
         : "Não foi possível salvar a digitação do fornecedor.");
+    },
+    onSettled: (_data, _error, vars) => {
+      setPendingSuppliers(current => {
+        const next = new Set(current);
+        next.delete(pendingKey(vars.agendaId, vars.supplier));
+        return next;
+      });
+      void client.invalidateQueries({ queryKey: ["agendas-board"] });
     }
   });
   const list = boards.data ?? [];
@@ -221,7 +252,7 @@ export function AgendasPage() {
     appointments: list.reduce((sum, board) => sum + board.total, 0),
     completed: list.filter(board => board.dayStatus === "concluido").length
   }), [list]);
-  const updating = boards.isFetching || toggle.isPending;
+  const updating = boards.isFetching || toggle.isPending || pendingSuppliers.size > 0;
   const reload = () => void Promise.all([
     client.invalidateQueries({ queryKey: ["agendas-board"] }),
     client.invalidateQueries({ queryKey: ["agenda-suppliers"] })
@@ -273,7 +304,7 @@ export function AgendasPage() {
             </tr></thead>
             <tbody className="divide-y divide-[#304865]">
               {list.map((board, index) => <StoreRow key={board.id} board={board} index={index}
-                busy={toggle.isPending}
+                isSupplierPending={supplier => pendingSuppliers.has(pendingKey(board.id, supplier))}
                 onToggle={(agendaId, supplier, digitado) => toggle.mutate({
                   agendaId, supplier: supplier.supplier, hash: supplier.hash,
                   digitado, expectedDigitadoEm: supplier.digitadoEm

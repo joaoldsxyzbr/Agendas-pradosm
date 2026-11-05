@@ -495,7 +495,7 @@ storeAppointmentRoutes.patch("/:id/observation", async (c) => {
   try {
     observation = validateStatusObservation(appointment.status, parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const updated = await changeAppointmentStatus(c.env.DB, appointment, user.id, appointment.status, undefined, observation);
@@ -544,7 +544,7 @@ storeAppointmentRoutes.patch("/:id/status", async (c) => {
       ? validateStatusObservation(parsed.data.status, parsed.data.observation)
       : normalizeObservation(parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const updated = await changeAppointmentStatus(
