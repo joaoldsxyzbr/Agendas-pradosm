@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, SquarePen, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { Button } from "@/components/ui/button";
@@ -21,8 +21,6 @@ type StatusKey = keyof typeof statusLabels;
 const sortableColumns: { key: AgendaSortKey; label: string; width: string }[] = [
   { key: "startTime", label: "Horário", width: "w-[96px]" },
   { key: "supplier", label: "Fornecedor", width: "" },
-  { key: "protocol", label: "Protocolo", width: "w-[100px]" },
-  { key: "type", label: "Tipo", width: "w-[104px]" },
   { key: "status", label: "Status", width: "w-[116px]" },
 ];
 function displayStatus(status: string, observation?: string | null) {
@@ -286,8 +284,6 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onR
           {item.origin==="manual" && <span className="shrink-0 text-[10px] text-sky-300">Fornecedor sem agenda</span>}
         </div>
       </td>
-      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] tabular-nums text-slate-400">{item.protocol}</td>
-      <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px] text-slate-400">{item.type ?? "—"}</td>
       <td className="whitespace-nowrap px-2.5 py-1.5">
         <StatusBadge tone={item.status==="recebido"?"success":item.status==="nao_chegou"||item.status==="recusado"?"danger":"warning"}>
           {displayStatus(item.status,item.observation)}
@@ -314,11 +310,6 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onR
               title={`Excluir fornecedor ${item.supplier}`} aria-label={`Excluir fornecedor ${item.supplier}`} onClick={() => onRemoveManual(item)}>
               <Trash2 size={13} aria-hidden="true" />
             </Button>}
-            <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
-              title={item.observation?`Editar observação de ${item.supplier}`:`Adicionar observação a ${item.supplier}`}
-              aria-label={`Observação de ${item.supplier}`} onClick={openNote}>
-              <SquarePen size={13} aria-hidden="true"/>
-            </Button>
           </>}
           {readOnly && <Button size="sm" variant="secondary" className="h-7 px-2 text-[11px]" aria-label={`Detalhes de ${item.supplier}`}
             onClick={() => onOpenDetails(item.id)}>Ver detalhes</Button>}
@@ -333,13 +324,25 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onR
       </td>
       <td className="w-[220px] min-w-[220px] max-w-[220px] px-2.5 py-1.5">
         {item.observation
-          ? <span className="block w-[200px] max-w-full truncate whitespace-nowrap text-[11px] text-amber-300"
-              title={item.observation}>Obs.: {item.observation}</span>
-          : <span className="text-[11px] text-slate-500">—</span>}
+          ? (!readOnly
+              ? <button type="button" disabled={inactive} onClick={openNote}
+                  title={item.observation} aria-label={`Observação de ${item.supplier}`}
+                  className="block w-[200px] max-w-full truncate whitespace-nowrap text-left text-[11px] text-amber-300 hover:text-amber-200">
+                  Obs.: {item.observation}
+                </button>
+              : <span className="block w-[200px] max-w-full truncate whitespace-nowrap text-[11px] text-amber-300"
+                  title={item.observation}>Obs.: {item.observation}</span>)
+          : (!readOnly
+              ? <button type="button" disabled={inactive} onClick={openNote}
+                  title={`Adicionar observação a ${item.supplier}`} aria-label={`Observação de ${item.supplier}`}
+                  className="block w-[200px] max-w-full truncate whitespace-nowrap text-left text-[11px] text-slate-500 hover:text-slate-300">
+                  —
+                </button>
+              : <span className="text-[11px] text-slate-500">—</span>)}
       </td>
     </tr>
     {(patch.isError || ((reasonOpen || noteOpen) && !readOnly)) && <tr>
-      <td colSpan={8} className="px-2.5 pb-2.5">
+      <td colSpan={6} className="px-2.5 pb-2.5">
         {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
         {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
           <label className="block text-xs text-slate-200">Motivo obrigatório
@@ -536,7 +539,7 @@ export function ConferencePage(){
           </div>
         </div>
         <div className="overflow-x-auto rounded-lg border border-[#36516d]" aria-label="Fornecedores">
-          <table className="w-full min-w-[960px] border-collapse text-left">
+          <table className="w-full min-w-[760px] border-collapse text-left">
             <thead>
               <tr className="border-b border-[#36516d] bg-[#16283c] text-[11px] uppercase tracking-wide text-slate-400">
                 {sortableColumns.map(column=>{
@@ -564,7 +567,7 @@ export function ConferencePage(){
               onEditManual={item2=>setManualTarget({mode:"edit",item:item2})}
               onRemoveManual={item2=>setManualTarget({mode:"edit",item:item2,confirmDelete:true})}
               onOpenDetails={setDetailsId}/> )}
-            {sorted.length===0 && <tbody><tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr></tbody>}
+            {sorted.length===0 && <tbody><tr><td role="status" colSpan={6} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr></tbody>}
           </table>
         </div>
       </section>

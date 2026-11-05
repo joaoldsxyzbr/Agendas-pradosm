@@ -82,6 +82,9 @@ test("Conferente React exibe cinco métricas e lista com dados da API",async({pa
   await expect(page.getByRole("heading",{name:"Conferência de recebimentos"})).toBeVisible();
   await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","2","0","0","0"]);
   await expect(page.getByTestId("conference-row-a1")).toContainText("FORNECEDOR TESTE");
+  // O conferente não vê as colunas Protocolo e Tipo (continuam salvas no D1).
+  await expect(page.getByRole("columnheader",{name:"Protocolo"})).toHaveCount(0);
+  await expect(page.getByRole("columnheader",{name:"Tipo"})).toHaveCount(0);
   await page.getByRole("searchbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("outro");
   await expect(page.getByTestId("conference-row-a1")).toHaveCount(0);
   await expect(page.getByTestId("conference-row-a2")).toBeVisible();
@@ -193,7 +196,7 @@ test("Conferente React exclui fornecedor manual direto da linha",async({page})=>
   await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","2","0","0","0"]);
 });
 
-test("Conferente React edita e limpa observação opcional",async({page})=>{
+test("Conferente React edita e limpa observação opcional pela célula Obs.",async({page})=>{
   const requests=await setup(page);
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
@@ -298,7 +301,7 @@ test("Conferente React ordena por coluna clicável em ciclo crescente decrescent
   expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
 });
 
-test("Conferente React ordena por horário e tipo e combina com a busca",async({page})=>{
+test("Conferente React ordena por horário e combina com a busca",async({page})=>{
   await setup(page);
   const order=async()=>page.locator('[data-testid^="conference-row-"]').evaluateAll(rows=>rows.map(row=>row.getAttribute("data-testid")));
   const horario=page.getByRole("columnheader",{name:"Horário"});
@@ -307,10 +310,6 @@ test("Conferente React ordena por horário e tipo e combina com a busca",async({
   expect(await order()).toEqual(["conference-row-a1","conference-row-a2"]);
   await horario.click();
   await expect(horario).toHaveAttribute("aria-sort","descending");
-  expect(await order()).toEqual(["conference-row-a2","conference-row-a1"]);
-  const tipo=page.getByRole("columnheader",{name:"Tipo"});
-  await tipo.click();
-  await expect(tipo).toHaveAttribute("aria-sort","ascending");
   expect(await order()).toEqual(["conference-row-a2","conference-row-a1"]);
   await page.getByRole("searchbox",{name:"Pesquisar fornecedor ou protocolo"}).fill("outro");
   await expect(page.getByTestId("conference-row-a1")).toHaveCount(0);
@@ -355,7 +354,7 @@ test("Conferente mantém linhas compactas e exibe a observação completa no mou
   await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Outros");
   await row.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
   await row.getByRole("button",{name:"Confirmar",exact:true}).click();
-  const note=row.locator("td").nth(7).locator("span[title]");
+  const note=row.locator("td").nth(5).getByRole("button",{name:"Observação de FORNECEDOR TESTE"});
   await expect(note).toHaveAttribute("title",full);
   await expect(note).toHaveCSS("white-space","nowrap");
   await expect(note).toHaveCSS("text-overflow","ellipsis");
@@ -374,7 +373,7 @@ test("Conferência exibe ações em linha única e altura compacta inclusive par
   const regular=page.getByTestId("conference-row-a1");
   const assertCompact=async(row,expected)=>{
     await expect(row).toBeVisible();
-    const actionCell=row.locator("tr").first().locator("td").nth(5);
+    const actionCell=row.locator("tr").first().locator("td").nth(3);
     await expect(actionCell.locator("button")).toHaveCount(expected);
     const rects=await actionCell.locator("button").evaluateAll(buttons=>buttons.map(button=>{
       const {top,width}=button.getBoundingClientRect();return {top,width};
@@ -385,13 +384,13 @@ test("Conferência exibe ações em linha única e altura compacta inclusive par
     const height=await row.locator("tr").first().evaluate(tr=>tr.getBoundingClientRect().height);
     expect(height).toBeLessThanOrEqual(48);
   };
-  await assertCompact(regular,3);
+  await assertCompact(regular,2);
   await page.getByRole("button",{name:"Fornecedor sem agenda"}).click();
   const modal=page.getByRole("dialog");
   await modal.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
   await modal.getByRole("button",{name:"Adicionar",exact:true}).click();
   const manual=page.getByTestId("conference-row-m1");
   await expect(manual).toBeVisible();
-  await assertCompact(manual,5);
-  await assertCompact(regular,3);
+  await assertCompact(manual,4);
+  await assertCompact(regular,2);
 });
