@@ -28,6 +28,15 @@ interface RateLimit {
   limit(options: { key: string }): Promise<RateLimitOutcome>;
 }
 
+// Subconjunto do binding R2 usado pela retenção de dados (somente escrita).
+interface R2Bucket {
+  put(
+    key: string,
+    value: string | ReadableStream | ArrayBuffer | ArrayBufferView,
+    options?: { contentType?: string }
+  ): Promise<{ key: string }>;
+}
+
 interface DurableObjectStorage {
   getAlarm(): Promise<number | null>;
   setAlarm(timestamp: number): Promise<void>;

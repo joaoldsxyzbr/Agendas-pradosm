@@ -53,6 +53,7 @@
     "app.route(\"/api/admin/agendas\"",
     "app.route(\"/api/admin/appointments\"",
     "app.route(\"/api/admin/audit\"",
+    "app.route(\"/api/admin/retention\"",
     "app.route(\"/api/admin/diagnostics\"",
     "app.route(\"/api/admin/reports\"",
     "app.route(\"/api/admin/presence\"",
