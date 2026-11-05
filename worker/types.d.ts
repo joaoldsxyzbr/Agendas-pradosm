@@ -89,6 +89,11 @@ declare module "cloudflare:workers" {
     protected readonly ctx: DurableObjectState;
     protected readonly env: unknown;
     constructor(ctx: DurableObjectState, env: unknown);
+    fetch(request: Request): Response | Promise<Response>;
+    webSocketMessage?(ws: WebSocket, message: string | ArrayBuffer): void | Promise<void>;
+    webSocketClose?(ws: WebSocket, code: number, reason: string, wasClean?: boolean): void | Promise<void>;
+    webSocketError?(ws: WebSocket, error: unknown): void | Promise<void>;
+    alarm?(): void | Promise<void>;
   }
 }
 
