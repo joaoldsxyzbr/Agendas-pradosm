@@ -61,6 +61,7 @@ async function mock(page, role = "admin", options = {}) {
     if (id && method === "GET") return json({ agendaId: id, suppliers: rows[id] });
     if (id && method === "PATCH") {
       if (options.conflict) return route.fulfill({ status: 409, json: { error: "CONFLITO_ESTADO", message: "Este fornecedor mudou" } });
+      if (options.patchDelay) await new Promise(resolve => setTimeout(resolve, options.patchDelay));
       const updated = { supplier: body.supplier, hash: body.hash,
         digitadoEm: body.digitado ? "2026-11-03T11:00:00.000Z" : null,
         digitadoPor: body.digitado ? { id: "adm", name: "Administrador" } : null };
@@ -191,6 +192,24 @@ test("Check é por fornecedor, independente dos protocolos e dos status", async 
   expect(calls.map(call => ({ supplier: call.body.supplier, digitado: call.body.digitado })))
     .toEqual([{ supplier: "Fornecedor Azul", digitado: true }, { supplier: "Fornecedor Azul", digitado: false }]);
   expect(spy.requests.filter(call => /\/status$/.test(call.path))).toHaveLength(0);
+});
+
+test("Marcações seguidas não esperam uma pela outra", async ({ page }) => {
+  const spy = await mock(page, "admin", { multipleSuppliers: true, patchDelay: 1500 });
+  await page.goto("/admin/agendas");
+  await page.getByTestId("agendas-row-F01").getByRole("button", { name: /F01/ }).click();
+  const azul = page.getByRole("checkbox", { name: "Digitado: Fornecedor Azul" });
+  const laranja = page.getByRole("checkbox", { name: "Digitado: Fornecedor Laranja" });
+  const start = Date.now();
+  await azul.click();
+  await expect(azul).toBeChecked();
+  await laranja.click();
+  await expect(laranja).toBeChecked();
+  expect(Date.now() - start).toBeLessThan(1500);
+  await expect(page.getByTestId("agendas-details-F01")).toContainText("2 de 2 digitados");
+  const calls = spy.requests.filter(call => call.method === "PATCH" && call.path.endsWith("/digitacao"));
+  expect(calls.map(call => call.body.supplier).sort())
+    .toEqual(["Fornecedor Azul", "Fornecedor Laranja"]);
 });
 
 test("Agendas mostra pedidos e campos CSV originais por protocolo", async ({ page }) => {
