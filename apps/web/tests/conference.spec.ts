@@ -312,3 +312,52 @@ test("Conferente React refaz consulta ao receber agenda.changed e realtime.ready
   socket.send(JSON.stringify({version:1,type:"realtime.ready"}));
   await expect.poll(getCount).toBeGreaterThan(beforeReady);
 });
+
+test("Conferente mantém linhas compactas e exibe a observação completa no mouse",async({page})=>{
+  await setup(page);
+  const full=("Outros: "+ "Registro extenso da entrega para conferir com o motorista. ".repeat(4)).trim();
+  const row=page.getByTestId("conference-row-a1");
+  await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
+  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Outros");
+  await row.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
+  await row.getByRole("button",{name:"Confirmar",exact:true}).click();
+  const note=row.locator("td").nth(7).locator("span[title]");
+  await expect(note).toHaveAttribute("title",full);
+  await expect(note).toHaveCSS("white-space","nowrap");
+  await expect(note).toHaveCSS("text-overflow","ellipsis");
+  const size=await note.evaluate(element=>({visible:element.clientWidth,content:element.scrollWidth}));
+  expect(size.content).toBeGreaterThan(size.visible);
+  await note.hover();
+  const height=await row.locator("tr").first().evaluate(element=>element.getBoundingClientRect().height);
+  const normalHeight=await page.getByTestId("conference-row-a2").locator("tr").first()
+    .evaluate(element=>element.getBoundingClientRect().height);
+  expect(Math.abs(height-normalHeight)).toBeLessThanOrEqual(2);
+});
+
+test("Conferência exibe ações em linha única e altura compacta inclusive para fornecedor manual",async({page})=>{
+  await page.setViewportSize({width:1200,height:800});
+  await setup(page);
+  const regular=page.getByTestId("conference-row-a1");
+  const assertCompact=async(row,expected)=>{
+    await expect(row).toBeVisible();
+    const actionCell=row.locator("tr").first().locator("td").nth(5);
+    await expect(actionCell.locator("button")).toHaveCount(expected);
+    const rects=await actionCell.locator("button").evaluateAll(buttons=>buttons.map(button=>{
+      const {top,width}=button.getBoundingClientRect();return {top,width};
+    }));
+    expect(rects).toHaveLength(expected);
+    expect(Math.max(...rects.map(r=>r.top))-Math.min(...rects.map(r=>r.top))).toBeLessThanOrEqual(1);
+    expect(rects.every(r=>r.width>=27)).toBe(true);
+    const height=await row.locator("tr").first().evaluate(tr=>tr.getBoundingClientRect().height);
+    expect(height).toBeLessThanOrEqual(48);
+  };
+  await assertCompact(regular,3);
+  await page.getByRole("button",{name:"Fornecedor sem agenda"}).click();
+  const modal=page.getByRole("dialog");
+  await modal.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
+  await modal.getByRole("button",{name:"Adicionar",exact:true}).click();
+  const manual=page.getByTestId("conference-row-m1");
+  await expect(manual).toBeVisible();
+  await assertCompact(manual,4);
+  await assertCompact(regular,3);
+});
