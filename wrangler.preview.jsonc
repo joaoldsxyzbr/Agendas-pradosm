@@ -3,6 +3,11 @@
   "name": "agendas-pradosm-preview",
   "compatibility_date": "2026-09-24",
   "main": "./worker/index.ts",
+  "triggers": {
+    "crons": [
+      "5 3 * * *"
+    ]
+  },
   "assets": {
     "not_found_handling": "single-page-application",
     "run_worker_first": [
@@ -64,6 +69,7 @@
     }
   },
   "vars": {
-    "REALTIME_MODE": "off"
+    "REALTIME_MODE": "off",
+    "RETENTION_ROW_LIMIT_WARNING": "500000"
   }
 }

@@ -12,7 +12,7 @@ import {
   nextAgendaSort, sortAppointments, type AgendaSort, type AgendaSortKey,
   patchStoreExchanges, patchStoreStatus, patchStoreObservation,
   createManualAppointment, patchManualSupplier, deleteManualSupplier,
-  getStoreAppointmentDetail, completeStoreDay, type StoreAppointment, type StoreAppointmentDetail,
+  getStoreAppointmentDetail, completeStoreDay, type StoreAppointment, type StoreAppointmentDetail, type StoreAgenda,
 } from "./model";
 
 const reasonOptions = ["Sem agenda", "Sem pedido", "Sem boleto", "Prazo de pagamento incorreto", "Temperatura acima do OK", "Não veio"];
@@ -194,10 +194,17 @@ function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: s
   </dialog>;
 }
 
-function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDetails }: {
-  item: StoreAppointment; readOnly:boolean; day:string; onUpdated:()=>Promise<void>;
+function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onOpenDetails }: {
+  item: StoreAppointment; readOnly:boolean; day:string;
+  agendaQueryKey: readonly ["conference","agenda",string,string];
   onEditManual:(item:StoreAppointment)=>void; onOpenDetails:(id:string)=>void;
 }) {
+  const client=useQueryClient();
+  const applyUpdate=(update:Partial<StoreAppointment>)=>{
+    client.setQueryData<StoreAgenda>(agendaQueryKey,current=>current
+      ?{...current,appointments:current.appointments.map(x=>x.id===item.id?{...x,...update}:x)}
+      :current);
+  };
   const [reasonOpen,setReasonOpen]=useState(false);
   const [noteOpen,setNoteOpen]=useState(false);
   const [reason,setReason]=useState("");
@@ -211,7 +218,26 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
       if (change.kind === "exchanges") return patchStoreExchanges(item.id,change.hasExchanges);
       return patchStoreObservation(item.id,change.observation);
     },
-    onSuccess:async()=>{await onUpdated();setReasonOpen(false);setReason("");setOther("");setNoteOpen(false);setNoteError("");},
+    // Atualização otimista (mesmo modelo do fix #197 da tela Agendas): a
+    // marcação reflete o clique na hora, só a própria linha trava durante a
+    // gravação e um erro faz rollback apenas desta linha. A agenda não é
+    // revalidada a cada marcação para não reverter marcações em voo; o
+    // intervalo de 30s, o foco na janela e o realtime reconciliam o estado.
+    onMutate: async change=>{
+      await client.cancelQueries({queryKey:agendaQueryKey});
+      const previous=client.getQueryData<StoreAgenda>(agendaQueryKey)?.appointments.find(x=>x.id===item.id)??null;
+      applyUpdate(change.kind==="status"?{status:change.status,observation:change.observation}
+        :change.kind==="exchanges"?{hasExchanges:change.hasExchanges}
+        :{observation:change.observation});
+      return {previous};
+    },
+    onSuccess: saved=>{
+      applyUpdate(saved);
+      setReasonOpen(false);setReason("");setOther("");setNoteOpen(false);setNoteError("");
+    },
+    onError:(_error,_change,context)=>{
+      if(context?.previous)applyUpdate(context.previous);
+    },
   });
   const inactive = readOnly || patch.isPending;
   const changeStatus=(status:"recebido"|"nao_chegou")=>{
@@ -267,8 +293,8 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
           {displayStatus(item.status,item.observation)}
         </StatusBadge>
       </td>
-      <td className="px-2.5 py-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <td className="w-[148px] min-w-[148px] px-2.5 py-1.5">
+        <div className="flex w-max flex-nowrap items-center gap-1">
           {!readOnly && <>
             <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
               aria-pressed={item.status==="recebido"} title={item.status==="recebido"?"Desmarcar recebido":"Marcar como recebido"}
@@ -301,9 +327,10 @@ function AppointmentRow({ item, readOnly, day, onUpdated, onEditManual, onOpenDe
             onChange={event=>patch.mutate({kind:"exchanges",hasExchanges:event.target.checked})}/>Trocas
         </label>
       </td>
-      <td className="max-w-[220px] px-2.5 py-1.5">
+      <td className="w-[220px] min-w-[220px] max-w-[220px] px-2.5 py-1.5">
         {item.observation
-          ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
+          ? <span className="block w-[200px] max-w-full truncate whitespace-nowrap text-[11px] text-amber-300"
+              title={item.observation}>Obs.: {item.observation}</span>
           : <span className="text-[11px] text-slate-500">—</span>}
       </td>
     </tr>
@@ -411,6 +438,7 @@ export function ConferencePage(){
     queryFn:()=>loadStoreAgenda(date,today),
     refetchInterval:30000, refetchOnWindowFocus:true,
   });
+  const agendaQueryKey=["conference","agenda",date,today] as const;
   const refresh=async()=>{await client.invalidateQueries({queryKey:["conference","agenda"]});};
   const complete=useMutation({
     mutationFn:()=>completeStoreDay(date),
@@ -522,13 +550,13 @@ export function ConferencePage(){
                     </button>
                   </th>;
                 })}
-                <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[190px]">Ações</th>
+                <th scope="col" className="w-[148px] min-w-[148px] whitespace-nowrap px-2.5 py-2 font-semibold">Ações</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[220px]">Obs.</th>
               </tr>
             </thead>
             {sorted.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-              onUpdated={refresh}
+              agendaQueryKey={agendaQueryKey}
               onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
             {sorted.length===0 && <tbody><tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr></tbody>}
           </table>
