@@ -5,7 +5,7 @@ const entry = { id:"a1",supplier:"FORNECEDOR TESTE",protocol:"1234567",type:"Not
   // Contrato real do Worker: itens/volumes/paletes chegam como números (INTEGER no D1).
   items:5,volumes:50,pallets:1,
   startTime:"08:00",endTime:"08:30",status:"aguardando",hasExchanges:false,observation:null,origin:"imported" };
-async function setup(page, { conflict = false, empty = false, completed = false, noShow = false, realtime = false } = {}) {
+async function setup(page, { conflict = false, empty = false, completed = false, noShow = false, realtime = false, patchDelay = 0 } = {}) {
   const requests = [];
   let manualSeq = 0;
   let data = { agenda:empty?null:{ id:"agenda1",date:"2026-10-30",storeCode:"F03",
@@ -23,22 +23,17 @@ async function setup(page, { conflict = false, empty = false, completed = false,
     if(url.pathname==="/api/realtime/config")return route.fulfill({json:{mode:realtime?"on":"off",protocolVersion:1}});
     if(url.pathname.startsWith("/api/store/tags/agenda/"))return route.fulfill({json:{tags:[],assignments:{}}});
     if(url.pathname==="/api/store/today"||url.pathname.startsWith("/api/store/history/"))return route.fulfill({json:data});
-    if(url.pathname==="/api/store/appointments/a1/status" && method==="PATCH"){
+    const patchMatch=/^\/api\/store\/appointments\/(a\d+|m\d+)\/(status|exchanges|observation)$/.exec(url.pathname);
+    if(patchMatch && method==="PATCH"){
       if(conflict)return route.fulfill({status:409,json:{error:"CONFLITO_ESTADO",message:"Este registro mudou. Atualize a tela e tente novamente."}});
-      const {status,observation}=route.request().postDataJSON();
-      data={...data,appointments:data.appointments.map(x=>x.id==="a1"?{...x,status,observation}:x)};
-      return route.fulfill({json:data.appointments.find(x=>x.id==="a1")});
-    }
-    if(url.pathname==="/api/store/appointments/a1/exchanges" && method==="PATCH"){
-      const {hasExchanges}=route.request().postDataJSON();
-      data={...data,appointments:data.appointments.map(x=>x.id==="a1"?{...x,hasExchanges}:x)};
-      return route.fulfill({json:data.appointments.find(x=>x.id==="a1")});
-    }
-    if(url.pathname==="/api/store/appointments/a1/observation" && method==="PATCH"){
-      if(conflict)return route.fulfill({status:409,json:{error:"CONFLITO_ESTADO",message:"Este registro mudou."}});
-      const {observation}=route.request().postDataJSON();
-      data={...data,appointments:data.appointments.map(x=>x.id==="a1"?{...x,observation}:x)};
-      return route.fulfill({json:data.appointments.find(x=>x.id==="a1")});
+      if(patchDelay)await new Promise(resolve=>setTimeout(resolve,patchDelay));
+      const id=patchMatch[1]!;
+      const body=route.request().postDataJSON();
+      const update=patchMatch[2]==="status"?{status:body.status,observation:body.observation}
+        :patchMatch[2]==="exchanges"?{hasExchanges:body.hasExchanges}
+        :{observation:body.observation};
+      data={...data,appointments:data.appointments.map(x=>x.id===id?{...x,...update}:x)};
+      return route.fulfill({json:data.appointments.find(x=>x.id===id)});
     }
     if(/^\/api\/store\/agenda\/\d{4}-\d{2}-\d{2}\/manual$/.test(url.pathname) && method==="POST"){
       if(conflict)return route.fulfill({status:409,json:{error:"CONFLITO_ESTADO",message:"Este registro mudou."}});
@@ -94,15 +89,37 @@ test("Conferente React exibe cinco métricas e lista com dados da API",async({pa
   await expect(page.getByText("Nenhum fornecedor ou protocolo encontrado.")).toBeVisible();
 });
 
-test("Conferente React só altera status após confirmação da API",async({page})=>{
-  const requests=await setup(page);
+test("Conferente React reflete a marcação imediatamente e confirma com a API",async({page})=>{
+  const requests=await setup(page,{patchDelay:1500});
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Recebido",exact:true}).click();
+  // Atualização otimista: o status muda antes da resposta do servidor.
   await expect(row.getByRole("button",{name:"Desmarcar recebido"})).toBeVisible();
   await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","1","1","0","0"]);
+  // A própria linha trava até a gravação terminar; depois volta a aceitar cliques.
+  await expect(row.getByRole("button",{name:"Desmarcar recebido"})).toBeEnabled();
   await row.getByRole("button",{name:"Desmarcar recebido"}).click();
   await expect(row.getByRole("button",{name:"Recebido",exact:true})).toBeVisible();
+  await expect(row.getByRole("button",{name:"Recebido",exact:true})).toBeEnabled();
   expect(requests.filter(x=>x.path.endsWith("/a1/status")&&x.method==="PATCH").map(x=>x.payload.status)).toEqual(["recebido","aguardando"]);
+});
+
+test("Marcações seguidas na conferência não esperam uma pela outra",async({page})=>{
+  const requests=await setup(page,{patchDelay:1500});
+  const row1=page.getByTestId("conference-row-a1");
+  const row2=page.getByTestId("conference-row-a2");
+  const start=Date.now();
+  await row1.getByRole("button",{name:"Recebido",exact:true}).click();
+  await expect(row1.getByRole("button",{name:"Desmarcar recebido"})).toBeVisible();
+  await row2.getByRole("checkbox",{name:"Trocas de Outro Fornecedor"}).click();
+  await expect(row2.getByRole("checkbox",{name:"Trocas de Outro Fornecedor"})).toBeChecked();
+  await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","1","1","0","1"]);
+  expect(Date.now()-start).toBeLessThan(1500);
+  // As gravações saem em paralelo: cada linha tem a sua própria trava.
+  await expect(row1.getByRole("button",{name:"Desmarcar recebido"})).toBeEnabled();
+  await expect(row2.getByRole("checkbox",{name:"Trocas de Outro Fornecedor"})).toBeEnabled();
+  expect(requests.filter(x=>x.path.endsWith("/a1/status")&&x.method==="PATCH")).toHaveLength(1);
+  expect(requests.filter(x=>x.path.endsWith("/a2/exchanges")&&x.method==="PATCH")).toHaveLength(1);
 });
 
 test("Conferente React exige motivo para Não recebido e permite Trocas",async({page})=>{
