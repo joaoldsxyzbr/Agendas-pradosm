@@ -55,8 +55,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          git fetch --no-tags origin main preview migracao-js-puro chore-organizacao-js-puro
-          for branch in preview migracao-js-puro chore-organizacao-js-puro; do
+          git fetch --no-tags origin main preview
+          for branch in preview; do
             echo "=== Comparacao main ... $branch (esquerda=main, direita=branch) ==="
             git rev-list --left-right --count "origin/main...origin/$branch"
             git log --cherry-pick --right-only --format='%h %s' -n 12 "origin/main...origin/$branch"
@@ -74,12 +74,14 @@ jobs:
           trap 'rm -f "$html" "$asset" "$response" "$health"' EXIT
           curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/" > "$html"
           grep -qi '<html' "$html"
-          grep -q 'frontend/entry.js' "$html"
-          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL/frontend/entry.js" > "$asset"
-          grep -q 'createMigratedApplication' "$asset"
+          # O React publica index.html com bundle Vite versionado em /assets/.
+          grep -q 'src="/assets/' "$html"
+          asset_path="$(node -e 'const fs=require("node:fs");const html=fs.readFileSync(process.argv[1],"utf8");const match=html.match(/src="(\/assets\/[^"]+\.js)"/);if(!match)process.exit(1);process.stdout.write(match[1]);' "$html")"
+          curl --fail --silent --show-error --location --max-time 20 --retry 2 "$APP_URL$asset_path" > "$asset"
+          test -s "$asset"
           curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/auth/bootstrap-status" > "$response"
           node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(typeof x.available!=="boolean")process.exit(1)' "$response"
           # A rota pública de saúde executa SELECT 1 (somente leitura) no D1 do Worker.
           curl --fail --silent --show-error --max-time 20 --retry 2 "$APP_URL/api/health" > "$health"
           node -e 'const fs=require("node:fs");const x=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));if(x.ok!==true||x.database!=="ok")process.exit(1)' "$health"
-          echo "Smoke HTTP de leitura: HTML, entry.js, bootstrap-status e saúde D1 acessíveis."
+          echo "Smoke HTTP de leitura: HTML React, bundle Vite, bootstrap-status e saúde D1 acessíveis."
