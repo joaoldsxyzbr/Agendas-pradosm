@@ -527,7 +527,7 @@ export function ConferencePage(){
                 className="h-9 w-full rounded-md border border-[#3e5874] bg-[#101e30] pr-2 pl-7 text-xs text-white sm:w-56"
                 value={search} onChange={event=>setSearch(event.target.value)}/>
             </label>
-            {!readOnly && <Button size="sm" variant="secondary"
+            {!readOnly && <Button size="sm" variant="secondary" className="border-amber-400 ring-2 ring-amber-400/60"
               onClick={()=>setManualTarget({mode:"create"})}><Plus size={13}/>Fornecedor sem agenda</Button>}
           </div>
         </div>
