@@ -32,9 +32,21 @@ function errorText(error: unknown) {
     : "Não foi possível salvar. Atualize a agenda e tente novamente.";
 }
 
-function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
+// Contrato das ações de uma agenda de conferência. A tela do conferente usa os
+// endpoints /api/store (loja da sessão); o popup "Ver detalhes" do admin usa os
+// endpoints /api/admin com a mesma UI e as mesmas regras de validação.
+export type ConferenceApi = {
+  patchStatus: (id: string, status: StoreAppointment["status"], observation: string | null) => Promise<StoreAppointment>;
+  patchExchanges: (id: string, hasExchanges: boolean) => Promise<StoreAppointment>;
+  patchObservation: (id: string, observation: string | null) => Promise<StoreAppointment>;
+  patchManual: (id: string, supplier: string) => Promise<StoreAppointment>;
+  deleteManual: (id: string) => Promise<void>;
+  getDetail: (id: string) => Promise<StoreAppointmentDetail>;
+};
+
+export function ManualSupplierDialog({ target, api, onClose, onSaved, onDeleted }: {
   target: { mode: "create" } | { mode: "edit"; item: StoreAppointment; confirmDelete?: boolean };
-  date: string;
+  api: ConferenceApi & { create: (supplier: string) => Promise<unknown> };
   onClose: () => void;
   onSaved: () => Promise<void>;
   onDeleted: () => Promise<void>;
@@ -47,14 +59,14 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
     mutationFn: async (action: { kind: "save" } | { kind: "delete" }) => {
       if (action.kind === "delete") {
         if (target.mode !== "edit") throw new Error("Fornecedor inválido.");
-        return deleteManualSupplier(target.item.id);
+        return api.deleteManual(target.item.id);
       }
       const cleaned = supplier.trim().replace(/\s+/g, " ");
       if (!cleaned) throw new Error("Informe o nome do fornecedor.");
       if (cleaned.length > 160) throw new Error("O nome do fornecedor deve ter até 160 caracteres.");
       return target.mode === "edit"
-        ? patchManualSupplier(target.item.id, cleaned)
-        : createManualAppointment(date, cleaned);
+        ? api.patchManual(target.item.id, cleaned)
+        : api.create(cleaned);
     },
     onSuccess: async (_saved, action) => {
       if (action.kind === "delete") await onDeleted();
@@ -116,11 +128,11 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
   </dialog>;
 }
 
-function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: string; onClose: () => void }) {
+export function AppointmentDetailsDialog({ appointmentId, getDetail, onClose }: { appointmentId: string; getDetail: (id: string) => Promise<StoreAppointmentDetail>; onClose: () => void }) {
   const ref = useRef<HTMLDialogElement>(null);
   const query = useQuery({
     queryKey: ["conference", "detail", appointmentId],
-    queryFn: () => getStoreAppointmentDetail(appointmentId),
+    queryFn: () => getDetail(appointmentId),
     staleTime: 10_000, refetchOnWindowFocus: true,
   });
   useEffect(() => {
@@ -192,9 +204,10 @@ function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: s
   </dialog>;
 }
 
-function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onRemoveManual, onOpenDetails }: {
+export function AppointmentRow({ item, readOnly, day, agendaQueryKey, api, onEditManual, onRemoveManual, onOpenDetails }: {
   item: StoreAppointment; readOnly:boolean; day:string;
-  agendaQueryKey: readonly ["conference","agenda",string,string];
+  agendaQueryKey: readonly unknown[];
+  api: ConferenceApi;
   onEditManual:(item:StoreAppointment)=>void; onRemoveManual:(item:StoreAppointment)=>void; onOpenDetails:(id:string)=>void;
 }) {
   const client=useQueryClient();
@@ -212,9 +225,9 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onR
   const [noteError,setNoteError]=useState("");
   const patch=useMutation({
     mutationFn: async (change: {kind:"status";status:StoreAppointment["status"];observation:string|null} | {kind:"exchanges";hasExchanges:boolean} | {kind:"observation";observation:string|null}) => {
-      if (change.kind === "status") return patchStoreStatus(item.id,change.status,change.observation);
-      if (change.kind === "exchanges") return patchStoreExchanges(item.id,change.hasExchanges);
-      return patchStoreObservation(item.id,change.observation);
+      if (change.kind === "status") return api.patchStatus(item.id,change.status,change.observation);
+      if (change.kind === "exchanges") return api.patchExchanges(item.id,change.hasExchanges);
+      return api.patchObservation(item.id,change.observation);
     },
     // Atualização otimista (mesmo modelo do fix #197 da tela Agendas): a
     // marcação reflete o clique na hora, só a própria linha trava durante a
@@ -428,6 +441,14 @@ export function ConferencePage(){
   const [detailsId,setDetailsId]=useState<string|null>(null);
   const [pdfBusy,setPdfBusy]=useState(false);
   const [pdfError,setPdfError]=useState("");
+  const api: ConferenceApi = {
+    patchStatus: patchStoreStatus,
+    patchExchanges: patchStoreExchanges,
+    patchObservation: patchStoreObservation,
+    patchManual: patchManualSupplier,
+    deleteManual: deleteManualSupplier,
+    getDetail: getStoreAppointmentDetail,
+  };
   useStoreRealtime(date);
   useEffect(()=>{
     const check=()=>{
@@ -563,7 +584,7 @@ export function ConferencePage(){
               </tr>
             </thead>
             {sorted.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
-              agendaQueryKey={agendaQueryKey}
+              agendaQueryKey={agendaQueryKey} api={api}
               onEditManual={item2=>setManualTarget({mode:"edit",item:item2})}
               onRemoveManual={item2=>setManualTarget({mode:"edit",item:item2,confirmDelete:true})}
               onOpenDetails={setDetailsId}/> )}
@@ -574,10 +595,10 @@ export function ConferencePage(){
       {confirmComplete && !readOnly && <CompleteDayDialog date={date} busy={complete.isPending}
         error={complete.isError?errorText(complete.error):""}
         onConfirm={()=>complete.mutate()} onClose={()=>setConfirmComplete(false)}/>}
-      {manualTarget && <ManualSupplierDialog target={manualTarget} date={date} onClose={()=>setManualTarget(null)}
+      {manualTarget && <ManualSupplierDialog target={manualTarget} api={{...api,create:(supplier:string)=>createManualAppointment(date,supplier)}} onClose={()=>setManualTarget(null)}
         onSaved={async()=>{setSearch("");await refresh();}}
         onDeleted={async()=>{setSearch("");await refresh();}}/>}
-      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} onClose={()=>setDetailsId(null)}/>}
+      {detailsId && <AppointmentDetailsDialog appointmentId={detailsId} getDetail={getStoreAppointmentDetail} onClose={()=>setDetailsId(null)}/>}
     </>}
   </section>;
 }

@@ -6,7 +6,7 @@ import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { MetricCard } from "@/components/operations/metric-card";
 import { useSession } from "@/app/session-query";
-import { AgendaDetailDialog } from "./agenda-detail-dialog";
+import { ConferenceAgendaDialog } from "@/features/conference/conference-agenda-dialog";
 import { useReceivingRealtime } from "./use-realtime";
 import { getAgendas, getPresence, getStores } from "./api";
 import {
@@ -171,6 +171,6 @@ export function ReceivingPage() {
       {model.rows.length ? <ReceivingTable rows={model.rows} onDetails={setDetailId} presenceUnavailable={presence.isError} />
         : <p className="rounded-lg border border-[#38516d] bg-[#142338] p-6 text-sm text-slate-400">Nenhuma loja com conferente ativo.</p>}
     </>}
-    {detailId && <AgendaDetailDialog key={detailId} agendaId={detailId} canEdit={session.data?.papel === "admin"} onClose={() => setDetailId(null)} />}
+    {detailId && <ConferenceAgendaDialog key={detailId} agendaId={detailId} canEdit={session.data?.papel === "admin"} onClose={() => setDetailId(null)} />}
   </section>;
 }

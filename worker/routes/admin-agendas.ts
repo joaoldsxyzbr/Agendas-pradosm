@@ -804,6 +804,37 @@ adminAppointmentRoutes.patch("/:id/exchanges", async (c) => {
     );
   }
 });
+// Detalhe do agendamento com histórico (mesmo contrato do GET /api/store/appointments/:id).
+// Usado pelo popup "Ver detalhes" do admin, que renderiza a tela de Conferência.
+adminAppointmentRoutes.get("/:id", async (c) => {
+  const appointmentId = c.req.param("id");
+  const appointment = await findAppointmentById(c.env.DB, appointmentId);
+  if (!appointment || appointment.ativo !== 1) {
+    return c.json(
+      {
+        error: "AGENDAMENTO_NAO_ENCONTRADO",
+        message: "Agendamento n\xE3o encontrado."
+      },
+      404
+    );
+  }
+  const history = await listAppointmentHistory(c.env.DB, appointmentId);
+  return c.json({
+    ...appointmentJson(appointment),
+    history: history.map((item) => ({
+      id: item.id,
+      appointmentId: item.agendamento_id,
+      statusAnterior: item.status_anterior,
+      statusNovo: item.status_novo,
+      observation: item.observacao ?? null,
+      alteradoEm: item.alterado_em,
+      usuario: {
+        id: item.usuario_id,
+        nome: item.usuario_nome ?? (item.usuario_id ? "Usuário" : "Sistema")
+      }
+    }))
+  });
+});
 adminAppointmentRoutes.get("/:id/history", async (c) => {
   const appointmentId = c.req.param("id");
   const appointment = await findAppointmentById(c.env.DB, appointmentId);

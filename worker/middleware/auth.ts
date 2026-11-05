@@ -81,7 +81,7 @@ const restrictDashboardViewer = createMiddleware<AppEnv>(
       return c.json(forbidden(), 403);
     }
     const path = c.req.path;
-    const allowed = path === "/api/admin/stores" || path === "/api/admin/agendas" || path === "/api/admin/presence" || path === "/api/admin/reports" || path === "/api/admin/reports/occurrences" || path === "/api/admin/reports/latest" || /^\/api\/admin\/agendas\/[^/]+$/.test(path);
+    const allowed = path === "/api/admin/stores" || path === "/api/admin/agendas" || path === "/api/admin/presence" || path === "/api/admin/reports" || path === "/api/admin/reports/occurrences" || path === "/api/admin/reports/latest" || /^\/api\/admin\/agendas\/[^/]+$/.test(path) || /^\/api\/admin\/appointments\/[^/]+$/.test(path);
     if (!allowed) {
       return c.json(forbidden(), 403);
     }
