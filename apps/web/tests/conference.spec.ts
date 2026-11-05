@@ -131,7 +131,7 @@ test("Conferente React exige motivo para Não recebido e permite Trocas",async({
   await row.getByRole("button",{name:"Não recebido",exact:true}).click();
   await expect(row.getByRole("button",{name:"Confirmar motivo"})).toBeDisabled();
   expect(requests.filter(x=>x.path.endsWith("/a1/status"))).toHaveLength(0);
-  await row.getByRole("combobox",{name:"Motivo de FORNECEDOR TESTE"}).selectOption("Não veio");
+  await row.getByRole("button",{name:"Não veio",exact:true}).click();
   await row.getByRole("button",{name:"Confirmar motivo"}).click();
   await expect(row.getByRole("button",{name:"Desmarcar não recebido"})).toBeVisible();
   await row.getByRole("checkbox",{name:"Trocas de FORNECEDOR TESTE"}).click();
@@ -200,12 +200,12 @@ test("Conferente React edita e limpa observação opcional pela célula Obs.",as
   const requests=await setup(page);
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
-  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Sem pedido");
+  await row.getByRole("button",{name:"Sem pedido",exact:true}).click();
   await row.getByRole("button",{name:"Confirmar",exact:true}).click();
   await expect(row).toContainText("Obs.: Sem pedido");
   expect(requests.find(x=>x.path.endsWith("/a1/observation")).payload).toEqual({observation:"Sem pedido"});
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
-  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("");
+  await row.getByRole("button",{name:"Sem observação",exact:true}).click();
   await row.getByRole("button",{name:"Confirmar",exact:true}).click();
   await expect(row.getByText("Obs.: Sem pedido")).toHaveCount(0);
   const cleared=requests.filter(x=>x.path.endsWith("/a1/observation")).at(-1);
@@ -216,7 +216,7 @@ test("Conferente React remove observação com botão dedicado",async({page})=>{
   const requests=await setup(page);
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
-  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Sem pedido");
+  await row.getByRole("button",{name:"Sem pedido",exact:true}).click();
   await row.getByRole("button",{name:"Confirmar",exact:true}).click();
   await expect(row).toContainText("Obs.: Sem pedido");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
@@ -351,7 +351,7 @@ test("Conferente mantém linhas compactas e exibe a observação completa no mou
   const full=("Outros: "+ "Registro extenso da entrega para conferir com o motorista. ".repeat(4)).trim();
   const row=page.getByTestId("conference-row-a1");
   await row.getByRole("button",{name:"Observação de FORNECEDOR TESTE"}).click();
-  await row.getByLabel("Editar observação de FORNECEDOR TESTE").selectOption("Outros");
+  await row.getByRole("button",{name:"Personalizado",exact:true}).click();
   await row.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
   await row.getByRole("button",{name:"Confirmar",exact:true}).click();
   const note=row.locator("td").nth(5).getByRole("button",{name:"Observação de FORNECEDOR TESTE"});

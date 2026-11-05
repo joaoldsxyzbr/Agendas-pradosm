@@ -381,11 +381,11 @@ test("Admin React altera status e exige motivo antes de Não recebido", async ({
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
   const row = dialog.getByTestId("conference-row-a2");
   await row.getByRole("button", { name: "Não recebido", exact: true }).click();
-  const motivo = dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" });
+  const motivo = row.getByRole("button", { name: "Sem pedido", exact: true });
   await expect(motivo).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Confirmar motivo" })).toBeDisabled();
   expect(spy.requests.some(x => x.path.endsWith("/a2/status"))).toBe(false);
-  await motivo.selectOption("Sem pedido");
+  await motivo.click();
   await dialog.getByRole("button", { name: "Confirmar motivo" }).click();
   await expect(row.getByRole("button", { name: "Desmarcar não recebido" })).toBeVisible();
   await expect(dialog.getByText("Sem pedido")).toBeVisible();
@@ -406,7 +406,7 @@ test("Admin React atualiza trocas e observa motivo personalizado", async ({ page
   await toggle.click();
   await expect(toggle).toBeChecked();
   await row.getByRole("button", { name: "Observação de Fornecedor Verde" }).click();
-  await dialog.getByRole("combobox", { name: "Editar observação de Fornecedor Verde" }).selectOption("Outros");
+  await row.getByRole("button", { name: "Personalizado", exact: true }).click();
   await dialog.getByRole("textbox", { name: "Descreva o motivo" }).fill("Entrega parcial");
   await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
   await expect(dialog.getByText("Outros: Entrega parcial")).toBeVisible();
@@ -454,7 +454,7 @@ test("Admin e visualizador mantêm OBS longa em uma linha com texto completo no 
   const full=("Outros: "+"Observação extensa sobre o recebimento desta entrega. ".repeat(4)).trim();
   const row=dialog.getByTestId("conference-row-a2");
   await row.getByRole("button",{name:"Observação de Fornecedor Verde"}).click();
-  await dialog.getByRole("combobox",{name:"Editar observação de Fornecedor Verde"}).selectOption("Outros");
+  await row.getByRole("button",{name:"Personalizado",exact:true}).click();
   await dialog.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
   await dialog.getByRole("button",{name:"Confirmar",exact:true}).click();
   const note=row.locator("td").nth(5).locator("button[title]");
