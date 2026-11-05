@@ -57,7 +57,7 @@ class RealtimeHub extends DurableObject {
       new WebSocketRequestResponsePair("ping", "pong")
     );
   }
-  async fetch(request) {
+  override async fetch(request) {
     const url = new URL(request.url);
     if (request.method === "POST" && url.pathname === "/internal/publish") {
       const event = parseAgendaChangedEvent(
@@ -156,7 +156,7 @@ class RealtimeHub extends DurableObject {
     );
     return new Response(null, { status: 101, webSocket: client });
   }
-  async webSocketMessage(ws, message) {
+  override async webSocketMessage(ws, message) {
     if (typeof message === "string" && message === "ping") {
       return;
     }
@@ -185,7 +185,7 @@ class RealtimeHub extends DurableObject {
       this.broadcastPresence(attachment.storeId);
     }
   }
-  async webSocketClose(ws, code, _reason) {
+  override async webSocketClose(ws, code, _reason) {
     const attachment = this.attachment(ws);
     if (attachment?.role === "conferente" && attachment.storeId) {
       this.broadcastPresence(attachment.storeId, /* @__PURE__ */ new Set([ws]));
@@ -200,7 +200,7 @@ class RealtimeHub extends DurableObject {
       })
     );
   }
-  async webSocketError(ws) {
+  override async webSocketError(ws) {
     const attachment = this.attachment(ws);
     if (attachment?.role === "conferente" && attachment.storeId) {
       this.broadcastPresence(attachment.storeId, /* @__PURE__ */ new Set([ws]));
@@ -215,7 +215,7 @@ class RealtimeHub extends DurableObject {
     );
     ws.close(1011, "Erro na conex\xE3o realtime.");
   }
-  async alarm() {
+  override async alarm() {
     const now = Date.now();
     const expired = /* @__PURE__ */ new Set<WebSocket>();
     const stale = /* @__PURE__ */ new Set<WebSocket>();

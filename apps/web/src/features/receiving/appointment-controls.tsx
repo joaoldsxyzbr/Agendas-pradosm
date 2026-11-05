@@ -90,9 +90,10 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
       <td className="whitespace-nowrap px-2.5 py-1.5 text-[11px]">
         <strong className={item.hasExchanges ? "text-emerald-300" : "text-slate-300"}>{item.hasExchanges ? "Sim" : "Não"}</strong>
       </td>
-      <td className="max-w-[280px] px-2.5 py-1.5">
+      <td className="w-[280px] min-w-[280px] max-w-[280px] px-2.5 py-1.5">
         {item.observation
-          ? <span className="block truncate text-[11px] text-amber-300" title={item.observation}>Obs.: {item.observation}</span>
+          ? <span className="block w-[260px] max-w-full truncate whitespace-nowrap text-[11px] text-amber-300"
+              title={item.observation}>Obs.: {item.observation}</span>
           : <span className="text-[11px] text-slate-500">—</span>}
       </td>
     </tr>
@@ -144,9 +145,9 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
   return <tbody data-testid={`detail-row-${item.id}`} className="border-b border-[#2c4258] last:border-0">
     <tr className="align-middle">
       {rowBody}
-      <td className="px-2.5 py-1.5">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-wrap gap-1">
+      <td className="w-[148px] min-w-[148px] px-2.5 py-1.5">
+        <div className="flex w-max flex-nowrap items-center gap-1">
+          <div role="group" aria-label={`Alterar status de ${item.supplier}`} className="flex flex-nowrap gap-1">
             <Button size="icon" className="h-7 w-7" variant={item.status === "recebido" ? "default" : "secondary"}
               disabled={blocked} aria-pressed={item.status === "recebido"}
               title={item.status === "recebido" ? "Desmarcar recebido" : "Marcar como recebido"}
@@ -172,9 +173,9 @@ export function AppointmentControls({ item, editable, disabled, onSaved, onBusyC
             className="size-4 accent-sky-500" />Trocas
         </label>
       </td>
-      <td className="max-w-[280px] px-2.5 py-1.5">
-        <div className="flex items-center gap-1.5">
-          {item.observation && <span className="min-w-0 flex-1 truncate text-[11px] text-amber-300"
+      <td className="w-[280px] min-w-[280px] max-w-[280px] px-2.5 py-1.5">
+        <div className="flex w-[260px] max-w-full items-center gap-1.5 whitespace-nowrap">
+          {item.observation && <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[11px] text-amber-300"
             title={item.observation}>Obs.: {item.observation}</span>}
           <Button variant="ghost" size="sm" className="h-7 shrink-0 px-2 text-[11px]" disabled={blocked}
             aria-label={`Observação de ${item.supplier}`} onClick={() => openNote("observation")}>

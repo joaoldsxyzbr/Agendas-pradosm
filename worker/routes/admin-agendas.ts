@@ -1,5 +1,5 @@
 import type { AppEnv } from "../env.ts";
-import { normalizeObservation, validateStatusObservation } from "../../shared/observations.ts";
+import { validateStatusObservation } from "../../shared/observations.ts";
 import { Hono } from "hono";
 import { z } from "zod";
 import { ImportAgendaBatchInput, ImportAgendaInput } from "../../shared/agenda.ts";
@@ -192,7 +192,7 @@ adminAgendaRoutes.post("/import", async (c) => {
     }
     const correlacao = crypto.randomUUID();
     c.header("X-Error-Id", correlacao);
-    console.error("Agenda import failed", { type: error?.name ?? "Error", correlacao });
+    console.error("Agenda import failed", { type: error instanceof Error ? error.name : "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
       operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
@@ -313,7 +313,7 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
     }
     const correlacao = crypto.randomUUID();
     c.header("X-Error-Id", correlacao);
-    console.error("Agenda batch import failed", { type: error?.name ?? "Error", correlacao });
+    console.error("Agenda batch import failed", { type: error instanceof Error ? error.name : "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
       operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
@@ -483,7 +483,7 @@ adminAgendaRoutes.patch("/:id/digitacao", async (c) => {
   } catch (error) {
     const conflict = conflictResponse(c, error);
     if (conflict) return conflict;
-    console.error("Falha na marcação interna de fornecedor", { type: error?.name ?? "Error" });
+    console.error("Falha na marcação interna de fornecedor", { type: error instanceof Error ? error.name : "Error" });
     return c.json({ error: "DIGITACAO_FALHOU", message: "Não foi possível salvar a marcação." }, 500);
   }
 });
@@ -669,7 +669,7 @@ adminAppointmentRoutes.patch("/:id/observation", async (c) => {
   try {
     observation = validateStatusObservation(appointment.status, parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const updated = await changeAppointmentStatus(c.env.DB, appointment, c.get("authUser").id, appointment.status, undefined, observation);
@@ -713,7 +713,7 @@ adminAppointmentRoutes.patch("/:id/status", async (c) => {
   try {
     observation = validateStatusObservation(parsed.data.status, parsed.data.observation);
   } catch (error) {
-    return c.json({ error: "MOTIVO_INVALIDO", message: error.message }, 400);
+    return c.json({ error: "MOTIVO_INVALIDO", message: error instanceof Error ? error.message : "Motivo inválido." }, 400);
   }
   try {
     const user = c.get("authUser");

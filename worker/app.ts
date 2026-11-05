@@ -16,6 +16,7 @@ import {
   adminAppointmentRoutes,
 } from "./routes/admin-agendas.ts";
 import { adminAuditRoutes } from "./routes/admin-audit.ts";
+import { adminRetentionRoutes } from "./routes/admin-retention.ts";
 import { diagnosticRoutes, adminDiagnosticRoutes } from "./routes/diagnostics.ts";
 import { recordDiagnosticSafe } from "./repositories/diagnostics.ts";
 import { adminReportRoutes } from "./routes/admin-reports.ts";
@@ -105,6 +106,7 @@ app.route("/api/admin/users", adminUserRoutes);
 app.route("/api/admin/agendas", adminAgendaRoutes);
 app.route("/api/admin/appointments", adminAppointmentRoutes);
 app.route("/api/admin/audit", adminAuditRoutes);
+app.route("/api/admin/retention", adminRetentionRoutes);
 app.route("/api/admin/diagnostics", adminDiagnosticRoutes);
 app.route("/api/admin/reports", adminReportRoutes);
 app.route("/api/admin/presence", adminPresenceRoutes);
