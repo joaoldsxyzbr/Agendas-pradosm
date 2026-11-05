@@ -37,6 +37,7 @@ export const supplierUpdateSchema = supplierSchema.pick({
 export type AgendaBoard = z.infer<typeof agendaBoardSchema>;
 export type Supplier = z.infer<typeof supplierSchema>;
 export type SupplierAppointment = z.infer<typeof supplierAppointmentSchema>;
+export type AgendaSuppliers = z.infer<typeof agendaSuppliersSchema>;
 
 export function formatStamp(iso: string | null | undefined) {
   if (!iso) return "";
