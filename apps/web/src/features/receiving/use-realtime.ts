@@ -112,7 +112,6 @@ export function useReceivingRealtime(sessionId: string | undefined, selectedDate
           if (event.date === selectedDateRef.current) {
             void client.invalidateQueries({ queryKey: ["receiving", "agendas", selectedDateRef.current], exact: true });
           }
-          void client.invalidateQueries({ queryKey: ["receiving", "detail", event.agendaId], exact: true });
         } else if (mode === "on" && event.type === "presence.snapshot") {
           client.setQueryData(["receiving", "presence"], event.stores);
         } else if (mode === "on" && event.type === "presence.changed") {

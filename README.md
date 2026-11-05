@@ -181,7 +181,7 @@ A regra é sempre **D1 primeiro, evento depois**. O Durable Object não replica 
 O ADM/visualizador:
 - recarrega somente quando a data do evento é a data atualmente selecionada;
 - invalida consultas relevantes quando recebe eventos, mantendo o polling como mecanismo de reconciliação;
-- atualiza também o modal **Ver detalhes** quando a agenda aberta recebe mudança;
+- o modal **Ver detalhes** (tela de Conferência do admin) não usa realtime: atualiza por polling de 30 segundos, ao voltar para a aba e pelo botão **Atualizar**;
 - mantém reconciliação ao voltar para a aba e o botão **Atualizar** como fallback.
 
 Falha ao publicar um evento realtime é registrada, mas **não desfaz nem invalida a mutação que já foi confirmada no D1**.
