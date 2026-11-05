@@ -358,14 +358,14 @@ export function AppointmentRow({ item, readOnly, day, agendaQueryKey, api, onEdi
       <td colSpan={6} className="px-2.5 pb-2.5">
         {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
         {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
-          <label className="block text-xs text-slate-200">Motivo obrigatório
-            <select aria-label={`Motivo de ${item.supplier}`} value={reason} onChange={event=>setReason(event.target.value)}
-              className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
-              <option value="">Selecione o motivo</option>
-              {reasonOptions.map(value=><option key={value}>{value}</option>)}
-              <option value="Outros">Personalizado</option>
-            </select>
-          </label>
+          <p className="text-xs font-semibold text-slate-200">Motivo obrigatório</p>
+          <div role="group" aria-label={`Motivo de ${item.supplier}`} className="flex flex-wrap gap-1.5">
+            {reasonOptions.map(value=><Button key={value} type="button" size="sm" className="h-8"
+              variant={reason===value?"default":"secondary"} aria-pressed={reason===value}
+              onClick={()=>setReason(value)}>{value}</Button>)}
+            <Button type="button" size="sm" className="h-8" variant={reason==="Outros"?"default":"secondary"}
+              aria-pressed={reason==="Outros"} onClick={()=>setReason("Outros")}>Personalizado</Button>
+          </div>
           {reason==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
             <textarea maxLength={242} rows={2} value={other} onChange={event=>setOther(event.target.value)}
               className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>
@@ -379,15 +379,15 @@ export function AppointmentRow({ item, readOnly, day, agendaQueryKey, api, onEdi
           <p className="text-xs font-semibold text-slate-100">
             Observação — {item.supplier} <span className="font-normal text-slate-400">({item.status==="nao_chegou"?"obrigatória":"opcional"})</span>
           </p>
-          <label className="block text-xs text-slate-200">Motivo
-            <select aria-label={`Editar observação de ${item.supplier}`} value={note} disabled={inactive}
-              onChange={event=>{setNote(event.target.value);setNoteError("");}}
-              className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
-              <option value="">Sem observação</option>
-              {reasonOptions.map(value=><option key={value}>{value}</option>)}
-              <option value="Outros">Personalizado</option>
-            </select>
-          </label>
+          <div role="group" aria-label={`Editar observação de ${item.supplier}`} className="flex flex-wrap gap-1.5">
+            <Button type="button" size="sm" className="h-8" variant={note===""?"default":"secondary"}
+              aria-pressed={note===""} disabled={inactive} onClick={()=>{setNote("");setNoteError("");}}>Sem observação</Button>
+            {reasonOptions.map(value=><Button key={value} type="button" size="sm" className="h-8"
+              variant={note===value?"default":"secondary"} aria-pressed={note===value} disabled={inactive}
+              onClick={()=>{setNote(value);setNoteError("");}}>{value}</Button>)}
+            <Button type="button" size="sm" className="h-8" variant={note==="Outros"?"default":"secondary"}
+              aria-pressed={note==="Outros"} disabled={inactive} onClick={()=>{setNote("Outros");setNoteError("");}}>Personalizado</Button>
+          </div>
           {note==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
             <textarea maxLength={242} rows={2} value={noteCustom} disabled={inactive}
               onChange={event=>{setNoteCustom(event.target.value);setNoteError("");}}
