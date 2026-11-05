@@ -88,6 +88,12 @@ async function mock(page, role = "admin", options = {}) {
       });
       return json(detailsNow.appointments.find(item => item.id === id));
     }
+    if (path === "/api/admin/appointments/a2") return json({
+      ...detailsNow.appointments.find(x => x.id === "a2"),
+      nfe: ["123456"],
+      orders: ["PED-9001"],
+      history: [{ id: "h1", appointmentId: "a2", statusAnterior: "aguardando", statusNovo: "recebido", observation: null, alteradoEm: "2026-10-30T08:00:00.000Z", usuario: { id: "u2", nome: "Conferente Dois" } }],
+    });
     if (path === "/api/admin/agendas/agenda1") return json(detailsNow);
     if (path === "/api/admin/agendas/agenda0") return json({
       agenda: { ...detailsNow.agenda, id: "agenda0", storeCode: "F01", storeName: "Loja 1", dayStatus: completedAgenda0 ? "concluido" : "aberto" },
@@ -160,18 +166,18 @@ test("Agenda por loja React ordena por coluna clicável em ciclo crescente decre
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await expect(dialog).toBeVisible();
   const header = dialog.getByRole("columnheader", { name: "Fornecedor" });
-  const order = async () => dialog.locator('[data-testid^="detail-row-"]').evaluateAll(rows => rows.map(row => row.getAttribute("data-testid")));
+  const order = async () => dialog.locator('[data-testid^="conference-row-"]').evaluateAll(rows => rows.map(row => row.getAttribute("data-testid")));
   await expect(header).toHaveAttribute("aria-sort", "none");
-  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+  expect(await order()).toEqual(["conference-row-a1", "conference-row-a2"]);
   await header.click();
   await expect(header).toHaveAttribute("aria-sort", "ascending");
-  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+  expect(await order()).toEqual(["conference-row-a1", "conference-row-a2"]);
   await header.click();
   await expect(header).toHaveAttribute("aria-sort", "descending");
-  expect(await order()).toEqual(["detail-row-a2", "detail-row-a1"]);
+  expect(await order()).toEqual(["conference-row-a2", "conference-row-a1"]);
   await header.click();
   await expect(header).toHaveAttribute("aria-sort", "none");
-  expect(await order()).toEqual(["detail-row-a1", "detail-row-a2"]);
+  expect(await order()).toEqual(["conference-row-a1", "conference-row-a2"]);
 });
 
 test("Recebimento React aplica permissões e impede importação não migrada", async ({ page }) => {
@@ -308,16 +314,20 @@ test("Admin React: edição permite cadastrar, renomear e excluir fornecedor man
   await expect(dialog).toBeVisible();
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
   await dialog.getByRole("button", { name: "Fornecedor sem agenda" }).click();
-  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
-  await dialog.getByRole("button", { name: "Adicionar fornecedor" }).click();
+  const manualDialog = page.getByRole("dialog", { name: /Fornecedor sem agenda|Editar fornecedor|Remover fornecedor/ });
+  await manualDialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
+  await manualDialog.getByRole("button", { name: "Adicionar", exact: true }).click();
+  await expect(manualDialog).toHaveCount(0);
   await expect(dialog.getByText("Fornecedor Manual Teste")).toBeVisible();
-  await dialog.getByRole("button", { name: "Renomear Fornecedor Manual Teste" }).click();
-  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Editado");
-  await dialog.getByRole("button", { name: "Salvar fornecedor" }).click();
+  await dialog.getByRole("button", { name: "Editar fornecedor Fornecedor Manual Teste" }).click();
+  await manualDialog.getByLabel("Nome do fornecedor").fill("Fornecedor Editado");
+  await manualDialog.getByRole("button", { name: "Salvar", exact: true }).click();
+  await expect(manualDialog).toHaveCount(0);
   await expect(dialog.getByText("Fornecedor Editado")).toBeVisible();
-  await dialog.getByRole("button", { name: "Excluir Fornecedor Editado" }).click();
-  await expect(dialog.getByText("Excluir Fornecedor Editado desta agenda?")).toBeVisible();
-  await dialog.getByRole("button", { name: "Confirmar exclusão" }).click();
+  await dialog.getByRole("button", { name: "Excluir fornecedor Fornecedor Editado" }).click();
+  await expect(manualDialog).toContainText("O registro ficará preservado");
+  await manualDialog.getByRole("button", { name: "Remover", exact: true }).click();
+  await expect(manualDialog).toHaveCount(0);
   await expect(dialog.getByText("Fornecedor Editado")).toHaveCount(0);
   expect(spy.requests.filter(x => x.path.endsWith("/manual") && ["POST", "PATCH", "DELETE"].includes(x.method)).map(x => x.method)).toEqual(["POST", "PATCH", "DELETE"]);
 });
@@ -369,18 +379,18 @@ test("Admin React altera status e exige motivo antes de Não recebido", async ({
   await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
-  const group = dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" });
-  await group.getByRole("button", { name: "Não recebido" }).click();
-  await expect(dialog.getByText("Motivo de não recebimento")).toBeVisible();
+  const row = dialog.getByTestId("conference-row-a2");
+  await row.getByRole("button", { name: "Não recebido", exact: true }).click();
+  const motivo = dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" });
+  await expect(motivo).toBeVisible();
+  await expect(dialog.getByRole("button", { name: "Confirmar motivo" })).toBeDisabled();
   expect(spy.requests.some(x => x.path.endsWith("/a2/status"))).toBe(false);
-  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
-  await expect(dialog.getByRole("alert")).toContainText("Selecione um motivo");
-  await dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" }).selectOption("Sem pedido");
-  await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
-  await expect(group.getByRole("button", { name: "Desmarcar não recebido" })).toBeVisible();
+  await motivo.selectOption("Sem pedido");
+  await dialog.getByRole("button", { name: "Confirmar motivo" }).click();
+  await expect(row.getByRole("button", { name: "Desmarcar não recebido" })).toBeVisible();
   await expect(dialog.getByText("Sem pedido")).toBeVisible();
-  await group.getByRole("button", { name: "Desmarcar não recebido" }).click();
-  await expect(group.getByRole("button", { name: "Não recebido" })).toBeVisible();
+  await row.getByRole("button", { name: "Desmarcar não recebido" }).click();
+  await expect(row.getByRole("button", { name: "Não recebido", exact: true })).toBeVisible();
   expect(spy.requests.filter(x => x.path.endsWith("/a2/status") && x.method === "PATCH")).toHaveLength(2);
 });
 
@@ -391,11 +401,12 @@ test("Admin React atualiza trocas e observa motivo personalizado", async ({ page
   await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
-  const toggle = dialog.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" });
+  const row = dialog.getByTestId("conference-row-a2");
+  const toggle = row.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" });
   await toggle.click();
   await expect(toggle).toBeChecked();
-  await dialog.getByRole("button", { name: "Observação de Fornecedor Verde" }).click();
-  await dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" }).selectOption("Outros");
+  await row.getByRole("button", { name: "Observação de Fornecedor Verde" }).click();
+  await dialog.getByRole("combobox", { name: "Editar observação de Fornecedor Verde" }).selectOption("Outros");
   await dialog.getByRole("textbox", { name: "Descreva o motivo" }).fill("Entrega parcial");
   await dialog.getByRole("button", { name: "Confirmar", exact: true }).click();
   await expect(dialog.getByText("Outros: Entrega parcial")).toBeVisible();
@@ -410,11 +421,10 @@ test("Admin React mantém dados e exibe conflito no status sem confirmar ação"
   await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
-  await dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
-    .getByRole("button", { name: "Recebido", exact: true }).click();
+  const row = dialog.getByTestId("conference-row-a2");
+  await row.getByRole("button", { name: "Recebido", exact: true }).click();
   await expect(dialog.getByRole("alert")).toContainText("Este registro mudou");
-  await expect(dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })
-    .getByRole("button", { name: "Recebido", exact: true })).toBeVisible();
+  await expect(row.getByRole("button", { name: "Recebido", exact: true })).toBeVisible();
 });
 
 test("Visualizador React não consegue alterar status, observações ou trocas", async ({ page }) => {
@@ -423,9 +433,14 @@ test("Visualizador React não consegue alterar status, observações ou trocas",
   await page.getByLabel("Data da agenda").fill("2026-10-30");
   await page.getByTestId("receiving-store-F02").getByRole("button", { name: "Ver detalhes" }).click();
   const dialog = page.getByRole("dialog", { name: /Agenda F02/ });
-  await expect(dialog.getByRole("group", { name: "Alterar status de Fornecedor Verde" })).toHaveCount(0);
-  await expect(dialog.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" })).toHaveCount(0);
-  await expect(dialog.getByRole("button", { name: "Observação de Fornecedor Verde" })).toHaveCount(0);
+  const row = dialog.getByTestId("conference-row-a2");
+  await expect(dialog.getByRole("button", { name: "Editar agenda" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Reabrir para conferente" })).toHaveCount(0);
+  await expect(dialog.getByRole("button", { name: "Fornecedor sem agenda" })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Recebido", exact: true })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Não recebido", exact: true })).toHaveCount(0);
+  await expect(row.getByRole("button", { name: "Observação de Fornecedor Verde" })).toHaveCount(0);
+  await expect(row.getByRole("checkbox", { name: "Trocas de Fornecedor Verde" })).toBeDisabled();
   expect(spy.requests.filter(x => x.method !== "GET")).toEqual([]);
 });
 
@@ -437,23 +452,23 @@ test("Admin e visualizador mantêm OBS longa em uma linha com texto completo no 
   const dialog=page.getByRole("dialog",{name:/Agenda F02/});
   await dialog.getByRole("button",{name:"Editar agenda"}).click();
   const full=("Outros: "+"Observação extensa sobre o recebimento desta entrega. ".repeat(4)).trim();
-  const row=dialog.getByTestId("detail-row-a2");
+  const row=dialog.getByTestId("conference-row-a2");
   await row.getByRole("button",{name:"Observação de Fornecedor Verde"}).click();
-  await dialog.getByRole("combobox",{name:"Motivo de Fornecedor Verde"}).selectOption("Outros");
+  await dialog.getByRole("combobox",{name:"Editar observação de Fornecedor Verde"}).selectOption("Outros");
   await dialog.getByRole("textbox",{name:"Descreva o motivo"}).fill(full.slice(8));
   await dialog.getByRole("button",{name:"Confirmar",exact:true}).click();
-  const note=row.locator("td").nth(7).locator("span[title]");
+  const note=row.locator("td").nth(5).locator("button[title]");
   await expect(note).toHaveAttribute("title",full);
   await expect(note).toHaveCSS("white-space","nowrap");
   await expect(note).toHaveCSS("text-overflow","ellipsis");
   expect(await note.evaluate(element=>element.scrollWidth-element.clientWidth)).toBeGreaterThan(0);
   const height=await row.locator("tr").first().evaluate(element=>element.getBoundingClientRect().height);
-  const normalHeight=await dialog.getByTestId("detail-row-a1").locator("tr").first()
+  const normalHeight=await dialog.getByTestId("conference-row-a1").locator("tr").first()
     .evaluate(element=>element.getBoundingClientRect().height);
   expect(Math.abs(height-normalHeight)).toBeLessThanOrEqual(2);
   await note.hover();
   await dialog.getByRole("button",{name:"Sair da edição"}).click();
-  const readonly=dialog.getByTestId("detail-row-a2").locator("td").nth(7).locator("span[title]");
+  const readonly=dialog.getByTestId("conference-row-a2").locator("td").nth(5).locator("span[title]");
   await expect(readonly).toHaveAttribute("title",full);
   await expect(readonly).toHaveCSS("text-overflow","ellipsis");
   expect(await readonly.evaluate(element=>element.scrollWidth-element.clientWidth)).toBeGreaterThan(0);
@@ -468,7 +483,7 @@ test("Admin organiza ações em linha única e mantém linhas baixas na agenda d
   const dialog=page.getByRole("dialog",{name:/Agenda F02/});
   await dialog.getByRole("button",{name:"Editar agenda"}).click();
   const check=async(row,count)=>{
-    const cell=row.locator("tr").first().locator("td").nth(5);
+    const cell=row.locator("tr").first().locator("td").nth(3);
     const tops=await cell.locator("button").evaluateAll(buttons=>buttons.map(button=>{
       const {top,width}=button.getBoundingClientRect();return {top,width};
     }));
@@ -477,11 +492,34 @@ test("Admin organiza ações em linha única e mantém linhas baixas na agenda d
     expect(tops.every(x=>x.width>=27)).toBe(true);
     expect(await row.locator("tr").first().evaluate(tr=>tr.getBoundingClientRect().height)).toBeLessThanOrEqual(48);
   };
-  await check(dialog.getByTestId("detail-row-a2"),2);
+  await check(dialog.getByTestId("conference-row-a2"),2);
   await dialog.getByRole("button",{name:"Fornecedor sem agenda"}).click();
-  await dialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
-  await dialog.getByRole("button",{name:"Adicionar fornecedor"}).click();
-  const manual=dialog.getByTestId("detail-row-manual3");
+  const manualDialog=page.getByRole("dialog",{name:/Fornecedor sem agenda|Editar fornecedor|Remover fornecedor/});
+  await manualDialog.getByLabel("Nome do fornecedor").fill("Fornecedor Manual Teste");
+  await manualDialog.getByRole("button",{name:"Adicionar",exact:true}).click();
+  await expect(manualDialog).toHaveCount(0);
+  const manual=dialog.getByTestId("conference-row-manual3");
   await expect(manual).toBeVisible();
   await check(manual,4);
+});
+
+test("Admin consulta detalhes do agendamento com histórico, NF-e e pedidos",async({page})=>{
+  const spy=await mock(page);
+  await page.goto("/admin");
+  await page.getByLabel("Data da agenda").fill("2026-10-30");
+  await page.getByTestId("receiving-store-F02").getByRole("button",{name:"Ver detalhes"}).click();
+  const dialog=page.getByRole("dialog",{name:/Agenda F02/});
+  await expect(dialog.getByRole("button",{name:"Editar agenda"})).toBeVisible();
+  await dialog.getByTestId("conference-row-a2").getByRole("button",{name:"Detalhes de Fornecedor Verde"}).click();
+  const details=page.getByRole("dialog",{name:"Detalhes do agendamento"});
+  await expect(details).toContainText("Fornecedor Verde");
+  await expect(details).toContainText("123456");
+  await expect(details).toContainText("PED-9001");
+  await expect(details).toContainText("Histórico de alterações");
+  await expect(details).toContainText("Aguardando → Recebido");
+  await expect(details).toContainText("Conferente Dois");
+  expect(spy.requests.some(x=>x.path==="/api/admin/appointments/a2"&&x.method==="GET")).toBe(true);
+  await details.getByRole("button",{name:"Fechar detalhes"}).click();
+  await expect(details).toHaveCount(0);
+  await expect(dialog).toBeVisible();
 });

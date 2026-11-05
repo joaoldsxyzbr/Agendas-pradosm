@@ -85,11 +85,21 @@ function createFixture() {
       body: JSON.stringify(body)
     }, env);
   }
+  async function getAs(userId, path) {
+    const token = await createSessionToken(userId, 1, SECRET);
+    return app.request("http://localhost" + path, {
+      method: "GET",
+      headers: {
+        Origin: "http://localhost",
+        Cookie: "agenda_session=" + token
+      }
+    }, env);
+  }
   const status = () => ({ ...sqlite.prepare("SELECT status,observacao FROM agendamentos WHERE id='agend1'").get() });
   const historyCount = () => sqlite.prepare("SELECT count(*) AS n FROM historico_status").get().n;
   const auditCount = () => sqlite.prepare("SELECT count(*) AS n FROM auditoria").get().n;
   return {
-    sqlite, callAs, status, historyCount, auditCount,
+    sqlite, callAs, getAs, status, historyCount, auditCount,
     failAudit: () => { simulateAuditFailure = true; },
     concurrentUpdateOnNextRead: () => { simulateConcurrentUpdate = true; }
   };
@@ -144,6 +154,26 @@ describe("Recebimento integrado: Worker + SQLite sintético, sem mocks de endpoi
       assert.deepEqual(f.status(), { status: "recusado", observacao: null });
       assert.equal(f.historyCount(), 0);
       assert.equal(f.auditCount(), 0);
+    } finally {
+      f.sqlite.close();
+    }
+  });
+  it("expõe o detalhe do agendamento com histórico para admin e visualizador", async () => {
+    const f = createFixture();
+    try {
+      assert.equal((await f.callAs("conf1", "/api/store/appointments/agend1/status", { status: "nao_chegou", observation: "Sem pedido" })).status, 200);
+      const adminDetail = await (await f.getAs("adm1", "/api/admin/appointments/agend1")).json();
+      assert.equal(adminDetail.supplier, "Fornecedor sintético");
+      assert.equal(adminDetail.status, "nao_chegou");
+      assert.equal(adminDetail.nfe.length, 0);
+      assert.equal(adminDetail.orders.length, 0);
+      assert.equal(adminDetail.history.length, 1);
+      assert.equal(adminDetail.history[0].statusAnterior, "aguardando");
+      assert.equal(adminDetail.history[0].statusNovo, "nao_chegou");
+      assert.equal(adminDetail.history[0].observation, "Sem pedido");
+      assert.equal((await f.getAs("view1", "/api/admin/appointments/agend1")).status, 200);
+      assert.equal((await f.getAs("conf1", "/api/admin/appointments/agend1")).status, 403);
+      assert.equal((await f.getAs("adm1", "/api/admin/appointments/inexistente")).status, 404);
     } finally {
       f.sqlite.close();
     }

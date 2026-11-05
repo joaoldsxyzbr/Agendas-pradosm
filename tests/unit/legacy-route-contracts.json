@@ -16,6 +16,7 @@
       ".patch(\"/:id/observation\"",
       ".patch(\"/:id/status\"",
       ".patch(\"/:id/exchanges\"",
+      ".get(\"/:id\"",
       ".get(\"/:id/history\""
     ],
     "store-agendas": [
