@@ -192,7 +192,7 @@ adminAgendaRoutes.post("/import", async (c) => {
     }
     const correlacao = crypto.randomUUID();
     c.header("X-Error-Id", correlacao);
-    console.error("Agenda import failed", { type: error?.name ?? "Error", correlacao });
+    console.error("Agenda import failed", { type: error instanceof Error ? error.name : "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
       operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
@@ -313,7 +313,7 @@ adminAgendaRoutes.post("/import/bulk", async (c) => {
     }
     const correlacao = crypto.randomUUID();
     c.header("X-Error-Id", correlacao);
-    console.error("Agenda batch import failed", { type: error?.name ?? "Error", correlacao });
+    console.error("Agenda batch import failed", { type: error instanceof Error ? error.name : "Error", correlacao });
     await recordDiagnosticSafe(c.env.DB, {
       origem: "worker", nivel: "error", evento: "IMPORT_REQUEST_FAILED",
       operacao: "importacao", userId: c.get("authUser")?.id, httpStatus: 500, correlacao
@@ -483,7 +483,7 @@ adminAgendaRoutes.patch("/:id/digitacao", async (c) => {
   } catch (error) {
     const conflict = conflictResponse(c, error);
     if (conflict) return conflict;
-    console.error("Falha na marcação interna de fornecedor", { type: error?.name ?? "Error" });
+    console.error("Falha na marcação interna de fornecedor", { type: error instanceof Error ? error.name : "Error" });
     return c.json({ error: "DIGITACAO_FALHOU", message: "Não foi possível salvar a marcação." }, 500);
   }
 });
