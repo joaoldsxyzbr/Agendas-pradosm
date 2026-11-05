@@ -85,7 +85,8 @@ export function useStoreRealtime(selectedDate: string) {
       pongTimer = null;
     };
     const refreshAgenda = () => {
-      void client.invalidateQueries({ queryKey: ["conference", "agenda", selectedDateRef.current], exact: true });
+      // O cache da página inclui [date, today]; invalidar pelo prefixo alcança ambas as variações.
+      void client.invalidateQueries({ queryKey: ["conference", "agenda", selectedDateRef.current] });
     };
     const scheduleReconnect = () => {
       if (cancelled || mode === "off" || reconnectTimer !== null) return;

@@ -2,35 +2,46 @@
 
 ## Fonte de verdade e ambientes
 
-Repositório: `joaoldsxyzbr/Agendas-pradosm`. Branch `main`: produção (UI legada em JavaScript puro, intocável durante a homologação); branch `preview`: homologação isolada onde, desde 31/10/2026, a única UI é o React de `apps/web/`, publicado na raiz. Alterações grandes de estrutura devem passar por PR e CI antes de entrar em `preview`; `main` só recebe o React após homologação aprovada e paridade comprovada.
+O repositório oficial é `joaoldsxyzbr/Agendas-pradosm`.
 
-**Stack da `preview`:** React 19 + Vite + TypeScript estrito em `apps/web/`, Hono no Cloudflare Workers, D1, Zod e parser PDF WASM em `shared/import/`. **Stack da `main`:** JavaScript puro (ES Modules), HTML, CSS, sem React, Vite ou TypeScript.
+- `main`: branch de produção, com frontend **React 19 + Vite + TypeScript** em `apps/web/`.
+- `preview`: homologação, com o mesmo frontend React, Worker e banco **D1 de teste isolado**. Pode divergir da `main` durante testes.
+- Mudanças devem passar por branch própria, PR e CI antes de chegar à `main`. Não misturar o D1 de homologação com o de produção.
+
+A UI legada foi substituída pelo React na raiz do aplicativo. Documentos em `docs/archive/` e planos de migração registram etapas históricas, não a arquitetura atual.
 
 ## Fluxo técnico
 
-- `apps/web/` implementa todas as telas (login, recebimento, importação, conferência, tags, relatórios, lojas, histórico, usuários, logs).
-- `scripts/build-native.mjs` constrói o React para `dist-modern/` e publica `dist/` na raiz com `public/` (ícone e CSP).
-- O Workers serve `dist/` com fallback SPA: qualquer caminho (`/login`, `/admin`, `/app/tags`) entrega o `index.html` do React; o BrowserRouter resolve a rota. `/modern/` continua funcionando e cai no app.
-- `worker/index.js` é o ponto de entrada Worker; `worker/app.js` configura Hono e rotas (`/api/*`).
-- `worker/routes/` aplica validação/autorização; `worker/repositories/` acessa D1; `worker/services/` concentra regras e realtime.
-- `shared/` preserva formatos e funções compartilhadas, sem depender de browser; `shared/import/` guarda o parser CSV/PDF de agendas.
-- `migrations/`: sequência aplicada via Wrangler, **não** renumerar ou sobrescrever migrations já aplicadas.
-- `scripts/check-worker.mjs`, `scripts/check-build.mjs`, `scripts/check-modern-boundary.mjs`: verificação de integridade e isolamento.
-- `tests/unit/` cobre Worker, contratos e parsers; `apps/web/tests/` cobre a UI React no Chromium com API mockada.
-- `.github/workflows/ci.yml`: testes, segurança, dry-run e navegador em cada PR.
+- `apps/web/src/`: telas React (login, recebimento, importação por modal, conferência, relatórios, histórico, lojas, usuários e diagnósticos), rotas e consulta de sessão.
+- `apps/web/src/app/routes.tsx`: rotas `/login`, `/admin`, `/admin/reports`, `/admin/history`, `/admin/stores`, `/admin/users`, `/admin/diagnostics` e `/app`. O Worker aplica a autorização efetiva por perfil.
+- `scripts/build-native.mjs`: compila `apps/web/` com Vite para `dist-modern/` e publica o React na raiz de `dist/`, junto aos arquivos de `public/` (ícone e cabeçalhos de segurança).
+- `worker/index.ts`: entrada do Cloudflare Worker, incluindo cron; `worker/app.ts`: Hono, middleware e rotas `/api/*`. O Worker serve o `dist/` com fallback de SPA para URLs profundas.
+- `worker/routes/`: autenticação, validação e autorização; `worker/repositories/`: D1; `worker/services/` e `worker/realtime/`: regras operacionais e WebSockets/Durable Object.
+- `shared/`: contratos, validações, datas e parser de importação CSV/PDF (incluindo WASM para PDF).
+- `migrations/`: sequência imutável de migrations aplicada pelo Wrangler; não reescrever arquivos já aplicados.
+- `tests/unit/`: contratos, segurança, parsers e lógica de Worker; `apps/web/tests/`: navegação e fluxos React no Chromium, com APIs simuladas.
+- `.github/workflows/ci.yml`: segurança de dependências, testes, build, dry-run do Worker, E2E e CodeQL em PRs e pushes previstos.
+
+## Tempo real e consistência
+
+O D1 é a fonte de verdade de agendas. O Worker publica eventos `agenda.changed` após gravações, e as telas invalidam consultas React Query para refletir alterações de outras sessões. O painel também possui reconciliação por consulta HTTP periódica (30 segundos para agendas e presença). A produção configura `REALTIME_MODE=on`, com fallback quando o WebSocket não estiver disponível.
 
 ## Comandos
 
 ```bash
 npm ci --legacy-peer-deps
+npx wrangler d1 migrations apply DB --local --config wrangler.local.jsonc
 npm run dev
 npm test
 npm run verify:production
 npx playwright test --config apps/web/playwright.config.mjs
 ```
 
-Ambiente local: `wrangler.local.jsonc`. Produção: `wrangler.jsonc`. O comando `npm run deploy` aplica verificações e migrations remotas antes de publicar; **não executar sem aprovar o deploy**.
+- `wrangler.local.jsonc`: desenvolvimento com D1 local e sem operações remotas.
+- `wrangler.preview.jsonc`: Worker de homologação e D1 separado.
+- `wrangler.jsonc`: Worker e D1 de produção.
+- Cloudflare Workers Builds: build `npm run verify:production` e deploy `npm run deploy:cloudflare`. O comando local `npm run deploy` combina ambas as etapas e **não deve ser executado sem autorização para publicar**.
 
 ## Alterações estruturais
 
-Preferir mudanças pequenas: criar o novo caminho, atualizar imports e scripts, executar CI e testes, remover somente as duplicatas antigas, arquivar documentação histórica, e então mesclar a PR. Não mexer em credenciais, sessões, permissões, banco de produção ou Worker de negócio numa reorganização de arquivos.
+Preferir alterações incrementais, testes e CI antes da mesclagem. Não mexer em credenciais, sessões, permissões, D1 remoto ou lógica operacional como efeito colateral de reorganizações.
