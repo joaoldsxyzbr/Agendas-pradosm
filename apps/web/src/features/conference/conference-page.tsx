@@ -358,14 +358,14 @@ export function AppointmentRow({ item, readOnly, day, agendaQueryKey, api, onEdi
       <td colSpan={6} className="px-2.5 pb-2.5">
         {patch.isError && <p role="alert" className="text-xs text-rose-300">{errorText(patch.error)}</p>}
         {reasonOpen && !readOnly && <section aria-label={`Motivo de ${item.supplier}`} className="space-y-2 rounded-lg border border-amber-500/40 bg-[#20334a] p-3">
-          <label className="block text-xs text-slate-200">Motivo obrigatório
-            <select aria-label={`Motivo de ${item.supplier}`} value={reason} onChange={event=>setReason(event.target.value)}
-              className="mt-1 block h-9 w-full rounded-md border border-[#46647c] bg-[#101e30] px-2 text-xs">
-              <option value="">Selecione o motivo</option>
-              {reasonOptions.map(value=><option key={value}>{value}</option>)}
-              <option value="Outros">Personalizado</option>
-            </select>
-          </label>
+          <p className="text-xs text-slate-200">Motivo obrigatório</p>
+          <div role="group" aria-label={`Motivo de ${item.supplier}`} className="flex flex-wrap gap-2">
+            {[...reasonOptions,"Outros"].map(value=><Button key={value} size="sm"
+              variant={reason===value?"default":"secondary"} aria-pressed={reason===value} disabled={patch.isPending}
+              onClick={()=>setReason(current=>current===value?"":value)}>
+              {value==="Outros"?"Personalizado":value}
+            </Button>)}
+          </div>
           {reason==="Outros" && <label className="block text-xs text-slate-200">Descreva o motivo
             <textarea maxLength={242} rows={2} value={other} onChange={event=>setOther(event.target.value)}
               className="mt-1 block w-full rounded-md border border-[#46647c] bg-[#101e30] p-2 text-xs"/>

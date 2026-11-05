@@ -131,7 +131,7 @@ test("Conferente React exige motivo para Não recebido e permite Trocas",async({
   await row.getByRole("button",{name:"Não recebido",exact:true}).click();
   await expect(row.getByRole("button",{name:"Confirmar motivo"})).toBeDisabled();
   expect(requests.filter(x=>x.path.endsWith("/a1/status"))).toHaveLength(0);
-  await row.getByRole("combobox",{name:"Motivo de FORNECEDOR TESTE"}).selectOption("Não veio");
+  await row.getByRole("group",{name:"Motivo de FORNECEDOR TESTE"}).getByRole("button",{name:"Não veio",exact:true}).click();
   await row.getByRole("button",{name:"Confirmar motivo"}).click();
   await expect(row.getByRole("button",{name:"Desmarcar não recebido"})).toBeVisible();
   await row.getByRole("checkbox",{name:"Trocas de FORNECEDOR TESTE"}).click();

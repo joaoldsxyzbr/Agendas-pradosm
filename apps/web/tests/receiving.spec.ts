@@ -381,11 +381,11 @@ test("Admin React altera status e exige motivo antes de Não recebido", async ({
   await dialog.getByRole("button", { name: "Editar agenda" }).click();
   const row = dialog.getByTestId("conference-row-a2");
   await row.getByRole("button", { name: "Não recebido", exact: true }).click();
-  const motivo = dialog.getByRole("combobox", { name: "Motivo de Fornecedor Verde" });
+  const motivo = dialog.getByRole("group", { name: "Motivo de Fornecedor Verde" });
   await expect(motivo).toBeVisible();
   await expect(dialog.getByRole("button", { name: "Confirmar motivo" })).toBeDisabled();
   expect(spy.requests.some(x => x.path.endsWith("/a2/status"))).toBe(false);
-  await motivo.selectOption("Sem pedido");
+  await motivo.getByRole("button", { name: "Sem pedido", exact: true }).click();
   await dialog.getByRole("button", { name: "Confirmar motivo" }).click();
   await expect(row.getByRole("button", { name: "Desmarcar não recebido" })).toBeVisible();
   await expect(dialog.getByText("Sem pedido")).toBeVisible();
