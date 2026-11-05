@@ -176,6 +176,23 @@ test("Conferente React edita e remove fornecedor manual",async({page})=>{
   await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","2","0","0","0"]);
 });
 
+test("Conferente React exclui fornecedor manual direto da linha",async({page})=>{
+  const requests=await setup(page);
+  await page.getByRole("button",{name:"Fornecedor sem agenda"}).click();
+  const dialog=page.getByRole("dialog");
+  await dialog.getByLabel("Nome do fornecedor").fill("Distribuidora Manual");
+  await dialog.getByRole("button",{name:"Adicionar",exact:true}).click();
+  const row=page.getByTestId("conference-row-m1");
+  await expect(row).toBeVisible();
+  await row.getByRole("button",{name:"Excluir fornecedor Distribuidora Manual"}).click();
+  await expect(dialog).toContainText("Remover fornecedor");
+  await expect(dialog).toContainText("O registro ficará preservado");
+  await dialog.getByRole("button",{name:"Remover",exact:true}).click();
+  await expect(page.getByTestId("conference-row-m1")).toHaveCount(0);
+  expect(requests.some(x=>x.method==="DELETE"&&/\/m1\/manual$/.test(x.path))).toBe(true);
+  await expect(page.getByLabel("Resumo da agenda").locator("strong")).toHaveText(["2","2","0","0","0"]);
+});
+
 test("Conferente React edita e limpa observação opcional",async({page})=>{
   const requests=await setup(page);
   const row=page.getByTestId("conference-row-a1");
@@ -375,6 +392,6 @@ test("Conferência exibe ações em linha única e altura compacta inclusive par
   await modal.getByRole("button",{name:"Adicionar",exact:true}).click();
   const manual=page.getByTestId("conference-row-m1");
   await expect(manual).toBeVisible();
-  await assertCompact(manual,4);
+  await assertCompact(manual,5);
   await assertCompact(regular,3);
 });

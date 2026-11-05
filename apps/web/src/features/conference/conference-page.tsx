@@ -35,7 +35,7 @@ function errorText(error: unknown) {
 }
 
 function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
-  target: { mode: "create" } | { mode: "edit"; item: StoreAppointment };
+  target: { mode: "create" } | { mode: "edit"; item: StoreAppointment; confirmDelete?: boolean };
   date: string;
   onClose: () => void;
   onSaved: () => Promise<void>;
@@ -44,7 +44,7 @@ function ManualSupplierDialog({ target, date, onClose, onSaved, onDeleted }: {
   const ref = useRef<HTMLDialogElement>(null);
   const editing = target.mode === "edit";
   const [supplier, setSupplier] = useState(target.mode === "edit" ? target.item.supplier : "");
-  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(target.mode === "edit" && target.confirmDelete === true);
   const mutation = useMutation({
     mutationFn: async (action: { kind: "save" } | { kind: "delete" }) => {
       if (action.kind === "delete") {
@@ -194,10 +194,10 @@ function AppointmentDetailsDialog({ appointmentId, onClose }: { appointmentId: s
   </dialog>;
 }
 
-function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onOpenDetails }: {
+function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onRemoveManual, onOpenDetails }: {
   item: StoreAppointment; readOnly:boolean; day:string;
   agendaQueryKey: readonly ["conference","agenda",string,string];
-  onEditManual:(item:StoreAppointment)=>void; onOpenDetails:(id:string)=>void;
+  onEditManual:(item:StoreAppointment)=>void; onRemoveManual:(item:StoreAppointment)=>void; onOpenDetails:(id:string)=>void;
 }) {
   const client=useQueryClient();
   const applyUpdate=(update:Partial<StoreAppointment>)=>{
@@ -293,7 +293,7 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onO
           {displayStatus(item.status,item.observation)}
         </StatusBadge>
       </td>
-      <td className="w-[148px] min-w-[148px] px-2.5 py-1.5">
+      <td className="w-[196px] min-w-[196px] px-2.5 py-1.5">
         <div className="flex w-max flex-nowrap items-center gap-1">
           {!readOnly && <>
             <Button size="icon" className="h-7 w-7" variant={item.status==="recebido"?"default":"secondary"} disabled={inactive}
@@ -309,6 +309,10 @@ function AppointmentRow({ item, readOnly, day, agendaQueryKey, onEditManual, onO
             {item.origin==="manual" && <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
               title={`Editar fornecedor ${item.supplier}`} aria-label={`Editar fornecedor ${item.supplier}`} onClick={() => onEditManual(item)}>
               <Pencil size={13} aria-hidden="true" />
+            </Button>}
+            {item.origin==="manual" && <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
+              title={`Excluir fornecedor ${item.supplier}`} aria-label={`Excluir fornecedor ${item.supplier}`} onClick={() => onRemoveManual(item)}>
+              <Trash2 size={13} aria-hidden="true" />
             </Button>}
             <Button size="icon" variant="secondary" className="h-7 w-7" disabled={inactive}
               title={item.observation?`Editar observação de ${item.supplier}`:`Adicionar observação a ${item.supplier}`}
@@ -417,7 +421,7 @@ export function ConferencePage(){
   const [search,setSearch]=useState("");
   const [sort,setSort]=useState<AgendaSort>(null);
   const [confirmComplete,setConfirmComplete]=useState(false);
-  const [manualTarget,setManualTarget]=useState<{mode:"create"}|{mode:"edit";item:StoreAppointment}|null>(null);
+  const [manualTarget,setManualTarget]=useState<{mode:"create"}|{mode:"edit";item:StoreAppointment;confirmDelete?:boolean}|null>(null);
   const [detailsId,setDetailsId]=useState<string|null>(null);
   const [pdfBusy,setPdfBusy]=useState(false);
   const [pdfError,setPdfError]=useState("");
@@ -550,14 +554,16 @@ export function ConferencePage(){
                     </button>
                   </th>;
                 })}
-                <th scope="col" className="w-[148px] min-w-[148px] whitespace-nowrap px-2.5 py-2 font-semibold">Ações</th>
+                <th scope="col" className="w-[196px] min-w-[196px] whitespace-nowrap px-2.5 py-2 font-semibold">Ações</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[96px]">Trocas</th>
                 <th scope="col" className="whitespace-nowrap px-2.5 py-2 font-semibold w-[220px]">Obs.</th>
               </tr>
             </thead>
             {sorted.map(item=><AppointmentRow key={item.id} item={item} day={date} readOnly={readOnly||complete.isPending}
               agendaQueryKey={agendaQueryKey}
-              onEditManual={item2=>setManualTarget({mode:"edit",item:item2})} onOpenDetails={setDetailsId}/> )}
+              onEditManual={item2=>setManualTarget({mode:"edit",item:item2})}
+              onRemoveManual={item2=>setManualTarget({mode:"edit",item:item2,confirmDelete:true})}
+              onOpenDetails={setDetailsId}/> )}
             {sorted.length===0 && <tbody><tr><td role="status" colSpan={8} className="p-4 text-center text-xs text-slate-400">Nenhum fornecedor ou protocolo encontrado.</td></tr></tbody>}
           </table>
         </div>
