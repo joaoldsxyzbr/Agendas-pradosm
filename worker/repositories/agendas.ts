@@ -366,7 +366,7 @@ async function importAgendaBatchAtomic(db, userId, entries) {
       if (current) {
         statements.push(
           db.prepare(
-            "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
+            "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, csv_campos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
           ).bind(
             appointment.startTime,
             appointment.endTime,
