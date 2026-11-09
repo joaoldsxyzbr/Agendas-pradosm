@@ -15,16 +15,17 @@ const HistoryPage = lazy(() => import("@/features/history/history-page").then(m 
 const UsersPage = lazy(() => import("@/features/users/users-page").then(m => ({ default: m.UsersPage })));
 const DiagnosticsPage = lazy(() => import("@/features/diagnostics/diagnostics-page").then(m => ({ default: m.DiagnosticsPage })));
 import { Button } from "@/components/ui/button";
+import { Loading } from "@/components/ui/loading";
 import { homeForRole, type Role, type SessionUser } from "@/features/auth/session";
 
 // O Suspense fica dentro do Outlet: o menu permanece visível enquanto a tela carrega.
 function DeferredPage({ children }: { children: ReactNode }) {
-  return <Suspense fallback={<main role="status" className="p-5 text-sm text-slate-300">Carregando tela…</main>}>{children}</Suspense>;
+  return <Suspense fallback={<main className="p-5"><Loading label="Carregando tela…" className="text-sm" /></main>}>{children}</Suspense>;
 }
 
 function Guard({ roles }: { roles: Role[] }) {
   const session = useSession();
-  if (session.isPending) return <main className="grid min-h-svh place-items-center text-sm text-slate-300">Verificando sessão…</main>;
+  if (session.isPending) return <main className="grid min-h-svh place-items-center"><Loading label="Verificando sessão…" className="text-sm" /></main>;
   if (session.isError) return <main className="grid min-h-svh place-items-center gap-3 p-5">
     <p role="alert">Não foi possível verificar sua sessão.</p>
     <Button onClick={() => void session.refetch()}>Tentar novamente</Button>
@@ -42,7 +43,7 @@ function LayoutRoute() {
 
 function UnknownRoute() {
   const session = useSession();
-  if (session.isPending) return <main className="grid min-h-svh place-items-center">Verificando sessão…</main>;
+  if (session.isPending) return <main className="grid min-h-svh place-items-center"><Loading label="Verificando sessão…" /></main>;
   return <Navigate to={session.data ? homeForRole(session.data.papel) : "/login"} replace />;
 }
 

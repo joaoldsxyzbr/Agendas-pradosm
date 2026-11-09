@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, Check, CheckCircle2, ChevronLeft, ChevronRight, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
+import { Loading, Skeleton, TableSkeleton } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDay } from "@/features/receiving/model";
@@ -155,7 +156,7 @@ export function AppointmentDetailsDialog({ appointmentId, getDetail, onClose }: 
       <Button aria-label="Fechar detalhes" size="icon" variant="secondary" onClick={onClose}><X size={16} /></Button>
     </div>
     <div className="space-y-4 p-4">
-      {query.isPending && <p role="status" className="text-sm text-slate-300">Carregando detalhes…</p>}
+      {query.isPending && <Loading label="Carregando detalhes…" className="text-sm" />}
       {query.isError && <div role="alert" className="space-y-2">
         <p className="text-sm text-rose-300">Não foi possível carregar os detalhes.</p>
         <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>Tentar novamente</Button>
@@ -516,7 +517,15 @@ export function ConferencePage(){
         {!readOnly && <Button size="sm" disabled={complete.isPending} onClick={()=>setConfirmComplete(true)}>Concluir dia</Button>}
       </div>}/>
     {pdfError && <p role="alert" className="rounded-lg border border-rose-500/40 p-3 text-xs text-rose-200">{pdfError}</p>}
-    {query.isPending && <p role="status" className="rounded-lg border border-[#36516d] p-4 text-sm text-slate-300">Carregando agenda…</p>}
+    {query.isPending && <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-2 rounded-md border border-[#36516d] bg-[#1a2c41] px-2.5 py-1.5">
+          <Skeleton className="size-5 rounded-md" />
+          <div className="space-y-1"><Skeleton className="h-2 w-14" /><Skeleton className="h-3.5 w-8" /></div>
+        </div>)}
+      </div>
+      <TableSkeleton label="Carregando agenda" rows={7} widths={["w-[8%]", "w-[30%]", "w-[10%]", "w-[17%]", "w-[8%]", "w-[19%]"]} />
+    </div>}
     {query.isError && <div role="alert" className="rounded-lg border border-rose-500/40 p-4 text-xs text-rose-200">
       Não foi possível carregar a agenda. <Button size="sm" variant="secondary" onClick={()=>void query.refetch()}>Tentar novamente</Button>
     </div>}

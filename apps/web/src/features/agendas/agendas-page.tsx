@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useId, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ClipboardList, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
@@ -149,7 +150,7 @@ function StoreRow({ board, index, isSupplierPending, onToggle }: {
     </tr>
     {expanded && <tr className="bg-[#112236]" data-testid={"agendas-details-" + board.storeCode}>
       <td colSpan={5} id={"agendas-details-" + board.id} className="border-b border-[#38516d] p-3 sm:p-4">
-        {result.isPending && <p role="status" className="text-xs text-slate-300">Carregando fornecedores…</p>}
+        {result.isPending && <Loading label="Carregando fornecedores…" className="text-xs text-slate-300" />}
         {result.isError && <div role="alert" className="flex items-center gap-3 text-xs text-rose-200">
           Não foi possível carregar os fornecedores.
           <Button size="sm" onClick={() => void result.refetch()}>Tentar novamente</Button>
@@ -283,7 +284,7 @@ export function AgendasPage() {
       <h2 className="text-sm font-bold text-slate-100">Agendas por loja</h2>
       <span className="text-[11px] text-slate-400 tabular-nums">Referência: {formatDay(selectedDate)}</span>
     </div>
-    {boards.isPending && <p role="status" className="rounded-lg border border-[#37516d] bg-[#182a40] p-4 text-xs text-slate-300">Carregando agendas…</p>}
+    {boards.isPending && <div className="rounded-lg border border-[#37516d] bg-[#182a40] p-4"><Loading label="Carregando agendas…" className="text-xs text-slate-300" /></div>}
     {boards.isError && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200">
       Não foi possível carregar as agendas.
       <Button size="sm" variant="secondary" onClick={reload}>Tentar novamente</Button>

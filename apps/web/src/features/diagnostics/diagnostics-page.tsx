@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { RefreshCw } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { listStores, storesKey } from "@/features/stores/api";
 import { listUsers, usersKey } from "@/features/users/api";
@@ -140,7 +141,7 @@ export function DiagnosticsPage() {
       </label>
       <Button type="submit">Filtrar</Button>
     </form>
-    {records.isPending && <p role="status" className="text-xs text-slate-300">Carregando registros…</p>}
+    {records.isPending && <Loading label="Carregando registros…" className="text-xs text-slate-300" />}
     {records.isError && <div role="alert" className="flex flex-wrap items-center gap-3 p-5 text-xs text-rose-300">
       Não foi possível carregar os registros de auditoria.
       <Button size="sm" variant="secondary" onClick={reload}>Tentar novamente</Button>

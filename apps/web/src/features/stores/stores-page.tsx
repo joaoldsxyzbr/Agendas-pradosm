@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import type { Store } from "@/features/receiving/model";
@@ -97,7 +98,7 @@ function StoreDialog({ store, onClose }: { store: Store | null; onClose: () => v
         <Button variant="secondary" size="sm" disabled={busy} onClick={() => setAuditVisible(value => !value)}>{auditVisible ? "Ocultar histórico" : "Ver histórico"}</Button>
       </div>
       {auditVisible && <div className="max-h-56 overflow-auto rounded-lg border border-[#344d69] bg-[#101e30] p-3">
-        {audit.isPending && <p role="status" className="text-xs text-slate-400">Carregando histórico…</p>}
+        {audit.isPending && <Loading label="Carregando histórico…" className="text-xs text-slate-400" />}
         {audit.isError && <p role="alert" className="text-xs text-rose-300">Não foi possível carregar o histórico.
           <Button variant="secondary" size="sm" onClick={() => void audit.refetch()}>Tentar novamente</Button></p>}
         {audit.data && (!audit.data.length ? <p className="text-xs text-slate-400">Nenhuma alteração registrada.</p>
@@ -152,7 +153,7 @@ export function StoresPage() {
           </Button>
         </div>
       </div>
-      {query.isPending && <p role="status" className="p-5 text-xs text-slate-300">Carregando lojas…</p>}
+      {query.isPending && <Loading label="Carregando lojas…" className="p-5 text-xs text-slate-300" />}
       {query.isError && <div role="alert" className="flex flex-wrap items-center gap-3 p-5 text-xs text-rose-300">Não foi possível carregar as lojas.
         <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>Tentar novamente</Button></div>}
       {query.data && <>

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Activity, ArrowDownRight, ArrowRight, ArrowUpRight, CalendarDays, CheckCircle2, ChevronDown, Clock3, RefreshCw, Users, XCircle } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/features/receiving/model";
 import { getLatest, getOccurrences, getReport, getStores } from "./api";
@@ -480,7 +481,7 @@ export function ReportsPage() {
           <div className="absolute left-0 top-full z-20 mt-1 max-h-56 w-full min-w-[190px] overflow-auto rounded-md border border-[#48617b] bg-[#192d46] p-2 shadow-xl">
             <label className="flex cursor-pointer items-center gap-2 p-2"><input type="checkbox" checked={!draft.stores.length}
               onChange={() => setDraft(value => ({ ...value, stores: [] }))} />Todas as lojas</label>
-            {stores.isPending && <p className="p-2 text-slate-400">Carregando lojas…</p>}
+            {stores.isPending && <Loading label="Carregando lojas…" className="p-2 text-slate-400" />}
             {stores.isError && <p role="alert" className="p-2 text-rose-300">Não foi possível listar as lojas.</p>}
             {stores.data?.filter(store => store.ativo).sort((a, b) => a.codigo.localeCompare(b.codigo, "pt-BR", { numeric: true })).map(store =>
               <label key={store.id} className="flex cursor-pointer items-center gap-2 p-2">
@@ -502,7 +503,7 @@ export function ReportsPage() {
         </form>
       </details>
     </div>
-    {report.isPending && <p role="status" className={panel}>Carregando relatório…</p>}
+    {report.isPending && <Loading label="Carregando relatório…" className={panel} />}
     {report.isError && <Failure retry={() => void report.refetch()} text="Não foi possível carregar os indicadores gerenciais." />}
     {report.data && <>
       <Kpis sum={summary} prior={priorSummary} />
@@ -589,7 +590,7 @@ export function ReportsPage() {
           <Button type="submit" size="sm">Buscar</Button>
           {occurrenceQuery && <Button size="sm" variant="secondary" onClick={() => { setOccurrenceInput(""); setOccurrenceQuery(""); setOccurrenceOffset(0); }}>Limpar</Button>}
         </form>
-        {occurrences.isPending && <p role="status" className="text-sm text-slate-300">Carregando ocorrências…</p>}
+        {occurrences.isPending && <Loading label="Carregando ocorrências…" className="text-sm text-slate-300" />}
         {occurrences.isError && <Failure retry={() => void occurrences.refetch()} text="Não foi possível consultar as ocorrências." />}
         {occurrences.data && <>
           <ReportTable label="Ocorrências e observações" headings={["Data", "Loja", "Fornecedor", "Protocolo", "Situação", "Motivo", "Origem"]}>
@@ -608,7 +609,7 @@ export function ReportsPage() {
     </ReportDialog>}
     {dialog === "appointments" && <ReportDialog title="Agendamentos por data de entrega" description="Registros do período organizados pela data e hora da entrega, não pelo cadastro." onClose={() => setDialog(null)}>
       <Panel title="Agendamentos por data de entrega" hint="Mais recentes primeiro; respeita os filtros de período e lojas.">
-        {latest.isPending && <p role="status" className="text-sm text-slate-300">Carregando agendamentos…</p>}
+        {latest.isPending && <Loading label="Carregando agendamentos…" className="text-sm text-slate-300" />}
         {latest.isError && <Failure retry={() => void latest.refetch()} text="Não foi possível consultar os agendamentos recentes." />}
         {latest.data && <>
           <ReportTable label="Agendamentos recentes" headings={["Data", "Horário", "Loja", "Fornecedor", "Situação"]}>

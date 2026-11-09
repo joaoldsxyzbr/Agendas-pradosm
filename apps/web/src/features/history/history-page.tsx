@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { RefreshCw, RotateCcw, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { formatDay, type AgendaDetail } from "@/features/receiving/model";
@@ -377,14 +378,14 @@ export function HistoryPage() {
 
       <div className="rounded-lg border border-[#344d69] bg-[#101e30] p-4">
         <h3 className="mb-3 text-sm font-semibold">Histórico do dia</h3>
-        {dayEvents.isPending && <p role="status" className="text-xs text-slate-400">Carregando eventos…</p>}
+        {dayEvents.isPending && <Loading label="Carregando eventos…" className="text-xs text-slate-400" />}
         {dayEvents.isError && <p role="alert" className="text-xs text-rose-300">Não foi possível carregar os eventos do dia.</p>}
         {dayEvents.data && <DayEvents events={dayEvents.data} />}
       </div>
 
       {statusAppointmentId && <section aria-label="Histórico de status" className="rounded-lg border border-[#344d69] bg-[#101e30] p-4">
         <h3 className="mb-3 text-sm font-semibold">Histórico de status</h3>
-        {statusEvents.isPending && <p role="status" className="text-xs text-slate-400">Carregando alterações…</p>}
+        {statusEvents.isPending && <Loading label="Carregando alterações…" className="text-xs text-slate-400" />}
         {statusEvents.isError && <p role="alert" className="text-xs text-rose-300">Não foi possível consultar o histórico de status.
           <Button size="sm" variant="secondary" onClick={() => void statusEvents.refetch()}>Tentar novamente</Button></p>}
         {statusEvents.data && <StatusEvents events={statusEvents.data} />}

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowDown, ArrowLeftRight, ArrowUp, ArrowUpDown, Ban, CalendarDays, CheckCircle2, Clock3, FileDown, Pencil, Plus, RefreshCw, Search, X } from "lucide-react";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/operations/status-badge";
 import { ApiError } from "@/lib/api";
@@ -125,7 +126,7 @@ export function ConferenceAgendaDialog({ agendaId, canEdit = false, onClose }: {
         onClick={() => ref.current?.close()}><X size={17} /></Button>
     </div>
     <div className="space-y-3 p-3">
-      {query.isPending && <p role="status" className="text-sm text-slate-300">Carregando detalhes…</p>}
+      {query.isPending && <Loading label="Carregando detalhes…" className="text-sm" />}
       {query.isError && <div role="alert" className="space-y-2">
         <p className="text-sm text-rose-300">Não foi possível carregar os detalhes da agenda.</p>
         <Button size="sm" variant="secondary" onClick={() => void query.refetch()}>Tentar novamente</Button>
