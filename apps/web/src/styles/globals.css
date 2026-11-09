@@ -14,3 +14,11 @@ html, body, #root { min-height: 100%; max-width: 100%; overflow-x: clip; }
 body { margin: 0; background: #101923; color: #eaf2fc; }
 button, input { font: inherit; }
 ::selection { background: #275a91; color: white; }
+/* Quem pede menos movimento ao sistema não vê skeleton pulsando nem
+ * spinner girando: o carregamento continua sinalizado pelo rótulo. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pulse,
+  .animate-spin {
+    animation: none;
+  }
+}

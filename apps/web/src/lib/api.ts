@@ -28,3 +28,14 @@ export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise
   if (response.status === 204) return undefined as T;
   return response.json() as Promise<T>;
 }
+
+// Telemetria best-effort do ErrorBoundary: se a sessão expirou ou a rede
+// caiu, o envio falha em silêncio — a tela de recuperação segue funcionando.
+export function reportBrowserException(): void {
+  void fetch("/api/diagnostics/events", {
+    method: "POST",
+    credentials: "include",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ evento: "BROWSER_EXCEPTION", nivel: "error", operacao: "aplicativo" }),
+  }).catch(() => undefined);
+}
