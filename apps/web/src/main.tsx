@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { AppErrorBoundary } from "./app/error-boundary";
 import { AppRoutes } from "./app/routes";
 import "./styles/globals.css";
 
@@ -18,7 +19,11 @@ if (!root) throw new Error("Elemento raiz nao localizado");
 createRoot(root).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <Router><AppRoutes /></Router>
+      <Router>
+        <AppErrorBoundary>
+          <AppRoutes />
+        </AppErrorBoundary>
+      </Router>
     </QueryClientProvider>
   </StrictMode>,
 );
