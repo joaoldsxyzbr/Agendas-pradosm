@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock3, RefreshCw, Store as StoreIcon } from "lucide-react";
+import { Skeleton, TableSkeleton } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
@@ -154,7 +155,15 @@ export function ReceivingPage() {
       <h2 className="text-sm font-bold text-slate-100">Recebimento por loja</h2>
       <span className="text-[11px] text-slate-400 tabular-nums">Referência: {formatDay(selectedDate)}{realtimeStatus === "connected" ? " · Tempo real conectado" : ""}</span>
     </div>
-    {loading && <p role="status" className="rounded-lg border border-[#37516d] bg-[#182a40] p-4 text-xs text-slate-300">Carregando agendas…</p>}
+    {loading && <div className="space-y-3">
+      <div className="grid grid-cols-2 overflow-hidden rounded-xl border border-[#304b6b] bg-[#162740] shadow-lg sm:grid-cols-3 lg:grid-cols-5">
+        {Array.from({ length: 5 }, (_, index) => <div key={index} className="flex items-center gap-3 p-3">
+          <Skeleton className="size-9 rounded-lg" />
+          <div className="space-y-1.5"><Skeleton className="h-2 w-10" /><Skeleton className="h-3.5 w-14" /></div>
+        </div>)}
+      </div>
+      <TableSkeleton label="Carregando agendas" rows={6} widths={["w-[22%]", "w-[14%]", "w-[15%]", "w-[18%]", "w-[14%]", "w-[10%]"]} />
+    </div>}
     {failure && <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-500/40 bg-rose-500/10 p-3 text-xs text-rose-200">
       <span>Não foi possível carregar o Recebimento.</span>
       <Button size="sm" variant="secondary" onClick={reload}>Tentar novamente</Button>
