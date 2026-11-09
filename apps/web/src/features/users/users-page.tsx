@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Pencil, Plus, RefreshCw, Search, X } from "lucide-react";
 import { PageHeader } from "@/components/operations/page-header";
 import { StatusBadge } from "@/components/operations/status-badge";
+import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import type { Store } from "@/features/receiving/model";
@@ -129,7 +130,7 @@ function UserDialog({ user, stores, onClose }: { user: AdminUser | null; stores:
         <Button variant="secondary" size="sm" disabled={busy} onClick={() => setAuditVisible(value => !value)}>{auditVisible ? "Ocultar histórico" : "Ver histórico"}</Button>
       </div>
       {auditVisible && <div className="max-h-56 overflow-auto rounded-lg border border-[#344d69] bg-[#101e30] p-3">
-        {audit.isPending && <p role="status" className="text-xs text-slate-400">Carregando histórico…</p>}
+        {audit.isPending && <Loading label="Carregando histórico…" className="text-xs text-slate-400" />}
         {audit.isError && <p role="alert" className="text-xs text-rose-300">Não foi possível carregar o histórico.
           <Button variant="secondary" size="sm" onClick={() => void audit.refetch()}>Tentar novamente</Button></p>}
         {audit.data && (!audit.data.length ? <p className="text-xs text-slate-400">Nenhuma alteração registrada.</p>
@@ -215,7 +216,7 @@ export function UsersPage() {
           </Button>
         </div>
       </div>
-      {usersQuery.isPending && <p role="status" className="p-5 text-xs text-slate-300">Carregando usuários…</p>}
+      {usersQuery.isPending && <Loading label="Carregando usuários…" className="p-5 text-xs text-slate-300" />}
       {usersQuery.isError && <div role="alert" className="flex flex-wrap items-center gap-3 p-5 text-xs text-rose-300">Não foi possível carregar os usuários.
         <Button size="sm" variant="secondary" onClick={() => void usersQuery.refetch()}>Tentar novamente</Button></div>}
       {usersQuery.data && <>
