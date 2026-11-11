@@ -205,9 +205,12 @@ async function createAgendaImport(db, storeId, createdBy, input) {
   await db.batch(statements);
   return agendaId;
 }
-async function replaceAgendaImport(db, agenda, userId, input) {
-  const existing = await listAppointmentsByAgenda(db, agenda.id, false);
-  const importedExisting = existing.filter(
+// Fonte única da substituição de agenda importada: o SQL e o bind do
+// agendamento vivem aqui — única e lote não podem divergir (classe do
+// incidente 500 de 06/11). Retorna os agendamentos importados existentes
+// para o log de auditoria do chamador.
+function appendAgendaReplaceStatements(db, statements, agendaId, existingAppointments, input, now) {
+  const importedExisting = existingAppointments.filter(
     (appointment) => appointment.origem !== "manual"
   );
   const byProtocol = new Map<string, any>(
@@ -216,12 +219,11 @@ async function replaceAgendaImport(db, agenda, userId, input) {
   const incomingProtocols = new Set(
     input.appointments.map((appointment) => appointment.protocol)
   );
-  const now = (/* @__PURE__ */ new Date()).toISOString();
-  const statements = [
+  statements.push(
     db.prepare(
       "UPDATE agendas SET arquivo_original = ?, atualizado_em = ? WHERE id = ?"
-    ).bind(input.originalFileName, now, agenda.id)
-  ];
+    ).bind(input.originalFileName, now, agendaId)
+  );
   for (const appointment of input.appointments) {
     const current = byProtocol.get(appointment.protocol);
     if (current) {
@@ -245,7 +247,7 @@ async function replaceAgendaImport(db, agenda, userId, input) {
         )
       );
     } else {
-      statements.push(appointmentInsert(db, agenda.id, appointment, now));
+      statements.push(appointmentInsert(db, agendaId, appointment, now));
     }
   }
   for (const appointment of importedExisting) {
@@ -257,6 +259,13 @@ async function replaceAgendaImport(db, agenda, userId, input) {
       );
     }
   }
+  return importedExisting;
+}
+async function replaceAgendaImport(db, agenda, userId, input) {
+  const existing = await listAppointmentsByAgenda(db, agenda.id, false);
+  const now = (/* @__PURE__ */ new Date()).toISOString();
+  const statements = [];
+  const importedExisting = appendAgendaReplaceStatements(db, statements, agenda.id, existing, input, now);
   statements.push(
     auditStatement(db, {
       userId,
@@ -344,58 +353,7 @@ async function importAgendaBatchAtomic(db, userId, entries) {
       existing.id,
       false
     );
-    const importedExisting = existingAppointments.filter(
-      (appointment) => appointment.origem !== "manual"
-    );
-    const byProtocol = new Map<string, any>(
-      importedExisting.map((appointment) => [
-        appointment.protocolo,
-        appointment
-      ])
-    );
-    const incomingProtocols = new Set(
-      input.appointments.map((appointment) => appointment.protocol)
-    );
-    statements.push(
-      db.prepare(
-        "UPDATE agendas SET arquivo_original = ?, atualizado_em = ? WHERE id = ?"
-      ).bind(input.originalFileName, now, existing.id)
-    );
-    for (const appointment of input.appointments) {
-      const current = byProtocol.get(appointment.protocol);
-      if (current) {
-        statements.push(
-          db.prepare(
-            "UPDATE agendamentos SET horario_inicio = ?, horario_fim = ?, fornecedor = ?, itens = ?, volumes = ?, paletes = ?, carga_batida = ?, tipo = ?, nfe = ?, pedidos = ?, csv_campos = ?, ativo = 1, atualizado_em = ? WHERE id = ?"
-          ).bind(
-            appointment.startTime,
-            appointment.endTime,
-            appointment.supplier,
-            appointment.items,
-            appointment.volumes,
-            appointment.pallets,
-            appointment.cargaBatida,
-            appointment.type,
-            JSON.stringify(appointment.nfe),
-            JSON.stringify(appointment.orders),
-            appointment.csvFields ? JSON.stringify(appointment.csvFields) : null,
-            now,
-            current.id
-          )
-        );
-      } else {
-        statements.push(appointmentInsert(db, existing.id, appointment, now));
-      }
-    }
-    for (const appointment of importedExisting) {
-      if (!incomingProtocols.has(appointment.protocolo) && appointment.ativo === 1) {
-        statements.push(
-          db.prepare(
-            "UPDATE agendamentos SET ativo = 0, atualizado_em = ? WHERE id = ?"
-          ).bind(now, appointment.id)
-        );
-      }
-    }
+    const importedExisting = appendAgendaReplaceStatements(db, statements, existing.id, existingAppointments, input, now);
     statements.push(
       auditStatement(db, {
         userId,
