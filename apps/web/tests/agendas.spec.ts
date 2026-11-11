@@ -68,6 +68,7 @@ async function mock(page, role = "admin", options = {}) {
       rows[id] = rows[id].map(item => item.supplier === body.supplier ? { ...item, ...updated } : item);
       return json(updated);
     }
+    if(path==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("API inesperada: " + method + " " + path);
   });
   return { requests };

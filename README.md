@@ -138,6 +138,10 @@ A importação administrativa aceita **CSV e PDF**.
 
 Os arquivos reais exportados não devem ser versionados. Testes usam dados sintéticos, inclusive um lote de 121 agendamentos distribuídos em 9 unidades.
 
+## Avisos e notificações
+
+O sino no cabeçalho mostra avisos e eventos para todos os perfis autenticados, com badge de não lidos, polling de 60 segundos e marcação de lido por usuário. O administrador publica avisos (com expiração opcional) e inativa os que perderam validade. O sistema também gera eventos automáticos — agenda importada, importação em lote, dia concluído e agenda reaberta — gravados na mesma transação da operação.
+
 ## Dashboard
 
 A tela de Recebimento consulta agendas e presença a cada **30 segundos**, além de atualizar ao receber eventos WebSocket, ao retomar o foco e quando o usuário seleciona outra data ou clica em **Atualizar**. As lojas são consultadas a cada 60 segundos. O polling HTTP/D1 continua ativo como reconciliação quando o WebSocket falha.
