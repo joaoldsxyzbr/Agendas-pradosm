@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, testes, preview]
+    branches: [main, preview]
   pull_request:
-    branches: [main, testes, preview]
+    branches: [main, preview]
   workflow_dispatch:
 
 permissions:
@@ -51,8 +51,10 @@ jobs:
           npm run build
           node scripts/check-build.mjs
           node scripts/build-modern-preview.mjs
-      - name: Dry-run do Worker de producao sem deploy
+      - name: Dry-run do Worker da preview sem deploy
         run: npx wrangler deploy --dry-run --config wrangler.preview.jsonc
+      - name: Dry-run do Worker de producao sem deploy
+        run: npx wrangler deploy --dry-run --config wrangler.jsonc
       - name: Preparar Chromium
         run: npx playwright install --with-deps chromium
       - name: E2E React isolado com dados sinteticos
