@@ -5,10 +5,42 @@ import { BUSINESS_TIME_ZONE, businessDate, businessTime } from "../../shared/tim
 import { REALTIME_PROTOCOL_VERSION } from "../../shared/realtime.ts";
 import { parseAgendaText } from "../../shared/import/parseAgendaText.ts";
 import { parseAgendaCsv, parseAgendaPdfText } from "../../shared/import/parseAgendaBatch.ts";
+import { ImportAgendaInput } from "../../shared/agenda.ts";
 
 describe("Contratos preservados na migração JS puro", () => {
   it("normalização de códigos de loja", () => {
     assert.equal(normalizeStoreCode("  loja 01  "), "LOJA 01");
+  });
+  it("contagens de import absurdas são rejeitadas antes do bind no D1", () => {
+    const baseInput = {
+      storeCode: "CD DOCA 07",
+      date: "2026-11-06",
+      originalFileName: "agendas.csv",
+      appointments: [
+        {
+          protocol: "12760355",
+          startTime: "14:50",
+          endTime: "15:00",
+          supplier: "FORNECEDOR EXEMPLO",
+          items: 1000000,
+          volumes: null,
+          pallets: null,
+          cargaBatida: null,
+          type: "Nota fiscal",
+          nfe: [],
+          orders: []
+        }
+      ]
+    };
+    const noLimite = ImportAgendaInput.safeParse(baseInput);
+    assert.ok(noLimite.success, "contagem no limite de 1.000.000 deve ser aceita");
+    const alemDoLimite = ImportAgendaInput.safeParse({
+      ...baseInput,
+      appointments: [{ ...baseInput.appointments[0], items: 1000001 }]
+    });
+    assert.ok(!alemDoLimite.success, "contagem acima de 1.000.000 deve ser rejeitada");
+    const issues = JSON.stringify(alemDoLimite.error.issues);
+    assert.match(issues, /limite seguro/);
   });
   it("data/hora de Brasília e protocolo de tempo real", () => {
     assert.equal(BUSINESS_TIME_ZONE, "America/Sao_Paulo");
