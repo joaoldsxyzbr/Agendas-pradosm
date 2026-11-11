@@ -166,7 +166,8 @@ adminAgendaRoutes.post("/import", async (c) => {
         c.env.DB,
         store.id,
         user.id,
-        parsed.data
+        parsed.data,
+        store.nome
       );
     }
     const result = await details(c.env.DB, agendaId);

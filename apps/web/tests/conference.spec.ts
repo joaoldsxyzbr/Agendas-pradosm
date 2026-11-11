@@ -71,6 +71,7 @@ async function setup(page, { conflict = false, empty = false, completed = false,
       if(method==="DELETE")return route.fulfill({status:204,body:""});
       return route.fulfill({json:{ok:true,recordedAt:"2026-10-30T09:00:00.000Z"}});
     }
+    if(url.pathname==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("Rota de Conferente não preparada: "+method+" "+url.pathname);
   });
   await page.goto("/app");

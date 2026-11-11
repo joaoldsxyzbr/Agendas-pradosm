@@ -28,12 +28,12 @@ function fakeDb(hasEligible = true) {
 describe("Não compareceu automático",()=>{
  it("ao concluir, grava status, motivo e auditoria do sistema em batch único",async()=>{
    const {db,batches}=fakeDb();
-   const agenda={id:"ag1",loja_id:"store1",status_dia:"aberto"};
+   const agenda={id:"ag1",loja_id:"store1",status_dia:"aberto",store_name:"Centro",data_agenda:"2026-11-11"};
    const result=await changeAgendaDayStatus(db,agenda,"conf1","concluido");
    assert.equal(result.status_dia,"concluido");
    assert.equal(batches.length,1);
-   assert.equal(batches[0].length,5);
-   const [day,dayAudit,audit,update,history]=batches[0];
+   assert.equal(batches[0].length,6);
+   const [day,dayAudit,audit,update,history,aviso]=batches[0];
    assert.match(day.sql,/UPDATE agendas SET status_dia/);
    assert.match(day.sql,/AND status_dia = 'aberto'/);
    assert.match(dayAudit.sql,/WHERE changes\(\) = 1/);
@@ -43,13 +43,22 @@ describe("Não compareceu automático",()=>{
    assert.match(update.sql,/ag\.ativo = 1 AND ag\.status = 'aguardando'/);
    assert.match(audit.sql,/EXISTS \(SELECT 1 FROM auditoria WHERE id = \?\)/);
    assert.match(history.sql,/EXISTS \(SELECT 1 FROM auditoria WHERE id = \?\)/);
+   // O evento de aviso entra no mesmo batch, guardado pela auditoria da operação.
+   assert.match(aviso.sql,/INSERT INTO avisos/);
+   assert.match(aviso.sql,/'evento'/);
+   assert.match(aviso.params[1],/Dia conclu\u00eddo/);
+   assert.match(aviso.params[2],/Centro em 11\/11\/2026/);
+   assert.equal(aviso.params[4],history.params[5],"aviso e histórico devem compartilhar a auditoria-guarda");
  });
  it("reabrir dia não desfaz o Não compareceu nem gera classificação nova",async()=>{
    const {db,batches}=fakeDb();
-   await changeAgendaDayStatus(db,{id:"ag1",loja_id:"store1",status_dia:"concluido"},"admin1","aberto");
+   await changeAgendaDayStatus(db,{id:"ag1",loja_id:"store1",status_dia:"concluido",store_name:"Centro",data_agenda:"2026-11-11"},"admin1","aberto");
    assert.equal(batches.length,1);
-   assert.equal(batches[0].length,3);
+   assert.equal(batches[0].length,4);
    assert.ok(batches[0].every(s=>!s.sql.includes("Não compareceu")));
+   const aviso=batches[0][3];
+   assert.match(aviso.params[1],/Agenda reaberta/);
+   assert.match(aviso.sql,/WHERE EXISTS \(SELECT 1 FROM auditoria WHERE id = \?\)/);
  });
  it("histórico expõe o evento automático pela auditoria, sem usuário humano",async()=>{
    let query="",params=[];

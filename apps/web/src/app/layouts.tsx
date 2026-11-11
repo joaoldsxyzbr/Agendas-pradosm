@@ -5,6 +5,7 @@ import { ClipboardCheck, ClipboardList, FileBarChart, FileUp, LogOut, PanelLeft,
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { logout, type SessionUser, type Role } from "@/features/auth/session";
+import { AvisosBell } from "@/features/avisos/avisos-bell";
 
 const menu = [
   { path: "/admin", label: "Recebimento", icon: ClipboardCheck, roles: ["admin", "visualizador"] },
@@ -100,6 +101,7 @@ export function AppLayout({ user }: { user: SessionUser }) {
       <header className="flex min-h-14 items-center justify-between gap-3 border-b border-[#2b415b] bg-[#142337] px-4">
         <span className="text-sm font-semibold text-slate-200 md:text-xs">Painel operacional</span>
         <div className="flex items-center gap-3">
+          <AvisosBell papel={user.papel} />
           <span className="max-w-40 truncate text-xs text-slate-400">{user.nome}</span>
           <Button variant="ghost" size="sm" disabled={signout.isPending} onClick={() => signout.mutate()}>
             <LogOut size={14} aria-hidden="true" /> Sair
