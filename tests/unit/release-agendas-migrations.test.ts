@@ -6,13 +6,13 @@ import { DatabaseSync } from "node:sqlite";
 
 // Somente SQLite em memória: nunca consulta ou escreve no D1 de produção.
 describe("Release candidata: migrations sobre schema de produção", () => {
-  it("aplica a sequência 0001–0021 sem remover campos operacionais", () => {
+  it("aplica a sequência 0001–0022 sem remover campos operacionais", () => {
     const files = readdirSync("migrations")
       .filter(name => /^\d{4}_[\w-]+\.sql$/.test(name))
       .sort();
     assert.deepEqual(files.map(name => name.slice(0, 4)),
-      Array.from({ length: 21 }, (_, i) => String(i + 1).padStart(4, "0")),
-      "A candidata deve conter exatamente migrations 0001–0021");
+      Array.from({ length: 22 }, (_, i) => String(i + 1).padStart(4, "0")),
+      "A candidata deve conter exatamente migrations 0001–0022");
 
     const db = new DatabaseSync(":memory:");
     try {
@@ -34,6 +34,16 @@ describe("Release candidata: migrations sobre schema de produção", () => {
         assert.ok(checks.includes(field), "Coluna de digitação ausente: " + field);
       const fks = db.prepare("PRAGMA foreign_key_list(agenda_digitacao_fornecedor)").all().map(row => row.table);
       assert.ok(fks.includes("agendas") && fks.includes("usuarios"));
+      // Migration 0022: avisos in-app com leitura por usuário.
+      const avisos = names("avisos");
+      const avisosLidos = names("avisos_lidos");
+      for (const field of ["id", "tipo", "titulo", "mensagem", "criado_por", "criado_em", "expira_em", "inativo_em"])
+        assert.ok(avisos.includes(field), "Coluna de aviso ausente: " + field);
+      for (const field of ["aviso_id", "usuario_id", "lido_em"])
+        assert.ok(avisosLidos.includes(field), "Coluna de leitura ausente: " + field);
+      const lidoPk = db.prepare("PRAGMA table_info(avisos_lidos)").all().filter(row => row.pk > 0);
+      assert.deepEqual(lidoPk.map(row => row.name).sort(), ["aviso_id", "usuario_id"],
+        "A leitura de aviso deve ter PK composta por aviso e usuário");
     } finally {
       db.close();
     }
