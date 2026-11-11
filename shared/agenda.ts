@@ -27,7 +27,7 @@ function timeToMinutes(value) {
 }
 const IsoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/).refine(isValidIsoDate, { message: "Data inv\xE1lida." });
 const Time = z.string().regex(/^(?:[01]\d|2[0-3]):[0-5]\d$/);
-const NullableCount = z.number().int().nonnegative().nullable();
+const NullableCount = z.number().int().nonnegative().max(1_000_000, { message: "Contagem acima do limite seguro." }).nullable();
 const ImportedAppointmentInput = z.object({
   protocol: z.string().trim().regex(/^\d{6,20}$/),
   startTime: Time,
