@@ -1,6 +1,8 @@
--- Avisos publicados por admins e eventos operacionais automáticos,
--- com estado de leitura por usuário (avisos_lidos).
--- Soft delete via inativo_em; expiração opcional (expira_em) filtrada na leitura.
+-- Avisos e notificações in-app (spec docs/specs/2026-11-11-avisos-notificacoes-design.md).
+-- "aviso" é publicado pelo admin; "evento" é gerado automaticamente pelo sistema
+-- na mesma transação da operação. avisos_lidos guarda o estado por usuário (badge).
+PRAGMA foreign_keys = ON;
+
 CREATE TABLE avisos (
   id TEXT PRIMARY KEY,
   tipo TEXT NOT NULL CHECK (tipo IN ('aviso', 'evento')),
@@ -20,7 +22,4 @@ CREATE TABLE avisos_lidos (
 );
 
 CREATE INDEX idx_avisos_leitura
-  ON avisos(inativo_em, expira_em, criado_em DESC);
-
-CREATE INDEX idx_avisos_lidos_usuario
-  ON avisos_lidos(usuario_id);
+  ON avisos (inativo_em, criado_em DESC);
