@@ -75,13 +75,19 @@ adminAvisoRoutes.post("/", async (c) => {
     })
   ];
   await c.env.DB.batch(statements);
+  // Resposta é o aviso completo (avisoSchema): o frontend faz parse dela.
+  // Divergir aqui fazia o admin ver erro com o aviso já criado (bug corrigido
+  // em revisão — o mock de E2E era fiel ao schema, não à rota).
   return c.json(
-    {
+    avisoJson({
       id: avisoId,
+      tipo: "aviso",
       titulo: parsed.data.titulo,
       mensagem: parsed.data.mensagem,
-      expiraEm: parsed.data.expiraEm ?? null
-    },
+      criado_em: now,
+      expira_em: parsed.data.expiraEm ?? null,
+      lido: 0
+    }),
     201
   );
 });

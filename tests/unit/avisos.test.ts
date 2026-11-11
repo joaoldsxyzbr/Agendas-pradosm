@@ -4,6 +4,7 @@ import { DatabaseSync } from "node:sqlite";
 import { app } from "../../worker/app.ts";
 import { createSessionToken } from "../../worker/lib/session.ts";
 import {
+  avisoSchema,
   avisosResponseSchema,
   publicarAvisoSchema
 } from "../../shared/avisos.ts";
@@ -251,6 +252,11 @@ describe("Rotas de avisos integradas", () => {
       });
       assert.equal(publicacao.status, 201);
       const publicado = await publicacao.json();
+      // Contrato: a resposta da publicação é um aviso completo (o frontend
+      // faz avisoSchema.parse nela — mock de E2E fiel ao schema não pega
+      // divergência entre rota real e schema).
+      const contrato = avisoSchema.safeParse(publicado);
+      assert.equal(contrato.success, true);
 
       const resposta = await (await f.call("conf1", "/api/avisos")).json();
       assert.equal(resposta.naoLidos, 1);
