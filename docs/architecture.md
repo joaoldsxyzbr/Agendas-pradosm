@@ -5,8 +5,8 @@
 O repositório oficial é `joaoldsxyzbr/Agendas-pradosm`.
 
 - `main`: branch de produção, com frontend **React 19 + Vite + TypeScript** em `apps/web/`.
-- `preview`: homologação, com o mesmo frontend React, Worker e banco **D1 de teste isolado**. Pode divergir da `main` durante testes.
-- Mudanças devem passar por branch própria, PR e CI antes de chegar à `main`. Não misturar o D1 de homologação com o de produção.
+- `preview`: branch **congelada** (última sincronia com a `main` em 05/11/2026), mantida apenas como registro histórico. Não é mais usada como homologação: mudanças homologam-se na `main` via PR + CI e o D1 de homologação não recebe deploys novos.
+- Mudanças devem passar por branch própria, PR e CI antes de chegar à `main`. O dependabot e as ferramentas de automação apontam para a `main`.
 
 A UI legada foi substituída pelo React na raiz do aplicativo. Documentos em `docs/archive/` e planos de migração registram etapas históricas, não a arquitetura atual.
 
@@ -39,7 +39,7 @@ npx playwright test --config apps/web/playwright.config.mjs
 ```
 
 - `wrangler.local.jsonc`: desenvolvimento com D1 local e sem operações remotas.
-- `wrangler.preview.jsonc`: Worker de homologação e D1 separado.
+- `wrangler.preview.jsonc`: Worker da preview congelada e D1 separado (sem deploys novos).
 - `wrangler.jsonc`: Worker e D1 de produção.
 - Cloudflare Workers Builds: build `npm run verify:production` e deploy `npm run deploy:cloudflare`. O comando local `npm run deploy` combina ambas as etapas e **não deve ser executado sem autorização para publicar**.
 
