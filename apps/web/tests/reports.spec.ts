@@ -24,6 +24,7 @@ async function mock(page, options = {}) {
   const requests = [];
   let failed = false;
   await page.route("**/api/auth/me", route => route.fulfill({ json: user }));
+  await page.route("**/api/avisos", route => route.fulfill({ json: { avisos: [], naoLidos: 0 } }));
   await page.route("**/api/admin/**", route => {
     const url = new URL(route.request().url());
     const selected = url.searchParams.getAll("storeCode");

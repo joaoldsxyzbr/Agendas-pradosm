@@ -25,6 +25,7 @@ import { adminUserRoutes } from "./routes/admin-users.ts";
 import { authRoutes } from "./routes/auth.ts";
 import { realtimeRoutes } from "./routes/realtime.ts";
 import { adminPresenceRoutes, storePresenceRoutes } from "./routes/presence.ts";
+import { avisoRoutes, adminAvisoRoutes } from "./routes/avisos.ts";
 import {
   storeAgendaRoutes,
   storeAppointmentRoutes,
@@ -88,6 +89,12 @@ app.use("/api/realtime", requireAuth);
 app.use("/api/realtime/*", requireAuth);
 app.route("/api/realtime", realtimeRoutes);
 
+// Avisos/notificações in-app: leitura e marcação de lidos para todos os
+// papéis autenticados (visualizador incluso); publicação só no bloco admin.
+app.use("/api/avisos", requireAuth, validateMutationOrigin);
+app.use("/api/avisos/*", requireAuth, validateMutationOrigin);
+app.route("/api/avisos", avisoRoutes);
+
 app.use(
   "/api/admin/*",
   requireAuth,
@@ -110,6 +117,7 @@ app.route("/api/admin/retention", adminRetentionRoutes);
 app.route("/api/admin/diagnostics", adminDiagnosticRoutes);
 app.route("/api/admin/reports", adminReportRoutes);
 app.route("/api/admin/presence", adminPresenceRoutes);
+app.route("/api/admin/avisos", adminAvisoRoutes);
 
 app.use("/api/store/*", requireAuth, validateMutationOrigin);
 app.use("/api/store/today", async (c, next) => {

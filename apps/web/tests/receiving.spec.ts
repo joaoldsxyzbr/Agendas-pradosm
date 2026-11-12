@@ -99,6 +99,7 @@ async function mock(page, role = "admin", options = {}) {
       agenda: { ...detailsNow.agenda, id: "agenda0", storeCode: "F01", storeName: "Loja 1", dayStatus: completedAgenda0 ? "concluido" : "aberto" },
       appointments: detailsNow.appointments,
     });
+    if(path==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("API inesperada: " + path);
   });
   return { requests, setFailAgenda: value => { failAgenda = value; }, setAgendas: value => { agendasNow = value; } };

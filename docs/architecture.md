@@ -5,7 +5,7 @@
 O repositório oficial é `joaoldsxyzbr/Agendas-pradosm`.
 
 - `main`: branch de produção, com frontend **React 19 + Vite + TypeScript** em `apps/web/`.
-- `preview`: branch **congelada** (última sincronia com a `main` em 05/11/2026), mantida apenas como registro histórico. Não é mais usada como homologação: mudanças homologam-se na `main` via PR + CI e o D1 de homologação não recebe deploys novos.
+- `preview`: branch de **homologação** (recriada da `main` em 11/11/2026), com Worker e D1 próprios. Funcionalidades novas homologam-se nela via branch própria + PR + CI; a promoção para `main` só acontece após homologação aprovada.
 - Mudanças devem passar por branch própria, PR e CI antes de chegar à `main`. O dependabot e as ferramentas de automação apontam para a `main`.
 
 A UI legada foi substituída pelo React na raiz do aplicativo. Documentos em `docs/archive/` e planos de migração registram etapas históricas, não a arquitetura atual.
@@ -27,6 +27,14 @@ A UI legada foi substituída pelo React na raiz do aplicativo. Documentos em `do
 
 O D1 é a fonte de verdade de agendas. O Worker publica eventos `agenda.changed` após gravações, e as telas invalidam consultas React Query para refletir alterações de outras sessões. O painel também possui reconciliação por consulta HTTP periódica (30 segundos para agendas e presença). A produção configura `REALTIME_MODE=on`, com fallback quando o WebSocket não estiver disponível.
 
+## Avisos e notificações in-app
+
+- Tabelas `avisos` e `avisos_lidos` (migration `0022_avisos.sql`): aviso publicado pelo admin (`tipo = "aviso"`) e evento automático do sistema (`tipo = "evento"`); leitura por usuário em PK composta. Migration `0023_avisos_melhorias.sql`: urgência (`urgente`), autor visível (`autor`, desnormalizado do nome no momento da publicação) e direcionamento por loja (`avisos_lojas`).
+- Avisos são registro permanente (decisão de 12/11/2026): sem expiração e sem inativação — a lista é o histórico completo, do mais recente para o mais antigo, limitada aos últimos 50. As colunas `expira_em`/`inativo_em` de 0022 ficam sem uso.
+- Rotas `GET /api/avisos` (histórico + não lidos, filtrado pela loja do conferente), `POST /api/avisos/:id/lido` (idempotente), `POST /api/avisos/marcar-todos` (leitura em lote do que o usuário vê) e, para admin, `POST /api/admin/avisos` (publicar com `urgente` e `lojas` opcionais, auditado).
+- Eventos automáticos do MVP entram no MESMO `db.batch` da operação que os origina, guardados pela auditoria (`WHERE EXISTS`): agenda importada/substituída, importação em lote (um aviso por lote), dia concluído e agenda reaberta. Autor `Sistema` por DEFAULT.
+- UI: sino no cabeçalho de todos os perfis (`apps/web/src/features/avisos/`), badge de não lidos (pulsa em vermelho com urgente pendente), "Marcar todos", marcação otimista de lido e polling de 60 segundos. Contratos em `shared/avisos.ts`.
+
 ## Comandos
 
 ```bash
@@ -39,7 +47,7 @@ npx playwright test --config apps/web/playwright.config.mjs
 ```
 
 - `wrangler.local.jsonc`: desenvolvimento com D1 local e sem operações remotas.
-- `wrangler.preview.jsonc`: Worker da preview congelada e D1 separado (sem deploys novos).
+- `wrangler.preview.jsonc`: Worker da homologação e D1 separado (deploys automáticos a cada push/merge na `preview`).
 - `wrangler.jsonc`: Worker e D1 de produção.
 - Cloudflare Workers Builds: build `npm run verify:production` e deploy `npm run deploy:cloudflare`. O comando local `npm run deploy` combina ambas as etapas e **não deve ser executado sem autorização para publicar**.
 
