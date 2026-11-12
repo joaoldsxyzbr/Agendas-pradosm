@@ -18,8 +18,8 @@ async function sessionMocks(page, initialUser = null) {
     if (path === "/api/admin/users") return route.fulfill({ json: [] });
     if (path === "/api/admin/audit") return route.fulfill({ json: [] });
     if (path === "/api/admin/diagnostics") return route.fulfill({ json: [] });
-    if (path === "/api/admin/reports") return route.fulfill({ json: { start: new URL(route.request().url()).searchParams.get("start"), end: new URL(route.request().url()).searchParams.get("end"), storeCodes: [], rows: [], suppliers: [] } });
-    if (path === "/api/admin/reports/latest" || path === "/api/admin/reports/occurrences") return route.fulfill({ json: { total: 0, offset: Number(new URL(route.request().url()).searchParams.get("offset") || 0), limit: 50, rows: [] } });
+    if (path === "/api/admin/reports") return route.fulfill({ json: { start: new URL(route.request().url()).searchParams.get("start"), end: new URL(route.request().url()).searchParams.get("end"), storeCodes: [], rows: [], suppliers: [], semAgendaSuppliers: [] } });
+    if (path === "/api/admin/reports/occurrences") return route.fulfill({ json: { total: 0, offset: Number(new URL(route.request().url()).searchParams.get("offset") || 0), limit: 50, rows: [] } });
     if (path === "/api/admin/agendas") return route.fulfill({ json: [] });
     if (path === "/api/admin/presence") return route.fulfill({ json: [] });
     throw new Error("Endpoint administrativo não previsto: " + path);
