@@ -7,6 +7,7 @@ const conference = { id: "conf", nome: "Doca 01", papel: "conferente", lojaId: "
 async function sessionMocks(page, initialUser = null) {
   let current = initialUser;
   await page.route("**/api/realtime/config", route => route.fulfill({ json: { mode: "off", protocolVersion: 1 } }));
+  await page.route("**/api/avisos", route => route.fulfill({ json: { avisos: [], naoLidos: 0 } }));
   await page.route("**/api/store/today", route => route.fulfill({ json: { agenda: null, appointments: [] } }));
   await page.route("**/api/store/presence", route => route.request().method() === "DELETE"
     ? route.fulfill({ status: 204, body: "" })

@@ -66,6 +66,7 @@ async function setup(page, { role = "admin", duplicate = false, lastAdmin = fals
       }] });
     }
     if (path === "/api/admin/agendas") return route.fulfill({ json: [] });
+    if(path==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("Endpoint inesperado no teste: " + method + " " + path);
   });
   await page.goto("/admin/users");

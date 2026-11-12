@@ -34,6 +34,7 @@ async function setup(page, { conflict = false, missingStores = false, role = "ad
         totalAppointments: payload.agendas.reduce((n, a) => n + a.appointments.length, 0),
       } });
     }
+    if(path==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("API inesperada no teste React: " + method + " " + path);
   });
   await page.goto(role === "admin" ? "/admin/import" : "/admin");

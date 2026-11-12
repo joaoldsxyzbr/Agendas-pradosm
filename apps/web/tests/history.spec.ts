@@ -73,6 +73,7 @@ async function setup(page, { role = "admin", conflict = false, listError = false
         agenda.id === uuid(10) ? { ...agenda, dayStatus: "aberto" } : agenda);
       return route.fulfill({ json: { id: uuid(10), storeCode: "F01", storeName: "Unidade Central", date: "2026-10-28", dayStatus: "aberto" } });
     }
+    if(path==="/api/avisos")return route.fulfill({json:{avisos:[],naoLidos:0}});
     throw Error("Endpoint inesperado no teste: " + method + " " + path);
   });
   await page.goto("/admin/history");

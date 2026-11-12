@@ -45,6 +45,9 @@
     "app.use(\"/api/realtime\"",
     "app.use(\"/api/realtime/*\"",
     "app.route(\"/api/realtime\"",
+    "app.use(\"/api/avisos\"",
+    "app.use(\"/api/avisos/*\"",
+    "app.route(\"/api/avisos\"",
     "app.use(\n  \"/api/admin/*\"",
     "app.use(\"/api/admin/agendas/import\"",
     "app.use(\"/api/admin/agendas/import/bulk\"",
@@ -58,6 +61,7 @@
     "app.route(\"/api/admin/diagnostics\"",
     "app.route(\"/api/admin/reports\"",
     "app.route(\"/api/admin/presence\"",
+    "app.route(\"/api/admin/avisos\"",
     "app.use(\"/api/store/*\"",
     "app.use(\"/api/store/today\"",
     "app.route(\"/api/store\"",
@@ -87,20 +91,40 @@
     ]
   ],
   "routes": {
-    "admin-audit": [],
+    "admin-audit": [
+      "get(\"/\""
+    ],
     "admin-stores": [
+      "get(\"/\"",
+      "post(\"/\"",
+      "patch(\"/\"",
       "delete(\"/:id\""
     ],
     "admin-users": [
+      "get(\"/\"",
+      "post(\"/\"",
+      "patch(\"/\"",
       "delete(\"/:id\""
     ],
-    "presence": [],
+    "presence": [
+      "post(\"/\"",
+      "delete(\"/\"",
+      "get(\"/\""
+    ],
     "realtime": [
-      "get(\"/config\""
+      "get(\"/config\"",
+      "get(\"/\""
     ],
     "admin-reports": [
       "get(\"/\"",
+      "get(\"/latest\"",
       "get(\"/occurrences\""
+    ],
+    "avisos": [
+      "get(\"/\"",
+      "post(\"/:id/lido\"",
+      "post(\"/marcar-todos\"",
+      "post(\"/\""
     ]
   }
 }
