@@ -5,12 +5,12 @@ import { PageHeader } from "@/components/operations/page-header";
 import { Loading } from "@/components/ui/loading";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/features/receiving/model";
-import { getLatest, getOccurrences, getReport, getStores } from "./api";
+import { getOccurrences, getReport, getStores } from "./api";
 import { Card, Panel, ReportDialog, Failure, HelpTip } from "./reports-shell";
 import {
-  clampPercent, delta, group, groupWeekday, initialFilters, lastSevenCalendarDays, numberBR, percentBR,
-  presetRange, previousRange, rate, totals, validRange, WEEKDAY_LABELS,
-  type CalendarDay, type Delta, type Grouped, type Latest, type Occurrences, type ReportFilters, type Totals,
+  clampPercent, delta, group, initialFilters, numberBR, percentBR,
+  presetRange, previousRange, rate, totals, validRange,
+  type Delta, type Grouped, type Occurrences, type ReportFilters, type SemAgendaSupplier, type Totals,
 } from "./model";
 
 const panel = "min-w-0 rounded-xl border border-[#314b66] bg-[#142338] p-4 shadow-lg md:p-5";
@@ -26,10 +26,6 @@ const STATUS = [
   { key: "recusado", label: "Recusados", color: "#94a7bf" },
 ] as const;
 
-const statusNames: Record<string, string> = {
-  recebido: "Recebido", nao_recebido: "Não recebido", nao_compareceu: "Não compareceu",
-  aguardando: "Aguardando", recusado: "Recusado",
-};
 const originNames: Record<string, string> = {
   historico: "Sistema · agenda antiga concluída",
   sistema: "Sistema · fechamento do dia",
@@ -70,44 +66,6 @@ function Kpis({ sum, prior }: { sum: Totals; prior: Totals | null }) {
   </div>;
 }
 
-function TrendChart({ days }: { days: Grouped[] }) {
-  const recent = days.slice(-14);
-  if (!recent.some(day => day.total)) return <Empty text="Sem agendamentos no período." />;
-  const points = recent.map((day, index) => ({
-    x: recent.length === 1 ? 50 : 6 + index * (88 / (recent.length - 1)),
-    y: 91 - clampPercent(rate(day)) * 0.76,
-    date: day.key,
-  }));
-  const coordinates = points.map(point => point.x.toFixed(2) + "," + point.y.toFixed(2)).join(" ");
-  const gridlines = [0, 25, 50, 75, 100].map(value => {
-    const y = (91 - value * 0.76).toFixed(2);
-    return <line key={value} x1="6" y1={y} x2="94" y2={y} stroke="#2d4764" strokeWidth=".6" vectorEffect="non-scaling-stroke" />;
-  });
-  // Rótulos de data: mostra todos enquanto cabem (até 10 pontos) e dilui com
-  // passo fixo acima disso, preservando sempre a primeira e a última datas.
-  const labelStep = Math.max(1, Math.ceil(recent.length / 10));
-  const labels = recent.filter((_, index) => index % labelStep === 0 || index === recent.length - 1);
-  return <div role="img" aria-label={"Taxa de recebimento diária dos últimos " + numberBR(recent.length) + " dias com agendas."}>
-    <div className="relative h-32 w-full">
-      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-32 w-full" aria-hidden="true">
-        <defs><linearGradient id="report-trend-fill" x1="0" x2="0" y1="0" y2="1">
-          <stop offset="0%" stopColor="#3f9cff" stopOpacity=".34" />
-          <stop offset="100%" stopColor="#3f9cff" stopOpacity=".015" />
-        </linearGradient></defs>
-        {gridlines}
-        <polygon points={"6,91 " + coordinates + " 94,91"} fill="url(#report-trend-fill)" />
-        <polyline points={coordinates} fill="none" stroke="#449eff" strokeWidth="1.1" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
-      </svg>
-      {/* Pontos em camada própria: o preserveAspectRatio="none" achataria os círculos dentro do SVG. */}
-      {points.map(point => <span key={point.date} aria-hidden="true"
-        className="absolute size-[5px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#70baff]"
-        style={{ left: point.x + "%", top: point.y + "%" }} />)}
-    </div>
-    <div className="mt-1 flex items-center justify-between text-[10px] text-slate-400">{labels.map(day => <span key={day.key}>{shortDate(day.key)}</span>)}</div>
-    <p className="mt-2 flex items-center gap-1.5 text-[10px] text-slate-400"><i className="size-2 rounded-full bg-[#449eff]" aria-hidden="true" /> Taxa de recebimento por dia</p>
-  </div>;
-}
-
 function Donut({ sum }: { sum: Totals }) {
   if (!sum.total) return <Empty text="Nenhum agendamento no período." />;
   // Situações com valor no período: categorias zeradas não ocupam a legenda.
@@ -131,35 +89,6 @@ function Donut({ sum }: { sum: Totals }) {
       <strong className="shrink-0 text-slate-100">{numberBR(sum[status.key])} <span className="font-normal text-slate-400">({percentBR(sum[status.key] / sum.total * 100)})</span></strong>
     </li>)}</ul>
   </div>;
-}
-
-function StackedSeven({ daily, range }: { daily: Grouped[]; range: { start: string; end: string } }) {
-  const days: CalendarDay[] = lastSevenCalendarDays(daily, range);
-  if (!days.length) return <Empty text="Sem datas no período." />;
-  const max = Math.max(1, ...days.map(day => day.total));
-  // Legenda só com as situações presentes nos dias exibidos.
-  const legendStatuses = STATUS.filter(status => days.some(day => day[status.key] > 0));
-  return <>
-    <div className="flex h-36 items-end gap-2" role="img" aria-label="Agendamentos por situação nos últimos sete dias corridos do período">
-      {days.map(day => {
-        const height = day.total ? Math.max(3, day.total / max * 100) : 0;
-        return <div key={day.date} className="flex min-w-0 flex-1 flex-col items-center gap-1" role="img"
-          aria-label={shortDate(day.date) + ": " + numberBR(day.total) + " agendamentos"}>
-          <div className="flex h-[110px] w-full items-end justify-center">
-            {day.total
-              ? <div className="flex w-full max-w-10 flex-col justify-end overflow-hidden rounded-t" style={{ height: height + "%" }}>
-                {STATUS.map(status => <span key={status.key} title={status.label + ": " + numberBR(day[status.key])}
-                  style={{ height: (day[status.key] / day.total * 100).toFixed(3) + "%", background: status.color }} />)}
-              </div>
-              : <span className="text-[10px] text-slate-500" aria-hidden="true">0</span>}
-          </div>
-          <small className="text-[10px] text-slate-400">{shortDate(day.date)}</small>
-        </div>;
-      })}
-    </div>
-    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">{legendStatuses.map(status =>
-      <span key={status.key} className="flex items-center gap-1.5 text-[10px] text-slate-400"><i className="size-2 rounded-sm" style={{ background: status.color }} />{status.label}</span>)}</div>
-  </>;
 }
 
 function Meter({ title, strong, width, footnote, tone = "#3f9cff" }: { title: string; strong: string; width: number; footnote?: string; tone?: string }) {
@@ -214,88 +143,38 @@ function OccurrenceItems({ rows }: { rows: Occurrences["rows"] }) {
   </div>;
 }
 
-function LatestBadge({ status }: { status: string }) {
-  const tone = status === "recebido" ? "bg-emerald-400/15 text-emerald-300"
-    : status === "nao_recebido" ? "bg-rose-400/15 text-rose-300"
-    : status === "nao_compareceu" ? "bg-amber-400/15 text-amber-300"
-    : status === "recusado" ? "bg-slate-400/15 text-slate-300"
-    : "bg-violet-400/15 text-violet-300";
-  return <span className={"shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold " + tone}>{statusNames[status] || "Aguardando"}</span>;
-}
-
-function LatestItems({ rows }: { rows: Latest["rows"] }) {
-  if (!rows.length) return <Empty text="Nenhum agendamento recente no período." />;
-  return <>
-    <p className="mb-2 text-[10px] text-slate-400">Ordenados pela data e hora da entrega, do mais recente para o mais antigo.</p>
-    <div role="list" aria-label="Agendamentos recentes por data de entrega" className="space-y-2">
-      {rows.map((row, index) => <div key={row.date + row.storeCode + index} role="listitem"
-        className="flex min-w-0 items-center gap-2 text-xs">
-        <span className="shrink-0 text-slate-400" title="Data e hora da entrega">{shortDate(row.date)} · {row.time || "—"}</span>
-        <span className="shrink-0 font-semibold text-slate-200">{row.storeCode}</span>
-        <span className="min-w-0 flex-1 truncate text-slate-300" title={row.supplier}>{row.supplier || "—"}</span>
-        <LatestBadge status={row.status} />
-      </div>)}
-    </div>
-  </>;
-}
-
-function DailyChart({ days, mode }: { days: Grouped[]; mode: "volume" | "rate" }) {
-  if (!days.length) return <Empty text="Sem movimentação no período." />;
-  const max = Math.max(1, ...days.map(day => day.total));
-  const step = Math.max(1, Math.ceil(days.length / 12));
-  return <>
-    <div className="flex h-48 items-end gap-1.5 overflow-x-auto pb-1" aria-label="Evolução diária de recebimentos">
-      {days.map((day, index) => {
-        const height = mode === "rate" ? clampPercent(rate(day)) : day.total / max * 100;
-        return <div key={day.key} className="flex h-full min-w-[30px] flex-1 flex-col items-center justify-end gap-1" role="img"
-          aria-label={formatDay(day.key) + ": " + numberBR(day.total) + " agendamentos; " + numberBR(day.recebido) + " recebidos; " + numberBR(day.naoChegou) + " não recebidos; " + numberBR(day.aguardando) + " aguardando; " + numberBR(day.naoCompareceu) + " não compareceu"}>
-          <div className="flex h-[160px] w-full items-end justify-center">
-            <div className="flex w-7 flex-col justify-end overflow-hidden rounded-t" style={{ height: Math.max(2, Math.min(100, height)) + "%" }}>
-              {mode === "rate"
-                ? <div className="h-full" style={{ background: "#24c78b" }} />
-                : STATUS.map(status => <div key={status.key}
-                  style={{ height: (day.total ? day[status.key] / day.total * 100 : 0) + "%", background: status.color }} />)}
-            </div>
-          </div>
-          <small className="text-[10px] text-slate-400">{index % step === 0 ? day.key.slice(8) + "/" + day.key.slice(5, 7) : "\u00A0"}</small>
-        </div>;
-      })}
-    </div>
-    {mode === "volume" && <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1.5">{STATUS.map(status =>
-      <span key={status.key} className="flex items-center gap-1.5 text-[10px] text-slate-400"><i className="size-2 rounded-sm" style={{ background: status.color }} />{status.label}</span>)}</div>}
-  </>;
-}
-
-function StoreHighlights({ stores }: { stores: Grouped[] }) {
-  const ranked = stores.filter(store => store.total > 0)
-    .sort((a, b) => rate(b) - rate(a) || a.key.localeCompare(b.key, "pt-BR", { numeric: true }));
-  if (!ranked.length) return <Empty text="Sem movimentação por loja no período." />;
-  const best = ranked[0];
-  const low = ranked[ranked.length - 1];
-  if (!best || !low) return <Empty text="Sem movimentação por loja no período." />;
+// Ranking de fornecedores por não recebidos: barra proporcional ao líder
+// (não ao total) + taxa de recebimento de cada um no rodapé. Com `limit`,
+// mostra só os N primeiros e um atalho para o diálogo com a lista completa.
+function SupplierRanking({ suppliers, limit, onOpenAll }: { suppliers: { supplier: string; total: number; recebido: number; naoChegou: number }[]; limit?: number; onOpenAll?: () => void }) {
+  if (!suppliers.length) return <Empty text="Sem ocorrências." />;
+  const highest = Math.max(1, ...suppliers.map(supplier => supplier.naoChegou));
+  const shown = limit ? suppliers.slice(0, limit) : suppliers;
   return <div className="space-y-4">
-    <Meter title={best.label} strong={percentBR(rate(best))} width={rate(best)} tone="#24c78b"
-      footnote={"Maior taxa no período · " + numberBR(best.recebido) + " de " + numberBR(best.total) + " recebidos"} />
-    {ranked.length > 1 && <Meter title={low.label} strong={percentBR(rate(low))} width={rate(low)} tone="#f0525f"
-      footnote={"Menor taxa no período · " + numberBR(low.recebido) + " de " + numberBR(low.total) + " recebidos"} />}
+    {shown.map((supplier, index) => <Meter key={supplier.supplier}
+      title={(index + 1) + ". " + supplier.supplier} strong={numberBR(supplier.naoChegou)}
+      width={supplier.naoChegou / highest * 100} tone="#f0525f"
+      footnote={"Taxa de recebimento no período: " + percentBR(supplier.total ? supplier.recebido / supplier.total * 100 : 0)
+        + " (" + numberBR(supplier.recebido) + " de " + numberBR(supplier.total) + ")"} />)}
+    {onOpenAll && suppliers.length > shown.length && <Button variant="ghost" size="sm" className="text-sky-300" onClick={onOpenAll}>Ver todos os fornecedores <ArrowRight size={13} aria-hidden="true" /></Button>}
   </div>;
 }
 
-function SupplierRanking({ suppliers }: { suppliers: { supplier: string; total: number; recebido: number; naoChegou: number }[] }) {
-  if (!suppliers.length) return <Empty text="Sem ocorrências." />;
-  const highest = Math.max(1, ...suppliers.map(supplier => supplier.naoChegou));
-  return <div className="space-y-4">{suppliers.map((supplier, index) => <Meter key={supplier.supplier}
-    title={(index + 1) + ". " + supplier.supplier} strong={numberBR(supplier.naoChegou)}
-    width={supplier.naoChegou / highest * 100} tone="#f0525f"
-    footnote={"Taxa de recebimento no período: " + percentBR(supplier.total ? supplier.recebido / supplier.total * 100 : 0)
-      + " (" + numberBR(supplier.recebido) + " de " + numberBR(supplier.total) + ")"} />)}</div>;
-}
-
-function WeekdayPattern({ weekdays }: { weekdays: { weekday: number; total: number; recebido: number; days: number }[] }) {
-  if (!weekdays.length) return <Empty text="Sem movimentação no período." />;
-  return <div className="space-y-4">{weekdays.map(day => <Meter key={day.weekday} title={WEEKDAY_LABELS[day.weekday] ?? ""}
-    strong={percentBR(rate(day))} width={rate(day)}
-    footnote={numberBR(day.total) + " agendamento(s) em " + numberBR(day.days) + " dia(s) · " + numberBR(day.recebido) + " recebidos"} />)}</div>;
+// Ranking de fornecedores que entregam sem agenda: barra proporcional ao
+// líder, "N vez(es)" em destaque e a última ocorrência no rodapé. O card
+// mostra o top 5; a lista completa fica no diálogo de detalhamento.
+function SupplierWithoutAgenda({ suppliers, onOpenAll }: { suppliers: SemAgendaSupplier[]; onOpenAll: () => void }) {
+  const total = suppliers.reduce((sum, supplier) => sum + supplier.vezes, 0);
+  if (!suppliers.length) return <Empty text="Nenhuma entrega sem agenda no período." />;
+  const highest = Math.max(...suppliers.map(supplier => supplier.vezes));
+  return <div className="space-y-4">
+    <p className="text-xs text-slate-400">{numberBR(total)} entrega(s) sem agenda no período, envolvendo {numberBR(suppliers.length)} fornecedor(es).</p>
+    {suppliers.slice(0, 5).map((supplier, index) => <Meter key={supplier.supplier} title={(index + 1) + ". " + supplier.supplier}
+      strong={numberBR(supplier.vezes) + (supplier.vezes === 1 ? " vez" : " vezes")}
+      width={supplier.vezes / highest * 100} tone="#ffbf40"
+      footnote={"Última ocorrência: " + formatDay(supplier.ultima)} />)}
+    {suppliers.length > 5 && <Button variant="ghost" size="sm" className="text-sky-300" onClick={onOpenAll}>Ver todos os fornecedores <ArrowRight size={13} aria-hidden="true" /></Button>}
+  </div>;
 }
 
 function Pager({ offset, total, onChange }: { offset: number; total: number; onChange: (value: number) => void }) {
@@ -348,7 +227,7 @@ function persistFilters(filters: ReportFilters) {
   }
 }
 
-type DialogName = "analysis" | "stores" | "occurrences" | "appointments";
+type DialogName = "stores" | "occurrences" | "withoutAgenda" | "suppliers";
 
 export function ReportsPage() {
   const queryClient = useQueryClient();
@@ -359,8 +238,6 @@ export function ReportsPage() {
   const [occurrenceInput, setOccurrenceInput] = useState("");
   const [occurrenceQuery, setOccurrenceQuery] = useState("");
   const [occurrenceOffset, setOccurrenceOffset] = useState(0);
-  const [recentOffset, setRecentOffset] = useState(0);
-  const [chartMode, setChartMode] = useState<"volume" | "rate">("volume");
   const [dialog, setDialog] = useState<DialogName | null>(null);
   const filterRef = useRef<HTMLDetailsElement>(null);
   const stores = useQuery({ queryKey: ["manager-report", "stores"], queryFn: getStores, staleTime: 60_000 });
@@ -374,16 +251,11 @@ export function ReportsPage() {
     queryKey: ["manager-report", "occurrences", applied, occurrenceOffset, occurrenceQuery],
     queryFn: () => getOccurrences(applied, occurrenceOffset, occurrenceQuery),
   });
-  const latest = useQuery({
-    queryKey: ["manager-report", "latest", applied, recentOffset], queryFn: () => getLatest(applied, recentOffset),
-  });
   const summary = useMemo(() => totals(report.data?.rows ?? []), [report.data]);
   const priorSummary = useMemo(() => applied.compare && previousReport.data ? totals(previousReport.data.rows) : null, [applied.compare, previousReport.data]);
-  const days = useMemo(() => group(report.data?.rows ?? [], "date"), [report.data]);
   const units = useMemo(() => group(report.data?.rows ?? [], "store"), [report.data]);
-  const weekdays = useMemo(() => groupWeekday(days), [days]);
   const rateDifference = priorSummary && priorSummary.total > 0 ? rate(summary) - rate(priorSummary) : null;
-  const working = report.isFetching || occurrences.isFetching || latest.isFetching;
+  const working = report.isFetching || occurrences.isFetching;
   const apply = (event: FormEvent) => {
     event.preventDefault();
     if (!validRange(draft.start, draft.end)) {
@@ -395,7 +267,6 @@ export function ReportsPage() {
     setApplied(next);
     persistFilters(next);
     setOccurrenceOffset(0);
-    setRecentOffset(0);
     if (filterRef.current) filterRef.current.open = false;
   };
   const storeLabel = (codes: string[]) => {
@@ -415,7 +286,6 @@ export function ReportsPage() {
     setApplied(value => ({ ...value, ...range }));
     persistFilters({ ...applied, ...range });
     setOccurrenceOffset(0);
-    setRecentOffset(0);
     if (filterRef.current) filterRef.current.open = false;
   };
   // Descarta códigos de loja salvos que não existem mais, como a main faz após carregar as lojas.
@@ -510,7 +380,8 @@ export function ReportsPage() {
       {applied.compare && previousReport.isError && <Failure retry={() => void previousReport.refetch()} text="Comparação indisponível. Os indicadores atuais continuam disponíveis." />}
       {summary.abertas > 0 && <p role="status" className="text-xs text-amber-300">{numberBR(summary.abertas)} agenda(s) em aberto: os indicadores podem mudar até o fechamento.</p>}
       <div className="space-y-4" aria-label="Visão gerencial de recebimentos">
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        {/* Resumo do período: taxa geral + composição por situação. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Card title="Taxa de recebimento">
             <strong className="block text-4xl font-bold tracking-tight tabular-nums text-white">{percentBR(rate(summary))}</strong>
             <p className="mt-2 text-xs text-slate-400">{numberBR(summary.recebido)} de {numberBR(summary.total)} agendamentos</p>
@@ -522,53 +393,33 @@ export function ReportsPage() {
                 {(rateDifference > 0 ? "+" : "") + rateDifference.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} p.p. em relação ao período anterior
               </p>}
           </Card>
-          <Card title="Evolução dos recebimentos"
-            action={<Button variant="ghost" size="sm" className="text-sky-300" onClick={() => setDialog("analysis")}>Ver análises completas <ArrowRight size={13} aria-hidden="true" /></Button>}>
-            <TrendChart days={days} />
-          </Card>
           <Card title="Distribuição das situações">
             <Donut sum={summary} />
           </Card>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Fileira dos rankings: lojas e os dois de fornecedores, com medidores
+            e alturas equivalentes. */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <Card title="Desempenho por loja"><StoreTop stores={units} onOpenAll={() => setDialog("stores")} /></Card>
-          <Card title="Agendamentos por situação (por dia)"><StackedSeven daily={days} range={applied} /></Card>
+          <Card title="Fornecedores com ocorrências">
+            <SupplierRanking suppliers={report.data.suppliers} limit={5} onOpenAll={() => setDialog("suppliers")} />
+          </Card>
+          <Card title="Fornecedores sem agenda">
+            <SupplierWithoutAgenda suppliers={report.data.semAgendaSuppliers} onOpenAll={() => setDialog("withoutAgenda")} />
+          </Card>
         </div>
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {/* Lista completa de ocorrências fica no diálogo; o card resume os 5
+            registros mais recentes. */}
+        <div className="grid grid-cols-1 gap-4">
           <Card title="Ocorrências recentes"
             action={<Button variant="ghost" size="sm" className="text-sky-300" onClick={() => setDialog("occurrences")}>Ver todas as ocorrências <ArrowRight size={13} aria-hidden="true" /></Button>}>
             {occurrences.isPending ? <Empty text="Carregando ocorrências…" /> : occurrences.isError
               ? <Empty text="Ocorrências indisponíveis." /> : <OccurrenceItems rows={occurrences.data?.rows.slice(0, 5) ?? []} />}
           </Card>
-          <Card title="Agendamentos recentes por data de entrega"
-            action={<Button variant="ghost" size="sm" className="text-sky-300" onClick={() => setDialog("appointments")}>Ver detalhamento <ArrowRight size={13} aria-hidden="true" /></Button>}>
-            {latest.isPending ? <Empty text="Carregando agendamentos…" /> : latest.isError
-              ? <Empty text="Agendamentos indisponíveis." /> : <LatestItems rows={latest.data?.rows.slice(0, 5) ?? []} />}
-          </Card>
         </div>
       </div>
       <p className="text-[11px] text-slate-500"><Activity size={12} className="mr-1 inline-block" aria-hidden="true" />Dados consultados na API oficial; nenhuma alteração de dados é feita neste relatório.</p>
     </>}
-    {dialog === "analysis" && <ReportDialog title="Análises completas" description="Evolução diária, fornecedores e padrões de recebimento." onClose={() => setDialog(null)}>
-      <Panel title="Evolução diária" hint="Volume por status ou taxa de recebimento em cada dia"
-        actions={<div role="group" aria-label="Modo do gráfico" className="flex gap-1 rounded-md bg-[#203750] p-1">
-          <Button variant={chartMode === "volume" ? "default" : "ghost"} size="sm" aria-pressed={chartMode === "volume"} onClick={() => setChartMode("volume")}>Volume</Button>
-          <Button variant={chartMode === "rate" ? "default" : "ghost"} size="sm" aria-pressed={chartMode === "rate"} onClick={() => setChartMode("rate")}>Taxa de recebimento</Button>
-        </div>}>
-        <DailyChart days={days} mode={chartMode} />
-      </Panel>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Panel title="Comparativo por loja" hint="Maior e menor taxa no período; o detalhamento reúne todas as unidades.">
-          <StoreHighlights stores={units} />
-        </Panel>
-        <Panel title="Fornecedores com ocorrências" hint="Ranking de não recebidos com a taxa de recebimento de cada um.">
-          <SupplierRanking suppliers={report.data?.suppliers ?? []} />
-        </Panel>
-        <Panel title="Padrão por dia da semana" hint="Taxa de recebimento por dia da semana no período.">
-          <WeekdayPattern weekdays={weekdays} />
-        </Panel>
-      </div>
-    </ReportDialog>}
     {dialog === "stores" && <ReportDialog title="Todas as lojas" description="Indicadores consolidados das unidades no período selecionado." onClose={() => setDialog(null)}>
       <Panel title="Por loja" hint="Indicadores consolidados">
         <ReportTable label="Consolidado por loja" headings={["Loja", "Agendamentos", "Recebidos", "Não recebidos", "Não compareceu", "Aguardando", "Recusados", "Sem agenda", "Taxa"]}>
@@ -607,21 +458,32 @@ export function ReportsPage() {
         </>}
       </Panel>
     </ReportDialog>}
-    {dialog === "appointments" && <ReportDialog title="Agendamentos por data de entrega" description="Registros do período organizados pela data e hora da entrega, não pelo cadastro." onClose={() => setDialog(null)}>
-      <Panel title="Agendamentos por data de entrega" hint="Mais recentes primeiro; respeita os filtros de período e lojas.">
-        {latest.isPending && <Loading label="Carregando agendamentos…" className="text-sm text-slate-300" />}
-        {latest.isError && <Failure retry={() => void latest.refetch()} text="Não foi possível consultar os agendamentos recentes." />}
-        {latest.data && <>
-          <ReportTable label="Agendamentos recentes" headings={["Data", "Horário", "Loja", "Fornecedor", "Situação"]}>
-            {latest.data.rows.map((row, index) => <tr key={row.date + row.storeCode + index}>
-              <td className={cells}>{formatDay(row.date)}</td><td className={cells}>{row.time || "—"}</td>
-              <td className={cells}>{row.storeCode}</td><td className={cells}>{row.supplier}</td>
-              <td className={cells}><LatestBadge status={row.status} /></td>
-            </tr>)}
-            {!latest.data.rows.length && <tr><td colSpan={5} className={cells}>Nenhum agendamento encontrado.</td></tr>}
-          </ReportTable>
-          <Pager offset={recentOffset} total={latest.data.total} onChange={setRecentOffset} />
-        </>}
+    {dialog === "withoutAgenda" && <ReportDialog title="Fornecedores sem agenda" description="Fornecedores que entregaram sem agendamento no período, ordenados pelo número de ocorrências." onClose={() => setDialog(null)}>
+      <Panel title="Entregas sem agenda" hint="Quantas vezes cada fornecedor chegou sem agendamento e a data da última ocorrência.">
+        <ReportTable label="Fornecedores sem agenda" headings={["#", "Fornecedor", "Vezes sem agenda", "Última ocorrência"]}>
+          {(report.data?.semAgendaSuppliers ?? []).map((supplier, index) => <tr key={supplier.supplier}>
+            <td className={cells + " tabular-nums text-slate-400"}>{index + 1}</td>
+            <td className={cells}>{supplier.supplier}</td>
+            <td className={cells + " font-semibold tabular-nums text-amber-300"}>{numberBR(supplier.vezes)}</td>
+            <td className={cells + " tabular-nums"}>{formatDay(supplier.ultima)}</td>
+          </tr>)}
+          {!(report.data?.semAgendaSuppliers ?? []).length && <tr><td colSpan={4} className={cells}>Nenhuma entrega sem agenda no período.</td></tr>}
+        </ReportTable>
+      </Panel>
+    </ReportDialog>}
+    {dialog === "suppliers" && <ReportDialog title="Fornecedores com ocorrências" description="Fornecedores com mais não recebidos no período, com a taxa de recebimento de cada um." onClose={() => setDialog(null)}>
+      <Panel title="Não recebidos por fornecedor" hint="Ranking limitado aos fornecedores com ocorrências no período.">
+        <ReportTable label="Fornecedores com ocorrências" headings={["#", "Fornecedor", "Não recebidos", "Agendamentos", "Recebidos", "Taxa de recebimento"]}>
+          {(report.data?.suppliers ?? []).map((supplier, index) => <tr key={supplier.supplier}>
+            <td className={cells + " tabular-nums text-slate-400"}>{index + 1}</td>
+            <td className={cells}>{supplier.supplier}</td>
+            <td className={cells + " font-semibold tabular-nums text-rose-300"}>{numberBR(supplier.naoChegou)}</td>
+            <td className={cells + " tabular-nums"}>{numberBR(supplier.total)}</td>
+            <td className={cells + " tabular-nums"}>{numberBR(supplier.recebido)}</td>
+            <td className={cells + " font-semibold text-sky-200"}>{percentBR(supplier.total ? supplier.recebido / supplier.total * 100 : 0)}</td>
+          </tr>)}
+          {!(report.data?.suppliers ?? []).length && <tr><td colSpan={6} className={cells}>Nenhum fornecedor com ocorrências no período.</td></tr>}
+        </ReportTable>
       </Panel>
     </ReportDialog>}
   </section>;

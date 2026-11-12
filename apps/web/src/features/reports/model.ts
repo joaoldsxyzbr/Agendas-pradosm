@@ -10,9 +10,14 @@ export const reportRowSchema = z.object({
 const supplierSchema = z.object({
   supplier: z.string(), total: integer, recebido: integer, naoChegou: integer,
 });
+// Fornecedores que mais entregam sem agenda no período (origem "manual").
+const semAgendaSupplierSchema = z.object({
+  supplier: z.string(), vezes: integer, ultima: z.string(),
+});
 export const reportSchema = z.object({
   start: z.string(), end: z.string(), storeCodes: z.array(z.string()),
   rows: z.array(reportRowSchema), suppliers: z.array(supplierSchema),
+  semAgendaSuppliers: z.array(semAgendaSupplierSchema),
 });
 const occurrenceSchema = z.object({
   date: z.string(), storeCode: z.string(), storeName: z.string(),
@@ -23,17 +28,10 @@ const occurrenceSchema = z.object({
 export const occurrencesSchema = z.object({
   total: integer, offset: integer, limit: integer, rows: z.array(occurrenceSchema),
 });
-const latestRowSchema = z.object({
-  date: z.string(), storeCode: z.string(), time: z.string().nullable(),
-  supplier: z.string(), status: z.string(),
-});
-export const latestSchema = z.object({
-  total: integer, offset: integer, limit: integer, rows: z.array(latestRowSchema),
-});
 export type Report = z.infer<typeof reportSchema>;
 export type ReportRow = z.infer<typeof reportRowSchema>;
 export type Occurrences = z.infer<typeof occurrencesSchema>;
-export type Latest = z.infer<typeof latestSchema>;
+export type SemAgendaSupplier = z.infer<typeof semAgendaSupplierSchema>;
 export type ReportFilters = { start: string; end: string; stores: string[]; compare: boolean };
 
 export const numberBR = (value: number) => value.toLocaleString("pt-BR");
@@ -92,45 +90,6 @@ export function reportParams({ start, end, stores }: Pick<ReportFilters, "start"
   const params = new URLSearchParams({ start, end });
   for (const store of stores) params.append("storeCode", store);
   return params;
-}
-
-export const WEEKDAY_LABELS = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
-export type WeekdayGroup = { weekday: number; total: number; recebido: number; naoChegou: number; days: number };
-export function groupWeekday(daily: Grouped[]): WeekdayGroup[] {
-  const map = new Map<number, WeekdayGroup>();
-  for (const row of daily) {
-    const weekday = new Date(row.key + "T00:00:00Z").getUTCDay();
-    const current = map.get(weekday) ?? { weekday, total: 0, recebido: 0, naoChegou: 0, days: 0 };
-    current.total += row.total;
-    current.recebido += row.recebido;
-    current.naoChegou += row.naoChegou;
-    current.days += 1;
-    map.set(weekday, current);
-  }
-  return [...map.values()].sort((a, b) => WEEKDAY_ORDER.indexOf(a.weekday) - WEEKDAY_ORDER.indexOf(b.weekday));
-}
-
-export type CalendarDay = { date: string; total: number; recebido: number; naoChegou: number; naoCompareceu: number; aguardando: number; recusado: number };
-// Datas consecutivas dos últimos 7 dias corridos do período, inclusive dias sem agendas.
-export function lastSevenCalendarDays(daily: Grouped[], { start, end }: { start: string; end: string }): CalendarDay[] {
-  const first = start || daily[0]?.key;
-  const last = end || daily[daily.length - 1]?.key;
-  if (!first || !last) return [];
-  const begin = Date.parse(first + "T00:00:00Z");
-  const finish = Date.parse(last + "T00:00:00Z");
-  if (!Number.isFinite(begin) || !Number.isFinite(finish) || begin > finish) return [];
-  const lookup = new Map(daily.map(row => [row.key, row]));
-  const days: CalendarDay[] = [];
-  for (let time = Math.max(begin, finish - 6 * 86400000); time <= finish; time += 86400000) {
-    const date = new Date(time).toISOString().slice(0, 10);
-    const row = lookup.get(date);
-    days.push({
-      date, total: row?.total ?? 0, recebido: row?.recebido ?? 0, naoChegou: row?.naoChegou ?? 0,
-      naoCompareceu: row?.naoCompareceu ?? 0, aguardando: row?.aguardando ?? 0, recusado: row?.recusado ?? 0,
-    });
-  }
-  return days;
 }
 
 export type DeltaKind = "neutral" | "good" | "invert";

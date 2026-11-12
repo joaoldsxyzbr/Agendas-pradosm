@@ -117,7 +117,6 @@
     ],
     "admin-reports": [
       "get(\"/\"",
-      "get(\"/latest\"",
       "get(\"/occurrences\""
     ],
     "avisos": [

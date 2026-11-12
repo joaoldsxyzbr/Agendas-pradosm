@@ -43,7 +43,8 @@ adminReportRoutes.get("/", async (c) => {
   }
   const { start, end } = parsed.data;
   const {where,args:filters,codes}=storeFilter(parsed.data);
-  const rows = await c.env.DB.prepare([
+  const [rows, suppliers, semAgendaSuppliers] = await Promise.all([
+    c.env.DB.prepare([
     "SELECT a.data_agenda AS date, l.codigo AS storeCode, l.nome AS storeName,",
     "a.status_dia AS dayStatus, COUNT(ag.id) AS total,",
     "SUM(CASE WHEN ag.status = 'aguardando' AND a.status_dia = 'aberto' THEN 1 ELSE 0 END) AS aguardando,",
@@ -57,8 +58,8 @@ adminReportRoutes.get("/", async (c) => {
     "WHERE",
     where,
     "GROUP BY a.id ORDER BY a.data_agenda ASC, l.codigo ASC"
-  ].join(" ")).bind(...filters).all();
-  const suppliers = await c.env.DB.prepare([
+  ].join(" ")).bind(...filters).all(),
+    c.env.DB.prepare([
     "SELECT ag.fornecedor AS supplier, COUNT(*) AS total,",
     "SUM(CASE WHEN ag.status = 'recebido' THEN 1 ELSE 0 END) AS recebido,",
     "SUM(CASE WHEN ag.status = 'nao_chegou' AND COALESCE(ag.observacao, '') <> 'Não compareceu' THEN 1 ELSE 0 END) AS naoChegou",
@@ -71,7 +72,22 @@ adminReportRoutes.get("/", async (c) => {
     "GROUP BY ag.fornecedor",
     "HAVING naoChegou > 0",
     "ORDER BY naoChegou DESC, ag.fornecedor ASC LIMIT 12"
-  ].join(" ")).bind(...filters).all();
+  ].join(" ")).bind(...filters).all(),
+    // Fornecedores que mais entregam sem agenda: agendamentos de origem
+    // "manual" (registrados na hora na conferência, sem importação prévia),
+    // agrupados por fornecedor — alimenta o card "Fornecedores sem agenda".
+    c.env.DB.prepare([
+    "SELECT ag.fornecedor AS supplier, COUNT(*) AS vezes, MAX(a.data_agenda) AS ultima",
+    "FROM agendamentos ag",
+    "JOIN agendas a ON a.id = ag.agenda_id",
+    "JOIN lojas l ON l.id = a.loja_id",
+    "WHERE",
+    where,
+    "AND ag.ativo = 1 AND ag.origem = 'manual'",
+    "GROUP BY ag.fornecedor",
+    "ORDER BY vezes DESC, ag.fornecedor ASC LIMIT 12"
+  ].join(" ")).bind(...filters).all()
+  ]);
   return c.json({
     start,
     end,
@@ -92,45 +108,13 @@ adminReportRoutes.get("/", async (c) => {
       total: Number(supplier.total),
       recebido: Number(supplier.recebido),
       naoChegou: Number(supplier.naoChegou)
+    })),
+    semAgendaSuppliers: semAgendaSuppliers.results.map((supplier) => ({
+      ...supplier,
+      vezes: Number(supplier.vezes)
     }))
   });
 });
-// Amostra resumida do mesmo período e das mesmas lojas dos indicadores.
-// Seleção limitada no servidor; os campos fiscais não são expostos.
-adminReportRoutes.get("/latest", async (c) => {
-  const parsed = parseFilters(c.req);
-  if (!parsed.success) {
-    return c.json({ error: "FILTROS_INVALIDOS", message: "Informe um período válido de até 93 dias." }, 400);
-  }
-  const paging = z.object({
-    limit:z.coerce.number().int().min(1).max(50).default(5),
-    offset:z.coerce.number().int().min(0).max(100000).default(0)
-  }).safeParse({limit:c.req.query("limit"),offset:c.req.query("offset")});
-  if(!paging.success)return c.json({error:"PAGINACAO_INVALIDA"},400);
-  const {where,args} = storeFilter(parsed.data);
-  const result = await c.env.DB.prepare([
-    "SELECT a.data_agenda AS date, l.codigo AS storeCode, ag.horario_inicio AS time,",
-    "ag.fornecedor AS supplier,",
-    "CASE",
-    "WHEN (ag.status = 'aguardando' AND a.status_dia = 'concluido') OR",
-    "(ag.status = 'nao_chegou' AND ag.observacao = 'Não compareceu') THEN 'nao_compareceu'",
-    "WHEN ag.status = 'nao_chegou' THEN 'nao_recebido'",
-    "ELSE ag.status END AS status",
-    "FROM agendamentos ag",
-    "JOIN agendas a ON a.id = ag.agenda_id",
-    "JOIN lojas l ON l.id = a.loja_id",
-    "WHERE",where,"AND ag.ativo = 1",
-    "ORDER BY a.data_agenda DESC, ag.horario_inicio DESC, ag.id DESC LIMIT ? OFFSET ?"
-  ].join(" ")).bind(...args,paging.data.limit,paging.data.offset).all();
-  const total=await c.env.DB.prepare([
-    "SELECT COUNT(*) AS total FROM agendamentos ag",
-    "JOIN agendas a ON a.id = ag.agenda_id",
-    "JOIN lojas l ON l.id = a.loja_id",
-    "WHERE",where,"AND ag.ativo = 1"
-  ].join(" ")).bind(...args).first();
-  return c.json({rows:result.results,total:Number(total?.total)||0,limit:paging.data.limit,offset:paging.data.offset});
-});
-
 const occurrencesFilters = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).max(1e5).default(0),

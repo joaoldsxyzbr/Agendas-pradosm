@@ -16,10 +16,22 @@ const occurrences = { total: 55, rows: [
     protocol: "P001", observation: "Entrega não realizada", origin: "imported",
     occurrenceType: "nao_recebido", classificationOrigin: "manual" },
 ]};
-const latest = { total: 53, rows: [
-  { date: "2026-10-30", storeCode: "F02", time: "10:00",
-    supplier: "Fornecedor Beta", status: "recebido" },
-]};
+const suppliers = [
+  { supplier: "Fornecedor Alfa", total: 3, recebido: 1, naoChegou: 2 },
+  { supplier: "Fornecedor Beta", total: 3, recebido: 2, naoChegou: 1 },
+  { supplier: "Fornecedor Gama", total: 2, recebido: 1, naoChegou: 1 },
+  { supplier: "Fornecedor Delta", total: 2, recebido: 1, naoChegou: 1 },
+  { supplier: "Fornecedor Eco", total: 1, recebido: 0, naoChegou: 1 },
+  { supplier: "Fornecedor Zeta", total: 1, recebido: 0, naoChegou: 1 },
+];
+const semAgendaSuppliers = [
+  { supplier: "Fornecedor Gama", vezes: 3, ultima: "2026-10-30" },
+  { supplier: "Fornecedor Beta", vezes: 2, ultima: "2026-10-29" },
+  { supplier: "Fornecedor Delta", vezes: 2, ultima: "2026-10-28" },
+  { supplier: "Fornecedor Eco", vezes: 1, ultima: "2026-10-27" },
+  { supplier: "Fornecedor Zeta", vezes: 1, ultima: "2026-10-26" },
+  { supplier: "Fornecedor Ômega", vezes: 1, ultima: "2026-10-25" },
+];
 async function mock(page, options = {}) {
   const requests = [];
   let failed = false;
@@ -39,35 +51,37 @@ async function mock(page, options = {}) {
       return route.fulfill({ json: {
         start: url.searchParams.get("start"), end: url.searchParams.get("end"), storeCodes: selected,
         rows: selected.length ? rows.filter(row => selected.includes(row.storeCode)) : rows,
-        suppliers: [{ supplier: "Fornecedor Alfa", total: 2, recebido: 1, naoChegou: 1 }],
+        suppliers,
+        semAgendaSuppliers,
       } });
     }
     if (url.pathname === "/api/admin/reports/occurrences") return route.fulfill({ json: {
       ...occurrences, offset: Number(url.searchParams.get("offset") || 0), limit: 50,
       rows: url.searchParams.get("q") === "Inexistente" ? [] : occurrences.rows,
     } });
-    if (url.pathname === "/api/admin/reports/latest") return route.fulfill({ json: {
-      ...latest, offset: Number(url.searchParams.get("offset") || 0), limit: 50,
-    } });
     throw Error("API de teste inesperada: " + url.pathname);
   });
   return requests;
 }
 
-test("Relatório React mostra KPIs, gráficos, visão gerencial e diálogos de detalhamento", async ({ page }) => {
+test("Relatório React mostra KPIs, rankings de fornecedores, visão gerencial e diálogos de detalhamento", async ({ page }) => {
   const requests = await mock(page);
   await page.goto("/admin/reports");
   await expect(page.getByRole("heading", { name: "Relatório Gerencial" })).toBeVisible();
   await expect(page.getByLabel("Indicadores gerenciais")).toContainText("66,7%");
   await expect(page.getByLabel("Indicadores gerenciais")).toContainText("3");
   await expect(page.getByLabel("Visão gerencial de recebimentos")).toContainText("Taxa de recebimento");
-  await expect(page.getByRole("heading", { name: "Evolução dos recebimentos" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Distribuição das situações" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Desempenho por loja" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Agendamentos por situação (por dia)" })).toBeVisible();
-  await page.getByRole("button", { name: "Ver análises completas" }).click();
-  await expect(page.getByRole("heading", { name: "Evolução diária" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Padrão por dia da semana" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fornecedores com ocorrências" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Fornecedores sem agenda" })).toBeVisible();
+  await expect(page.getByLabel("Visão gerencial de recebimentos")).toContainText("10 entrega(s) sem agenda no período");
+  await page.getByRole("button", { name: "Ver todos os fornecedores" }).nth(0).click();
+  await expect(page.getByRole("table", { name: "Fornecedores com ocorrências" })).toContainText("Fornecedor Alfa");
+  await page.getByRole("button", { name: "Fechar" }).click();
+  await page.getByRole("button", { name: "Ver todos os fornecedores" }).nth(1).click();
+  await expect(page.getByRole("table", { name: "Fornecedores sem agenda" })).toContainText("Fornecedor Gama");
+  await expect(page.getByRole("table", { name: "Fornecedores sem agenda" })).toContainText("Vezes sem agenda");
   await page.getByRole("button", { name: "Fechar" }).click();
   await page.getByRole("button", { name: "Ver todas as lojas" }).click();
   await expect(page.getByRole("table", { name: "Consolidado por loja" }).locator("tbody tr")).toHaveCount(2);
@@ -75,12 +89,9 @@ test("Relatório React mostra KPIs, gráficos, visão gerencial e diálogos de d
   await page.getByRole("button", { name: "Ver todas as ocorrências" }).click();
   await expect(page.getByRole("table", { name: "Ocorrências e observações" })).toContainText("Fornecedor Alfa");
   await page.getByRole("button", { name: "Fechar" }).click();
-  await page.getByRole("button", { name: "Ver detalhamento" }).click();
-  await expect(page.getByRole("table", { name: "Agendamentos recentes" })).toContainText("Fornecedor Beta");
-  await page.getByRole("button", { name: "Fechar" }).click();
   expect(requests.some(x => x.path === "/api/admin/reports")).toBe(true);
-  expect(requests.some(x => x.path === "/api/admin/reports/latest")).toBe(true);
   expect(requests.some(x => x.path === "/api/admin/reports/occurrences")).toBe(true);
+  expect(requests.some(x => x.path === "/api/admin/reports/latest")).toBe(false);
 });
 
 test("Relatório React filtra intervalo e múltiplas lojas sem permitir período inválido", async ({ page }) => {
