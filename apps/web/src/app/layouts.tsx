@@ -57,6 +57,9 @@ export function AppLayout({ user }: { user: SessionUser }) {
   const signout = useMutation({
     mutationFn: logout,
     onSuccess: () => {
+      // O próximo login (pode ser outra pessoa no mesmo navegador) começa
+      // sem nenhum dado em cache do usuário que saiu.
+      client.clear();
       client.setQueryData(["session"], null);
       navigate("/login", { replace: true });
     },

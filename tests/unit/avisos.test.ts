@@ -10,6 +10,7 @@ import {
 } from "../../shared/avisos.ts";
 import {
   avisoEventoStatement,
+  markAvisoLido,
   markTodosAvisosLidos,
   publishAvisoStatements
 } from "../../worker/repositories/avisos.ts";
@@ -165,6 +166,20 @@ describe("Statements de avisos: bind igual aos placeholders", () => {
     // Sem eventos: o filtro por tipo entra na cláusula WHERE.
     assert.match(db.statements[2].sql, /a\.tipo = 'aviso'/);
     assert.doesNotMatch(db.statements[3].sql, /a\.tipo = 'aviso'/);
+  });
+
+  it("markAvisoLido tem arity exata com e sem filtro de loja/tipo", async () => {
+    const db = arityDb();
+    await markAvisoLido(db, "a1", "conf1", "t0", "01", false);
+    await markAvisoLido(db, "a1", "adm1", "t0", null, true);
+    assert.equal(db.statements.length, 2);
+    assert.match(db.statements[0].sql, /INSERT OR IGNORE INTO avisos_lidos/);
+    // Conferente: filtro por tipo e por loja dentro do EXISTS de visibilidade.
+    assert.match(db.statements[0].sql, /a\.tipo = 'aviso'/);
+    assert.match(db.statements[0].sql, /avisos_lojas/);
+    // Admin/visualizador: enxerga tudo, só exige que o aviso exista.
+    assert.doesNotMatch(db.statements[1].sql, /a\.tipo = 'aviso'/);
+    assert.doesNotMatch(db.statements[1].sql, /avisos_lojas/);
   });
 
   it("avisoEventoStatement com e sem guard têm arity exata", () => {
@@ -395,6 +410,67 @@ describe("Rotas de avisos integradas", () => {
       const visaoView = await (await f.call("view1", "/api/avisos")).json();
       assert.equal(visaoView.avisos.length, 2);
       assert.equal(visaoView.avisos.some((aviso) => aviso.tipo === "evento"), true);
+    } finally {
+      f.sqlite.close();
+    }
+  });
+
+  it("marcar lido respeita a visibilidade: evento e aviso de outra loja não são gravados", async () => {
+    const f = fixture();
+    try {
+      // Evento do sistema (só admin/gerente enxerga) + aviso direcionado à loja 02.
+      f.sqlite.prepare(
+        "INSERT INTO avisos (id, tipo, titulo, mensagem, criado_em) " +
+        "VALUES ('ev1', 'evento', 'Agenda importada', '10 agendas importadas.', '2026-11-12T12:00:00.000Z')"
+      ).run();
+      const publicacao = await f.call("adm1", "/api/admin/avisos", {
+        method: "POST",
+        body: { titulo: "Só loja 02", mensagem: "Recado interno da loja 02.", lojas: ["02"] }
+      });
+      const aviso02 = (await publicacao.json()).id;
+
+      // Conferente da loja 01 tenta marcar os dois: resposta genérica (não
+      // vaza existência), nenhuma leitura gravada, badge segue em 0.
+      const evResp = await f.call("conf1", "/api/avisos/ev1/lido", { method: "POST" });
+      assert.equal(evResp.status, 200);
+      assert.equal((await evResp.json()).jaLido, true);
+      const outroResp = await f.call("conf1", `/api/avisos/${aviso02}/lido`, { method: "POST" });
+      assert.equal((await outroResp.json()).jaLido, true);
+      const leiturasConf1 = f.sqlite
+        .prepare("SELECT count(*) AS n FROM avisos_lidos WHERE usuario_id = 'conf1'")
+        .get().n;
+      assert.equal(leiturasConf1, 0, "conferente não grava leitura do que não enxerga");
+      const visaoConf = await (await f.call("conf1", "/api/avisos")).json();
+      assert.equal(visaoConf.naoLidos, 0);
+
+      // Admin marca o evento normalmente (enxerga tudo).
+      const admResp = await f.call("adm1", "/api/avisos/ev1/lido", { method: "POST" });
+      assert.equal((await admResp.json()).jaLido, false);
+      const leiturasAdm = f.sqlite
+        .prepare("SELECT count(*) AS n FROM avisos_lidos WHERE usuario_id = 'adm1' AND aviso_id = 'ev1'")
+        .get().n;
+      assert.equal(leiturasAdm, 1);
+    } finally {
+      f.sqlite.close();
+    }
+  });
+
+  it("código de loja com vírgula não quebra o direcionamento nem a lista", async () => {
+    const f = fixture();
+    try {
+      f.sqlite.prepare(
+        "INSERT INTO lojas (id, codigo, nome, ativo) VALUES ('loja3', 'A,B', 'Loja com vírgula', 1)"
+      ).run();
+      const publicacao = await f.call("adm1", "/api/admin/avisos", {
+        method: "POST",
+        body: { titulo: "Loja com vírgula", mensagem: "Recado.", lojas: ["A,B"] }
+      });
+      assert.equal(publicacao.status, 201);
+      const publicado = await publicacao.json();
+      assert.deepEqual(publicado.lojas, ["A,B"]);
+      const visaoAdm = await (await f.call("adm1", "/api/avisos")).json();
+      const alvo = visaoAdm.avisos.find((aviso) => aviso.titulo === "Loja com vírgula");
+      assert.deepEqual(alvo.lojas, ["A,B"], "o código inteiro chega como um único elemento");
     } finally {
       f.sqlite.close();
     }

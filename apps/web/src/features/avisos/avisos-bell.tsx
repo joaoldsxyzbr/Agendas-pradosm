@@ -140,7 +140,8 @@ export function AvisosBell({ papel }: { papel: Role }) {
             </div>
             <div className="flex shrink-0 flex-col gap-1.5">
               {!aviso.lido && <Button size="sm" variant="secondary" aria-label={`Marcar aviso como lido: ${aviso.titulo}`}
-                disabled={marcarLido.isPending} onClick={() => marcarLido.mutate(aviso.id)}>
+                disabled={marcarLido.isPending && marcarLido.variables === aviso.id}
+                onClick={() => marcarLido.mutate(aviso.id)}>
                 <Check size={13} aria-hidden="true" /> Lido
               </Button>}
             </div>
