@@ -152,14 +152,19 @@ describe("Statements de avisos: bind igual aos placeholders", () => {
     assert.equal(semLojas.statements.length, 1);
   });
 
-  it("markTodosAvisosLidos tem arity exata com e sem filtro de loja", async () => {
+  it("markTodosAvisosLidos tem arity exata com e sem filtro de loja/tipo", async () => {
     const db = arityDb();
     await markTodosAvisosLidos(db, "conf1", "t0", "01");
     await markTodosAvisosLidos(db, "adm1", "t0", null);
-    assert.equal(db.statements.length, 2);
+    await markTodosAvisosLidos(db, "conf1", "t0", "01", false);
+    await markTodosAvisosLidos(db, "view1", "t0", null, true);
+    assert.equal(db.statements.length, 4);
     assert.match(db.statements[0].sql, /INSERT OR IGNORE INTO avisos_lidos/);
     assert.match(db.statements[0].sql, /avisos_lojas/);
     assert.doesNotMatch(db.statements[1].sql, /avisos_lojas x WHERE x.aviso_id = a.id AND x.loja/);
+    // Sem eventos: o filtro por tipo entra na cláusula WHERE.
+    assert.match(db.statements[2].sql, /a\.tipo = 'aviso'/);
+    assert.doesNotMatch(db.statements[3].sql, /a\.tipo = 'aviso'/);
   });
 
   it("avisoEventoStatement com e sem guard têm arity exata", () => {
@@ -354,6 +359,42 @@ describe("Rotas de avisos integradas", () => {
       // Visualizador também vê tudo.
       const visaoView = await (await f.call("view1", "/api/avisos")).json();
       assert.equal(visaoView.avisos.length, 1);
+    } finally {
+      f.sqlite.close();
+    }
+  });
+
+  it("eventos do sistema não chegam ao conferente; ficam com admin e visualizador", async () => {
+    const f = fixture();
+    try {
+      // Evento automático no mesmo formato dos statements de agendas.ts:
+      // sem direcionamento, criado pelo sistema, autor "Sistema".
+      f.sqlite.prepare(
+        "INSERT INTO avisos (id, tipo, titulo, mensagem, criado_em) " +
+        "VALUES ('ev1', 'evento', 'Agenda importada', '10 agendas e 216 agendamentos importados.', '2026-11-12T12:00:00.000Z')"
+      ).run();
+      await f.call("adm1", "/api/admin/avisos", {
+        method: "POST",
+        body: { titulo: "Aviso do admin", mensagem: "Somente recados do admin chegam ao conferente." }
+      });
+      // Conferente: só o aviso — o evento não entra na lista nem no badge
+      // (decisão de 12/11/2026: o conferente recebe apenas avisos do admin).
+      const visaoConf = await (await f.call("conf1", "/api/avisos")).json();
+      assert.equal(visaoConf.avisos.length, 1);
+      assert.equal(visaoConf.avisos.every((aviso) => aviso.tipo === "aviso"), true, "nenhum evento na lista do conferente");
+      assert.equal(visaoConf.naoLidos, 1, "o evento não conta no badge do conferente");
+      // Marcar-todos do conferente só grava o que ele enxerga.
+      const marcar = await f.call("conf1", "/api/avisos/marcar-todos", { method: "POST" });
+      assert.equal((await marcar.json()).marcados, 1);
+      // Admin vê evento E aviso; nada foi lido por ele.
+      const visaoAdmin = await (await f.call("adm1", "/api/avisos")).json();
+      assert.equal(visaoAdmin.avisos.length, 2);
+      assert.equal(visaoAdmin.naoLidos, 2);
+      assert.equal(visaoAdmin.avisos.some((aviso) => aviso.tipo === "evento"), true);
+      // Visualizador (gerente) também vê o evento.
+      const visaoView = await (await f.call("view1", "/api/avisos")).json();
+      assert.equal(visaoView.avisos.length, 2);
+      assert.equal(visaoView.avisos.some((aviso) => aviso.tipo === "evento"), true);
     } finally {
       f.sqlite.close();
     }
