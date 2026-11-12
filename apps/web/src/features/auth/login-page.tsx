@@ -17,6 +17,9 @@ export function LoginPage() {
   const signin = useMutation({
     mutationFn: () => login(loginValue.trim(), senha),
     onSuccess: (person) => {
+      // Troca de conta não pode herdar o cache do usuário anterior: o sino
+      // abriria com lidos e eventos de outra sessão (bug de 12/11/2026).
+      client.clear();
       client.setQueryData(["session"], person);
       navigate(homeForRole(person.papel), { replace: true });
     },
