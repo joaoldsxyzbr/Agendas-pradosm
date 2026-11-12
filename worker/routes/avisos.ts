@@ -17,20 +17,27 @@ import {
 //   primeiro) e ninguém publica/exclui por aqui.
 // - /api/admin/avisos: publicação exclusiva do admin (a cadeia /api/admin/*
 //   já exige requireAuth + requireAdmin). Não existe inativação/exclusão.
+// - Visibilidade (decisão de 12/11/2026): o conferente recebe apenas os
+//   avisos publicados pelo admin; eventos automáticos do sistema são do
+//   admin/gerente (visualizador).
 
 const avisoRoutes = new Hono<AppEnv>();
 const adminAvisoRoutes = new Hono<AppEnv>();
 
-// Conferente vê os avisos da sua loja (e os de todas); os demais papéis,
-// sem loja, veem tudo.
+// Conferente vê os avisos da sua loja (e os de todas) e nenhum evento; os
+// demais papéis, sem loja, veem tudo (avisos e eventos).
 function lojaDoUsuario(user) {
   return user.papel === "conferente" ? user.lojaCodigo : null;
+}
+
+function verEventosDoUsuario(user) {
+  return user.papel !== "conferente";
 }
 
 avisoRoutes.get("/", async (c) => {
   const user = c.get("authUser");
   if (!user) return c.json({ error: "NAO_AUTENTICADO", message: "Sessão inválida ou expirada." }, 401);
-  const { avisos, naoLidos } = await listAvisos(c.env.DB, user.id, lojaDoUsuario(user));
+  const { avisos, naoLidos } = await listAvisos(c.env.DB, user.id, lojaDoUsuario(user), verEventosDoUsuario(user));
   return c.json({ avisos: avisos.map(avisoJson), naoLidos });
 });
 
@@ -51,7 +58,13 @@ avisoRoutes.post("/:id/lido", async (c) => {
 avisoRoutes.post("/marcar-todos", async (c) => {
   const user = c.get("authUser");
   if (!user) return c.json({ error: "NAO_AUTENTICADO", message: "Sessão inválida ou expirada." }, 401);
-  const marcados = await markTodosAvisosLidos(c.env.DB, user.id, new Date().toISOString(), lojaDoUsuario(user));
+  const marcados = await markTodosAvisosLidos(
+    c.env.DB,
+    user.id,
+    new Date().toISOString(),
+    lojaDoUsuario(user),
+    verEventosDoUsuario(user)
+  );
   return c.json({ ok: true, marcados });
 });
 
