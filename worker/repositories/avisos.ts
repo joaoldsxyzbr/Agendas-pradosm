@@ -27,8 +27,10 @@ export async function listAvisos(db, userId, loja = null, verEventos = true, lim
   const filtroLoja = visibilidadePorLoja(loja);
   const tipo = filtroTipo(verEventos);
   const where = [tipo, filtroLoja ? "(" + filtroLoja + ")" : ""].filter(Boolean).join(" AND ");
+  // Separador char(31) (unit separator): código de loja com vírgula não pode
+  // quebrar o GROUP_CONCAT vindo do D1.
   const lojasSelect =
-    "(SELECT GROUP_CONCAT(x.loja, ',') FROM avisos_lojas x WHERE x.aviso_id = a.id) AS lojas";
+    "(SELECT GROUP_CONCAT(x.loja, char(31)) FROM avisos_lojas x WHERE x.aviso_id = a.id) AS lojas";
   const rows = await db.prepare(
     `SELECT a.id, a.tipo, a.titulo, a.mensagem, a.criado_em, a.urgente, a.autor,
             ${lojasSelect},
@@ -50,12 +52,20 @@ export async function listAvisos(db, userId, loja = null, verEventos = true, lim
   return { avisos: rows.results, naoLidos: unread?.total ?? 0 };
 }
 
-// Marca um aviso como lido para o usuário. Idempotente: marcar de novo
-// não regrava (INSERT OR IGNORE na PK composta).
-export async function markAvisoLido(db, avisoId, userId, now) {
+// Marca um aviso como lido para o usuário — apenas o que ele enxerga (mesmo
+// filtro de loja e tipo da listagem). Idempotente: marcar de novo não
+// regrava (INSERT OR IGNORE na PK composta); aviso invisível responde igual
+// a já lido, sem vazar existência fora do que o usuário vê.
+export async function markAvisoLido(db, avisoId, userId, now, loja = null, verEventos = true) {
+  const filtroLoja = visibilidadePorLoja(loja);
+  const tipo = filtroTipo(verEventos);
+  const where = [tipo, filtroLoja ? "(" + filtroLoja + ")" : ""].filter(Boolean).join(" AND ");
   const result = await db.prepare(
-    "INSERT OR IGNORE INTO avisos_lidos (aviso_id, usuario_id, lido_em) VALUES (?, ?, ?)"
-  ).bind(avisoId, userId, now).run();
+    `INSERT OR IGNORE INTO avisos_lidos (aviso_id, usuario_id, lido_em)
+      SELECT ?, ?, ? WHERE EXISTS (
+        SELECT 1 FROM avisos a WHERE a.id = ?${where ? " AND " + where : ""}
+      )`
+  ).bind(...(loja ? [avisoId, userId, now, avisoId, loja] : [avisoId, userId, now, avisoId])).run();
   return result?.meta?.changes === 1;
 }
 
@@ -89,7 +99,7 @@ export function avisoJson(row) {
     lido: row.lido === 1,
     urgente: row.urgente === 1,
     autor: row.autor ?? "Sistema",
-    lojas: row.lojas ? String(row.lojas).split(",") : null
+    lojas: row.lojas ? String(row.lojas).split("\u001f") : null
   };
 }
 

@@ -45,10 +45,18 @@ avisoRoutes.post("/:id/lido", async (c) => {
   const user = c.get("authUser");
   if (!user) return c.json({ error: "NAO_AUTENTICADO", message: "Sessão inválida ou expirada." }, 401);
   const id = c.req.param("id");
-  const inserted = await markAvisoLido(c.env.DB, id, user.id, new Date().toISOString());
+  const inserted = await markAvisoLido(
+    c.env.DB,
+    id,
+    user.id,
+    new Date().toISOString(),
+    lojaDoUsuario(user),
+    verEventosDoUsuario(user)
+  );
   if (!inserted) {
-    // Idempotente: já lido OU aviso inexistente. A resposta é a mesma para
-    // não vazar existência de aviso fora do que o usuário enxerga.
+    // Idempotente: já lido OU aviso invisível ao usuário (fora do filtro de
+    // loja/tipo) OU inexistente. A resposta é a mesma para não vazar
+    // existência de aviso fora do que o usuário enxerga.
     return c.json({ ok: true, jaLido: true });
   }
   return c.json({ ok: true, jaLido: false });
@@ -131,7 +139,9 @@ adminAvisoRoutes.post("/", async (c) => {
       criado_em: now,
       urgente: urgente ? 1 : 0,
       autor: user.nome,
-      lojas: lojas ? lojas.join(",") : null,
+      // char(31) é o separador do GROUP_CONCAT em repositories/avisos.ts:
+      // código de loja com vírgula não pode quebrar o parse de avisoJson.
+      lojas: lojas ? lojas.join("\u001f") : null,
       lido: 0
     }),
     201
